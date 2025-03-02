@@ -1,0 +1,187 @@
+import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { useWallet } from './WalletContext';
+
+interface AuthContextType {
+  isAuthenticated: boolean;
+  user: User | null;
+  login: (email: string, password: string) => Promise<boolean>;
+  logout: () => void;
+  register: (username: string, email: string, password: string) => Promise<boolean>;
+  loading: boolean;
+  error: string | null;
+}
+
+interface User {
+  id: string;
+  username: string;
+  email: string;
+  roles: string[];
+  walletAddress?: string;
+}
+
+const AuthContext = createContext<AuthContextType | undefined>(undefined);
+
+export function AuthProvider({ children }: { children: ReactNode }) {
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
+  const [user, setUser] = useState<User | null>(null);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
+  const { account } = useWallet();
+
+  // Check for existing session on initial load
+  useEffect(() => {
+    const checkAuth = async () => {
+      try {
+        const token = localStorage.getItem('token');
+        
+        if (token) {
+          // In a real app, validate the token with the server
+          // For now, we'll just simulate this
+          const userData = JSON.parse(localStorage.getItem('user') || '{}');
+          
+          if (userData && userData.id) {
+            setUser(userData);
+            setIsAuthenticated(true);
+          } else {
+            // Invalid stored user data
+            localStorage.removeItem('token');
+            localStorage.removeItem('user');
+          }
+        }
+      } catch (err) {
+        console.error('Auth check error:', err);
+        setError('Authentication verification failed');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    checkAuth();
+  }, []);
+
+  // Update user wallet address when wallet connection changes
+  useEffect(() => {
+    if (isAuthenticated && user && account && account !== user.walletAddress) {
+      const updatedUser = { ...user, walletAddress: account };
+      setUser(updatedUser);
+      localStorage.setItem('user', JSON.stringify(updatedUser));
+      
+      // In a real app, you would update this on the server as well
+    }
+  }, [account, isAuthenticated, user]);
+
+  const login = async (email: string, password: string): Promise<boolean> => {
+    setLoading(true);
+    setError(null);
+    
+    try {
+      // In a real app, this would be an API call
+      // Simulating API call for development
+      
+      // Mock successful login
+      const mockResponse = {
+        success: true,
+        data: {
+          token: 'mock-jwt-token',
+          user: {
+            id: '1',
+            username: 'testuser',
+            email: email,
+            roles: ['user'],
+            walletAddress: account || undefined
+          }
+        }
+      };
+      
+      if (mockResponse.success) {
+        const { token, user } = mockResponse.data;
+        
+        localStorage.setItem('token', token);
+        localStorage.setItem('user', JSON.stringify(user));
+        
+        setUser(user);
+        setIsAuthenticated(true);
+        setLoading(false);
+        return true;
+      } else {
+        throw new Error('Invalid credentials');
+      }
+    } catch (err: any) {
+      setError(err.message || 'Login failed');
+      setLoading(false);
+      return false;
+    }
+  };
+
+  const register = async (username: string, email: string, password: string): Promise<boolean> => {
+    setLoading(true);
+    setError(null);
+    
+    try {
+      // In a real app, this would be an API call
+      // Simulating API call for development
+      
+      // Mock successful registration
+      const mockResponse = {
+        success: true,
+        data: {
+          token: 'mock-jwt-token',
+          user: {
+            id: Date.now().toString(), // Generate random ID
+            username,
+            email,
+            roles: ['user'],
+            walletAddress: account || undefined
+          }
+        }
+      };
+      
+      if (mockResponse.success) {
+        const { token, user } = mockResponse.data;
+        
+        localStorage.setItem('token', token);
+        localStorage.setItem('user', JSON.stringify(user));
+        
+        setUser(user);
+        setIsAuthenticated(true);
+        setLoading(false);
+        return true;
+      } else {
+        throw new Error('Registration failed');
+      }
+    } catch (err: any) {
+      setError(err.message || 'Registration failed');
+      setLoading(false);
+      return false;
+    }
+  };
+
+  const logout = () => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    setUser(null);
+    setIsAuthenticated(false);
+  };
+
+  const value = {
+    isAuthenticated,
+    user,
+    login,
+    logout,
+    register,
+    loading,
+    error
+  };
+
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+}
+
+export function useAuth() {
+  const context = useContext(AuthContext);
+  
+  if (context === undefined) {
+    throw new Error('useAuth must be used within an AuthProvider');
+  }
+  
+  return context;
+}
