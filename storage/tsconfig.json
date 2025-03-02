@@ -1,0 +1,29 @@
+{
+    "compilerOptions": {
+      "target": "es2020",
+      "module": "commonjs",
+      "lib": ["es2020"],
+      "outDir": "dist",
+      "rootDir": "src",
+      "strict": true,
+      "moduleResolution": "node",
+      "esModuleInterop": true,
+      "skipLibCheck": true,
+      "forceConsistentCasingInFileNames": true,
+      "sourceMap": true,
+      "declaration": true,
+      "resolveJsonModule": true,
+      "baseUrl": "src",
+      "paths": {
+        "@ipfs/*": ["ipfs/*"],
+        "@filecoin/*": ["filecoin/*"],
+        "@encryption/*": ["encryption/*"],
+        "@metadata/*": ["metadata/*"],
+        "@services/*": ["services/*"],
+        "@utils/*": ["utils/*"],
+        "@config/*": ["config/*"]
+      }
+    },
+    "include": ["src/**/*"],
+    "exclude": ["node_modules", "**/*.test.ts"]
+  }

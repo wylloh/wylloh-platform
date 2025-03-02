@@ -1,0 +1,44 @@
+{
+    "name": "wylloh",
+    "version": "0.1.0",
+    "description": "Blockchain-based media licensing system",
+    "private": true,
+    "workspaces": [
+      "client",
+      "api",
+      "storage"
+    ],
+    "scripts": {
+      "client": "yarn workspace client start",
+      "api": "yarn workspace api start",
+      "storage": "yarn workspace storage start",
+      "dev": "concurrently \"yarn client\" \"yarn api\" \"yarn storage\"",
+      "build": "yarn workspaces run build",
+      "test": "yarn workspaces run test",
+      "compile-contracts": "hardhat compile",
+      "test-contracts": "hardhat test",
+      "deploy-contracts:testnet": "hardhat run scripts/deploy/deploy.js --network mumbai"
+    },
+    "devDependencies": {
+      "@nomiclabs/hardhat-ethers": "^2.2.3",
+      "@nomiclabs/hardhat-waffle": "^2.0.6",
+      "@openzeppelin/contracts": "^4.9.3",
+      "@openzeppelin/hardhat-upgrades": "^1.28.0",
+      "@types/node": "^20.5.9",
+      "chai": "^4.3.8",
+      "concurrently": "^8.2.1",
+      "dotenv": "^16.3.1",
+      "ethereum-waffle": "^4.0.10",
+      "ethers": "^5.7.2",
+      "hardhat": "^2.17.2",
+      "hardhat-gas-reporter": "^1.0.9",
+      "solidity-coverage": "^0.8.4",
+      "ts-node": "^10.9.1",
+      "typescript": "^5.2.2"
+    },
+    "engines": {
+      "node": ">=16.0.0"
+    },
+    "author": "Wylloh Team",
+    "license": "UNLICENSED"
+  }
