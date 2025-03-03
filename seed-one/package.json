@@ -1,0 +1,76 @@
+{
+    "name": "seed-one",
+    "version": "0.1.0",
+    "description": "Dedicated media player for the Wylloh platform with blockchain-based license verification",
+    "main": "src/index.js",
+    "private": true,
+    "scripts": {
+      "start": "electron .",
+      "dev": "electron . --dev",
+      "build": "node scripts/build.js",
+      "build:kodi": "node scripts/build-kodi-addon.js",
+      "package": "node scripts/package.js",
+      "test": "jest",
+      "lint": "eslint src"
+    },
+    "repository": {
+      "type": "git",
+      "url": "git+https://github.com/your-organization/wylloh.git"
+    },
+    "keywords": [
+      "media-player",
+      "blockchain",
+      "license",
+      "kodi",
+      "streaming",
+      "decentralized"
+    ],
+    "author": "Wylloh Team",
+    "license": "UNLICENSED",
+    "dependencies": {
+      "electron": "^26.2.4",
+      "axios": "^1.5.0",
+      "ethers": "^5.7.2",
+      "crypto-js": "^4.1.1",
+      "electron-store": "^8.1.0",
+      "ipfs-http-client": "^60.0.1",
+      "node-fetch": "^3.3.2",
+      "uuid": "^9.0.0",
+      "winston": "^3.10.0",
+      "express": "^4.18.2",
+      "moment": "^2.29.4",
+      "semver": "^7.5.4"
+    },
+    "devDependencies": {
+      "@types/jest": "^29.5.4",
+      "@types/node": "^20.5.9",
+      "electron-builder": "^24.6.4",
+      "eslint": "^8.48.0",
+      "jest": "^29.6.4",
+      "ts-jest": "^29.1.1",
+      "typescript": "^5.2.2"
+    },
+    "build": {
+      "appId": "com.wylloh.seedone",
+      "productName": "Seed One",
+      "directories": {
+        "output": "dist"
+      },
+      "files": [
+        "src/**/*",
+        "node_modules/**/*",
+        "package.json"
+      ],
+      "mac": {
+        "category": "public.app-category.entertainment",
+        "target": "dmg"
+      },
+      "win": {
+        "target": "nsis"
+      },
+      "linux": {
+        "target": "AppImage",
+        "category": "Video"
+      }
+    }
+  }
