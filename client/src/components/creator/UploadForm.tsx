@@ -118,7 +118,7 @@ const formatFileSize = (bytes: number): string => {
   return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
 };
 
-const UploadForm: React.FC = () => {
+const UploadForm: React.FC = function() {
   // Navigation
   const navigate = useNavigate();
   
@@ -807,7 +807,7 @@ const UploadForm: React.FC = () => {
                 )}
                 
                 {uploadStatus.previewFile.status === 'success' && (
-                  <Alert severity="success" size="small" sx={{ mt: 1 }}>
+                  <Alert severity="success" sx={{ mt: 1 }}>
                     Upload complete!
                   </Alert>
                 )}
@@ -889,7 +889,7 @@ const UploadForm: React.FC = () => {
                 )}
                 
                 {uploadStatus.thumbnailFile.status === 'success' && (
-                  <Alert severity="success" size="small" sx={{ mt: 1 }}>
+                  <Alert severity="success" sx={{ mt: 1 }}>
                     Upload complete!
                   </Alert>
                 )}
@@ -1085,3 +1085,44 @@ const UploadForm: React.FC = () => {
         </Grid>
     </Box>
     )}
+
+  // Render review and submit step
+  const renderReviewAndSubmit = () => (
+    <Box>
+      <Typography variant="h6" gutterBottom>
+        Review & Submit
+      </Typography>
+      
+      <Alert severity="info" sx={{ mb: 3 }}>
+        <AlertTitle>Almost Done!</AlertTitle>
+        <Typography variant="body2">
+          Please review your content details before submitting. After submission, your content will be uploaded to IPFS and stored securely.
+        </Typography>
+      </Alert>
+      
+      <Paper sx={{ p: 3, mb: 3 }}>
+        <Grid container spacing={2}>
+          {/* Content of your review form here */}
+          <Grid item xs={12}>
+            <Typography variant="subtitle1" gutterBottom>
+              Ready to submit your content
+            </Typography>
+          </Grid>
+        </Grid>
+      </Paper>
+      
+      {submitSuccess && (
+        <Alert severity="success" sx={{ mb: 3 }}>
+          <AlertTitle>Success!</AlertTitle>
+          Content submitted successfully. You will be redirected to your dashboard.
+        </Alert>
+      )}
+      
+      {submitError && (
+        <Alert severity="error" sx={{ mb: 3 }}>
+          <AlertTitle>Error</AlertTitle>
+          {submitError}
+        </Alert>
+      )}
+    </Box>
+  );
