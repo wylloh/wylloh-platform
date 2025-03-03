@@ -14,8 +14,9 @@ import MainLayout from './components/layout/MainLayout';
 import HomePage from './pages/HomePage';
 import MarketplacePage from './pages/marketplace/MarketplacePage';
 import ContentDetailsPage from './pages/marketplace/ContentDetailsPage';
-import CreatorDashboardPage from './pages/creator/DashboardPage';
+import DashboardPage from './pages/creator/DashboardPage';
 import UploadPage from './pages/creator/UploadPage';
+import EditContentPage from './pages/creator/EditContentPage';
 import PlayerPage from './pages/player/PlayerPage';
 import ProfilePage from './pages/user/ProfilePage';
 import MyCollectionPage from './pages/user/MyCollectionPage';
@@ -52,8 +53,9 @@ function App() {
               <Route index element={<HomePage />} />
               <Route path="marketplace" element={<MarketplacePage />} />
               <Route path="marketplace/:id" element={<ContentDetailsPage />} />
-              <Route path="creator/dashboard" element={<CreatorDashboardPage />} />
+              <Route path="creator/dashboard" element={<DashboardPage />} />
               <Route path="creator/upload" element={<UploadPage />} />
+              <Route path="creator/edit/:id" element={<EditContentPage />} />
               <Route path="player/:id" element={<PlayerPage />} />
               <Route path="profile" element={<ProfilePage />} />
               <Route path="collection" element={<MyCollectionPage />} />
