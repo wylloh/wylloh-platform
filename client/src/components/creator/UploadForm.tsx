@@ -1082,3 +1082,6 @@ const UploadForm: React.FC = () => {
         </Grid>
         
         <Grid item xs={12} sm={4}>
+        </Grid>
+    </Box>
+    )}

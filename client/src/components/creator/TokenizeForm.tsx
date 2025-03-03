@@ -87,9 +87,15 @@ const TokenizeForm: React.FC<TokenizeFormProps> = ({
   };
   
   // Handle threshold update
-  const handleUpdateThreshold = (index: number, field: keyof RightsThreshold, value: any): void => {
+  const handleUpdateThreshold = (index: number, field: keyof RightsThreshold, value: string | number): void => {
     const newThresholds = [...rightsThresholds];
-    newThresholds[index][field] = value;
+    if (field === 'quantity') {
+      newThresholds[index].quantity = value as number;
+    } else if (field === 'type') {
+      newThresholds[index].type = value as string;
+    } else if (field === 'description') {
+      newThresholds[index].description = value as string;
+    }
     setRightsThresholds(newThresholds);
   };
   
