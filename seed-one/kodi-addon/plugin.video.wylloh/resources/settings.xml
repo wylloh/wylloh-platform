@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<settings>
+    <category label="General">
+        <setting id="auto_connect" type="bool" label="Auto-connect wallet on startup" default="true"/>
+        <setting id="preferred_quality" type="enum" label="Preferred streaming quality" default="1" values="SD|HD|4K|Auto"/>
+        <setting id="buffer_size" type="enum" label="Buffer size" default="1" values="Small|Medium|Large"/>
+        <setting type="sep"/>
+        <setting id="clear_cache" type="action" label="Clear cache" action="RunPlugin(plugin://plugin.video.wylloh/clear_cache)"/>
+    </category>
+    
+    <category label="API">
+        <setting id="api_url" type="text" label="API URL" default="https://api.wylloh.com/api/v1/"/>
+        <setting id="gateway_url" type="text" label="IPFS Gateway URL" default="https://gateway.wylloh.com/ipfs/"/>
+        <setting id="api_token" type="text" label="API Token" default="" option="hidden"/>
+        <setting type="sep"/>
+        <setting id="wallet_api_url" type="text" label="Wallet API URL" default="http://localhost:3333/api/"/>
+        <setting id="wallet_api_key" type="text" label="Wallet API Key" default="local-seed-one-key" option="hidden"/>
+    </category>
+    
+    <category label="Playback">
+        <setting id="enable_subtitles" type="bool" label="Enable subtitles (when available)" default="true"/>
+        <setting id="auto_resume" type="bool" label="Auto-resume playback" default="true"/>
+        <setting id="verification_interval" type="slider" label="License verification interval (minutes)" default="5" range="1,1,60" option="int"/>
+        <setting type="sep"/>
+        <setting id="enable_watermark" type="bool" label="Show watermark" default="true"/>
+        <setting id="watermark_position" type="enum" label="Watermark position" default="2" values="Top Left|Top Right|Bottom Right|Bottom Left" enable="eq(-1,true)"/>
+        <setting id="watermark_opacity" type="slider" label="Watermark opacity" default="30" range="10,5,100" option="int" enable="eq(-2,true)"/>
+    </category>
+    
+    <category label="Advanced">
+        <setting id="debug_logging" type="bool" label="Enable debug logging" default="false"/>
+        <setting id="cache_ttl" type="slider" label="Cache lifetime (hours)" default="24" range="1,1,168" option="int"/>
+        <setting type="sep"/>
+        <setting id="expert_mode" type="bool" label="Expert mode" default="false"/>
+        <setting id="custom_parameters" type="text" label="Custom player parameters" default="" enable="eq(-1,true)"/>
+    </category>
+</settings>
