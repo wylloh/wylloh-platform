@@ -2,312 +2,376 @@
 
 ## Overview
 
-The Wylloh platform uses smart contracts on the Polygon blockchain to manage content tokenization, rights management, and marketplace functionality. These contracts provide the foundation for the decentralized licensing system, enabling transparent and verifiable ownership and rights transactions.
-
-*Note: This documentation is based on references in the codebase and may need updates when direct access to contract files is available.*
+The Wylloh platform utilizes a suite of smart contracts deployed on the Polygon blockchain to manage content licensing, rights enforcement, and marketplace functionality. These contracts work together to enable the tokenization of media content, flexible rights management, and transparent royalty distribution.
 
 ## Contract Architecture
 
-The Wylloh smart contracts follow a modular architecture:
+The smart contract architecture consists of four main components:
+
+1. **WyllohToken**: The core token contract that implements the ERC-1155 standard for multi-token management with extensions for royalties and content metadata.
+
+2. **WyllohMarketplace**: Manages the buying and selling of token licenses, including listings, offers, and transactions.
+
+3. **RightsManager**: Handles the configuration and verification of different rights tiers associated with token ownership.
+
+4. **RoyaltyDistributor**: Manages the collection and distribution of royalties to content creators and other stakeholders.
+
+### Contract Interaction Flow
 
 ```
 ┌─────────────┐      ┌─────────────┐      ┌─────────────┐
-│  WyllohToken│◄─────┤    Rights   │◄─────┤    Access   │
-│   (ERC-1155)│      │  Management │      │   Control   │
+│ WyllohToken │◄────►│ RightsManager│◄────►│RoyaltyDistributor│
 └──────┬──────┘      └─────────────┘      └─────────────┘
-       │
-       │               ┌─────────────┐
-       └──────────────►│  Royalty    │
-                       │ Distribution│
-                       └──────┬──────┘
-                              │
-┌─────────────┐              │
-│  Marketplace│◄─────────────┘
-│             │
+       │                                         ▲
+       │                                         │
+       ▼                                         │
+┌─────────────┐                                  │
+│WyllohMarketplace│───────────────────────────────┘
 └─────────────┘
 ```
 
-## Core Contracts
+## WyllohToken Contract
 
-### WyllohToken (ERC-1155)
+### Purpose
+The WyllohToken contract is responsible for creating, managing, and tracking token ownership for content licenses on the Wylloh platform.
 
-The main token contract implementing the ERC-1155 multi-token standard with additional features for rights management.
+### Key Features
 
-**Key Features:**
-- Multi-token support (ERC-1155)
-- Content metadata storage
-- Rights thresholds definition
-- Royalty implementation
+#### Token Creation and Metadata
+```solidity
+function create(
+    address to,
+    uint256 id,
+    uint256 amount,
+    string memory contentId,
+    string memory contentHash,
+    string memory contentType,
+    string memory tokenURI,
+    address royaltyRecipient,
+    uint96 royaltyPercentage
+) public onlyRole(MINTER_ROLE)
+```
 
-**Functions:**
-- `create(address recipient, uint256 tokenId, uint256 initialSupply, string contentId, bytes32 contentHash, string contentType, string uri, address royaltyRecipient, uint96 royaltyPercentage)`: Create a new token for content
-- `uri(uint256 tokenId)`: Get token metadata URI
-- `getContentMetadata(uint256 tokenId)`: Get content metadata
-- `setRightsThresholds(uint256 tokenId, uint256[] quantities, uint256[] rightsTypes)`: Set rights thresholds for a token
-- `getRightsThresholds(uint256 tokenId)`: Get rights thresholds for a token
-- `hasRights(address account, uint256 tokenId, uint256 rightsType)`: Check if an account has specific rights
+This function creates new tokens with associated content metadata, including:
+- Content ID: Unique identifier for the content
+- Content Hash: Cryptographic hash of the content for verification
+- Content Type: Type of content (movie, series, etc.)
+- TokenURI: URI for token metadata (following metadata standards)
 
-### Rights Management
+#### Rights Management
+```solidity
+function setRightsThresholds(
+    uint256 tokenId,
+    uint256[] memory quantities,
+    uint8[] memory rightsTypes
+) public onlyRole(ADMIN_ROLE)
+```
 
-Manages the rights and permissions associated with tokens.
+This function configures the rights thresholds for a token, determining what rights are granted based on the number of tokens owned.
 
-**Key Features:**
-- Rights threshold definition
-- Rights verification
-- Rights delegation
+```solidity
+function hasRights(address account, uint256 tokenId, uint8 rightsType) public view returns (bool)
+```
 
-**Rights Types:**
-1. **Personal Viewing (1)**: Basic right to view content
-2. **Small Venue (2)**: Right to display in small venues
-3. **Streaming (3)**: Right to stream on platforms
-4. **Public Performance (4)**: Right for public screenings
-5. **Distribution (5)**: Right to distribute content
-6. **Derivative Works (6)**: Right to create derivative works
+This function checks if an address has specific rights for a token based on their token balance and the configured thresholds.
 
-### Royalty Distribution
-
-Implements royalty management for content creators.
-
-**Key Features:**
-- Creator royalty settings
-- Automatic royalty distribution
-- Royalty tracking
-
-**Functions:**
-- `royaltyInfo(uint256 tokenId, uint256 salePrice)`: Get royalty information for a token
-
-### Marketplace
-
-Facilitates buying and selling of content licenses.
-
-**Key Features:**
-- Listing management
-- Purchase functionality
-- Escrow for secure transactions
-- Fee handling
-
-## Token Structure
-
-### Token Metadata
-
-Each token contains metadata stored on IPFS:
-
-```json
-{
-  "name": "Content Title",
-  "description": "Content Description",
-  "image": "ipfs://Qm...", // Thumbnail or poster image
-  "properties": {
-    "contentType": "movie",
-    "contentId": "content123",
-    "contentCid": "QmXYZ...",
-    "metadataCid": "QmABC..."
-  },
-  "rights": [
-    {
-      "quantity": 1,
-      "rightsType": 1,
-      "description": "Personal Viewing"
-    },
-    {
-      "quantity": 100,
-      "rightsType": 2,
-      "description": "Small Venue (50 seats)"
-    }
-  ]
+#### Content Metadata
+```solidity
+struct ContentMetadata {
+    string contentId;     // Unique identifier for the content
+    string contentHash;   // Hash of the content for verification
+    string contentType;   // Type of content (movie, series, etc.)
+    address creator;      // Address of the content creator
 }
 ```
 
-### Rights Thresholds
+This structure stores essential metadata about the content associated with each token.
 
-Rights are determined by token quantity:
+#### Royalty Support
+The contract implements the ERC2981 standard for royalty support, allowing royalties to be set and retrieved for each token.
 
-| Rights Type | Minimum Quantity | Description |
-|-------------|------------------|-------------|
-| 1 | 1 | Personal Viewing |
-| 2 | 100 | Small Venue (50 seats) |
-| 3 | 5000 | Streaming Platform |
-| 4 | 10000 | Theatrical Exhibition |
+## WyllohMarketplace Contract
 
-## Contract Deployment
+### Purpose
+The WyllohMarketplace contract manages the buying and selling of tokens, including listings, offers, and transactions.
 
-Contracts are deployed to the Polygon network:
+### Key Features
 
-- **Development**: Mumbai Testnet (Chain ID: 80001)
-- **Production**: Polygon Mainnet (Chain ID: 137)
+#### Platform Fee Structure
+The marketplace charges a fee on every transaction, including both initial sales and secondary market trades:
 
-## Token Creation Flow
-
-```mermaid
-sequenceDiagram
-    participant Creator
-    participant API
-    participant TokenService
-    participant WyllohToken
-    participant IPFS
-
-    Creator->>API: Request tokenization
-    API->>TokenService: Create token
-    TokenService->>IPFS: Upload metadata
-    IPFS->>TokenService: Return metadataCid
-    TokenService->>WyllohToken: create()
-    WyllohToken->>TokenService: Token created
-    TokenService->>WyllohToken: setRightsThresholds()
-    WyllohToken->>TokenService: Rights set
-    TokenService->>API: Return token details
-    API->>Creator: Tokenization complete
+```solidity
+uint256 public platformFeePercentage = 250; // 2.5% in basis points (1/100 of a percent)
+address public feeRecipient;
 ```
 
-## Rights Verification Flow
+This fee is calculated as a percentage of the total transaction value and is deducted from the seller's proceeds. The fee applies to:
+- Initial token sales through the marketplace
+- Secondary market transactions between users
+- Accepted offers
 
-```mermaid
-sequenceDiagram
-    participant User
-    participant Player
-    participant API
-    participant WyllohToken
+For example, if a token sells for 1 MATIC, the platform fee would be 0.025 MATIC, and the seller would receive 0.975 MATIC (minus any royalties).
 
-    User->>Player: Request content playback
-    Player->>API: Verify token ownership
-    API->>WyllohToken: balanceOf(user, tokenId)
-    WyllohToken->>API: Token balance
-    API->>WyllohToken: hasRights(user, tokenId, 1)
-    WyllohToken->>API: Rights verification
-    
-    alt Has Rights
-        API->>Player: Verification successful
-        Player->>User: Play content
-    else No Rights
-        API->>Player: Verification failed
-        Player->>User: Access denied
-    end
+#### Listing Management
+
+```solidity
+function createListing(
+    address tokenContract,
+    uint256 tokenId,
+    uint256 quantity,
+    uint256 pricePerToken
+) external nonReentrant returns (uint256)
 ```
 
-## Marketplace Flow
+This function creates a new listing for tokens, transferring them to the marketplace contract for escrow until sold or the listing is canceled.
 
-```mermaid
-sequenceDiagram
-    participant Seller
-    participant Buyer
-    participant Marketplace
-    participant WyllohToken
+Listings can have the following statuses:
+- `active`: Listing is active and tokens can be purchased
+- `sold`: All tokens in the listing have been sold
+- `cancelled`: Listing was cancelled by the seller
+- `expired`: Listing has reached its expiration date
 
-    Seller->>Marketplace: Create listing
-    Marketplace->>WyllohToken: Check ownership
-    WyllohToken->>Marketplace: Ownership confirmed
-    Marketplace->>Seller: Listing created
-    
-    Buyer->>Marketplace: Purchase token
-    Marketplace->>WyllohToken: Transfer tokens
-    WyllohToken->>Marketplace: Calculate royalties
-    Marketplace->>Seller: Transfer payment (minus royalties)
-    Marketplace->>Creator: Transfer royalties
-    WyllohToken->>Buyer: Update token ownership
-    Marketplace->>Buyer: Purchase confirmed
+```solidity
+function updateListing(
+    uint256 listingId,
+    uint256 quantity,
+    uint256 pricePerToken
+) external nonReentrant
 ```
 
-## Interacting with Contracts
+This function allows sellers to update the quantity or price of an existing listing.
 
-### Through API
+```solidity
+function cancelListing(uint256 listingId) external nonReentrant
+```
 
-The platform interacts with contracts primarily through the TokenService:
+This function allows sellers to cancel a listing and retrieve their tokens.
 
-```typescript
-async createToken(tokenData: TokenCreationData) {
-  // Generate a unique token ID
-  const tokenIdBytes = ethers.utils.solidityKeccak256(
-    ['string', 'string', 'uint256'],
-    [tokenData.contentId, tokenData.contentCid, Date.now()]
-  );
-  const tokenId = ethers.BigNumber.from(tokenIdBytes);
+#### Buying Process
 
-  // Upload metadata to IPFS
-  const metadataCid = await ipfsService.uploadMetadata(metadata);
-  const tokenURI = `ipfs://${metadataCid}`;
+```solidity
+function buyListing(uint256 listingId, uint256 quantity) external payable nonReentrant
+```
 
-  // Create token transaction
-  const tx = await this.tokenContract.create(
-    creatorAddress,      // initial token recipient
-    tokenId,             // token ID
-    tokenData.totalSupply, // initial supply
-    tokenData.contentId, // content ID
-    contentHash,         // content hash
-    tokenData.contentType, // content type
-    tokenURI,            // token URI
-    creatorAddress,      // royalty recipient
-    tokenData.royaltyPercentage // royalty percentage
-  );
+This function allows users to purchase tokens from a listing. The process includes:
+1. Verification of sufficient funds
+2. Calculation of platform fee (2.5%)
+3. Transfer of tokens to the buyer
+4. Distribution of royalties through the RoyaltyDistributor (if configured)
+5. Transfer of remaining funds to the seller
+6. Refund of excess payment (if any)
 
-  // Wait for transaction to be mined
-  const receipt = await tx.wait();
+#### Offer System
 
-  // Set rights thresholds
-  if (tokenData.rightsThresholds.length > 0) {
-    const quantities = tokenData.rightsThresholds.map(t => t.quantity);
-    const rightsTypes = tokenData.rightsThresholds.map(t => t.rightsType);
-    
-    const rightsTx = await this.tokenContract.setRightsThresholds(
-      tokenId,
-      quantities,
-      rightsTypes
-    );
-    
-    await rightsTx.wait();
-  }
+```solidity
+function createOffer(
+    address tokenContract,
+    uint256 tokenId,
+    uint256 quantity,
+    uint256 pricePerToken,
+    uint256 expirationDays
+) external payable nonReentrant returns (uint256)
+```
 
-  return {
-    tokenId: tokenId.toString(),
-    contractAddress: this.contractAddress,
-    owner: creatorAddress,
-    totalSupply: tokenData.totalSupply,
-    transactionHash: receipt.transactionHash,
-    tokenURI
-  };
+This function allows users to make offers for tokens, including:
+- Specifying the desired quantity
+- Setting the price per token
+- Setting an expiration period
+
+```solidity
+function acceptOffer(uint256 offerId) external nonReentrant
+```
+
+This function allows token owners to accept offers, transferring tokens to the buyer and receiving payment.
+
+```solidity
+function rejectOffer(uint256 offerId) external nonReentrant
+```
+
+This function allows token owners to reject offers, refunding the buyer.
+
+## RightsManager Contract
+
+### Purpose
+The RightsManager contract manages the rights associated with token ownership, defining what rights are granted based on token quantity.
+
+### Key Features
+
+#### Rights Types
+The contract defines several standard rights types:
+```solidity
+enum RightsType {
+    PERSONAL_VIEWING,
+    SMALL_VENUE,
+    STREAMING_PLATFORM,
+    THEATRICAL_EXHIBITION,
+    NATIONAL_DISTRIBUTION,
+    CUSTOM
 }
 ```
 
-### Through Wallet Applications
+#### Rights Thresholds
+```solidity
+struct RightsThreshold {
+    uint256 quantity;
+    RightsType rightsType;
+    bool enabled;
+    string description;
+    string additionalMetadata;
+}
+```
 
-Users can interact with contracts directly through wallet applications:
+This structure defines the thresholds for different rights, including:
+- Quantity: Number of tokens required
+- Rights Type: Type of rights granted
+- Enabled: Whether this threshold is active
+- Description: Human-readable description of the rights
+- Additional Metadata: Additional information about the rights
 
-1. **View Owned Tokens**: Check token balances
-2. **Transfer Tokens**: Send tokens to other addresses
-3. **List Tokens**: Create marketplace listings
-4. **Purchase Tokens**: Buy tokens from marketplace
+#### Custom Rights
+```solidity
+function createCustomRightsDefinition(
+    string memory name,
+    string memory description,
+    string memory additionalMetadata
+) public onlyRole(RIGHTS_MANAGER_ROLE) returns (uint256)
+```
 
-## Contract Security
+This function allows for the creation of custom rights definitions beyond the standard types.
 
-The contracts implement several security measures:
+#### Rights Verification
+```solidity
+function hasRights(
+    address tokenContract,
+    uint256 tokenId,
+    address account,
+    RightsType rightsType
+) public view returns (bool)
+```
 
-1. **Access Control**: Role-based access for administrative functions
-2. **Pausability**: Emergency pause functionality 
-3. **Upgrade Mechanisms**: Contract upgradeability for future improvements
-4. **Safe Transfer Handling**: Secure token transfer mechanisms
-5. **Royalty Enforcement**: Automatic royalty calculation and distribution
+This function checks if a user has specific rights for a token, which is used during content playback to verify access rights.
 
-## Development and Deployment
+## RoyaltyDistributor Contract
 
-### Development Tools
+### Purpose
+The RoyaltyDistributor contract manages the collection and distribution of royalties for token sales.
 
-- **Framework**: Hardhat
-- **Testing**: Waffle, Ethers.js
-- **Documentation**: NatSpec
-- **Verification**: Solidity Coverage
+### Key Features
 
-### Deployment Process
+#### Royalty Distribution
+```solidity
+function distributeRoyalties(
+    address tokenContract,
+    uint256 tokenId
+) public payable
+```
 
-1. **Compilation**: Compile contracts with optimizations
-2. **Testing**: Run comprehensive test suite
-3. **Deployment**: Deploy to target network (Mumbai/Polygon)
-4. **Verification**: Verify contract code on blockchain explorer
-5. **Configuration**: Set up initial contract parameters
+This function distributes royalties for a token sale. It accepts payment and distributes it to the configured royalty recipients based on their shares.
 
-## Further Documentation
+#### Royalty Recipients
+```solidity
+struct RoyaltyRecipient {
+    address recipientAddress;
+    uint256 sharePercentage; // Basis points (1/100 of a percent, so 10000 = 100%)
+}
+```
 
-For detailed information on contract functions, events, and implementation specifics, refer to:
+This structure defines a royalty recipient, including:
+- Recipient Address: Address to receive royalties
+- Share Percentage: Percentage of royalties in basis points
 
-1. Contract NatSpec documentation
-2. Solidity source code
-3. Contract ABIs in the repository
+#### Royalty Management
+```solidity
+function addRoyaltyRecipient(
+    address tokenContract,
+    uint256 tokenId,
+    address recipient,
+    uint256 sharePercentage
+) public onlyRole(ROYALTY_MANAGER_ROLE)
+```
 
-*Note: This documentation will be updated when direct access to contract files is available.*
+This function adds a royalty recipient for a token.
+
+```solidity
+function updateRoyaltyRecipient(
+    address tokenContract,
+    uint256 tokenId,
+    uint256 index,
+    uint256 sharePercentage
+) public onlyRole(ROYALTY_MANAGER_ROLE)
+```
+
+This function updates a royalty recipient's share.
+
+```solidity
+function removeRoyaltyRecipient(
+    address tokenContract,
+    uint256 tokenId,
+    uint256 index
+) public onlyRole(ROYALTY_MANAGER_ROLE)
+```
+
+This function removes a royalty recipient.
+
+## Security Considerations
+
+### Access Control
+The contracts use OpenZeppelin's AccessControl to manage permissions, with the following roles:
+- DEFAULT_ADMIN_ROLE: Can manage all aspects of the contracts
+- MINTER_ROLE: Can create new tokens
+- RIGHTS_MANAGER_ROLE: Can manage rights thresholds
+- FEE_MANAGER_ROLE: Can update marketplace fees
+- ROYALTY_MANAGER_ROLE: Can manage royalty recipients
+
+### Reentrancy Protection
+The marketplace contract uses OpenZeppelin's ReentrancyGuard to prevent reentrancy attacks during token transfers and payments.
+
+### Secure Token Transfers
+Token transfers are handled securely using the ERC1155 safeTransferFrom method, which verifies that the recipient can handle the tokens.
+
+### Fee Limitations
+The marketplace contract includes a maximum fee limit to prevent excessive fees:
+```solidity
+require(newFeePercentage <= 3000, "WyllohMarketplace: Fee too high"); // Max 30%
+```
+
+## Usage Examples
+
+### Tokenizing Content
+1. Content is uploaded to IPFS
+2. Content metadata is stored
+3. WyllohToken.create() is called to mint tokens
+4. Rights thresholds are set using setRightsThresholds()
+
+### Listing Content for Sale
+1. Seller approves marketplace contract to transfer tokens
+2. Seller calls WyllohMarketplace.createListing()
+3. Tokens are transferred to marketplace contract
+
+### Purchasing Content
+1. Buyer sends MATIC to WyllohMarketplace.buyListing()
+2. Platform fee is deducted
+3. Royalties are distributed through RoyaltyDistributor
+4. Remaining funds are sent to seller
+5. Tokens are transferred to buyer
+
+### Verifying Content Rights
+1. Seed One player retrieves user's tokens
+2. For each token, it calls hasRights() to verify access
+3. Content is played if sufficient rights are verified
+
+## Error Handling
+
+The contracts include comprehensive error handling with descriptive error messages, including:
+- Input validation checks
+- Balance verification for token operations
+- Authentication and authorization checks
+- Transaction failure handling
+
+## Contract Upgradeability
+
+The current contracts are not upgradeable. If updates are required, new versions would need to be deployed with migration mechanisms.
+
+## Conclusion
+
+The Wylloh platform's smart contracts provide a robust foundation for tokenized media licensing, with flexible rights management, transparent royalty distribution, and a fully-featured marketplace. The 2.5% marketplace fee on all transactions (including secondary sales) helps ensure the platform's sustainability while enabling creators to benefit from both initial sales and ongoing royalties.
