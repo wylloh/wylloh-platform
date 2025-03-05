@@ -17,7 +17,10 @@
       "test": "yarn workspaces run test",
       "compile-contracts": "hardhat compile",
       "test-contracts": "hardhat test",
-      "deploy-contracts:testnet": "hardhat run scripts/deploy/deploy.js --network mumbai"
+      "deploy-contracts:testnet": "hardhat run scripts/deploy/deploy.js --network mumbai",
+      "demo": "npm run init-demo && npm start -- --env-file=.env.demo.local",
+      "init-demo": "bash ./init-demo.sh",
+      "stop-demo": "bash ./stop-demo.sh"
     },
     "devDependencies": {
       "@nomiclabs/hardhat-ethers": "^2.2.3",
