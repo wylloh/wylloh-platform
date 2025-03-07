@@ -5,7 +5,7 @@ This guide explains how to set up and run a fully local demo environment for Wyl
 ## Prerequisites
 
 - MacBook Pro with:
-  - Node.js and npm
+  - Node.js (v16+) and yarn
   - Ganache (`npm install -g ganache`)
   - IPFS (`brew install ipfs`)
   - jq (`brew install jq`)
@@ -35,7 +35,7 @@ chmod +x init-demo.sh
 ### Start Demo Mode
 
 ```bash
-npm run demo
+yarn demo
 ```
 
 This will:
@@ -44,14 +44,14 @@ This will:
 3. Deploy contracts to local blockchain
 4. Load sample content to IPFS
 5. Update configuration with all addresses
-6. Start your application in demo mode
+6. Start your application in demo mode (client, API, and storage services)
 
 ### Stop Demo Mode
 
 When finished with the demo:
 
 ```bash
-npm run stop-demo
+yarn stop-demo
 ```
 
 ## Demo Flow
@@ -80,6 +80,30 @@ After running the initialization script, you'll receive instructions for configu
 2. Required settings pointing to your MacBook's local services
 3. Instructions for restarting the Wylloh service
 
+## Working with MetaMask
+
+To connect MetaMask to your local Ganache instance:
+
+1. Add a new network in MetaMask:
+   - Network Name: Wylloh Demo
+   - RPC URL: http://localhost:8545
+   - Chain ID: 1337
+   - Currency Symbol: ETH
+
+2. Import the test account using the private key:
+   - The private key is displayed during demo initialization
+   - This account will have test ETH pre-loaded
+
+## Project Structure
+
+The Wylloh platform consists of three main components:
+
+1. **Client**: React-based web interface (runs on port 3000)
+2. **API**: Backend API service (runs on port 4000)
+3. **Storage**: IPFS integration service (runs on port 4001)
+
+All three components are started automatically by the demo script.
+
 ## Notes
 
 - All transactions occur on your local blockchain
@@ -89,6 +113,8 @@ After running the initialization script, you'll receive instructions for configu
 
 ## Troubleshooting
 
-- If services fail to start, ensure ports 8545 (Ganache) and 5001/8080 (IPFS) are available
+- If services fail to start, ensure ports 8545 (Ganache), 5001/8080 (IPFS), 3000 (client), 4000 (API), and 4001 (storage) are available
 - If the Seed One can't connect, verify both devices are on the same network and can reach each other
 - Check logs in `/tmp/ganache.log` and `/tmp/ipfs.log` for errors
+- For React client issues, check the browser console
+- For API or storage issues, check the terminal output for those services

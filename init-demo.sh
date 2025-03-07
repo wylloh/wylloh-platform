@@ -13,7 +13,9 @@ GANACHE_PORT=8545
 IPFS_API_PORT=5001
 IPFS_GATEWAY_PORT=8080
 DEMO_ENV_FILE=".env.demo"
-UPDATED_ENV_FILE=".env.demo.local"
+CLIENT_ENV_FILE="client/.env.demo.local"
+API_ENV_FILE="api/.env.demo.local"
+STORAGE_ENV_FILE="storage/.env.demo.local"
 SAMPLE_CONTENT_DIR="./demo-assets"
 
 echo -e "${BOLD}Wylloh Demo Environment Setup${NC}"
@@ -101,7 +103,7 @@ deploy_contracts() {
   echo "Running contract deployment..."
   
   # This assumes you have a deployment script. Modify as needed for your project
-  npx hardhat run scripts/deploy.js --network localhost
+  npx hardhat run scripts/deploy/deploy.js --network localhost
   
   # For demo purposes, we're using a placeholder contract address
   # In a real scenario, you'd extract this from the deployment output
@@ -167,17 +169,39 @@ update_configuration() {
   
   echo "Local IP: $LOCAL_IP"
   
-  # Create updated environment file
-  echo "Creating updated environment file..."
-  cp "$DEMO_ENV_FILE" "$UPDATED_ENV_FILE"
+  # Create client environment file
+  mkdir -p "client"
+  echo "Creating client environment file..."
+  cp "$DEMO_ENV_FILE" "$CLIENT_ENV_FILE"
   
-  # Update values
-  sed -i '' "s|REACT_APP_CONTRACT_ADDRESS=.*|REACT_APP_CONTRACT_ADDRESS=\"$CONTRACT_ADDRESS\"|g" "$UPDATED_ENV_FILE"
-  sed -i '' "s|REACT_APP_TOKEN_FACTORY_ADDRESS=.*|REACT_APP_TOKEN_FACTORY_ADDRESS=\"$TOKEN_FACTORY_ADDRESS\"|g" "$UPDATED_ENV_FILE"
-  sed -i '' "s|REACT_APP_TEST_ACCOUNT_ADDRESS=.*|REACT_APP_TEST_ACCOUNT_ADDRESS=\"$TEST_ACCOUNT\"|g" "$UPDATED_ENV_FILE"
-  sed -i '' "s|REACT_APP_TEST_PRIVATE_KEY=.*|REACT_APP_TEST_PRIVATE_KEY=\"$TEST_PRIVATE_KEY\"|g" "$UPDATED_ENV_FILE"
-  sed -i '' "s|REACT_APP_SAMPLE_MOVIE_CID=.*|REACT_APP_SAMPLE_MOVIE_CID=\"$MOVIE_CID\"|g" "$UPDATED_ENV_FILE"
-  sed -i '' "s|REACT_APP_LOCAL_IP=.*|REACT_APP_LOCAL_IP=\"$LOCAL_IP\"|g" "$UPDATED_ENV_FILE"
+  # Create API environment file
+  mkdir -p "api"
+  echo "Creating API environment file..."
+  cp "$DEMO_ENV_FILE" "$API_ENV_FILE"
+  
+  # Create storage environment file
+  mkdir -p "storage"
+  echo "Creating storage environment file..."
+  cp "$DEMO_ENV_FILE" "$STORAGE_ENV_FILE"
+  
+  # Update client environment values
+  sed -i '' "s|REACT_APP_CONTRACT_ADDRESS=.*|REACT_APP_CONTRACT_ADDRESS=\"$CONTRACT_ADDRESS\"|g" "$CLIENT_ENV_FILE"
+  sed -i '' "s|REACT_APP_TOKEN_FACTORY_ADDRESS=.*|REACT_APP_TOKEN_FACTORY_ADDRESS=\"$TOKEN_FACTORY_ADDRESS\"|g" "$CLIENT_ENV_FILE"
+  sed -i '' "s|REACT_APP_TEST_ACCOUNT_ADDRESS=.*|REACT_APP_TEST_ACCOUNT_ADDRESS=\"$TEST_ACCOUNT\"|g" "$CLIENT_ENV_FILE"
+  sed -i '' "s|REACT_APP_TEST_PRIVATE_KEY=.*|REACT_APP_TEST_PRIVATE_KEY=\"$TEST_PRIVATE_KEY\"|g" "$CLIENT_ENV_FILE"
+  sed -i '' "s|REACT_APP_SAMPLE_MOVIE_CID=.*|REACT_APP_SAMPLE_MOVIE_CID=\"$MOVIE_CID\"|g" "$CLIENT_ENV_FILE"
+  sed -i '' "s|REACT_APP_LOCAL_IP=.*|REACT_APP_LOCAL_IP=\"$LOCAL_IP\"|g" "$CLIENT_ENV_FILE"
+  
+  # Update API environment values
+  sed -i '' "s|JWT_SECRET=.*|JWT_SECRET=\"wylloh-demo-secret\"|g" "$API_ENV_FILE"
+  sed -i '' "s|MONGODB_URI=.*|MONGODB_URI=\"mongodb://localhost:27017/wylloh-demo\"|g" "$API_ENV_FILE"
+  sed -i '' "s|API_PORT=.*|API_PORT=4000|g" "$API_ENV_FILE"
+  sed -i '' "s|TOKEN_CONTRACT_ADDRESS=.*|TOKEN_CONTRACT_ADDRESS=\"$CONTRACT_ADDRESS\"|g" "$API_ENV_FILE"
+  
+  # Update storage environment values
+  sed -i '' "s|IPFS_API_URL=.*|IPFS_API_URL=\"http://localhost:$IPFS_API_PORT\"|g" "$STORAGE_ENV_FILE"
+  sed -i '' "s|IPFS_GATEWAY_URL=.*|IPFS_GATEWAY_URL=\"http://localhost:$IPFS_GATEWAY_PORT\"|g" "$STORAGE_ENV_FILE"
+  sed -i '' "s|STORAGE_PORT=.*|STORAGE_PORT=4001|g" "$STORAGE_ENV_FILE"
   
   echo -e "${GREEN}✓ Configuration updated${NC}"
 }
@@ -214,8 +238,8 @@ update_configuration
 setup_seed_one
 
 echo -e "\n${GREEN}${BOLD}Demo environment successfully initialized!${NC}"
-echo -e "To start your application in demo mode, run:${BOLD}"
-echo "  npm run start -- --env-file=$UPDATED_ENV_FILE"
+echo -e "To start the demo, run:${BOLD}"
+echo "  yarn dev"
 echo -e "${NC}"
 echo "To stop the demo services when you're done:"
 echo "  ./stop-demo.sh"
