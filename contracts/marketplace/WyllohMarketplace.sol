@@ -13,6 +13,15 @@ import "../royalty/RoyaltyDistributor.sol";
  * @dev Manages the marketplace for Wylloh license tokens
  */
 contract WyllohMarketplace is AccessControl, ReentrancyGuard, ERC1155Holder {
+        function supportsInterface(bytes4 interfaceId)
+        public
+        view
+        virtual
+        override(AccessControl, ERC1155Holder)
+        returns (bool)
+    {
+        return super.supportsInterface(interfaceId);
+    }
     using SafeMath for uint256;
 
     // Roles
