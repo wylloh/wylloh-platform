@@ -89,7 +89,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             id: '1',
             username: 'testuser',
             email: email,
-            roles: ['user'],
+            roles: ['user', 'creator'], // Include 'creator' role
             walletAddress: account || undefined
           }
         }
@@ -132,7 +132,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             id: Date.now().toString(), // Generate random ID
             username,
             email,
-            roles: ['user'],
+            roles: ['user', 'creator'], // Include 'creator' role
             walletAddress: account || undefined
           }
         }
