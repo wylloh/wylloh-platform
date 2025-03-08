@@ -1,5 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
+import Table from '@mui/material/Table';
+import TableBody from '@mui/material/TableBody';
+import TableCell from '@mui/material/TableCell';
+import TableHead from '@mui/material/TableHead';
+import TableRow from '@mui/material/TableRow';
+import AccountBalanceWalletIcon from '@mui/icons-material/AccountBalanceWallet';
 import {
   Container,
   Typography,
@@ -650,13 +656,5 @@ const ContentDetailsPage: React.FC = () => {
     </Container>
   );
 };
-
-// Import these at the top of the file
-import Table from '@mui/material/Table';
-import TableBody from '@mui/material/TableBody';
-import TableCell from '@mui/material/TableCell';
-import TableHead from '@mui/material/TableHead';
-import TableRow from '@mui/material/TableRow';
-import AccountBalanceWalletIcon from '@mui/icons-material/AccountBalanceWallet';
 
 export default ContentDetailsPage;

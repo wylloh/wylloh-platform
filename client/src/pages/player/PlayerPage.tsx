@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react';
+import { VerifiedUser } from '@mui/icons-material';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import {
   Box,
@@ -783,8 +784,5 @@ const PlayerPage: React.FC = () => {
     </Box>
   );
 };
-
-// Import this at the top of the file
-import { VerifiedUser } from '@mui/icons-material';
 
 export default PlayerPage;
