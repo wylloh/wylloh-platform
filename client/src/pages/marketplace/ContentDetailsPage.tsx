@@ -533,7 +533,7 @@ const ContentDetailsPage: React.FC = () => {
                     variant="contained"
                     fullWidth
                     size="large"
-                    startIcon={<WalletIcon />}
+                    startIcon={<AccountBalanceWalletIcon />}
                     onClick={() => {/* Connect wallet logic */}}
                   >
                     Connect Wallet to Purchase
@@ -657,6 +657,6 @@ import TableBody from '@mui/material/TableBody';
 import TableCell from '@mui/material/TableCell';
 import TableHead from '@mui/material/TableHead';
 import TableRow from '@mui/material/TableRow';
-import { WalletIcon } from '@mui/icons-material';
+import AccountBalanceWalletIcon from '@mui/icons-material/AccountBalanceWallet';
 
 export default ContentDetailsPage;
