@@ -22,13 +22,13 @@ const walletconnect = new WalletConnectConnector({
     [POLYGON_MUMBAI_ID]: 'https://rpc-mumbai.maticvigil.com',
   },
   qrcode: true,
-  pollingInterval: 12000,
+//  pollingInterval: 12000,
 });
 
 interface WalletContextType {
   connect: () => Promise<void>;
   disconnect: () => void;
-  account: string | null;
+  account: string | null | undefined;
   chainId: number | undefined;
   active: boolean;
   provider: ethers.providers.Web3Provider | null;
