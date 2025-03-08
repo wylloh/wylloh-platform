@@ -32,6 +32,7 @@ import {
 } from '@mui/icons-material';
 import { Link } from 'react-router-dom';
 import { useWallet } from '../../contexts/WalletContext';
+import { generatePlaceholderImage } from '../../utils/placeholders';
 
 // Mock content data
 const mockContent = [
@@ -39,7 +40,7 @@ const mockContent = [
     id: '1',
     title: 'The Digital Frontier',
     description: 'A journey into the world of blockchain and digital ownership.',
-    image: 'https://source.unsplash.com/random/800x500/?technology',
+    image: generatePlaceholderImage('The Digital Frontier'),
     contentType: 'movie',
     creator: 'Digital Studios',
     price: 0.01,
@@ -51,7 +52,7 @@ const mockContent = [
     id: '2',
     title: 'Nature Unveiled',
     description: 'A breathtaking documentary exploring the wonders of nature.',
-    image: 'https://source.unsplash.com/random/800x500/?nature',
+    image: generatePlaceholderImage('Nature Unveiled'),
     contentType: 'documentary',
     creator: 'EcoVision Films',
     price: 0.008,
@@ -63,7 +64,7 @@ const mockContent = [
     id: '3',
     title: 'Future Horizons',
     description: 'A science fiction tale about the future of humanity.',
-    image: 'https://source.unsplash.com/random/800x500/?future',
+    image: generatePlaceholderImage('Future Horizons'),
     contentType: 'movie',
     creator: 'Quantum Entertainment',
     price: 0.015,
@@ -75,7 +76,7 @@ const mockContent = [
     id: '4',
     title: 'Urban Landscapes',
     description: 'A visual journey through the world\'s most iconic cities.',
-    image: 'https://source.unsplash.com/random/400x300/?city',
+    image: generatePlaceholderImage('Urban Landscapes'),
     contentType: 'short film',
     creator: 'Metropolitan Arts',
     price: 0.005,
@@ -87,7 +88,7 @@ const mockContent = [
     id: '5',
     title: 'Emotional Symphony',
     description: 'A musical exploration of human emotions.',
-    image: 'https://source.unsplash.com/random/400x300/?music',
+    image: generatePlaceholderImage('Emotional Symphony'),
     contentType: 'music film',
     creator: 'Harmony Productions',
     price: 0.007,
@@ -99,7 +100,7 @@ const mockContent = [
     id: '6',
     title: 'Culinary Adventures',
     description: 'A journey through global cuisines and food cultures.',
-    image: 'https://source.unsplash.com/random/400x300/?food',
+    image: generatePlaceholderImage('Culinary Adventures'),
     contentType: 'series',
     creator: 'Gourmet Studios',
     price: 0.01,
@@ -111,7 +112,7 @@ const mockContent = [
     id: '7',
     title: 'Sports Legends',
     description: 'Stories of triumph and perseverance in sports.',
-    image: 'https://source.unsplash.com/random/400x300/?sports',
+    image: generatePlaceholderImage('Sports Legends'),
     contentType: 'documentary',
     creator: 'Champion Media',
     price: 0.009,
@@ -123,7 +124,7 @@ const mockContent = [
     id: '8',
     title: 'Ocean Depths',
     description: 'Exploring the mysteries of the deep sea.',
-    image: 'https://source.unsplash.com/random/400x300/?ocean',
+    image: generatePlaceholderImage('Ocean Depths'),
     contentType: 'documentary',
     creator: 'Deep Blue Productions',
     price: 0.012,

@@ -2,7 +2,7 @@ export function generatePlaceholderImage(
     seed: string, 
     width: number = 800, 
     height: number = 500, 
-    category: string = 'technology'
+    category: string = 'cinematic-adventure'
   ): string {
     // Use a consistent hash function to generate a stable placeholder
     const hashCode = (str: string) => {
