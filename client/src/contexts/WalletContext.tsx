@@ -22,7 +22,6 @@ const walletconnect = new WalletConnectConnector({
     [POLYGON_MUMBAI_ID]: 'https://rpc-mumbai.maticvigil.com',
   },
   qrcode: true,
-//  pollingInterval: 12000,
 });
 
 interface WalletContextType {
@@ -39,7 +38,20 @@ interface WalletContextType {
   setWalletModalOpen: (open: boolean) => void;
 }
 
-const WalletContext = createContext<WalletContextType | undefined>(undefined);
+const WalletContext = createContext<WalletContextType>({
+  // Provide default implementation
+  connect: async () => {},
+  disconnect: () => {},
+  account: null,
+  chainId: undefined,
+  active: false,
+  provider: null,
+  isCorrectNetwork: false,
+  switchNetwork: async () => {},
+  connecting: false,
+  walletModalOpen: false,
+  setWalletModalOpen: () => {},
+});
 
 export function WalletProvider({ children }: { children: ReactNode }) {
   const { activate, deactivate, active, account, chainId, library } = useWeb3React();
@@ -135,7 +147,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     });
   }, [activate]);
 
-  const value = {
+      const value = {
     connect,
     disconnect,
     account,
@@ -154,8 +166,25 @@ export function WalletProvider({ children }: { children: ReactNode }) {
 
 export function useWallet() {
   const context = useContext(WalletContext);
+  
+  // If context is undefined, it means the hook is not used within a WalletProvider
+  // This can happen during SSR or if used outside the provider
   if (context === undefined) {
-    throw new Error('useWallet must be used within a WalletProvider');
+    console.warn('useWallet must be used within a WalletProvider');
+    return {
+      connect: async () => {},
+      disconnect: () => {},
+      account: null,
+      chainId: undefined,
+      active: false,
+      provider: null,
+      isCorrectNetwork: false,
+      switchNetwork: async () => {},
+      connecting: false,
+      walletModalOpen: false,
+      setWalletModalOpen: () => {},
+    };
   }
+  
   return context;
 }

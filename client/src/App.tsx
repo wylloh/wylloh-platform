@@ -46,8 +46,8 @@ function App() {
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
-      <AuthProvider>
-        <WalletProvider>
+      <WalletProvider>
+        <AuthProvider>
           <Routes>
             <Route path="/" element={<MainLayout />}>
               <Route index element={<HomePage />} />
@@ -62,8 +62,8 @@ function App() {
               <Route path="*" element={<NotFoundPage />} />
             </Route>
           </Routes>
-        </WalletProvider>
-      </AuthProvider>
+        </AuthProvider>
+      </WalletProvider>
     </ThemeProvider>
   );
 }
