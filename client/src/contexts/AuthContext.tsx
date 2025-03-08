@@ -26,25 +26,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
-  const { account } = useWallet(); // This is where the error is likely occurring
 
-  // Optional safe fallback for useWallet
-  const safeUseWallet = () => {
-    try {
-      return useWallet();
-    } catch {
-      // Return a default wallet context if not within WalletProvider
-      return {
-        account: null,
-        active: false,
-        connect: async () => {},
-        disconnect: () => {},
-        isCorrectNetwork: false,
-        chainId: undefined,
-        provider: null
-      };
-    }
-  };
+  // Safely get wallet context, providing default values
+  const { account = null } = useWallet();
 
   // Check for existing session on initial load
   useEffect(() => {
