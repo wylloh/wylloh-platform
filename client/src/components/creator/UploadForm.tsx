@@ -118,7 +118,7 @@ const formatFileSize = (bytes: number): string => {
   return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
 };
 
-const UploadForm: React.FC = function() {
+const UploadForm: React.FC = () => {
   // Navigation
   const navigate = useNavigate();
   
@@ -155,8 +155,8 @@ const UploadForm: React.FC = function() {
   
   // Overall submission state
   const [submitting, setSubmitting] = useState<boolean>(false);
-  const [submitError, setSubmitError] = useState<string | null>(null);
   const [submitSuccess, setSubmitSuccess] = useState<boolean>(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
   
   // Refs for file inputs
   const mainFileInputRef = useRef<HTMLInputElement>(null);
@@ -931,6 +931,38 @@ const UploadForm: React.FC = function() {
       </Alert>
       
       <Grid container spacing={3}>
+        {/* Year, Duration, Director */}
+        <Grid item xs={12} sm={4}>
+          <TextField
+            fullWidth
+            label="Release Year"
+            name="releaseYear"
+            value={formData.metadata.releaseYear || ''}
+            onChange={handleMetadataChange}
+          />
+        </Grid>
+        
+        <Grid item xs={12} sm={4}>
+          <TextField
+            fullWidth
+            label="Duration"
+            name="duration"
+            value={formData.metadata.duration || ''}
+            onChange={handleMetadataChange}
+            placeholder="e.g., 90 minutes"
+          />
+        </Grid>
+        
+        <Grid item xs={12} sm={4}>
+          <TextField
+            fullWidth
+            label="Director"
+            name="director"
+            value={formData.metadata.director || ''}
+            onChange={handleMetadataChange}
+          />
+        </Grid>
+
         {/* Genres */}
         <Grid item xs={12}>
           <Typography variant="subtitle1" gutterBottom>
@@ -961,97 +993,6 @@ const UploadForm: React.FC = function() {
             </Button>
           </Box>
           <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
-            {formData.metadata.genres?.map((genre) => (
-              <Chip
-                key={genre}
-                label={genre}
-                onDelete={() => handleRemoveGenre(genre)}
-              />
-            ))}
-          </Box>
-        </Grid>
-        
-        {/* Year, Duration, Director */}
-        <Grid item xs={12} sm={4}>
-          <TextField
-            fullWidth
-            label="Director"
-            name="director"
-            value={formData.metadata.director || ''}
-            onChange={handleMetadataChange}
-          />
-        </Grid>
-        
-        {/* Cast */}
-        <Grid item xs={12}>
-          <Typography variant="subtitle1" gutterBottom>
-            Cast
-          </Typography>
-          <Box sx={{ display: 'flex', mb: 1 }}>
-            <TextField
-              fullWidth
-              variant="outlined"
-              size="small"
-              label="Add cast member"
-              value={newCastMember}
-              onChange={(e) => setNewCastMember(e.target.value)}
-              onKeyPress={(e) => {
-                if (e.key === 'Enter') {
-                  e.preventDefault();
-                  handleAddCastMember();
-                }
-              }}
-            />
-            <Button
-              variant="contained"
-              onClick={handleAddCastMember}
-              disabled={!newCastMember.trim()}
-              sx={{ ml: 1 }}
-            >
-              Add
-            </Button>
-          </Box>
-          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
-            {formData.metadata.cast?.map((member) => (
-              <Chip
-                key={member}
-                label={member}
-                onDelete={() => handleRemoveCastMember(member)}
-              />
-            ))}
-          </Box>
-        </Grid>
-        
-        {/* Tags */}
-        <Grid item xs={12}>
-          <Typography variant="subtitle1" gutterBottom>
-            Tags
-          </Typography>
-          <Box sx={{ display: 'flex', mb: 1 }}>
-            <TextField
-              fullWidth
-              variant="outlined"
-              size="small"
-              label="Add a tag"
-              value={newTag}
-              onChange={(e) => setNewTag(e.target.value)}
-              onKeyPress={(e) => {
-                if (e.key === 'Enter') {
-                  e.preventDefault();
-                  handleAddTag();
-                }
-              }}
-            />
-            <Button
-              variant="contained"
-              onClick={handleAddTag}
-              disabled={!newTag.trim()}
-              sx={{ ml: 1 }}
-            >
-              Add
-            </Button>
-          </Box>
-          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
             {formData.metadata.tags?.map((tag) => (
               <Chip
                 key={tag}
@@ -1061,31 +1002,10 @@ const UploadForm: React.FC = function() {
             ))}
           </Box>
         </Grid>
-        <TextField
-            fullWidth
-            label="Release Year"
-            name="releaseYear"
-            value={formData.metadata.releaseYear || ''}
-            onChange={handleMetadataChange}
-          />
-        </Grid>
-        
-        <Grid item xs={12} sm={4}>
-          <TextField
-            fullWidth
-            label="Duration"
-            name="duration"
-            value={formData.metadata.duration || ''}
-            onChange={handleMetadataChange}
-            placeholder="e.g., 90 minutes"
-          />
-        </Grid>
-        
-        <Grid item xs={12} sm={4}>
-        </Grid>
+      </Grid>
     </Box>
-    )}
-
+  );
+  
   // Render review and submit step
   const renderReviewAndSubmit = () => (
     <Box>
@@ -1102,12 +1022,179 @@ const UploadForm: React.FC = function() {
       
       <Paper sx={{ p: 3, mb: 3 }}>
         <Grid container spacing={2}>
-          {/* Content of your review form here */}
           <Grid item xs={12}>
-            <Typography variant="subtitle1" gutterBottom>
-              Ready to submit your content
+            <Typography variant="subtitle1" fontWeight="bold" gutterBottom>
+              Content Details
             </Typography>
           </Grid>
+          
+          <Grid item xs={12} md={6}>
+            <Typography variant="body2" color="text.secondary">
+              Title
+            </Typography>
+            <Typography variant="body1" gutterBottom>
+              {formData.title}
+            </Typography>
+          </Grid>
+          
+          <Grid item xs={12} md={6}>
+            <Typography variant="body2" color="text.secondary">
+              Content Type
+            </Typography>
+            <Typography variant="body1" gutterBottom>
+              {CONTENT_TYPES.find(type => type.value === formData.contentType)?.label || formData.contentType}
+            </Typography>
+          </Grid>
+          
+          <Grid item xs={12}>
+            <Typography variant="body2" color="text.secondary">
+              Description
+            </Typography>
+            <Typography variant="body1" gutterBottom>
+              {formData.description || 'No description provided'}
+            </Typography>
+          </Grid>
+          
+          <Grid item xs={12}>
+            <Divider sx={{ my: 1 }} />
+            <Typography variant="subtitle1" fontWeight="bold" gutterBottom>
+              Files
+            </Typography>
+          </Grid>
+          
+          <Grid item xs={12}>
+            <Typography variant="body2" color="text.secondary">
+              Main Content File
+            </Typography>
+            <Typography variant="body1" gutterBottom>
+              {formData.mainFile ? formData.mainFile.name : 'No file selected'}
+              {formData.mainFile && uploadStatus.mainFile.status === 'success' && (
+                <Chip 
+                  size="small" 
+                  color="success" 
+                  label="Uploaded" 
+                  sx={{ ml: 1 }} 
+                />
+              )}
+            </Typography>
+          </Grid>
+          
+          {formData.previewFile && (
+            <Grid item xs={12}>
+              <Typography variant="body2" color="text.secondary">
+                Preview File
+              </Typography>
+              <Typography variant="body1" gutterBottom>
+                {formData.previewFile.name}
+                {uploadStatus.previewFile.status === 'success' && (
+                  <Chip 
+                    size="small" 
+                    color="success" 
+                    label="Uploaded" 
+                    sx={{ ml: 1 }} 
+                  />
+                )}
+              </Typography>
+            </Grid>
+          )}
+          
+          {formData.thumbnailFile && (
+            <Grid item xs={12}>
+              <Typography variant="body2" color="text.secondary">
+                Thumbnail Image
+              </Typography>
+              <Typography variant="body1" gutterBottom>
+                {formData.thumbnailFile.name}
+                {uploadStatus.thumbnailFile.status === 'success' && (
+                  <Chip 
+                    size="small" 
+                    color="success" 
+                    label="Uploaded" 
+                    sx={{ ml: 1 }} 
+                  />
+                )}
+              </Typography>
+            </Grid>
+          )}
+          
+          <Grid item xs={12}>
+            <Divider sx={{ my: 1 }} />
+            <Typography variant="subtitle1" fontWeight="bold" gutterBottom>
+              Metadata
+            </Typography>
+          </Grid>
+          
+          {formData.metadata.genres && formData.metadata.genres.length > 0 && (
+            <Grid item xs={12}>
+              <Typography variant="body2" color="text.secondary">
+                Genres
+              </Typography>
+              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mt: 0.5 }}>
+                {formData.metadata.genres.map(genre => (
+                  <Chip key={genre} label={genre} size="small" />
+                ))}
+              </Box>
+            </Grid>
+          )}
+          
+          {formData.metadata.cast && formData.metadata.cast.length > 0 && (
+            <Grid item xs={12}>
+              <Typography variant="body2" color="text.secondary">
+                Cast
+              </Typography>
+              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mt: 0.5 }}>
+                {formData.metadata.cast.map(member => (
+                  <Chip key={member} label={member} size="small" />
+                ))}
+              </Box>
+            </Grid>
+          )}
+          
+          {formData.metadata.tags && formData.metadata.tags.length > 0 && (
+            <Grid item xs={12}>
+              <Typography variant="body2" color="text.secondary">
+                Tags
+              </Typography>
+              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mt: 0.5 }}>
+                {formData.metadata.tags.map(tag => (
+                  <Chip key={tag} label={tag} size="small" />
+                ))}
+              </Box>
+            </Grid>
+          )}
+          
+          {formData.metadata.releaseYear && (
+            <Grid item xs={12} sm={4}>
+              <Typography variant="body2" color="text.secondary">
+                Release Year
+              </Typography>
+              <Typography variant="body1">
+                {formData.metadata.releaseYear}
+              </Typography>
+            </Grid>
+          )}
+          
+          {formData.metadata.duration && (
+            <Grid item xs={12} sm={4}>
+              <Typography variant="body2" color="text.secondary">
+                Duration
+              </Typography>
+              <Typography variant="body1">
+                {formData.metadata.duration}
+              </Typography>
+            </Grid>
+          )}
+          
+          {formData.metadata.director && (
+            <Grid item xs={12} sm={4}>
+              <Typography variant="body2" color="text.secondary">
+                Director
+              </Typography>
+              <Typography variant="body1">
+                {formData.metadata.director}
+              </Typography>
+            </Grid>
+          )}
         </Grid>
       </Paper>
       
@@ -1126,3 +1213,53 @@ const UploadForm: React.FC = function() {
       )}
     </Box>
   );
+  
+  // Main component return
+  return (
+    <Paper sx={{ p: 3 }}>
+      <Stepper activeStep={activeStep} sx={{ mb: 4 }}>
+        {UPLOAD_STEPS.map((label) => (
+          <Step key={label}>
+            <StepLabel>{label}</StepLabel>
+          </Step>
+        ))}
+      </Stepper>
+      
+      {renderStepContent(activeStep)}
+      
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 3 }}>
+        <Button
+          variant="outlined"
+          onClick={handleBack}
+          disabled={activeStep === 0 || submitting}
+          startIcon={<ArrowBack />}
+        >
+          Back
+        </Button>
+        
+        {activeStep === UPLOAD_STEPS.length - 1 ? (
+          <Button
+            variant="contained"
+            color="primary"
+            onClick={handleSubmit}
+            disabled={submitting}
+            startIcon={submitting ? <CircularProgress size={20} /> : <Check />}
+          >
+            {submitting ? 'Submitting...' : 'Submit'}
+          </Button>
+        ) : (
+          <Button
+            variant="contained"
+            onClick={handleNext}
+            disabled={submitting}
+            endIcon={<ArrowForward />}
+          >
+            Next
+          </Button>
+        )}
+      </Box>
+    </Paper>
+  );
+};
+
+export default UploadForm;
