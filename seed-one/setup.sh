@@ -56,12 +56,14 @@ mkdir -p /etc/wylloh
 mkdir -p /var/lib/wylloh
 mkdir -p /var/lib/wylloh/media
 mkdir -p /var/lib/wylloh/metadata
+mkdir -p /home/$ACTUAL_USER/scripts
 
 echo -e "\n${BOLD}4. Copying Wylloh files${NC}"
 # Copy files from the repository structure to the system
 cp -r * /opt/wylloh/
 chown -R $ACTUAL_USER:$ACTUAL_USER /opt/wylloh
 chown -R $ACTUAL_USER:$ACTUAL_USER /var/lib/wylloh
+chown -R $ACTUAL_USER:$ACTUAL_USER /home/$ACTUAL_USER/scripts
 
 # Make tools executable
 if [ -d "/opt/wylloh/tools" ]; then
@@ -86,9 +88,20 @@ echo -e "\n${BOLD}7. Creating configuration file${NC}"
 cat config.json.template | sed "s/\${MACBOOK_IP}/$MACBOOK_IP/g" > /etc/wylloh/config.json
 chown $ACTUAL_USER:$ACTUAL_USER /etc/wylloh/config.json
 
-echo -e "\n${BOLD}8. Creating system service${NC}"
-# Create service file with the actual username
-cat wylloh.service | sed "s/\${USER}/$ACTUAL_USER/g" > /etc/systemd/system/wylloh.service
+echo -e "\n${BOLD}8. Installing configuration sync tools${NC}"
+# Install the configuration sync tools
+if [ -f "/opt/wylloh/tools/setup/install-sync-tools.sh" ]; then
+  echo "Installing configuration sync tools..."
+  bash /opt/wylloh/tools/setup/install-sync-tools.sh
+  
+  # Update the actual user for scripts
+  chown -R $ACTUAL_USER:$ACTUAL_USER /home/$ACTUAL_USER/scripts
+else
+  echo -e "${YELLOW}Warning: Configuration sync tools not found. Kodi settings may need manual configuration.${NC}"
+  
+  # Create a basic service file without the wrapper
+  cat wylloh.service | sed "s/\${USER}/$ACTUAL_USER/g" > /etc/systemd/system/wylloh.service
+fi
 
 echo -e "\n${BOLD}9. Setting up Kodi autostart${NC}"
 # Create autostart directory

@@ -18,9 +18,5 @@
       "baseUrl": "."
     },
     "include": ["client/src", "api/src", "storage/src"],
-    "references": [
-      { "path": "./client/tsconfig.json" },
-      { "path": "./api/tsconfig.json" },
-      { "path": "./storage/tsconfig.json" }
-    ]
+    "exclude": ["**/node_modules", "tools/**/*", "seed-one/**/*"]
   }
