@@ -345,8 +345,46 @@ if [ -f "/tmp/ipfs.log" ]; then
   echo "✓ Removed /tmp/ipfs.log"
 fi
 
+# Clean up environment files
+echo "Cleaning up environment files..."
+ENV_FILES=(
+  "api/.env.demo.local"
+  "client/.env.demo.local"
+  "storage/.env.demo.local"
+  "api/env.demo.local"
+  "client/env.demo.local"
+  "storage/env.demo.local"
+)
+
+for ENV_FILE in "${ENV_FILES[@]}"; do
+  if [ -f "$ENV_FILE" ]; then
+    rm "$ENV_FILE"
+    echo "✓ Removed $ENV_FILE"
+  fi
+done
+
+# Clean up demo assets
+echo "Cleaning up demo content..."
+DEMO_FILES=(
+  "demo-assets/metadata.json"
+  "demo-assets/sample_movie.mp4"
+)
+
+for DEMO_FILE in "${DEMO_FILES[@]}"; do
+  if [ -f "$DEMO_FILE" ]; then
+    rm "$DEMO_FILE"
+    echo "✓ Removed $DEMO_FILE"
+  fi
+done
+
+# Option to remove demo-assets directory if empty
+if [ -d "demo-assets" ] && [ -z "$(ls -A demo-assets)" ]; then
+  rmdir "demo-assets"
+  echo "✓ Removed empty demo-assets directory"
+fi
+
 echo "✅ Wylloh Demo Environment has been stopped successfully!"
-echo "All ports have been released and are now available for use."
+echo "All ports have been released and temporary files cleaned up."
 EOF
 
 chmod +x stop-demo.sh
