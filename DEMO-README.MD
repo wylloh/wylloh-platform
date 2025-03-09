@@ -226,6 +226,12 @@ If you prefer to set up the Seed One manually, follow these steps:
   - Verify add-on installation: `ls -la ~/.kodi/addons/plugin.video.wylloh`
   - Check Kodi logs: `tail -f ~/.kodi/temp/kodi.log`
 
+- **Configuration Issues**:
+  - If you see incorrect API or IPFS URLs, edit `/etc/wylloh/config.json`
+  - Make sure `apiUrl`, `providerUrl`, and `ipfsGateway` all point to your MacBook IP
+  - For wallet auto-connect, ensure `autoConnectWallet` is set to `true`
+  - After any config changes, restart the service: `sudo systemctl restart wylloh`
+
 ## Working with MetaMask
 
 To connect MetaMask to your local Ganache instance:

@@ -63,6 +63,12 @@ cp -r * /opt/wylloh/
 chown -R $ACTUAL_USER:$ACTUAL_USER /opt/wylloh
 chown -R $ACTUAL_USER:$ACTUAL_USER /var/lib/wylloh
 
+# Make tools executable
+if [ -d "/opt/wylloh/tools" ]; then
+  echo "Making tools executable..."
+  find /opt/wylloh/tools -type f -name "*.sh" -exec chmod +x {} \;
+fi
+
 echo -e "\n${BOLD}5. Installing Wylloh dependencies${NC}"
 cd /opt/wylloh
 sudo -u $ACTUAL_USER npm install

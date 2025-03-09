@@ -56,6 +56,7 @@ The Seed One operates as follows:
 1. The Wylloh service runs in the background, connecting to:
    - Local blockchain node (on your MacBook)
    - IPFS gateway (on your MacBook)
+   - API service (on your MacBook)
 
 2. Kodi media player loads the Wylloh addon
 
@@ -63,6 +64,19 @@ The Seed One operates as follows:
    - Verify token ownership
    - Retrieve content metadata
    - Stream content from IPFS
+
+## Configuration
+
+The Seed One uses a configuration file located at `/etc/wylloh/config.json`. Key settings include:
+
+- `providerUrl`: The blockchain provider URL (points to MacBook in demo mode)
+- `ipfsGateway`: The IPFS gateway URL (points to MacBook in demo mode)
+- `apiUrl`: The API service URL (points to MacBook in demo mode)
+- `autoConnectWallet`: When set to true, automatically connects to wallet on startup
+- `demoMode`: Enables special behavior for demo environment
+- `kodiEnabled`: Enables the Kodi integration
+
+In demo mode, all services are expected to run on the same machine (your MacBook) and the Seed One connects to them via the local network.
 
 ## Troubleshooting
 
