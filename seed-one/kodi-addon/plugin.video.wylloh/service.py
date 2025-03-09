@@ -89,7 +89,18 @@ def auto_connect_wallet():
     """Automatically connect to wallet if enabled in settings"""
     if get_setting('auto_connect') == 'true':
         log("Auto-connecting wallet")
-        wallet.connect()
+        try:
+            result = wallet.connect()
+            if result.get('success'):
+                log("Wallet auto-connected successfully")
+                notify("Wallet Connected", "Your wallet has been automatically connected")
+            else:
+                log(f"Wallet auto-connect failed: {result.get('message')}", level='warning')
+                # Don't show error notification at startup - this would be annoying
+                # Users will still see they're not connected in the UI
+        except Exception as e:
+            log(f"Wallet auto-connect error: {str(e)}", level='error')
+            # The addon will continue to function without a connected wallet
 
 
 def run():
@@ -103,8 +114,16 @@ def run():
         # Start background tasks
         monitor.start_cache_thread()
         
-        # Auto-connect wallet
-        auto_connect_wallet()
+        # Wait a few seconds before auto-connecting wallet
+        # This gives the system time to stabilize
+        if monitor.waitForAbort(5):
+            return
+        
+        # Auto-connect wallet with error handling to prevent crashes
+        try:
+            auto_connect_wallet()
+        except Exception as e:
+            log(f"Auto-connect exception: {str(e)}", level='error')
         
         # Main service loop
         while not monitor.abortRequested():
@@ -120,4 +139,4 @@ def run():
 
 
 if __name__ == '__main__':
-    run()
+    run() 
