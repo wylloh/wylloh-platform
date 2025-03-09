@@ -29,10 +29,10 @@ const theme = createTheme({
   palette: {
     mode: 'dark',
     primary: {
-      main: '#90caf9',
+      main: '#D4AF37',
     },
     secondary: {
-      main: '#f48fb1',
+      main: '#9B111E',
     },
     background: {
       default: '#121212',
@@ -41,6 +41,30 @@ const theme = createTheme({
   },
   typography: {
     fontFamily: '"Roboto", "Helvetica", "Arial", sans-serif',
+    h1: {
+      fontFamily: '"Playfair Display", Georgia, serif',
+      fontWeight: 500
+    },
+    h2: {
+      fontFamily: '"Playfair Display", Georgia, serif',
+      fontWeight: 500
+    },
+    h3: {
+      fontFamily: '"Playfair Display", Georgia, serif',
+      fontWeight: 500
+    },
+    h4: {
+      fontFamily: '"Playfair Display", Georgia, serif',
+      fontWeight: 500
+    },
+    h5: {
+      fontFamily: '"Playfair Display", Georgia, serif',
+      fontWeight: 500
+    },
+    h6: {
+      fontFamily: '"Playfair Display", Georgia, serif',
+      fontWeight: 500
+    }
   },
 });
 
