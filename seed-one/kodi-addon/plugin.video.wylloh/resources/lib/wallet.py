@@ -13,8 +13,10 @@ import time
 import xbmcaddon
 import xbmcvfs
 import requests
+import uuid
 from urllib.parse import urljoin
-from .utils import log, get_setting, set_setting
+from .utils import log, get_setting, set_setting, notify
+from .wallet_qr_dialog import show_wallet_connect_dialog
 
 # Initialize addon
 ADDON = xbmcaddon.Addon()
@@ -111,9 +113,38 @@ class WalletConnection:
         """Get wallet address"""
         return self.address
 
-    def connect(self):
-        """Connect to wallet through Seed One API"""
+    def connect(self, use_qr=True):
+        """
+        Connect to wallet through Seed One API
+        
+        Args:
+            use_qr (bool): Whether to use QR code for connection
+            
+        Returns:
+            dict: Connection result
+        """
         try:
+            # First try auto-connection if we already have a stored wallet
+            if self.address:
+                response = self._api_request('wallet/connect', method='post', data={
+                    'address': self.address
+                })
+                
+                if response.get('success'):
+                    self.connected = True
+                    self._save_wallet()
+                    
+                    # Fetch tokens after connecting
+                    self.refresh()
+                    
+                    log("Auto-connected to previously used wallet")
+                    return {'success': True, 'address': self.address, 'auto_connected': True}
+            
+            # If auto-connection fails or no stored wallet, try QR code method
+            if use_qr:
+                return self._connect_with_qr()
+            
+            # Fallback to direct API call
             response = self._api_request('wallet/connect', method='post')
             
             if response.get('success'):
@@ -129,6 +160,55 @@ class WalletConnection:
                 return {'success': False, 'message': response.get('message', 'Failed to connect wallet')}
         except Exception as e:
             log('Error connecting wallet: {0}'.format(str(e)), level='error')
+            return {'success': False, 'message': str(e)}
+
+    def _connect_with_qr(self):
+        """
+        Connect wallet using QR code
+        
+        Returns:
+            dict: Connection result
+        """
+        try:
+            # Create a unique session ID
+            session_id = str(uuid.uuid4())
+            
+            # Get QR data from API
+            response = self._api_request('wallet/qr-connect', method='post', data={
+                'sessionId': session_id
+            })
+            
+            if not response.get('success'):
+                return {'success': False, 'message': response.get('message', 'Failed to initialize QR connection')}
+            
+            # Get connection URL from response
+            connection_url = response.get('connectionUrl', '')
+            
+            if not connection_url:
+                return {'success': False, 'message': 'No connection URL provided'}
+            
+            # Show dialog with QR code
+            result = show_wallet_connect_dialog(self, connection_url)
+            
+            if result:
+                # Connection successful, get wallet address from API
+                status_response = self._api_request(f'wallet/qr-status/{session_id}')
+                
+                if status_response.get('success') and status_response.get('connected'):
+                    self.connected = True
+                    self.address = status_response.get('address')
+                    self._save_wallet()
+                    
+                    # Fetch tokens after connecting
+                    self.refresh()
+                    
+                    return {'success': True, 'address': self.address}
+                else:
+                    return {'success': False, 'message': 'Failed to get wallet address'}
+            else:
+                return {'success': False, 'message': 'Connection canceled or timed out'}
+        except Exception as e:
+            log('Error connecting wallet with QR: {0}'.format(str(e)), level='error')
             return {'success': False, 'message': str(e)}
 
     def disconnect(self):
@@ -147,6 +227,45 @@ class WalletConnection:
                 return {'success': False, 'message': response.get('message', 'Failed to disconnect wallet')}
         except Exception as e:
             log('Error disconnecting wallet: {0}'.format(str(e)), level='error')
+            return {'success': False, 'message': str(e)}
+
+    def auto_connect(self):
+        """
+        Automatically connect to wallet without user interaction
+        
+        Returns:
+            dict: Connection result
+        """
+        # Only try auto-connect if auto_connect setting is enabled
+        if get_setting('auto_connect') != 'true':
+            return {'success': False, 'message': 'Auto-connect disabled'}
+        
+        # If already connected, just return success
+        if self.connected:
+            return {'success': True, 'address': self.address, 'already_connected': True}
+        
+        try:
+            # Check if we have a saved wallet
+            if not self.address:
+                return {'success': False, 'message': 'No saved wallet'}
+            
+            # Try to connect
+            response = self._api_request('wallet/connect', method='post', data={
+                'address': self.address
+            })
+            
+            if response.get('success'):
+                self.connected = True
+                self._save_wallet()
+                
+                # Fetch tokens after connecting
+                self.refresh()
+                
+                return {'success': True, 'address': self.address}
+            else:
+                return {'success': False, 'message': response.get('message', 'Failed to auto-connect wallet')}
+        except Exception as e:
+            log('Error auto-connecting wallet: {0}'.format(str(e)), level='error')
             return {'success': False, 'message': str(e)}
 
     def import_wallet(self, private_key):

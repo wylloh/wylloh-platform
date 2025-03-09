@@ -5,6 +5,7 @@
         <import addon="script.module.requests" version="2.22.0"/>
         <import addon="script.module.routing" version="0.2.3"/>
         <import addon="script.module.pycryptodome" version="3.4.3"/>
+        <import addon="script.module.pillow" version="8.0.0" optional="true"/>
     </requires>
     <extension point="xbmc.python.pluginsource" library="addon.py">
         <provides>video</provides>
@@ -26,6 +27,7 @@
 - Token verification integration
 - Content playback with DRM support
 - Wallet connection
+- QR code-based wallet connection
         </news>
         <assets>
             <icon>resources/media/icon.png</icon>
