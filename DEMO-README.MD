@@ -74,11 +74,157 @@ yarn stop-demo
 
 ## Configure Seed One
 
-After running the initialization script, you'll receive instructions for configuring your Raspberry Pi. These will include:
+After running the initialization script, you'll receive instructions for configuring your Raspberry Pi. 
 
-1. Configuration file path on the Raspberry Pi: `/etc/wylloh/config.json`
-2. Required settings pointing to your MacBook's local services
-3. Instructions for restarting the Wylloh service
+### Option 1: Automated Setup (Recommended)
+
+For a streamlined setup experience, use the automated installation script:
+
+1. Clone the repository on your Raspberry Pi:
+   ```bash
+   git clone https://github.com/wy1bur/wylloh-platform.git
+   cd wylloh-platform/seed-one
+   ```
+
+2. Run the setup script as root:
+   ```bash
+   sudo ./setup.sh
+   ```
+
+3. Follow the prompts in the script:
+   - Enter your MacBook's IP address when requested
+   - The script will automatically install all dependencies, configure services, and set up the Kodi addon
+
+4. Restart your Raspberry Pi:
+   ```bash
+   sudo reboot
+   ```
+
+### Option 2: Manual Setup
+
+If you prefer to set up the Seed One manually, follow these steps:
+
+1. Install dependencies:
+   ```bash
+   sudo apt update && sudo apt upgrade -y
+   sudo apt install -y nodejs npm git python3 ffmpeg kodi
+   ```
+
+2. Clone the repository:
+   ```bash
+   git clone https://github.com/wy1bur/wylloh-platform.git
+   cd wylloh-platform/seed-one
+   ```
+
+3. Create required directories:
+   ```bash
+   sudo mkdir -p /opt/wylloh
+   sudo mkdir -p /etc/wylloh
+   sudo mkdir -p /var/lib/wylloh/media
+   sudo mkdir -p /var/lib/wylloh/metadata
+   ```
+
+4. Copy files:
+   ```bash
+   sudo cp -r * /opt/wylloh/
+   cd /opt/wylloh
+   sudo npm install
+   ```
+
+5. Create config file:
+   ```bash
+   sudo nano /etc/wylloh/config.json
+   ```
+   
+   Enter your MacBook's IP address in this configuration:
+   ```json
+   {
+     "providerUrl": "http://YOUR_MACBOOK_IP:8545",
+     "ipfsGateway": "http://YOUR_MACBOOK_IP:8080",
+     "contractAddress": "0x5FbDB2315678afecb367f032d93F642f64180aa3",
+     "tokenFactoryAddress": "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512",
+     "demoMode": true,
+     "logLevel": "info",
+     "mediaPath": "/var/lib/wylloh/media",
+     "metadataPath": "/var/lib/wylloh/metadata",
+     "kodiEnabled": true
+   }
+   ```
+
+6. Create system service:
+   ```bash
+   sudo nano /etc/systemd/system/wylloh.service
+   ```
+   
+   Add this configuration (replace YOUR_USERNAME with your Pi username):
+   ```
+   [Unit]
+   Description=Wylloh Media Platform
+   After=network.target
+
+   [Service]
+   Type=simple
+   User=YOUR_USERNAME
+   WorkingDirectory=/opt/wylloh
+   ExecStart=/usr/bin/node /opt/wylloh/index.js
+   Restart=on-failure
+   RestartSec=10
+   StandardOutput=syslog
+   StandardError=syslog
+   SyslogIdentifier=wylloh
+
+   [Install]
+   WantedBy=multi-user.target
+   ```
+
+7. Install Kodi addon:
+   ```bash
+   mkdir -p ~/.kodi/addons
+   cp -r /opt/wylloh/kodi-addon/plugin.video.wylloh ~/.kodi/addons/
+   ```
+
+8. Start services:
+   ```bash
+   sudo systemctl daemon-reload
+   sudo systemctl enable wylloh
+   sudo systemctl start wylloh
+   ```
+
+9. Set up Kodi autostart:
+   ```bash
+   mkdir -p ~/.config/autostart
+   nano ~/.config/autostart/kodi.desktop
+   ```
+   
+   Add:
+   ```
+   [Desktop Entry]
+   Type=Application
+   Name=Kodi
+   Exec=kodi
+   ```
+
+10. Restart the Raspberry Pi:
+    ```bash
+    sudo reboot
+    ```
+
+## Troubleshooting Seed One
+
+- **Connection Issues**: 
+  - Ensure MacBook and Raspberry Pi are on the same network
+  - Verify MacBook IP address is correct in `/etc/wylloh/config.json`
+  - Check MacBook firewall settings to allow ports 8545 and 8080
+
+- **Service Issues**:
+  - Check service status: `sudo systemctl status wylloh`
+  - View logs: `sudo journalctl -u wylloh -n 50`
+  - Restart service: `sudo systemctl restart wylloh`
+
+- **Kodi Add-on Issues**:
+  - Check Kodi is running: `ps aux | grep kodi`
+  - Verify add-on installation: `ls -la ~/.kodi/addons/plugin.video.wylloh`
+  - Check Kodi logs: `tail -f ~/.kodi/temp/kodi.log`
 
 ## Working with MetaMask
 

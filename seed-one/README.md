@@ -1,58 +1,73 @@
-# Seed One
+# Wylloh Seed One
 
-Seed One is a dedicated media player application for the Wylloh platform, designed to provide secure playback of tokenized content with blockchain-based license verification.
+The Seed One is a Raspberry Pi-based media player for the Wylloh platform that allows playback of tokenized content.
 
 ## Overview
 
-Seed One connects to the Wylloh platform to verify content ownership and rights through blockchain tokens, enabling:
+The Seed One component provides a dedicated hardware device for viewing content purchased through the Wylloh platform. It integrates with:
 
-- Secure playback of purchased content
-- Token-based access rights verification
-- Direct connection to user wallets
-- Integration with existing media center software (Kodi)
+- Blockchain wallet for token verification
+- IPFS for content retrieval
+- Kodi media player for content playback
 
-## Components
+## Requirements
 
-The Seed One application consists of several key components:
+- Raspberry Pi 4 (2GB+ RAM recommended)
+- Raspberry Pi OS (64-bit recommended)
+- Internet connection
+- HDMI connection to a display
 
-### Kodi Addon
+## Quick Setup
 
-A custom addon for the Kodi media center that provides:
-- Wylloh content browsing interface
-- Secure content playback
-- Token verification integration
+1. Clone this repository:
+   ```bash
+   git clone https://github.com/wy1bur/wylloh-platform.git
+   cd wylloh-platform/seed-one
+   ```
 
-### System Configuration
+2. Run the setup script as root:
+   ```bash
+   sudo ./setup.sh
+   ```
 
-System-level configurations for:
-- Content decryption
-- Storage management
-- Performance optimization
-- Update mechanisms
+3. Follow the prompts and enter your MacBook's local IP address when requested.
 
-### Wallet Integration
+4. Restart your Raspberry Pi:
+   ```bash
+   sudo reboot
+   ```
 
-Integration with cryptocurrency wallets for:
-- License token verification
-- User authentication
-- Transaction capabilities
+## Manual Setup
 
-### Scripts
+See the detailed instructions in the [DEMO-README.MD](../DEMO-README.MD) file in the parent directory.
 
-Utility scripts for:
-- Installation and setup
-- Content synchronization
-- System maintenance
-- Log management
+## Files Included
 
-## Installation
+- `setup.sh` - Automated installation script
+- `config.json.template` - Template for Wylloh configuration
+- `wylloh.service` - Systemd service definition
+- `kodi.desktop` - Autostart file for Kodi
+- `kodi-addon/` - Directory containing the Wylloh Kodi addon
 
-Please refer to the setup documentation in `./scripts/INSTALL.md` for detailed installation instructions.
+## Architecture
 
-## Development
+The Seed One operates as follows:
 
-For development setup and contribution guidelines, see `CONTRIBUTING.md`.
+1. The Wylloh service runs in the background, connecting to:
+   - Local blockchain node (on your MacBook)
+   - IPFS gateway (on your MacBook)
+
+2. Kodi media player loads the Wylloh addon
+
+3. The addon communicates with the Wylloh service to:
+   - Verify token ownership
+   - Retrieve content metadata
+   - Stream content from IPFS
+
+## Troubleshooting
+
+For troubleshooting tips, see the [DEMO-README.MD](../DEMO-README.MD) file.
 
 ## License
 
-This project is licensed under the proprietary license - see the LICENSE file in the project root for details.
+This project is licensed under the proprietary license - see the LICENSE file in the parent directory for details.
