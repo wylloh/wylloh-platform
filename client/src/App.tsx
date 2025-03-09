@@ -21,6 +21,8 @@ import PlayerPage from './pages/player/PlayerPage';
 import ProfilePage from './pages/user/ProfilePage';
 import MyCollectionPage from './pages/user/MyCollectionPage';
 import NotFoundPage from './pages/NotFoundPage';
+import LoginPage from './pages/auth/LoginPage';
+import RegisterPage from './pages/auth/RegisterPage';
 
 // Create a theme
 const theme = createTheme({
@@ -59,6 +61,8 @@ function App() {
               <Route path="player/:id" element={<PlayerPage />} />
               <Route path="profile" element={<ProfilePage />} />
               <Route path="collection" element={<MyCollectionPage />} />
+              <Route path="login" element={<LoginPage />} />
+              <Route path="register" element={<RegisterPage />} />
               <Route path="*" element={<NotFoundPage />} />
             </Route>
           </Routes>

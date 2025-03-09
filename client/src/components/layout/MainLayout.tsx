@@ -208,13 +208,25 @@ const MainLayout: React.FC = () => {
               </Menu>
             </Box>
           ) : (
-            <Button
-              color="inherit"
-              component={Link}
-              to="/login"
-            >
-              Login
-            </Button>
+            <Box sx={{ display: 'flex', alignItems: 'center' }}>
+              <Button 
+                component={Link} 
+                to="/register"
+                variant="outlined"
+                color="primary"
+                sx={{ mr: 1 }}
+              >
+                Register
+              </Button>
+              <Button 
+                component={Link} 
+                to="/login"
+                variant="contained"
+                color="primary"
+              >
+                Login
+              </Button>
+            </Box>
           )}
         </Toolbar>
       </AppBar>
