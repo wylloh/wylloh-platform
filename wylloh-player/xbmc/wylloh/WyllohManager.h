@@ -10,6 +10,7 @@
 #include "settings/lib/ISettingCallback.h"
 #include "threads/CriticalSection.h"
 #include "wylloh/wallet/WalletManager.h"
+#include "wylloh/ipfs/IPFSManager.h"
 
 namespace WYLLOH {
 
@@ -85,6 +86,41 @@ public:
    * @return The API URL as a string
    */
   std::string GetApiUrl() const;
+
+  /**
+   * Get the IPFS manager
+   * 
+   * @return The IPFS manager
+   */
+  CIPFSManager& GetIPFSManager() { return CIPFSManager::GetInstance(); }
+
+  /**
+   * Get content from IPFS
+   * 
+   * @param cid The content ID
+   * @param content The content
+   * @return True if the content was retrieved, false otherwise
+   */
+  bool GetIPFSContent(const std::string& cid, std::string& content);
+
+  //------------------------------------------------
+  // Network Participation Methods
+  //------------------------------------------------
+  
+  // Start network participation
+  bool StartNetworkParticipation() { return CIPFSManager::GetInstance().StartNetworkParticipation(); }
+  
+  // Stop network participation
+  bool StopNetworkParticipation() { return CIPFSManager::GetInstance().StopNetworkParticipation(); }
+  
+  // Get network participation status
+  std::string GetNetworkParticipationStatus() { return CIPFSManager::GetInstance().GetNetworkParticipationStatus(); }
+  
+  // Get network statistics
+  NetworkStatistics GetNetworkStatistics() { return CIPFSManager::GetInstance().GetNetworkStatistics(); }
+  
+  // Get reward information
+  NetworkRewardInfo GetRewardInfo() { return CIPFSManager::GetInstance().GetRewardInfo(); }
 
 protected:
   // Protected constructor to enforce singleton

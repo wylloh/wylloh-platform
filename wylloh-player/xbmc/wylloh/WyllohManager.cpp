@@ -18,8 +18,19 @@
 #include "guilib/LocalizeStrings.h"
 #include "filesystem/File.h"
 #include "filesystem/Directory.h"
+#include "filesystem/SpecialProtocol.h"
 
 namespace WYLLOH {
+
+// Initialize static instance
+CWyllohManager* CWyllohManager::m_instance = nullptr;
+
+CWyllohManager& CWyllohManager::GetInstance()
+{
+  if (!m_instance)
+    m_instance = new CWyllohManager();
+  return *m_instance;
+}
 
 CWyllohManager::CWyllohManager()
   : m_initialized(false),
@@ -44,29 +55,40 @@ bool CWyllohManager::Initialize()
 
   CLog::Log(LOGINFO, "WYLLOH: Initializing WyllohManager");
 
-  // Create necessary directories
-  if (!CreateDirectories())
+  // Create Wylloh config directory if it doesn't exist
+  std::string configDir = CSpecialProtocol::TranslatePath("special://userdata/wylloh-config/");
+  if (!XFILE::CDirectory::Exists(configDir))
   {
-    CLog::Log(LOGERROR, "WYLLOH: Failed to create necessary directories");
-    return false;
-  }
-
-  // Register as settings callback
-  CServiceBroker::GetSettingsComponent()->GetSettings()->RegisterCallback(this, "wylloh");
-
-  // Initialize content verification cache
-  if (!WYLLOH::WALLET::CContentVerificationCache::GetInstance().Initialize())
-  {
-    CLog::Log(LOGERROR, "WYLLOH: Failed to initialize content verification cache");
-    // Non-critical, continue with initialization
+    if (!XFILE::CDirectory::Create(configDir))
+    {
+      CLog::Log(LOGERROR, "CWyllohManager: Failed to create config directory: %s", configDir.c_str());
+      return false;
+    }
   }
 
   // Initialize wallet manager
-  m_walletManager = std::make_unique<WALLET::CWalletManager>();
-  if (!m_walletManager->Initialize())
+  if (!CWalletManager::GetInstance().Initialize())
   {
-    CLog::Log(LOGERROR, "WYLLOH: Failed to initialize wallet manager");
+    CLog::Log(LOGERROR, "CWyllohManager: Failed to initialize wallet manager");
     return false;
+  }
+
+  // Initialize IPFS manager
+  if (!CIPFSManager::GetInstance().Initialize())
+  {
+    CLog::Log(LOGERROR, "CWyllohManager: Failed to initialize IPFS manager");
+    return false;
+  }
+
+  // Register for settings changes
+  auto settingsComponent = CServiceBroker::GetSettingsComponent();
+  if (settingsComponent)
+  {
+    auto settings = settingsComponent->GetSettings();
+    if (settings)
+    {
+      settings->RegisterCallback(this, "wylloh");
+    }
   }
 
   m_initialized = true;
@@ -84,18 +106,22 @@ void CWyllohManager::Shutdown()
 
   CLog::Log(LOGINFO, "WYLLOH: Shutting down WyllohManager");
 
-  // Unregister from settings callback
-  CServiceBroker::GetSettingsComponent()->GetSettings()->UnregisterCallback(this);
-
-  // Shutdown wallet manager
-  if (m_walletManager)
+  // Unregister from settings
+  auto settingsComponent = CServiceBroker::GetSettingsComponent();
+  if (settingsComponent)
   {
-    m_walletManager->Shutdown();
-    m_walletManager.reset();
+    auto settings = settingsComponent->GetSettings();
+    if (settings)
+    {
+      settings->UnregisterCallback(this);
+    }
   }
 
-  // Shutdown content verification cache
-  WYLLOH::WALLET::CContentVerificationCache::GetInstance().Shutdown();
+  // Shutdown wallet manager
+  CWalletManager::GetInstance().Shutdown();
+
+  // Shutdown IPFS manager
+  CIPFSManager::GetInstance().Shutdown();
 
   m_initialized = false;
 }
@@ -110,19 +136,39 @@ void CWyllohManager::OnSettingChanged(const std::shared_ptr<const CSetting>& set
   if (settingId == "wylloh.api_url")
   {
     // Update wallet manager API URL
-    if (m_walletManager)
+    if (CWalletManager::GetInstance().GetWalletManager())
     {
       auto apiUrl = std::static_pointer_cast<const CSettingString>(setting)->GetValue();
-      m_walletManager->SetApiUrl(apiUrl);
+      CWalletManager::GetInstance().GetWalletManager()->SetApiUrl(apiUrl);
     }
   }
   else if (settingId == "wylloh.show_overlay")
   {
     // Update wallet overlay visibility
-    if (m_walletManager)
+    if (CWalletManager::GetInstance().GetWalletManager())
     {
       bool showOverlay = std::static_pointer_cast<const CSettingBool>(setting)->GetValue();
-      m_walletManager->ShowWalletOverlay(showOverlay);
+      CWalletManager::GetInstance().GetWalletManager()->ShowWalletOverlay(showOverlay);
+    }
+  }
+  else if (settingId == "wylloh.ipfs.auto_pin_owned")
+  {
+    bool autoPinOwned = std::static_pointer_cast<const CSettingBool>(setting)->GetValue();
+    
+    if (autoPinOwned)
+    {
+      // When auto-pin is enabled, pin all currently owned content
+      std::vector<std::string> contentIds = CWalletManager::GetInstance().GetOwnedContentIds();
+      
+      if (!contentIds.empty())
+      {
+        CLog::Log(LOGINFO, "CWyllohManager: Auto-pinning %d owned content items after setting change", contentIds.size());
+        
+        for (const auto& contentId : contentIds)
+        {
+          CIPFSManager::GetInstance().PinContent(contentId);
+        }
+      }
     }
   }
 }
@@ -137,17 +183,17 @@ void CWyllohManager::OnSettingAction(const std::shared_ptr<const CSetting>& sett
   if (settingId == "wylloh.connect_wallet")
   {
     // Connect wallet
-    if (m_walletManager)
+    if (CWalletManager::GetInstance().GetWalletManager())
     {
-      m_walletManager->ConnectWalletWithQR();
+      CWalletManager::GetInstance().GetWalletManager()->ConnectWalletWithQR();
     }
   }
   else if (settingId == "wylloh.disconnect_wallet")
   {
     // Disconnect wallet
-    if (m_walletManager)
+    if (CWalletManager::GetInstance().GetWalletManager())
     {
-      m_walletManager->DisconnectWallet();
+      CWalletManager::GetInstance().GetWalletManager()->DisconnectWallet();
     }
   }
 }
@@ -165,15 +211,15 @@ void CWyllohManager::Process()
   m_lastProcessTime = currentTime;
 
   // Process wallet manager
-  if (m_walletManager)
+  if (CWalletManager::GetInstance().GetWalletManager())
   {
-    m_walletManager->Process();
+    CWalletManager::GetInstance().GetWalletManager()->Process();
   }
 }
 
 bool CWyllohManager::IsContentPlayable(const std::string& contentId)
 {
-  if (!m_initialized || !m_walletManager)
+  if (!m_initialized || !CWalletManager::GetInstance().GetWalletManager())
     return true; // If not initialized, allow playback by default
 
   // Check if this is a token-gated content
@@ -181,7 +227,7 @@ bool CWyllohManager::IsContentPlayable(const std::string& contentId)
     return true; // If not token-gated, allow playback
 
   // Check if wallet is connected
-  if (!m_walletManager->IsConnected())
+  if (!CWalletManager::GetInstance().GetWalletManager()->IsConnected())
   {
     // Wallet not connected, show prompt to connect
     bool confirmed = MESSAGING::HELPERS::ShowYesNoDialogText(
@@ -194,7 +240,7 @@ bool CWyllohManager::IsContentPlayable(const std::string& contentId)
     if (confirmed)
     {
       // Try to connect wallet
-      if (m_walletManager->ConnectWalletWithQR())
+      if (CWalletManager::GetInstance().GetWalletManager()->ConnectWalletWithQR())
       {
         // Wallet connected, check ownership
         return VerifyContentOwnership(contentId);
@@ -214,7 +260,7 @@ bool CWyllohManager::IsContentPlayable(const std::string& contentId)
 
 bool CWyllohManager::VerifyContentOwnership(const std::string& contentId)
 {
-  if (!m_initialized || !m_walletManager)
+  if (!m_initialized || !CWalletManager::GetInstance().GetWalletManager())
     return false;
 
   // Avoid re-entrancy
@@ -230,7 +276,7 @@ bool CWyllohManager::VerifyContentOwnership(const std::string& contentId)
   );
 
   // Verify content ownership
-  bool isOwned = m_walletManager->VerifyContentOwnership(contentId);
+  bool isOwned = CWalletManager::GetInstance().GetWalletManager()->VerifyContentOwnership(contentId);
 
   // Hide verification dialog
   MESSAGING::HELPERS::HideBusyDialog();
@@ -250,10 +296,36 @@ bool CWyllohManager::VerifyContentOwnership(const std::string& contentId)
 
 std::vector<std::string> CWyllohManager::GetOwnedContentIds()
 {
-  if (!m_initialized || !m_walletManager)
+  if (!m_initialized || !CWalletManager::GetInstance().GetWalletManager())
     return {};
 
-  return m_walletManager->GetOwnedContentIds();
+  // Get all owned content IDs
+  std::vector<std::string> contentIds = CWalletManager::GetInstance().GetOwnedContentIds();
+  
+  // Check auto-pin setting
+  bool autoPinOwned = false;
+  auto settingsComponent = CServiceBroker::GetSettingsComponent();
+  if (settingsComponent)
+  {
+    auto settings = settingsComponent->GetSettings();
+    if (settings)
+    {
+      autoPinOwned = settings->GetBool("wylloh.ipfs.auto_pin_owned");
+    }
+  }
+  
+  // Auto-pin all owned content if setting is enabled
+  if (autoPinOwned && !contentIds.empty())
+  {
+    CLog::Log(LOGINFO, "CWyllohManager: Auto-pinning %d owned content items", contentIds.size());
+    
+    for (const auto& contentId : contentIds)
+    {
+      CIPFSManager::GetInstance().PinContent(contentId);
+    }
+  }
+  
+  return contentIds;
 }
 
 bool CWyllohManager::IsTokenGatedContent(const std::string& contentId)
@@ -262,6 +334,11 @@ bool CWyllohManager::IsTokenGatedContent(const std::string& contentId)
   // In a real implementation, this would check for token requirements
   // using a content metadata lookup service
   return true;
+}
+
+bool CWyllohManager::GetIPFSContent(const std::string& cid, std::string& content)
+{
+  return CIPFSManager::GetInstance().GetContent(cid, content);
 }
 
 bool CWyllohManager::CreateDirectories()

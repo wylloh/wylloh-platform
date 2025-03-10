@@ -12,4 +12,10 @@ set(HEADERS
   wallet/WalletOverlay.h
 )
 
+# Add wallet subdirectory
+add_subdirectory(wallet)
+
+# Add IPFS subdirectory
+add_subdirectory(ipfs)
+
 core_add_library(wylloh) 

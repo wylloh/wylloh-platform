@@ -234,4 +234,204 @@ msgstr ""
 
 msgctxt "#30585"
 msgid "Search"
+msgstr ""
+
+# IPFS Settings
+msgctxt "#30600"
+msgid "IPFS"
+msgstr ""
+
+msgctxt "#30601"
+msgid "Primary gateway"
+msgstr ""
+
+msgctxt "#30602"
+msgid "Primary IPFS gateway URL"
+msgstr ""
+
+msgctxt "#30603"
+msgid "Request timeout (ms)"
+msgstr ""
+
+msgctxt "#30604"
+msgid "Timeout for IPFS requests in milliseconds"
+msgstr ""
+
+msgctxt "#30605"
+msgid "Cache size (MB)"
+msgstr ""
+
+msgctxt "#30606"
+msgid "Maximum size of IPFS cache in megabytes"
+msgstr ""
+
+msgctxt "#30607"
+msgid "Cache expiry (hours)"
+msgstr ""
+
+msgctxt "#30608"
+msgid "Time in hours before cached content expires"
+msgstr ""
+
+msgctxt "#30609"
+msgid "Enable pinning"
+msgstr ""
+
+msgctxt "#30610"
+msgid "Pin content to prevent automatic expiration"
+msgstr ""
+
+msgctxt "#30611"
+msgid "Manage gateways"
+msgstr ""
+
+msgctxt "#30612"
+msgid "Add or remove IPFS gateways"
+msgstr ""
+
+msgctxt "#30613"
+msgid "Clear cache"
+msgstr ""
+
+msgctxt "#30614"
+msgid "Clear IPFS content cache"
+msgstr ""
+
+msgctxt "#30615"
+msgid "Add gateway"
+msgstr ""
+
+msgctxt "#30616"
+msgid "Enter IPFS gateway URL"
+msgstr ""
+
+msgctxt "#30617"
+msgid "Remove gateway"
+msgstr ""
+
+msgctxt "#30618"
+msgid "Select gateway to remove"
+msgstr ""
+
+msgctxt "#30619"
+msgid "Cache cleared"
+msgstr ""
+
+msgctxt "#30620"
+msgid "IPFS cache has been cleared"
+msgstr ""
+
+msgctxt "#30621"
+msgid "Automatically pin owned content"
+msgstr ""
+
+msgctxt "#30622"
+msgid "Automatically pin content that you own to ensure it remains available"
+msgstr ""
+
+# IPFS Content
+msgctxt "#30630"
+msgid "Loading content from IPFS..."
+msgstr ""
+
+msgctxt "#30631"
+msgid "Error loading content from IPFS"
+msgstr ""
+
+msgctxt "#30632"
+msgid "Failed to download content from IPFS: %s"
+msgstr ""
+
+msgctxt "#30633"
+msgid "Content loaded successfully"
+msgstr ""
+
+# Network Participation
+msgctxt "#30640"
+msgid "Network Participation"
+msgstr ""
+
+msgctxt "#30641"
+msgid "Enable network participation"
+msgstr ""
+
+msgctxt "#30642"
+msgid "Contribute storage to the Wylloh network and earn rewards"
+msgstr ""
+
+msgctxt "#30643"
+msgid "Storage allocation (GB)"
+msgstr ""
+
+msgctxt "#30644"
+msgid "Amount of disk space to allocate for storing network content"
+msgstr ""
+
+msgctxt "#30645"
+msgid "Storage path"
+msgstr ""
+
+msgctxt "#30646"
+msgid "Location to store network content"
+msgstr ""
+
+msgctxt "#30647"
+msgid "Bandwidth limit (KB/s)"
+msgstr ""
+
+msgctxt "#30648"
+msgid "Maximum bandwidth to use for network participation"
+msgstr ""
+
+msgctxt "#30649"
+msgid "Reward address"
+msgstr ""
+
+msgctxt "#30650"
+msgid "Address where participation rewards will be sent"
+msgstr ""
+
+msgctxt "#30651"
+msgid "Participation status"
+msgstr ""
+
+msgctxt "#30652"
+msgid "Inactive"
+msgstr ""
+
+msgctxt "#30653"
+msgid "Starting"
+msgstr ""
+
+msgctxt "#30654"
+msgid "Active"
+msgstr ""
+
+msgctxt "#30655"
+msgid "Error"
+msgstr ""
+
+msgctxt "#30656"
+msgid "Network statistics"
+msgstr ""
+
+msgctxt "#30657"
+msgid "Storage used"
+msgstr ""
+
+msgctxt "#30658"
+msgid "Bandwidth used"
+msgstr ""
+
+msgctxt "#30659"
+msgid "Earned rewards"
+msgstr ""
+
+msgctxt "#30660"
+msgid "Storage health"
+msgstr ""
+
+# Placeholder for future specific network strings
+msgctxt "#30670"
+msgid "Network"
 msgstr "" 
