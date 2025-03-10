@@ -13,6 +13,9 @@
 #include "guilib/GUILabel.h"
 #include "guilib/GUIButtonControl.h"
 #include "wylloh/wallet/WalletConnection.h"
+#include "utils/TimeUtils.h"
+#include "guilib/GUITexture.h"
+#include "guilib/GUILabelControl.h"
 
 namespace WYLLOH {
 namespace WALLET {
@@ -21,113 +24,80 @@ namespace WALLET {
 class CWalletQRDialog;
 
 /**
- * Class to display wallet status overlay
- * Shows a semi-transparent overlay with wallet connection status
+ * @class CWalletOverlay
+ * @brief UI overlay showing wallet connection status
  */
-class CWalletOverlay : public CGUIDialog, public CThread
+class CWalletOverlay
 {
 public:
+  /**
+   * Constructor
+   * @param walletConnection Pointer to the wallet connection
+   */
   CWalletOverlay(CWalletConnection* walletConnection);
-  ~CWalletOverlay() override;
+  
+  /**
+   * Destructor
+   */
+  ~CWalletOverlay();
 
   /**
    * Initialize the overlay
-   * 
-   * @return True if initialization was successful
+   * @return True if successful, false otherwise
    */
   bool Initialize();
-
+  
   /**
-   * Start displaying the overlay
+   * Clean up resources
    */
-  void Show();
-
-  /**
-   * Hide the overlay
-   */
-  void Hide();
-
+  void Deinitialize();
+  
   /**
    * Set visibility of the overlay
-   * 
    * @param visible Whether the overlay should be visible
    */
   void SetVisible(bool visible);
-
+  
   /**
    * Check if the overlay is visible
-   * 
-   * @return True if visible
+   * @return True if visible, false otherwise
    */
   bool IsVisible() const;
-
+  
   /**
-   * CThread implementation
+   * Render the overlay
    */
-  void Process() override;
-
+  void Render();
+  
   /**
-   * CGUIDialog implementations
+   * Process overlay logic
    */
-  bool OnMessage(CGUIMessage& message) override;
-  bool OnAction(const CAction& action) override;
-  void OnInitWindow() override;
-  void OnDeinitWindow(int nextWindowID) override;
-  void Render() override;
-
+  void Process();
+  
+  /**
+   * Show QR code connection dialog
+   */
+  void ShowQRDialog();
+  
 private:
   /**
-   * Create the overlay UI components
-   */
-  void CreateControls();
-
-  /**
-   * Update the overlay with current wallet status
+   * Update overlay UI elements
    */
   void UpdateOverlay();
 
-  /**
-   * Show wallet QR connection dialog
-   */
-  void ShowQRDialog();
-
-  /**
-   * Handle clicking the connect button
-   */
-  void OnConnectClick();
-
-  /**
-   * Calculate position for the overlay
-   */
-  void CalculatePosition();
-
   // Wallet connection
-  CWalletConnection* m_walletConnection{nullptr};
-  
-  // UI Controls
-  std::unique_ptr<CGUIImage> m_backgroundControl;
-  std::unique_ptr<CGUIImage> m_iconControl;
-  std::unique_ptr<CGUILabel> m_statusLabel;
-  std::unique_ptr<CGUILabel> m_addressLabel;
-  std::unique_ptr<CGUIButtonControl> m_connectButton;
-  
-  // QR Dialog
-  std::unique_ptr<CWalletQRDialog> m_qrDialog;
+  CWalletConnection* m_walletConnection;
   
   // State
-  bool m_isVisible{false};
-  bool m_isInitialized{false};
-  std::string m_lastAddress;
-  CWalletConnection::ConnectionStatus m_lastStatus{CWalletConnection::ConnectionStatus::Disconnected};
+  bool m_visible;
+  bool m_qrDialogActive;
+  unsigned int m_refreshTime;
   
-  // Thread synchronization
-  CCriticalSection m_criticalSection;
-  
-  // Layout
-  int m_width{300};
-  int m_height{80};
-  int m_xPosition{0};
-  int m_yPosition{0};
+  // UI Elements
+  CGUITexture* m_textureStatus;
+  CGUITexture* m_textureWallet;
+  CGUILabelControl* m_labelAddress;
+  CGUILabelControl* m_labelStatus;
 };
 
 }  // namespace WALLET

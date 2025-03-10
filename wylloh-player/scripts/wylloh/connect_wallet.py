@@ -9,10 +9,16 @@ https://wylloh.com
 
 import sys
 import xbmc
-import xbmcaddon
 
-__addon__ = xbmcaddon.Addon()
-__addonname__ = __addon__.getAddonInfo('name')
+# Try to import xbmcaddon, but don't fail if it's not available
+# This allows the script to work during development
+try:
+    import xbmcaddon
+    __addon__ = xbmcaddon.Addon()
+    __addonname__ = __addon__.getAddonInfo('name')
+except ImportError:
+    __addon__ = None
+    __addonname__ = "Wylloh Player"
 
 
 def connect_wallet():
