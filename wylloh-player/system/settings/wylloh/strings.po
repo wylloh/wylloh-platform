@@ -143,4 +143,95 @@ msgstr ""
 
 msgctxt "#30530"
 msgid "or"
+msgstr ""
+
+# Token Browser
+msgctxt "#30550"
+msgid "My Tokens"
+msgstr ""
+
+msgctxt "#30551"
+msgid "No content associated with this token"
+msgstr ""
+
+msgctxt "#30552"
+msgid "Loading tokens..."
+msgstr ""
+
+msgctxt "#30553"
+msgid "You need to connect your wallet to view your tokens. Connect now?"
+msgstr ""
+
+msgctxt "#30554"
+msgid "No tokens found for your wallet"
+msgstr ""
+
+msgctxt "#30555"
+msgid "Failed to load tokens"
+msgstr ""
+
+msgctxt "#30556"
+msgid "Token Information"
+msgstr ""
+
+msgctxt "#30557"
+msgid "Token ID"
+msgstr ""
+
+msgctxt "#30558"
+msgid "Content ID"
+msgstr ""
+
+msgctxt "#30559"
+msgid "Type"
+msgstr ""
+
+msgctxt "#30560"
+msgid "Acquired"
+msgstr ""
+
+# Token Types
+msgctxt "#30570"
+msgid "Video"
+msgstr ""
+
+msgctxt "#30571"
+msgid "Audio"
+msgstr ""
+
+msgctxt "#30572"
+msgid "Image"
+msgstr ""
+
+msgctxt "#30573"
+msgid "Document"
+msgstr ""
+
+msgctxt "#30574"
+msgid "Collection"
+msgstr ""
+
+# Marketplace
+msgctxt "#30580"
+msgid "Marketplace"
+msgstr ""
+
+msgctxt "#30581"
+msgid "Browse content"
+msgstr ""
+
+msgctxt "#30582"
+msgid "Featured"
+msgstr ""
+
+msgctxt "#30583"
+msgid "New Releases"
+msgstr ""
+
+msgctxt "#30584"
+msgid "Categories"
+msgstr ""
+
+msgctxt "#30585"
+msgid "Search"
 msgstr "" 

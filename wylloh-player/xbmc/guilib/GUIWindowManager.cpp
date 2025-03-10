@@ -158,6 +158,9 @@
 #include "games/ports/windows/GUIPortWindow.h"
 #include "games/windows/GUIWindowGames.h"
 
+#include "wylloh/browser/TokenBrowser.h"
+#include "wylloh/browser/TokenInfoDialog.h"
+
 using namespace KODI;
 using namespace PVR;
 using namespace PERIPHERALS;
@@ -167,6 +170,9 @@ CGUIWindowManager::CGUIWindowManager()
   m_pCallback = nullptr;
   m_iNested = 0;
   m_initialized = false;
+
+  // Register Wylloh windows
+  Add(new WYLLOH::CTokenBrowser());
 }
 
 CGUIWindowManager::~CGUIWindowManager() = default;
@@ -760,14 +766,14 @@ void CGUIWindowManager::PreviousWindow()
   CloseWindowSync(pCurrentWindow);
 
   CServiceBroker::GetGUI()->GetInfoManager().GetInfoProviders().GetGUIControlsInfoProvider().SetNextWindow(WINDOW_INVALID);
-  CServiceBroker::GetGUI()->GetInfoManager().GetInfoProviders().GetGUIControlsInfoProvider().SetPreviousWindow(currentWindow);
+  CServiceBroker::GetGUI()->GetInfoProviders().GetGUIControlsInfoProvider().SetPreviousWindow(currentWindow);
 
   // remove the current window off our window stack
   m_windowHistory.pop_back();
 
   // ok, initialize the new window
   CLog::Log(LOGDEBUG,"CGUIWindowManager::PreviousWindow: Activate new");
-  CGUIMessage msg2(GUI_MSG_WINDOW_INIT, 0, 0, WINDOW_INVALID, GetActiveWindow());
+  CGUIMessage msg2(GUI_MSG_WINDOW_INIT, 0, 0, currentWindow, iWindowID);
   pNewWindow->OnMessage(msg2);
 
   CServiceBroker::GetGUI()->GetInfoManager().GetInfoProviders().GetGUIControlsInfoProvider().SetPreviousWindow(WINDOW_INVALID);

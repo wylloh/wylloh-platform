@@ -5,6 +5,7 @@
 
 #include "wylloh/WyllohManager.h"
 #include "wylloh/wallet/WalletManager.h"
+#include "wylloh/wallet/ContentVerificationCache.h"
 #include "utils/log.h"
 #include "ServiceBroker.h"
 #include "settings/Settings.h"
@@ -53,6 +54,13 @@ bool CWyllohManager::Initialize()
   // Register as settings callback
   CServiceBroker::GetSettingsComponent()->GetSettings()->RegisterCallback(this, "wylloh");
 
+  // Initialize content verification cache
+  if (!WYLLOH::WALLET::CContentVerificationCache::GetInstance().Initialize())
+  {
+    CLog::Log(LOGERROR, "WYLLOH: Failed to initialize content verification cache");
+    // Non-critical, continue with initialization
+  }
+
   // Initialize wallet manager
   m_walletManager = std::make_unique<WALLET::CWalletManager>();
   if (!m_walletManager->Initialize())
@@ -85,6 +93,9 @@ void CWyllohManager::Shutdown()
     m_walletManager->Shutdown();
     m_walletManager.reset();
   }
+
+  // Shutdown content verification cache
+  WYLLOH::WALLET::CContentVerificationCache::GetInstance().Shutdown();
 
   m_initialized = false;
 }

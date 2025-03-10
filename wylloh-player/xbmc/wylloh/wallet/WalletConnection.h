@@ -203,9 +203,11 @@ private:
   
   // Current state
   ConnectionStatus m_connectionStatus;
-  std::string m_address;
-  std::vector<Token> m_tokens;
+  std::string m_walletAddress;
   std::string m_lastError;
+  std::string m_qrSessionId;
+  std::string m_qrImageUrl;
+  std::vector<Token> m_tokens;
   
   // Thread synchronization
   mutable CCriticalSection m_criticalSection;

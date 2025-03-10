@@ -207,3 +207,6 @@
 #define WINDOW_ADDON_START                14000
 #define WINDOW_ADDON_END                  14099
 
+// Wylloh windows
+#define WINDOW_TOKEN_BROWSER          10100
+

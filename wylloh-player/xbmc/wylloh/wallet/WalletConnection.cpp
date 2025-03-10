@@ -15,6 +15,7 @@
 #include "Application.h"
 #include "URL.h"
 #include "Util.h"
+#include "wylloh/wallet/ContentVerificationCache.h"
 
 #include <cstdlib>
 #include <ctime>
@@ -34,7 +35,7 @@ namespace WALLET {
 CWalletConnection::CWalletConnection()
   : m_apiUrl("http://localhost:3333/api/"),
     m_connectionStatus(ConnectionStatus::Disconnected),
-    m_address(""),
+    m_walletAddress(""),
     m_lastError("")
 {
   // Set data path
@@ -103,7 +104,7 @@ CWalletConnection::ConnectionResponse CWalletConnection::Connect()
   {
     // Already connected
     response.success = true;
-    response.address = m_address;
+    response.address = m_walletAddress;
     return response;
   }
 
@@ -137,7 +138,7 @@ CWalletConnection::ConnectionResponse CWalletConnection::Connect()
             
           // Update state
           m_connectionStatus = ConnectionStatus::Connected;
-          m_address = response.address;
+          m_walletAddress = response.address;
           
           // Refresh token data
           RefreshTokenData();
@@ -145,7 +146,7 @@ CWalletConnection::ConnectionResponse CWalletConnection::Connect()
           // Save state
           SaveWalletState();
           
-          CLog::Log(LOGINFO, "WYLLOH: Wallet connected: %s", m_address.c_str());
+          CLog::Log(LOGINFO, "WYLLOH: Wallet connected: %s", m_walletAddress.c_str());
         }
         else
         {
@@ -206,7 +207,7 @@ CWalletConnection::ConnectionResponse CWalletConnection::InitiateQRConnection()
   {
     // Already connected
     response.success = true;
-    response.address = m_address;
+    response.address = m_walletAddress;
     return response;
   }
 
@@ -391,7 +392,7 @@ CWalletConnection::ConnectionResponse CWalletConnection::CompleteQRConnection(co
             
           // Update state
           m_connectionStatus = ConnectionStatus::Connected;
-          m_address = response.address;
+          m_walletAddress = response.address;
           
           // Refresh token data
           RefreshTokenData();
@@ -399,7 +400,7 @@ CWalletConnection::ConnectionResponse CWalletConnection::CompleteQRConnection(co
           // Save state
           SaveWalletState();
           
-          CLog::Log(LOGINFO, "WYLLOH: QR connection completed, wallet: %s", m_address.c_str());
+          CLog::Log(LOGINFO, "WYLLOH: QR connection completed, wallet: %s", m_walletAddress.c_str());
         }
         else
         {
@@ -460,13 +461,13 @@ CWalletConnection::ConnectionResponse CWalletConnection::AutoConnect()
   if (m_connectionStatus == ConnectionStatus::Connected)
   {
     response.success = true;
-    response.address = m_address;
+    response.address = m_walletAddress;
     response.autoConnected = true;
     return response;
   }
 
   // If no saved address, can't auto-connect
-  if (m_address.empty())
+  if (m_walletAddress.empty())
   {
     response.success = false;
     response.message = "No saved wallet address";
@@ -480,7 +481,7 @@ CWalletConnection::ConnectionResponse CWalletConnection::AutoConnect()
   {
     // Prepare JSON data
     CVariant requestData(CVariant::VariantTypeObject);
-    requestData["address"] = m_address;
+    requestData["address"] = m_walletAddress;
     
     // Make request to wallet/auto-connect endpoint
     std::string result = MakeApiRequest("wallet/auto-connect", "POST", 
@@ -509,7 +510,7 @@ CWalletConnection::ConnectionResponse CWalletConnection::AutoConnect()
           // Refresh token data
           RefreshTokenData();
           
-          CLog::Log(LOGINFO, "WYLLOH: Wallet auto-connected: %s", m_address.c_str());
+          CLog::Log(LOGINFO, "WYLLOH: Wallet auto-connected: %s", m_walletAddress.c_str());
         }
         else
         {
@@ -621,7 +622,7 @@ CWalletConnection::ConnectionStatus CWalletConnection::GetConnectionStatus() con
 std::string CWalletConnection::GetAddress() const
 {
   CSingleLock lock(m_criticalSection);
-  return m_address;
+  return m_walletAddress;
 }
 
 void CWalletConnection::SetApiUrl(const std::string& url)
@@ -642,20 +643,53 @@ void CWalletConnection::SetApiUrl(const std::string& url)
 
 bool CWalletConnection::IsContentOwned(const std::string& contentId) const
 {
-  CSingleLock lock(m_criticalSection);
-  
-  // Not connected, can't own content
-  if (m_connectionStatus != ConnectionStatus::Connected)
+  if (contentId.empty())
     return false;
     
-  // Check if any token has the given content ID
-  for (const auto& token : m_tokens)
+  CSingleLock lock(m_criticalSection);
+  
+  // Check if wallet is connected
+  if (m_connectionStatus != ConnectionStatus::Connected || m_walletAddress.empty())
+    return false;
+    
+  // Check if content ownership is in cache
+  bool isOwned = false;
+  if (CContentVerificationCache::GetInstance().IsContentOwned(contentId, m_walletAddress, isOwned))
   {
-    if (token.contentId == contentId)
-      return true;
+    // Cache hit
+    return isOwned;
   }
   
-  return false;
+  // Cache miss, check ownership via API
+  CLog::Log(LOGINFO, "WYLLOH: Checking content ownership for %s", contentId.c_str());
+  
+  // Prepare request
+  CVariant requestData(CVariant::VariantTypeObject);
+  requestData["walletAddress"] = m_walletAddress;
+  requestData["contentId"] = contentId;
+  
+  // Send request
+  CVariant responseData;
+  if (!SendJSONRequest("verify-content", requestData, responseData))
+  {
+    CLog::Log(LOGERROR, "WYLLOH: Failed to verify content ownership");
+    return false;
+  }
+  
+  // Check response
+  if (!responseData.isMember("owned") || !responseData["owned"].isBoolean())
+  {
+    CLog::Log(LOGERROR, "WYLLOH: Invalid response from verify-content API");
+    return false;
+  }
+  
+  // Get ownership status
+  isOwned = responseData["owned"].asBoolean();
+  
+  // Cache the result
+  CContentVerificationCache::GetInstance().SetContentOwnership(contentId, m_walletAddress, isOwned);
+  
+  return isOwned;
 }
 
 std::vector<std::string> CWalletConnection::GetOwnedContentIds() const
@@ -888,7 +922,7 @@ void CWalletConnection::SaveWalletState()
   {
     // Create state data
     CVariant stateData(CVariant::VariantTypeObject);
-    stateData["address"] = m_address;
+    stateData["address"] = m_walletAddress;
     stateData["connected"] = (m_connectionStatus == ConnectionStatus::Connected);
     
     // Add tokens
@@ -964,7 +998,7 @@ bool CWalletConnection::LoadWalletState()
       {
         // Load address
         if (stateData.isMember("address"))
-          m_address = stateData["address"].asString();
+          m_walletAddress = stateData["address"].asString();
           
         // Load connection status
         if (stateData.isMember("connected") && stateData["connected"].asBoolean())
@@ -1011,7 +1045,7 @@ bool CWalletConnection::LoadWalletState()
         
         success = true;
         CLog::Log(LOGINFO, "WYLLOH: Loaded wallet state, address: %s, tokens: %zu", 
-                 m_address.c_str(), m_tokens.size());
+                 m_walletAddress.c_str(), m_tokens.size());
       }
       else
       {
