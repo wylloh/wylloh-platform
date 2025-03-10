@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!-- 
+  Wylloh Player specific settings
+  
+  Copyright (C) 2023-2025 Wylloh Team
+  https://wylloh.com
+-->
+<settings version="1">
+  <section id="wylloh">
+    <category id="wylloh" label="30500" help="">
+      <group id="1" label="">
+        <setting id="wylloh.api_url" type="string" label="30501" help="30502">
+          <level>0</level>
+          <default>http://localhost:3333/api/</default>
+          <control type="edit" format="string" />
+        </setting>
+        <setting id="wylloh.auto_connect" type="boolean" label="30503" help="30504">
+          <level>0</level>
+          <default>false</default>
+          <control type="toggle" />
+        </setting>
+        <setting id="wylloh.show_overlay" type="boolean" label="30505" help="30506">
+          <level>0</level>
+          <default>true</default>
+          <control type="toggle" />
+        </setting>
+      </group>
+      <group id="2" label="30507">
+        <setting id="wylloh.wallet_status" type="string" label="30508" help="">
+          <level>0</level>
+          <default>30509</default>
+          <constraints>
+            <options>
+              <option label="30509">not_connected</option>
+              <option label="30510">connecting</option>
+              <option label="30511">connected</option>
+            </options>
+          </constraints>
+          <control type="spinner" format="string" />
+          <dependencies>
+            <dependency type="visible">
+              <condition operator="is" setting="wylloh.wallet_address" comparing="">false</condition>
+            </dependency>
+          </dependencies>
+        </setting>
+        <setting id="wylloh.wallet_address" type="string" label="30512" help="">
+          <level>0</level>
+          <default></default>
+          <control type="edit" format="string" />
+          <dependencies>
+            <dependency type="enable">
+              <condition operator="is" setting="wylloh.wallet_status" comparing="connected">true</condition>
+            </dependency>
+          </dependencies>
+        </setting>
+        <setting id="wylloh.connect_wallet" type="action" label="30513" help="30514">
+          <level>0</level>
+          <data>RunScript(special://xbmc/scripts/wylloh/connect_wallet.py)</data>
+          <control type="button" format="action">
+            <dimensions>100%,10%</dimensions>
+          </control>
+          <dependencies>
+            <dependency type="visible">
+              <condition operator="is" setting="wylloh.wallet_address" comparing="">true</condition>
+            </dependency>
+          </dependencies>
+        </setting>
+        <setting id="wylloh.disconnect_wallet" type="action" label="30515" help="30516">
+          <level>0</level>
+          <data>RunScript(special://xbmc/scripts/wylloh/disconnect_wallet.py)</data>
+          <control type="button" format="action">
+            <dimensions>100%,10%</dimensions>
+          </control>
+          <dependencies>
+            <dependency type="visible">
+              <condition operator="is" setting="wylloh.wallet_address" comparing="">false</condition>
+            </dependency>
+          </dependencies>
+        </setting>
+      </group>
+    </category>
+  </section>
+</settings> 

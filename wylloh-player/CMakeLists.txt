@@ -3,7 +3,7 @@ if(WIN32)
   # Version 3.20 is required for multi-config generator expressions to work
   cmake_minimum_required(VERSION 3.20)
 endif()
-project(kodi LANGUAGES CXX C ASM)
+project(wylloh-player LANGUAGES CXX C ASM)
 
 if(POLICY CMP0069)
   set(CMAKE_POLICY_DEFAULT_CMP0069 NEW)
@@ -72,6 +72,7 @@ if(NOT VERBOSE)
 endif()
 
 # Includes
+include(cmake/modules/WyllohBranding.cmake)  # Include Wylloh branding
 include(cmake/modules/extra/ECMEnableSanitizers.cmake)
 include(cmake/scripts/common/GeneratorSetup.cmake)
 include(cmake/scripts/common/AddOptions.cmake)
@@ -85,6 +86,9 @@ include(cmake/scripts/common/CompilerSettings.cmake)
 include(ExternalProject)
 include(CMakeDependentOption)
 include(cmake/scripts/common/DependencyOptions.cmake)
+
+# Apply Wylloh branding
+apply_wylloh_branding()
 
 # general
 option(VERBOSE            "Enable verbose output?" OFF)

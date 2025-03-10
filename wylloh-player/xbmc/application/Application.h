@@ -79,12 +79,20 @@ namespace MUSIC_INFO
   class CMusicInfoScanner;
 }
 
+namespace WYLLOH {
+class CWyllohManager;
+}
+
 class CApplication : public IWindowManagerCallback,
                      public IMsgTargetCallback,
                      public KODI::MESSAGING::IMessageTarget,
                      public CApplicationComponents,
                      public CApplicationPlayerCallback,
-                     public CApplicationSettingsHandling
+                     public CApplicationSettingsHandling,
+                     public ISettingCallback,
+                     public ISettingsHandler,
+                     public ISubSettings,
+                     public KODI::KEYBOARD::IActionListener
 {
 public:
 
@@ -227,6 +235,8 @@ protected:
 
   std::vector<std::shared_ptr<ADDON::CAddonInfo>>
       m_incompatibleAddons; /*!< Result of addon migration (incompatible addon infos) */
+
+  std::unique_ptr<WYLLOH::CWyllohManager> m_wyllohManager;
 
 public:
   bool m_bStop{false};

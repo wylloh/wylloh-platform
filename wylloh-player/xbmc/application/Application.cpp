@@ -192,6 +192,8 @@
 #include <cdio/logging.h>
 #endif
 
+#include "wylloh/WyllohManager.h"
+
 using namespace ADDON;
 using namespace XFILE;
 #ifdef HAS_OPTICAL_DRIVE
@@ -777,6 +779,18 @@ bool CApplication::Initialize()
   {
     CGUIMessage msg(GUI_MSG_NOTIFY_ALL, 0, 0, GUI_MSG_UI_READY);
     CServiceBroker::GetGUI()->GetWindowManager().SendThreadMessage(msg);
+  }
+
+  // Initialize Wylloh subsystem
+  m_wyllohManager = std::make_unique<WYLLOH::CWyllohManager>();
+  if (!m_wyllohManager->Initialize())
+  {
+    CLog::Log(LOGERROR, "Failed to initialize Wylloh subsystem");
+    // Non-critical, continue with initialization
+  }
+  else
+  {
+    CLog::Log(LOGINFO, "Wylloh subsystem initialized");
   }
 
   return true;
@@ -1835,6 +1849,12 @@ void CApplication::FrameMove(bool processEvents, bool processGUI)
 
   // this will go away when render systems gets its own thread
   CServiceBroker::GetWinSystem()->DriveRenderLoop();
+
+  // Process Wylloh subsystem
+  if (m_wyllohManager)
+  {
+    m_wyllohManager->Process();
+  }
 }
 
 
@@ -1998,6 +2018,17 @@ bool CApplication::Cleanup()
     UnregisterSettings();
 
     m_bInitializing = true;
+
+    // Shut down Wylloh subsystem
+    WYLLOH::CWyllohManager::GetInstance().Shutdown();
+    CLog::Log(LOGINFO, "Wylloh subsystem shut down");
+
+    // Shutdown Wylloh subsystem
+    if (m_wyllohManager)
+    {
+      m_wyllohManager->Shutdown();
+      m_wyllohManager.reset();
+    }
 
     return true;
   }
@@ -2341,7 +2372,7 @@ bool CApplication::PlayFile(CFileItem item,
     const std::unique_ptr<IDirectory> dir{CDirectoryFactory::Create(item)};
     if (dir && !dir->Resolve(item))
     {
-      CLog::LogF(LOGERROR, "Error resolving item. Item '{}‘ is not playable.", item.GetDynPath());
+      CLog::LogF(LOGERROR, "Error resolving item. Item '{}' is not playable.", item.GetDynPath());
       return false;
     }
 
@@ -2554,6 +2585,17 @@ bool CApplication::PlayFile(CFileItem item,
 
   if (item.HasPVRChannelInfoTag())
     CServiceBroker::GetPlaylistPlayer().SetCurrentPlaylist(PLAYLIST::Id::TYPE_NONE);
+
+  // Check if content is playable through Wylloh verification
+  if (m_wyllohManager)
+  {
+    std::string contentId = item.GetPath();
+    if (!m_wyllohManager->IsContentPlayable(contentId))
+    {
+      CLog::Log(LOGINFO, "Content %s not playable due to Wylloh verification failure", contentId.c_str());
+      return false;
+    }
+  }
 
   return true;
 }
@@ -3206,6 +3248,9 @@ void CApplication::Process()
     m_slowTimer.Reset();
     ProcessSlow();
   }
+
+  // Process Wylloh components
+  WYLLOH::CWyllohManager::GetInstance().Process();
 }
 
 // We get called every 500ms

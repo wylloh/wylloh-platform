@@ -1,18 +1,18 @@
-APP_NAME Kodi
-COMPANY_NAME XBMC Foundation
-DEV_NAME Team Kodi
-ABOUT_WEBSITE https://kodi.tv/about/
-FORUM_WEBSITE https://forum.kodi.tv/
-DOCS_WEBSITE https://kodi.wiki/
-COPYRIGHT_YEARS 2005-2021
-WEBSITE http://kodi.tv
-VERSION_MAJOR 22
+APP_NAME Wylloh Player
+COMPANY_NAME Wylloh
+DEV_NAME Wylloh Team
+ABOUT_WEBSITE https://wylloh.com/about/
+FORUM_WEBSITE https://forum.wylloh.com/
+DOCS_WEBSITE https://docs.wylloh.com/
+COPYRIGHT_YEARS 2023-2025
+WEBSITE https://wylloh.com
+VERSION_MAJOR 1
 VERSION_MINOR 0
 VERSION_TAG ALPHA1
-VERSION_CODE 21.90.700
+VERSION_CODE 1.0.100
 ADDON_API 21.90.700
-ADDON_REPOS repository.xbmc.org|https://mirrors.kodi.tv
-APP_PACKAGE org.xbmc.kodi
-PACKAGE_IDENTITY XBMCFoundation.Kodi
-PACKAGE_PUBLISHER C62BD90A-CDD8-477F-96C3-B25992247B97
-PACKAGE_DESCRIPTION Kodi is an open source (GPL) software media center for playing videos, music, pictures, games, and more.
+ADDON_REPOS repository.wylloh.org|https://repo.wylloh.com
+APP_PACKAGE com.wylloh.player
+PACKAGE_IDENTITY WyllohPlayer
+PACKAGE_PUBLISHER Wylloh
+PACKAGE_DESCRIPTION Wylloh Player is a specialized media player for accessing and playing tokenized content from the Wylloh blockchain-based media licensing platform.

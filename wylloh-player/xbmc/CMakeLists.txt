@@ -84,6 +84,9 @@ if(ENABLE_OPTICAL)
   list(APPEND HEADERS Autorun.h)
 endif()
 
+# Add Wylloh-specific components
+add_subdirectory(wylloh)
+
 core_add_library(xbmc)
 
 if(CORE_SYSTEM_NAME STREQUAL windowsstore)

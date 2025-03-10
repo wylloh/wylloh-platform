@@ -1,0 +1,146 @@
+# XBMC Media Center language file
+# Addon Name: Wylloh
+# Addon id: wylloh
+# Addon Provider: Wylloh
+msgid ""
+msgstr ""
+"Project-Id-Version: XBMC Main\n"
+"Report-Msgid-Bugs-To: https://github.com/xbmc/xbmc/issues/\n"
+"POT-Creation-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: Wylloh\n"
+"Language-Team: LANGUAGE\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Language: en\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+
+# Main settings
+msgctxt "#30500"
+msgid "Wylloh"
+msgstr ""
+
+msgctxt "#30501"
+msgid "API URL"
+msgstr ""
+
+msgctxt "#30502"
+msgid "URL for the Wylloh API service"
+msgstr ""
+
+msgctxt "#30503"
+msgid "Auto-connect wallet"
+msgstr ""
+
+msgctxt "#30504"
+msgid "Automatically connect to wallet on startup"
+msgstr ""
+
+msgctxt "#30505"
+msgid "Show wallet overlay"
+msgstr ""
+
+msgctxt "#30506"
+msgid "Display wallet connection status in the top corner"
+msgstr ""
+
+# Wallet settings
+msgctxt "#30507"
+msgid "Wallet"
+msgstr ""
+
+msgctxt "#30508"
+msgid "Connection status"
+msgstr ""
+
+msgctxt "#30509"
+msgid "Not connected"
+msgstr ""
+
+msgctxt "#30510"
+msgid "Connecting"
+msgstr ""
+
+msgctxt "#30511"
+msgid "Connected"
+msgstr ""
+
+msgctxt "#30512"
+msgid "Wallet address"
+msgstr ""
+
+msgctxt "#30513"
+msgid "Connect wallet"
+msgstr ""
+
+msgctxt "#30514"
+msgid "Connect to your wallet to access your content"
+msgstr ""
+
+msgctxt "#30515"
+msgid "Disconnect wallet"
+msgstr ""
+
+msgctxt "#30516"
+msgid "Disconnect your current wallet"
+msgstr ""
+
+# Connection messages
+msgctxt "#30517"
+msgid "Connecting..."
+msgstr ""
+
+msgctxt "#30518"
+msgid "Connection successful!"
+msgstr ""
+
+msgctxt "#30519"
+msgid "Connection failed: %s"
+msgstr ""
+
+msgctxt "#30520"
+msgid "QR code expired. Please try again."
+msgstr ""
+
+# Content verification
+msgctxt "#30521"
+msgid "This content requires wallet verification. Connect your wallet to play %s?"
+msgstr ""
+
+msgctxt "#30522"
+msgid "Connect"
+msgstr ""
+
+msgctxt "#30523"
+msgid "Cancel"
+msgstr ""
+
+msgctxt "#30524"
+msgid "Verifying content ownership..."
+msgstr ""
+
+msgctxt "#30525"
+msgid "You don't own the token required to play %s."
+msgstr ""
+
+# QR Connection
+msgctxt "#30526"
+msgid "Waiting for wallet connection..."
+msgstr ""
+
+msgctxt "#30527"
+msgid "Connect Wallet"
+msgstr ""
+
+msgctxt "#30528"
+msgid "Connection successful! Completing..."
+msgstr ""
+
+msgctxt "#30529"
+msgid "Scan the QR code with your wallet app"
+msgstr ""
+
+msgctxt "#30530"
+msgid "or"
+msgstr "" 

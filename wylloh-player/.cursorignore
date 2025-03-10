@@ -1,0 +1,216 @@
+# Wylloh Player .cursorignore
+# Based on Kodi with additional exclusions for Wylloh-specific content
+
+# Build and binary directories
+/build*/
+/kodi-build*/
+/xbmc-build*/
+/Debug/
+/Release/
+/RelWithDebInfo/
+/MinSizeRel/
+/__pycache__/
+*.py[cod]
+*.so
+*.so.*
+*.dylib
+*.dll
+*.exe
+*.lib
+*.a
+*.pdb
+*.idb
+*.ilk
+*.dSYM
+/target/
+
+# Generated files
+*.o
+*.obj
+*.lo
+*.la
+*.al
+*.out
+*.gch
+*.pch
+*.pot
+*.mk
+*.moc
+moc_*.cpp
+ui_*.h
+qrc_*.cpp
+*.qm
+
+# Configuration and logs
+/kodi.log
+/kodi.old.log
+/wylloh-player.log
+/wylloh-player.old.log
+config.log
+config.status
+Makefile
+Makefile.include
+config.h
+/xbmc/config.h
+*.manifest
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+CTestTestfile.cmake
+*.cmake
+/cmake/KodiConfig.cmake
+
+# IDE and editor files
+# vim
+*.swp
+*.swo
+# VS Code
+.vscode/
+# Visual Studio
+.vs/
+*.ncb
+*.suo
+*.sdf
+*.opensdf
+*.VC.db
+*.VC.opendb
+*.vcproj.*.user
+*.vcxproj.*.user
+*.vcxproj.user
+*.diagsession
+CMakeSettings.json
+# Eclipse
+.project
+.cproject
+.settings/
+.classpath
+# CLion/JetBrains
+/.idea/
+# KDevelop
+*.kdev4
+# Sublime
+*.sublime-*
+# Generic
+*~
+*.bak
+
+# OS specific files
+.DS_Store
+._*
+.Spotlight-V100
+.Trashes
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# Kodi specific
+/addons/packages/
+/addons/skin.*/media/*.xbt
+/addons/skin.*/media/Makefile
+/system/players/VideoPlayer/*
+/system/profiles.xml
+/userdata/Database/
+/userdata/playlists/
+/userdata/Thumbnails/
+/userdata/cache/
+/userdata/guisettings.xml
+/portable_data/
+*.appx
+*.appxsym
+*.msix
+*.cer
+
+# Auto-generated add-on files
+/addons/kodi.binary.*/**/addon.xml
+/addons/xbmc.*/addon.xml
+/addons/audioencoder.*
+/addons/pvr.*
+/addons/peripheral.*
+/addons/game.*
+/addons/audiodecoder.*
+/addons/visualization.*
+/addons/screensaver.*
+/addons/inputstream.*
+/addons/vfs.*
+
+# Dependencies
+/tools/depends/**/config.cache
+/tools/depends/**/config.log
+/tools/depends/**/config.status
+/tools/depends/native/*/*native/
+/tools/depends/native/*/bin/
+/tools/depends/target/ffmpeg/ffmpeg-*.tar.gz*
+/tools/depends/target/ffmpeg/ffmpeg-*-*/
+/tools/depends/target/ffmpeg/ffmpeg-install/
+/tools/depends/target/ffmpeg/ffmpeg-release/
+/tools/depends/target/*/native/
+/tools/depends/target/*-install/
+/tools/depends/target/*/lib*-*.tar.gz
+/tools/depends/target/config-binaddons.site
+/tools/depends/target/binary-addons/native/
+/downloads/
+
+# Android specific
+/tools/android/packaging/xbmc/activity_main.xml
+/tools/android/packaging/xbmc/AndroidManifest.xml
+/tools/android/packaging/xbmc/src/org/xbmc/kodi/*.java
+
+# TexturePacker
+/tools/TexturePacker/TexturePacker*
+
+# Linux specific
+/tools/Linux/kodi.sh
+/tools/Linux/kodi.desktop
+/tools/Linux/kodi-*.desktop
+/tools/Linux/kodi-metainfo.xml
+
+# Darwin/OSX specific
+/tools/darwin/packaging/*/*.sh
+/tools/darwin/packaging/*/VolumeIcon.icns
+
+# Doxygen
+/docs/html/
+
+# Archives (often used for testing)
+*.zip
+*.tar
+*.tar.gz
+*.tar.bz2
+*.tar.xz
+*.tgz
+*.bz2
+*.rar
+*.7z
+
+# Media files (often used in testing)
+*.mp4
+*.mkv
+*.avi
+*.m4v
+*.mov
+*.wmv
+*.flv
+*.webm
+*.mp3
+*.wav
+*.wma
+*.ogg
+*.flac
+
+# Wylloh-specific additions
+/wylloh-config/
+/wylloh-wallet/
+/.wallet_cache/
+.wallet_connection.json
+/src/wylloh_wallet/secrets/
+/plugins/custom/*
+/dist/
+/build/
+
+# Staging and temporary files
+/tmp/
+/temp/
+/.tmp/
+/.temp/
+*.tmp
