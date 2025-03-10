@@ -54,3 +54,35 @@ yarn-error.log*
 # Misc
 .DS_Store
 thumbs.db
+# Wylloh Player specific
+/wylloh-player/build*/
+/wylloh-player/kodi-build*/
+/wylloh-player/xbmc-build*/
+/wylloh-player/Debug/
+/wylloh-player/Release/
+/wylloh-player/RelWithDebInfo/
+/wylloh-player/MinSizeRel/
+/wylloh-player/__pycache__/
+/wylloh-player/CMakeCache.txt
+/wylloh-player/CMakeFiles/
+/wylloh-player/cmake_install.cmake
+/wylloh-player/Makefile
+/wylloh-player/kodi.log
+/wylloh-player/kodi.old.log
+/wylloh-player/wylloh-player.log
+/wylloh-player/wylloh-player.old.log
+/wylloh-player/system/players/VideoPlayer/*
+/wylloh-player/addons/packages/
+/wylloh-player/addons/skin.*/media/*.xbt
+/wylloh-player/userdata/Database/
+/wylloh-player/userdata/playlists/
+/wylloh-player/userdata/Thumbnails/
+/wylloh-player/userdata/cache/
+/wylloh-player/tools/depends/**/config.cache
+/wylloh-player/tools/depends/**/config.log
+/wylloh-player/tools/depends/**/config.status
+/wylloh-player/downloads/
+/wylloh-player/wylloh-config/
+/wylloh-player/wylloh-wallet/
+/wylloh-player/.wallet_cache/
+/wylloh-player/.wallet_connection.json
