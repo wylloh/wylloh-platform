@@ -8,7 +8,22 @@ The Seed One component provides a dedicated hardware device for viewing content 
 
 - Blockchain wallet for token verification
 - IPFS for content retrieval
-- Kodi media player for content playback
+- Media player for content playback
+
+## Architectural Update: Wylloh Player
+
+> **Note:** We're transitioning from a Kodi add-on approach to a dedicated Wylloh Player application.
+
+Previously, the Seed One used Kodi media player with a custom add-on for Wylloh integration. Our new approach involves developing a dedicated Wylloh Player (based on Kodi's codebase) that provides:
+
+- Deeper integration with the Wylloh ecosystem
+- Streamlined user experience focused on tokenized content
+- Native wallet connection functionality
+- Custom branding and UI tailored to Wylloh's needs
+
+During this transition period, both implementations are maintained in the repository:
+- `kodi-addon/`: The original Kodi add-on implementation
+- `wylloh-player/`: The new custom player implementation (under active development)
 
 ## Requirements
 
@@ -51,7 +66,9 @@ See the detailed instructions in the [DEMO-README.MD](../DEMO-README.MD) file in
 
 ## Architecture
 
-The Seed One operates as follows:
+### Current Implementation (Kodi Add-on)
+
+The Seed One currently operates as follows:
 
 1. The Wylloh service runs in the background, connecting to:
    - Local blockchain node (on your MacBook)
@@ -64,6 +81,17 @@ The Seed One operates as follows:
    - Verify token ownership
    - Retrieve content metadata
    - Stream content from IPFS
+
+### Future Implementation (Wylloh Player)
+
+The new Wylloh Player architecture will:
+
+1. Eliminate the need for a separate Kodi installation
+2. Provide native integration with the Wylloh wallet
+3. Streamline the content browsing and playback experience
+4. Offer customized UI specifically designed for tokenized content
+
+This architectural shift will result in a more cohesive user experience and simplified setup process for Seed One devices.
 
 ## Configuration
 

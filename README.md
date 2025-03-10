@@ -11,6 +11,7 @@ The project is organized as a monorepo with the following main components:
 - `storage`: IPFS/Filecoin storage service
 - `contracts`: Smart contracts for the Polygon blockchain
 - `seed-one`: Seed One media player application
+- `wylloh-player`: Custom media player application based on Kodi (replaces previous Kodi add-on approach)
 
 ## Getting Started
 
