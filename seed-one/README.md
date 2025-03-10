@@ -20,10 +20,23 @@ Previously, the Seed One used Kodi media player with a custom add-on for Wylloh 
 - Streamlined user experience focused on tokenized content
 - Native wallet connection functionality
 - Custom branding and UI tailored to Wylloh's needs
+- Enhanced IPFS integration with content caching and pinning
 
 During this transition period, both implementations are maintained in the repository:
 - `kodi-addon/`: The original Kodi add-on implementation
 - `wylloh-player/`: The new custom player implementation (under active development)
+
+## Enhanced IPFS Integration
+
+The new Wylloh Player includes significant improvements for IPFS content handling on Seed One hardware:
+
+- **Multi-Gateway Support**: Configure multiple IPFS gateways with automatic fallback for reliable content retrieval
+- **Content Caching**: Intelligent local caching of content with configurable size limits and expiry times
+- **Content Pinning**: Ability to pin important content to prevent it from being removed from cache
+- **Auto-Pinning**: Automatic pinning of content owned by the connected wallet
+- **Network Participation Foundation**: Infrastructure for future participation in the Wylloh distributed storage network
+
+These features ensure reliable content access even with intermittent internet connectivity and optimize bandwidth usage for Seed One devices.
 
 ## Requirements
 
@@ -31,6 +44,8 @@ During this transition period, both implementations are maintained in the reposi
 - Raspberry Pi OS (64-bit recommended)
 - Internet connection
 - HDMI connection to a display
+- At least 16GB SD card (32GB+ recommended for content caching)
+- External storage (optional, recommended for expanded content caching)
 
 ## Quick Setup
 

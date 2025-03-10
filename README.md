@@ -13,6 +13,28 @@ The project is organized as a monorepo with the following main components:
 - `seed-one`: Seed One media player application
 - `wylloh-player`: Custom media player application based on Kodi (replaces previous Kodi add-on approach)
 
+## Features
+
+### IPFS Integration
+
+Wylloh Player includes comprehensive IPFS support with the following features:
+
+- Content retrieval from IPFS via multiple configurable gateways
+- Intelligent gateway fallback for reliable content access
+- Configurable content caching to improve performance
+- Content pinning to ensure important content remains available
+- Automatic pinning of owned content
+- Foundation for network participation and distributed storage incentives
+
+These features enhance content availability and reliability for users while establishing a framework for future distributed storage rewards.
+
+### Blockchain Integration
+
+- Wallet connection for token verification
+- Smart contract integration for content ownership verification
+- Token-based access control
+- Support for NFT-based licenses
+
 ## Getting Started
 
 ### Prerequisites

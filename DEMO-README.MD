@@ -46,6 +46,33 @@ This will:
 5. Update configuration with all addresses
 6. Start your application in demo mode (client, API, and storage services)
 
+### IPFS Features in Demo Mode
+
+When running the demo, you can experience these IPFS-related features:
+
+1. **Gateway Management**: Configure multiple IPFS gateways through the Wylloh Player settings
+2. **Content Caching**: Test content caching with configurable size and expiration settings
+3. **Content Pinning**: Pin important content to ensure it remains available locally
+4. **Automatic Pinning**: Experience automatic pinning of content you own through your demo wallet
+5. **Network Participation**: View the foundation UI for future network participation features
+
+#### Testing IPFS Features
+
+1. **Add a Gateway**:
+   - Navigate to Settings > Wylloh > IPFS > Manage Gateways
+   - Add a new gateway (e.g., https://dweb.link/ipfs/)
+   - Test gateways to verify which ones perform best in your environment
+
+2. **Content Cache**:
+   - View and adjust cache settings in Settings > Wylloh > IPFS
+   - Play content to see it automatically cached
+   - Adjust cache size and expiry time to your preferences
+
+3. **Content Pinning**:
+   - Enable pinning in Settings > Wylloh > IPFS
+   - Enable automatic pinning of owned content
+   - All content owned by your demo wallet will be automatically pinned
+
 ### Stop Demo Mode
 
 When finished with the demo:

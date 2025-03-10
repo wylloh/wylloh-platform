@@ -2606,3 +2606,34 @@ This integrated approach ensures that each media type serves to strengthen the f
    - Financial compliance documentation
    - Tax reporting integration requirements
    - Fraud prevention system integration
+
+## 5. Technical Requirements
+
+### 5.1 Platform Components
+
+#### 5.1.5 Wylloh Player
+
+##### IPFS Integration - IMPLEMENTED
+
+The Wylloh Player includes comprehensive IPFS support with the following features:
+
+- [x] **Multiple Gateway Support**: Configure and use multiple IPFS gateways with automatic fallback
+- [x] **Content Caching**: Intelligent local caching with configurable size and expiry settings
+- [x] **Content Pinning**: Pin important content to prevent it from expiring in cache
+- [x] **Automatic Pinning of Owned Content**: Seamlessly pin all content owned by the connected wallet
+- [x] **Gateway Management Interface**: User-friendly interface for adding, removing, and testing gateways
+- [x] **Cache Management Tools**: User controls for cache size, expiry, and manual clearing
+
+##### Network Participation - FOUNDATION IMPLEMENTED
+
+The groundwork for network participation has been established:
+
+- [x] **Settings Framework**: Complete UI for network participation settings
+- [x] **Storage Management**: Controls for storage allocation and path configuration
+- [x] **Bandwidth Management**: Settings for bandwidth usage limits
+- [x] **Reward System Framework**: Architecture to support future token rewards
+- [ ] **Full Protocol Implementation**: Complete network participation protocol (planned)
+- [ ] **WyllohCoin Integration**: Native cryptocurrency for network incentives (planned)
+- [ ] **Reward Distribution System**: Mechanism for distributing rewards to participants (planned)
+
+This foundation enables future development of a distributed storage network where users can contribute resources and potentially earn rewards, enhancing the resilience and performance of the Wylloh ecosystem.
