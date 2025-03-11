@@ -1030,11 +1030,93 @@ void CIPFSManager::SetRewardAddress(const std::string& address)
   CSingleLock lock(m_critSection);
   
   m_networkRewardAddress = address;
-  m_rewardInfo.rewardAddress = address;
   
-  CLog::Log(LOGINFO, "CIPFSManager: Network reward address set to %s", m_networkRewardAddress.c_str());
+  // Update settings
+  auto settingsComponent = CServiceBroker::GetSettingsComponent();
+  if (settingsComponent)
+  {
+    auto settings = settingsComponent->GetSettings();
+    if (settings)
+    {
+      settings->SetString("wylloh.network.reward_address", address);
+    }
+  }
   
-  // In a real implementation, we would update the reward address in the network node configuration
+  SaveConfig();
+}
+
+void CIPFSManager::SetPrimaryGateway(const std::string& gateway)
+{
+  CSingleLock lock(m_critSection);
+  
+  m_primaryGateway = gateway;
+  
+  // Make sure it's in the gateways list
+  if (std::find(m_gateways.begin(), m_gateways.end(), gateway) == m_gateways.end())
+  {
+    m_gateways.insert(m_gateways.begin(), gateway);
+  }
+  
+  // Update settings
+  auto settingsComponent = CServiceBroker::GetSettingsComponent();
+  if (settingsComponent)
+  {
+    auto settings = settingsComponent->GetSettings();
+    if (settings)
+    {
+      settings->SetString("wylloh.ipfs.primary_gateway", gateway);
+    }
+  }
+  
+  CLog::Log(LOGINFO, "IPFS: Primary gateway set to %s", gateway.c_str());
+  SaveConfig();
+}
+
+void CIPFSManager::SetOfflineMode(bool offline)
+{
+  CSingleLock lock(m_critSection);
+  
+  // In offline mode, we disable auto-gateway discovery and network participation
+  if (offline)
+  {
+    // Disable network participation
+    if (m_networkParticipationEnabled)
+    {
+      StopNetworkParticipation();
+      m_networkParticipationEnabled = false;
+    }
+    
+    // Update settings
+    auto settingsComponent = CServiceBroker::GetSettingsComponent();
+    if (settingsComponent)
+    {
+      auto settings = settingsComponent->GetSettings();
+      if (settings)
+      {
+        settings->SetBool("wylloh.network.enable_participation", false);
+        settings->SetBool("wylloh.ipfs.disable_gateway_discovery", true);
+      }
+    }
+    
+    CLog::Log(LOGINFO, "IPFS: Offline mode enabled");
+  }
+  else
+  {
+    // Update settings
+    auto settingsComponent = CServiceBroker::GetSettingsComponent();
+    if (settingsComponent)
+    {
+      auto settings = settingsComponent->GetSettings();
+      if (settings)
+      {
+        settings->SetBool("wylloh.ipfs.disable_gateway_discovery", false);
+      }
+    }
+    
+    CLog::Log(LOGINFO, "IPFS: Offline mode disabled");
+  }
+  
+  SaveConfig();
 }
 
 } // namespace WYLLOH 

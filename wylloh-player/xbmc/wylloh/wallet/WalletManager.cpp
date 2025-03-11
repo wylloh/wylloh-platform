@@ -257,16 +257,85 @@ void CWalletManager::Process()
 
 void CWalletManager::ShowWalletOverlay(bool show)
 {
-  if (!m_initialized || !m_walletOverlay)
-    return;
-
-  m_walletOverlay->SetVisible(show);
-
-  // Update setting
-  auto settings = CServiceBroker::GetSettingsComponent()->GetSettings();
-  if (settings)
+  if (m_walletOverlay)
   {
-    settings->SetBool("wylloh.show_overlay", show);
+    m_walletOverlay->Show(show);
+  }
+}
+
+void CWalletManager::SetProviderUrl(const std::string& url)
+{
+  CSingleLock lock(m_criticalSection);
+  
+  // Update the provider URL if we have a wallet connection
+  if (m_walletConnection)
+  {
+    m_walletConnection->SetProviderUrl(url);
+    CLog::Log(LOGINFO, "WYLLOH: Wallet provider URL set to %s", url.c_str());
+  }
+  
+  // Update settings
+  auto settingsComponent = CServiceBroker::GetSettingsComponent();
+  if (settingsComponent)
+  {
+    auto settings = settingsComponent->GetSettings();
+    if (settings)
+    {
+      settings->SetString("wylloh.wallet.provider_url", url);
+    }
+  }
+}
+
+void CWalletManager::SetContractAddress(const std::string& address)
+{
+  CSingleLock lock(m_criticalSection);
+  
+  // Update the contract address if we have a wallet connection
+  if (m_walletConnection)
+  {
+    m_walletConnection->SetContractAddress(address);
+    CLog::Log(LOGINFO, "WYLLOH: Contract address set to %s", address.c_str());
+  }
+  
+  // Update settings
+  auto settingsComponent = CServiceBroker::GetSettingsComponent();
+  if (settingsComponent)
+  {
+    auto settings = settingsComponent->GetSettings();
+    if (settings)
+    {
+      settings->SetString("wylloh.wallet.contract_address", address);
+    }
+  }
+}
+
+void CWalletManager::EnableDemoMode(bool enabled)
+{
+  CSingleLock lock(m_criticalSection);
+  
+  if (m_walletConnection)
+  {
+    m_walletConnection->SetDemoMode(enabled);
+    
+    if (enabled)
+    {
+      // In demo mode, we'll auto connect to a test wallet
+      CLog::Log(LOGINFO, "WYLLOH: Enabling wallet demo mode");
+      
+      // Use the auto-connect functionality with the demo wallet
+      AutoConnectWallet();
+    }
+  }
+  
+  // Update settings
+  auto settingsComponent = CServiceBroker::GetSettingsComponent();
+  if (settingsComponent)
+  {
+    auto settings = settingsComponent->GetSettings();
+    if (settings)
+    {
+      settings->SetBool("wylloh.wallet.demo_mode", enabled);
+    }
   }
 }
 

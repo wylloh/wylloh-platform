@@ -66,11 +66,31 @@ bool CWyllohManager::Initialize()
     }
   }
 
+  // Check for demo mode
+  auto settingsComponent = CServiceBroker::GetSettingsComponent();
+  bool demoMode = false;
+  if (settingsComponent)
+  {
+    auto settings = settingsComponent->GetSettings();
+    if (settings)
+    {
+      demoMode = settings->GetBool("wylloh.general.demo_mode");
+      CLog::Log(LOGINFO, "WYLLOH: Demo mode %s", demoMode ? "enabled" : "disabled");
+    }
+  }
+
   // Initialize wallet manager
-  if (!CWalletManager::GetInstance().Initialize())
+  m_walletManager = std::make_unique<WALLET::CWalletManager>();
+  if (!m_walletManager->Initialize())
   {
     CLog::Log(LOGERROR, "CWyllohManager: Failed to initialize wallet manager");
     return false;
+  }
+
+  // If in demo mode, configure for local operation
+  if (demoMode)
+  {
+    ConfigureDemoMode();
   }
 
   // Initialize IPFS manager
@@ -81,7 +101,6 @@ bool CWyllohManager::Initialize()
   }
 
   // Register for settings changes
-  auto settingsComponent = CServiceBroker::GetSettingsComponent();
   if (settingsComponent)
   {
     auto settings = settingsComponent->GetSettings();
@@ -118,7 +137,7 @@ void CWyllohManager::Shutdown()
   }
 
   // Shutdown wallet manager
-  CWalletManager::GetInstance().Shutdown();
+  m_walletManager->Shutdown();
 
   // Shutdown IPFS manager
   CIPFSManager::GetInstance().Shutdown();
@@ -136,19 +155,19 @@ void CWyllohManager::OnSettingChanged(const std::shared_ptr<const CSetting>& set
   if (settingId == "wylloh.api_url")
   {
     // Update wallet manager API URL
-    if (CWalletManager::GetInstance().GetWalletManager())
+    if (m_walletManager)
     {
       auto apiUrl = std::static_pointer_cast<const CSettingString>(setting)->GetValue();
-      CWalletManager::GetInstance().GetWalletManager()->SetApiUrl(apiUrl);
+      m_walletManager->SetApiUrl(apiUrl);
     }
   }
   else if (settingId == "wylloh.show_overlay")
   {
     // Update wallet overlay visibility
-    if (CWalletManager::GetInstance().GetWalletManager())
+    if (m_walletManager)
     {
       bool showOverlay = std::static_pointer_cast<const CSettingBool>(setting)->GetValue();
-      CWalletManager::GetInstance().GetWalletManager()->ShowWalletOverlay(showOverlay);
+      m_walletManager->ShowWalletOverlay(showOverlay);
     }
   }
   else if (settingId == "wylloh.ipfs.auto_pin_owned")
@@ -158,7 +177,7 @@ void CWyllohManager::OnSettingChanged(const std::shared_ptr<const CSetting>& set
     if (autoPinOwned)
     {
       // When auto-pin is enabled, pin all currently owned content
-      std::vector<std::string> contentIds = CWalletManager::GetInstance().GetOwnedContentIds();
+      std::vector<std::string> contentIds = m_walletManager->GetOwnedContentIds();
       
       if (!contentIds.empty())
       {
@@ -183,17 +202,17 @@ void CWyllohManager::OnSettingAction(const std::shared_ptr<const CSetting>& sett
   if (settingId == "wylloh.connect_wallet")
   {
     // Connect wallet
-    if (CWalletManager::GetInstance().GetWalletManager())
+    if (m_walletManager)
     {
-      CWalletManager::GetInstance().GetWalletManager()->ConnectWalletWithQR();
+      m_walletManager->ConnectWalletWithQR();
     }
   }
   else if (settingId == "wylloh.disconnect_wallet")
   {
     // Disconnect wallet
-    if (CWalletManager::GetInstance().GetWalletManager())
+    if (m_walletManager)
     {
-      CWalletManager::GetInstance().GetWalletManager()->DisconnectWallet();
+      m_walletManager->DisconnectWallet();
     }
   }
 }
@@ -211,15 +230,15 @@ void CWyllohManager::Process()
   m_lastProcessTime = currentTime;
 
   // Process wallet manager
-  if (CWalletManager::GetInstance().GetWalletManager())
+  if (m_walletManager)
   {
-    CWalletManager::GetInstance().GetWalletManager()->Process();
+    m_walletManager->Process();
   }
 }
 
 bool CWyllohManager::IsContentPlayable(const std::string& contentId)
 {
-  if (!m_initialized || !CWalletManager::GetInstance().GetWalletManager())
+  if (!m_initialized || !m_walletManager)
     return true; // If not initialized, allow playback by default
 
   // Check if this is a token-gated content
@@ -227,7 +246,7 @@ bool CWyllohManager::IsContentPlayable(const std::string& contentId)
     return true; // If not token-gated, allow playback
 
   // Check if wallet is connected
-  if (!CWalletManager::GetInstance().GetWalletManager()->IsConnected())
+  if (!m_walletManager->IsConnected())
   {
     // Wallet not connected, show prompt to connect
     bool confirmed = MESSAGING::HELPERS::ShowYesNoDialogText(
@@ -240,7 +259,7 @@ bool CWyllohManager::IsContentPlayable(const std::string& contentId)
     if (confirmed)
     {
       // Try to connect wallet
-      if (CWalletManager::GetInstance().GetWalletManager()->ConnectWalletWithQR())
+      if (m_walletManager->ConnectWalletWithQR())
       {
         // Wallet connected, check ownership
         return VerifyContentOwnership(contentId);
@@ -260,7 +279,7 @@ bool CWyllohManager::IsContentPlayable(const std::string& contentId)
 
 bool CWyllohManager::VerifyContentOwnership(const std::string& contentId)
 {
-  if (!m_initialized || !CWalletManager::GetInstance().GetWalletManager())
+  if (!m_initialized || !m_walletManager)
     return false;
 
   // Avoid re-entrancy
@@ -276,7 +295,7 @@ bool CWyllohManager::VerifyContentOwnership(const std::string& contentId)
   );
 
   // Verify content ownership
-  bool isOwned = CWalletManager::GetInstance().GetWalletManager()->VerifyContentOwnership(contentId);
+  bool isOwned = m_walletManager->VerifyContentOwnership(contentId);
 
   // Hide verification dialog
   MESSAGING::HELPERS::HideBusyDialog();
@@ -296,11 +315,11 @@ bool CWyllohManager::VerifyContentOwnership(const std::string& contentId)
 
 std::vector<std::string> CWyllohManager::GetOwnedContentIds()
 {
-  if (!m_initialized || !CWalletManager::GetInstance().GetWalletManager())
+  if (!m_initialized || !m_walletManager)
     return {};
 
   // Get all owned content IDs
-  std::vector<std::string> contentIds = CWalletManager::GetInstance().GetOwnedContentIds();
+  std::vector<std::string> contentIds = m_walletManager->GetOwnedContentIds();
   
   // Check auto-pin setting
   bool autoPinOwned = false;
@@ -368,6 +387,69 @@ bool CWyllohManager::CreateDirectories()
   }
 
   return true;
+}
+
+void CWyllohManager::ConfigureDemoMode()
+{
+  CLog::Log(LOGINFO, "WYLLOH: Configuring demo mode");
+  
+  // Get local IP from config file
+  std::string configPath = CSpecialProtocol::TranslatePath("special://userdata/wylloh-config/config.json");
+  std::string localIp = "localhost";
+  std::string contractAddress = "0x5FbDB2315678afecb367f032d93F642f64180aa3";
+  
+  if (XFILE::CFile::Exists(configPath))
+  {
+    XFILE::CFile file;
+    file.Open(configPath);
+    std::string content;
+    char buffer[1024];
+    while (int bytesRead = file.Read(buffer, 1024))
+    {
+      content.append(buffer, bytesRead);
+    }
+    file.Close();
+    
+    // Parse JSON (simplified for demo)
+    if (!content.empty())
+    {
+      size_t providerPos = content.find("\"providerUrl\"");
+      if (providerPos != std::string::npos)
+      {
+        size_t httpPos = content.find("http://", providerPos);
+        size_t colonPos = content.find(":", httpPos + 7);
+        if (httpPos != std::string::npos && colonPos != std::string::npos)
+        {
+          localIp = content.substr(httpPos + 7, colonPos - httpPos - 7);
+        }
+      }
+      
+      size_t contractPos = content.find("\"contractAddress\"");
+      if (contractPos != std::string::npos)
+      {
+        size_t quotePos = content.find("\"", contractPos + 18);
+        size_t endQuotePos = content.find("\"", quotePos + 1);
+        if (quotePos != std::string::npos && endQuotePos != std::string::npos)
+        {
+          contractAddress = content.substr(quotePos + 1, endQuotePos - quotePos - 1);
+        }
+      }
+    }
+  }
+  
+  // Configure IPFS with local gateway
+  std::string ipfsGateway = "http://" + localIp + ":8080/ipfs/";
+  CIPFSManager::GetInstance().SetPrimaryGateway(ipfsGateway);
+  CIPFSManager::GetInstance().SetOfflineMode(true);
+  
+  // Configure wallet for local blockchain
+  std::string providerUrl = "http://" + localIp + ":8545";
+  m_walletManager->SetProviderUrl(providerUrl);
+  m_walletManager->SetContractAddress(contractAddress);
+  m_walletManager->EnableDemoMode(true);
+  
+  CLog::Log(LOGINFO, "WYLLOH: Demo mode configured with gateway %s and provider %s", 
+           ipfsGateway.c_str(), providerUrl.c_str());
 }
 
 }  // namespace WYLLOH 

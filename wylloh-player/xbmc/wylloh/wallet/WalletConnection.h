@@ -174,6 +174,27 @@ public:
    */
   std::string GetLastError() const;
 
+  /**
+   * Set provider URL for blockchain connection
+   * 
+   * @param url The provider URL (e.g., http://localhost:8545)
+   */
+  void SetProviderUrl(const std::string& url);
+  
+  /**
+   * Set contract address for token verification
+   * 
+   * @param address The contract address
+   */
+  void SetContractAddress(const std::string& address);
+  
+  /**
+   * Set demo mode for simplified testing
+   * 
+   * @param enabled Whether demo mode is enabled
+   */
+  void SetDemoMode(bool enabled);
+
 private:
   /**
    * Make API request to Wylloh backend

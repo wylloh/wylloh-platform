@@ -116,6 +116,16 @@ public:
   // Set reward address
   void SetRewardAddress(const std::string& address);
   
+  //------------------------------------------------
+  // Demo Mode Methods
+  //------------------------------------------------
+  
+  // Set primary gateway explicitly
+  void SetPrimaryGateway(const std::string& gateway);
+  
+  // Set offline mode for demo environment
+  void SetOfflineMode(bool offline);
+  
 private:
   CIPFSManager();
   ~CIPFSManager();

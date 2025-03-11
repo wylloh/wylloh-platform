@@ -108,6 +108,27 @@ public:
    */
   void ShowWalletOverlay(bool show);
 
+  /**
+   * Set blockchain provider URL
+   * 
+   * @param url The provider URL (e.g., http://localhost:8545)
+   */
+  void SetProviderUrl(const std::string& url);
+  
+  /**
+   * Set smart contract address
+   * 
+   * @param address The contract address
+   */
+  void SetContractAddress(const std::string& address);
+  
+  /**
+   * Enable demo mode for offline/local testing
+   * 
+   * @param enabled Whether demo mode should be enabled
+   */
+  void EnableDemoMode(bool enabled);
+
 private:
   // Wallet connection
   std::unique_ptr<CWalletConnection> m_walletConnection;
