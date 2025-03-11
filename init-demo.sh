@@ -226,6 +226,37 @@ EOF
   echo
   echo "3. Restart the Wylloh service on your Raspberry Pi:"
   echo "   sudo systemctl restart wylloh"
+  
+  echo -e "\n${BOLD}7. Installing Wylloh Player on Seed One${NC}"
+  echo -e "${YELLOW}To install the custom Wylloh Player on your Raspberry Pi:${NC}"
+  echo "1. Ensure you have the required dependencies:"
+  echo "   sudo apt update && sudo apt upgrade -y"
+  echo "   sudo apt install -y git cmake build-essential autoconf libtool pkg-config"
+  echo "   sudo apt install -y libssl-dev zlib1g-dev libyajl-dev libxml2-dev libxslt1-dev python3-dev"
+  echo "   sudo apt install -y libcurl4-openssl-dev libsqlite3-dev libmicrohttpd-dev"
+  echo
+  echo "2. Clone the Wylloh Player repository to your Raspberry Pi:"
+  echo "   git clone https://github.com/wy1bur/wylloh-player.git"
+  echo "   cd wylloh-player"
+  echo
+  echo "3. Create build directory and configure:"
+  echo "   mkdir build"
+  echo "   cd build"
+  echo "   cmake -DCMAKE_BUILD_TYPE=Debug .."
+  echo
+  echo "4. Compile (this may take some time on a Raspberry Pi):"
+  echo "   make -j$(nproc)"
+  echo
+  echo "5. Make sure demo mode is enabled in Wylloh Player settings:"
+  echo "   - Start Wylloh Player: ./wylloh-player"
+  echo "   - Navigate to Settings > Wylloh > General"
+  echo "   - Enable 'Demo Mode'"
+  echo "   - Configure the IPFS gateway URL to: http://$LOCAL_IP:$IPFS_GATEWAY_PORT/ipfs/"
+  echo
+  echo "6. Automatic Configuration Alternative:"
+  echo "   If you prefer automatic configuration, use this command:"
+  echo "   ./setup/configure-demo.sh --local-ip=$LOCAL_IP --ganache-port=$GANACHE_PORT --ipfs-port=$IPFS_GATEWAY_PORT"
+  echo "   --contract=$CONTRACT_ADDRESS --token-factory=$TOKEN_FACTORY_ADDRESS"
 }
 
 # Main execution
@@ -244,7 +275,149 @@ echo -e "${NC}"
 echo "To stop the demo services when you're done:"
 echo "  ./stop-demo.sh"
 
-# Make sure stop-demo.sh is executable
+# Create stop script
+cat > stop-demo.sh << 'EOF'
+#!/bin/bash
+
+# stop-demo.sh
+# Script to properly shut down all demo-related processes and free up ports
+
+echo "Stopping Wylloh Demo Environment..."
+
+# Kill client process (React app on port 3000)
+echo "Stopping client application..."
+CLIENT_PID=$(lsof -ti:3000)
+if [ -n "$CLIENT_PID" ]; then
+  kill -9 $CLIENT_PID
+  echo "✓ Client application stopped (PID: $CLIENT_PID)"
+else
+  echo "- No client application running on port 3000"
+fi
+
+# Kill API process (port 4000)
+echo "Stopping API service..."
+API_PID=$(lsof -ti:4000)
+if [ -n "$API_PID" ]; then
+  kill -9 $API_PID
+  echo "✓ API service stopped (PID: $API_PID)"
+else
+  echo "- No API service running on port 4000"
+fi
+
+# Kill storage process (port 4001)
+echo "Stopping storage service..."
+STORAGE_PID=$(lsof -ti:4001)
+if [ -n "$STORAGE_PID" ]; then
+  kill -9 $STORAGE_PID
+  echo "✓ Storage service stopped (PID: $STORAGE_PID)"
+else
+  echo "- No storage service running on port 4001"
+fi
+
+# Kill Ganache process (port 8545)
+echo "Stopping Ganache blockchain..."
+GANACHE_PID=$(lsof -ti:8545)
+if [ -n "$GANACHE_PID" ]; then
+  kill -9 $GANACHE_PID
+  echo "✓ Ganache blockchain stopped (PID: $GANACHE_PID)"
+else
+  echo "- No Ganache blockchain running on port 8545"
+fi
+
+# Use PID files if they exist (backward compatibility)
+if [ -f "/tmp/ganache.pid" ]; then
+  GANACHE_PID_FILE=$(cat /tmp/ganache.pid 2>/dev/null)
+  if [ -n "$GANACHE_PID_FILE" ]; then
+    kill -9 $GANACHE_PID_FILE 2>/dev/null || true
+    echo "✓ Ganache blockchain stopped (PID file: $GANACHE_PID_FILE)"
+  fi
+  rm /tmp/ganache.pid 2>/dev/null || true
+fi
+
+# Check for and stop IPFS daemon processes
+echo "Stopping IPFS daemon..."
+IPFS_PID=$(pgrep -f "ipfs daemon")
+if [ -n "$IPFS_PID" ]; then
+  kill -9 $IPFS_PID
+  echo "✓ IPFS daemon stopped (PID: $IPFS_PID)"
+else
+  echo "- No IPFS daemon running"
+fi
+
+# Use PID files if they exist (backward compatibility)
+if [ -f "/tmp/ipfs.pid" ]; then
+  IPFS_PID_FILE=$(cat /tmp/ipfs.pid 2>/dev/null)
+  if [ -n "$IPFS_PID_FILE" ]; then
+    kill -9 $IPFS_PID_FILE 2>/dev/null || true
+    echo "✓ IPFS daemon stopped (PID file: $IPFS_PID_FILE)"
+  fi
+  rm /tmp/ipfs.pid 2>/dev/null || true
+fi
+
+# Additional port checks for commonly used ports
+for PORT in 5001 8080; do
+  PORT_PID=$(lsof -ti:$PORT)
+  if [ -n "$PORT_PID" ]; then
+    echo "Stopping process on port $PORT (PID: $PORT_PID)..."
+    kill -9 $PORT_PID
+    echo "✓ Process stopped"
+  fi
+done
+
+# Clean up temporary files
+echo "Cleaning up temporary files..."
+if [ -f "/tmp/ganache.log" ]; then
+  rm /tmp/ganache.log
+  echo "✓ Removed /tmp/ganache.log"
+fi
+
+if [ -f "/tmp/ipfs.log" ]; then
+  rm /tmp/ipfs.log
+  echo "✓ Removed /tmp/ipfs.log"
+fi
+
+# Clean up environment files
+echo "Cleaning up environment files..."
+ENV_FILES=(
+  "api/.env.demo.local"
+  "client/.env.demo.local"
+  "storage/.env.demo.local"
+  "api/env.demo.local"
+  "client/env.demo.local"
+  "storage/env.demo.local"
+)
+
+for ENV_FILE in "${ENV_FILES[@]}"; do
+  if [ -f "$ENV_FILE" ]; then
+    rm "$ENV_FILE"
+    echo "✓ Removed $ENV_FILE"
+  fi
+done
+
+# Clean up demo assets
+echo "Cleaning up demo content..."
+DEMO_FILES=(
+  "demo-assets/metadata.json"
+  "demo-assets/sample_movie.mp4"
+)
+
+for DEMO_FILE in "${DEMO_FILES[@]}"; do
+  if [ -f "$DEMO_FILE" ]; then
+    rm "$DEMO_FILE"
+    echo "✓ Removed $DEMO_FILE"
+  fi
+done
+
+# Option to remove demo-assets directory if empty
+if [ -d "demo-assets" ] && [ -z "$(ls -A demo-assets)" ]; then
+  rmdir "demo-assets"
+  echo "✓ Removed empty demo-assets directory"
+fi
+
+echo "✅ Wylloh Demo Environment has been stopped successfully!"
+echo "All ports have been released and temporary files cleaned up."
+EOF
+
 chmod +x stop-demo.sh
 
 echo -e "\n${BOLD}Demo Setup Complete${NC}"
