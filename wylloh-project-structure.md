@@ -109,6 +109,102 @@ wylloh-platform/
   - Token-based content access
   - Enhanced UI for media playback
 
+## Wylloh Player Architecture (`/wylloh-player`)
+
+As a Kodi fork, the Wylloh Player inherits Kodi's complex architecture while adding custom components for blockchain and IPFS integration. Below is the high-level directory structure:
+
+```
+wylloh-player/
+├── addons/                 # Core and optional addons
+│   ├── skin.wylloh/        # Custom Wylloh skin/UI
+│   └── ...
+├── cmake/                  # CMake modules and configuration
+│   ├── modules/            # CMake finder scripts
+│   ├── scripts/            # Build helper scripts
+│   └── platform/           # Platform-specific configurations
+├── docs/                   # Documentation
+├── lib/                    # Core libraries
+│   ├── ffmpeg/             # Media playback (key dependency)
+│   ├── cpluff/             # Plugin system
+│   └── ...
+├── system/                 # System-specific components
+│   ├── players/            # Media player components
+│   └── settings/           # Default configurations
+├── tools/                  # Build and development tools
+│   ├── buildsteps/         # Build scripts and helpers
+│   ├── depends/            # Dependency management system
+│   └── Linux/              # Linux-specific tools
+├── xbmc/                   # Core application source
+│   ├── application/        # Main application
+│   ├── cores/              # Core functionality
+│   ├── filesystem/         # File system abstraction
+│   ├── guilib/             # UI framework
+│   ├── platform/           # Platform-specific code
+│   ├── wylloh/             # Custom Wylloh components
+│   │   ├── wallet/         # Blockchain wallet integration
+│   │   ├── ipfs/           # IPFS integration
+│   │   └── tokens/         # Token verification
+│   └── windowing/          # Display handling
+└── CMakeLists.txt          # Main build configuration
+```
+
+### Key Components
+
+#### 1. Core Architecture (inherited from Kodi)
+- **Application (`xbmc/application/`)**: Main application loop and initialization
+- **GUI Library (`xbmc/guilib/`)**: UI rendering and controls
+- **File System (`xbmc/filesystem/`)**: Virtual file system for multiple sources
+- **Cores (`xbmc/cores/`)**: Media playback engines and decoders
+
+#### 2. Custom Wylloh Components (`xbmc/wylloh/`)
+- **Wallet Integration**: Connects to blockchain wallets for token verification
+- **IPFS Integration**: Native support for IPFS protocol and content addressing
+- **Token Verification**: Validates ownership of content through blockchain tokens
+
+#### 3. Build System
+- **CMake**: Primary build system
+- **Depends System (`tools/depends/`)**: Handles complex dependencies
+- **Build Steps (`tools/buildsteps/`)**: Platform-specific build scripts
+
+### Build Dependencies
+
+The Wylloh Player has several critical dependencies:
+
+1. **FFmpeg**: Media decoding (audio/video playback)
+2. **OpenGL/GLES**: Rendering
+3. **CMake**: Build system
+4. **Web3 Libraries**: Blockchain interaction
+5. **IPFS Libraries**: Content addressing and retrieval
+
+### Build Approaches
+
+Two main approaches to building Wylloh Player:
+
+1. **Direct Build**: Using system libraries and manually satisfying dependencies
+   - Faster for development when dependencies are already available
+   - More prone to versioning issues
+
+2. **Depends System Build**: Using Kodi's dedicated dependency system
+   - More reliable across different environments
+   - Slower initial build but better consistency
+   - Recommended for Seed One deployment
+
+### Customization Points
+
+Key areas where Wylloh Player extends Kodi:
+
+1. **Content Sources**: Extended to support IPFS URIs and gateways
+2. **Authentication**: Added wallet-based authentication
+3. **UI/UX**: Custom skin with token and ownership indicators
+4. **Settings**: Additional configuration for blockchain and IPFS
+
+### Common Build Issues
+
+1. **FFmpeg Integration**: Version compatibility issues
+2. **Wallet Dependencies**: Missing crypto libraries
+3. **Permission Issues**: File access during build process
+4. **Target Naming**: Inconsistencies in target references
+
 ## Evolution of the Media Player
 
 The Wylloh media player has evolved through different approaches:
