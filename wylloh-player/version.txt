@@ -1,4 +1,4 @@
-APP_NAME Wylloh Player
+APP_NAME WyllohPlayer
 COMPANY_NAME Wylloh
 DEV_NAME Wylloh Team
 ABOUT_WEBSITE https://wylloh.com/about/

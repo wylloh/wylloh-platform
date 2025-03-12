@@ -1,0 +1,1 @@
+# Empty AddonBindings.cmake file

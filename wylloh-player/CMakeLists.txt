@@ -167,7 +167,7 @@ set(AUDIO_BACKENDS_LIST "" CACHE STRING "Available audio backends")
 set(GL_INTERFACES_LIST "" CACHE STRING "Available GL interfaces")
 
 # Dynamically loaded libraries built with the project
-add_custom_target(${APP_NAME_LC}-libraries)
+add_custom_target(wyllohplayer-libraries)
 set(LIBRARY_FILES "" CACHE STRING "" FORCE)
 mark_as_advanced(LIBRARY_FILES)
 
@@ -464,7 +464,7 @@ else()
   # Related to https://stackoverflow.com/questions/46307266/including-objects-to-a-shared-library-from-a-c-archive-a
   set_target_properties(${APP_NAME_LC} PROPERTIES LINK_FLAGS "-Wl,-Bsymbolic")
 endif()
-add_dependencies(${APP_NAME_LC} ${APP_NAME_LC}-libraries)
+add_dependencies(${APP_NAME_LC} wylloh-player-libraries)
 
 whole_archive(_MAIN_LIBRARIES ${core_DEPENDS})
 target_link_libraries(${APP_NAME_LC} ${_MAIN_LIBRARIES} lib${APP_NAME_LC} ${DEPLIBS})
@@ -566,7 +566,7 @@ if(HOST_CAN_EXECUTE_TARGET AND ENABLE_TESTING)
   unset(_TEST_LIBRARIES)
 
   if (ENABLE_INTERNAL_GTEST)
-    add_dependencies(${APP_NAME_LC}-test ${APP_NAME_LC}-libraries generate-packaging gtest)
+    add_dependencies(${APP_NAME_LC}-test wylloh-player-libraries generate-packaging gtest)
   endif()
 
   # Enable unit-test related targets
@@ -655,9 +655,9 @@ endif()
 
 # Prepare add-on build env
 include(${CORE_SOURCE_DIR}/xbmc/addons/AddonBindings.cmake)
-file(COPY ${CORE_ADDON_BINDINGS_FILES} ${CORE_ADDON_BINDINGS_DIRS}/
-     DESTINATION ${CORE_BUILD_DIR}/include/${APP_NAME_LC}
-     REGEX ".txt" EXCLUDE)
+## Disabled file copy that requires root permissions
+#     DESTINATION ${CORE_BUILD_DIR}/include/${APP_NAME_LC}
+#     REGEX ".txt" EXCLUDE)
 
 set(APP_LIB_DIR ${CMAKE_BINARY_DIR}/${CORE_BUILD_DIR}/lib/${APP_NAME_LC})
 set(APP_INCLUDE_DIR ${CMAKE_BINARY_DIR}/${CORE_BUILD_DIR}/include/${APP_NAME_LC})
