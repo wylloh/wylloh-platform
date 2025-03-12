@@ -76,16 +76,26 @@ mkdir -p /var/lib/wylloh/media
 mkdir -p /var/lib/wylloh/metadata
 mkdir -p /home/$ACTUAL_USER/.config/wylloh-player
 
-echo -e "\n${BOLD}4. Cloning Wylloh Player repository${NC}"
-cd /home/$ACTUAL_USER
-if [ -d "wylloh-player" ]; then
-  echo "Wylloh Player directory already exists, updating..."
-  cd wylloh-player
-  git pull
+echo -e "\n${BOLD}4. Setting up Wylloh Player repository${NC}"
+# Check if we're already inside a wylloh-player directory
+CURRENT_DIR=$(basename "$PWD")
+if [ "$CURRENT_DIR" = "wylloh-player" ]; then
+  echo "Using current wylloh-player directory..."
+  # Get the absolute path of the current directory
+  WYLLOH_PLAYER_DIR="$PWD"
 else
-  echo "Cloning Wylloh Player repository..."
-  sudo -u $ACTUAL_USER git clone https://github.com/wy1bur/wylloh-player.git
-  cd wylloh-player
+  # Original repository cloning logic
+  cd /home/$ACTUAL_USER
+  if [ -d "wylloh-player" ]; then
+    echo "Wylloh Player directory already exists, updating..."
+    cd wylloh-player
+    git pull
+  else
+    echo "Cloning Wylloh Player repository..."
+    sudo -u $ACTUAL_USER git clone https://github.com/wy1bur/wylloh-player.git
+    cd wylloh-player
+  fi
+  WYLLOH_PLAYER_DIR="/home/$ACTUAL_USER/wylloh-player"
 fi
 
 echo -e "\n${BOLD}5. Creating Wylloh Player configuration${NC}"
@@ -110,10 +120,10 @@ chown $ACTUAL_USER:$ACTUAL_USER /etc/wylloh/config.json
 
 echo -e "\n${BOLD}6. Setting up build environment${NC}"
 # Set ownership
-chown -R $ACTUAL_USER:$ACTUAL_USER /home/$ACTUAL_USER/wylloh-player
+chown -R $ACTUAL_USER:$ACTUAL_USER "$WYLLOH_PLAYER_DIR"
 
 # Create build directory and prepare for compilation
-cd /home/$ACTUAL_USER/wylloh-player
+cd "$WYLLOH_PLAYER_DIR"
 sudo -u $ACTUAL_USER mkdir -p build
 cd build
 
@@ -125,14 +135,17 @@ echo "This may take some time on the Seed One..."
 sudo -u $ACTUAL_USER make -j$(nproc)
 
 echo -e "\n${BOLD}9. Creating desktop shortcut${NC}"
+# Create desktop directory if it doesn't exist
+sudo -u $ACTUAL_USER mkdir -p /home/$ACTUAL_USER/.local/share/applications
+
 # Create desktop entry
 cat > /home/$ACTUAL_USER/.local/share/applications/wylloh-player.desktop << EOF
 [Desktop Entry]
 Type=Application
 Name=Wylloh Player
 Comment=Wylloh Media Player
-Exec=/home/$ACTUAL_USER/wylloh-player/build/wylloh-player
-Icon=/home/$ACTUAL_USER/wylloh-player/media/icon256x256.png
+Exec=$WYLLOH_PLAYER_DIR/build/wylloh-player
+Icon=$WYLLOH_PLAYER_DIR/media/icon256x256.png
 Terminal=false
 Categories=AudioVideo;Video;Player;TV;
 EOF
@@ -149,8 +162,8 @@ cat > /home/$ACTUAL_USER/.config/autostart/wylloh-player.desktop << EOF
 Type=Application
 Name=Wylloh Player
 Comment=Wylloh Media Player
-Exec=/home/$ACTUAL_USER/wylloh-player/build/wylloh-player
-Icon=/home/$ACTUAL_USER/wylloh-player/media/icon256x256.png
+Exec=$WYLLOH_PLAYER_DIR/build/wylloh-player
+Icon=$WYLLOH_PLAYER_DIR/media/icon256x256.png
 Terminal=false
 Categories=AudioVideo;Video;Player;TV;
 EOF
@@ -160,7 +173,7 @@ chown $ACTUAL_USER:$ACTUAL_USER /home/$ACTUAL_USER/.config/autostart/wylloh-play
 echo -e "\n${GREEN}${BOLD}Wylloh Player setup complete!${NC}"
 echo -e "Wylloh Player has been built and configured to connect to your demo environment at ${YELLOW}$LOCAL_IP${NC}"
 echo -e "\nTo start Wylloh Player manually, run:"
-echo -e "cd /home/$ACTUAL_USER/wylloh-player/build && ./wylloh-player"
+echo -e "cd $WYLLOH_PLAYER_DIR/build && ./wylloh-player"
 echo -e "\nLaunch Wylloh Player to finish the setup:"
 echo -e "  1. Navigate to Settings > Wylloh > General"
 echo -e "  2. Enable 'Demo Mode'"
