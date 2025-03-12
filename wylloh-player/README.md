@@ -72,7 +72,7 @@ Wylloh Player follows the same build process as Kodi. For detailed platform-spec
 
 ```bash
 # Clone the repository
-git clone https://github.com/your-organization/wylloh-platform.git
+git clone https://github.com/wy1bur/wylloh-platform.git
 cd wylloh-platform/wylloh-player
 
 # Configure the build
