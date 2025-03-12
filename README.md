@@ -119,3 +119,34 @@ Please read [CONTRIBUTING.md](CONTRIBUTING.md) for details on our code of conduc
 ## License
 
 This project is licensed under the proprietary license - see the [LICENSE](LICENSE) file for details.
+
+### Wylloh Player
+
+The Wylloh Player is a custom media player application based on Kodi. Building it requires several dependencies and specific configurations.
+
+#### Building the Wylloh Player
+
+For detailed instructions on building the Wylloh Player, see the [BUILDING_DEPENDENCIES.md](wylloh-player/BUILDING_DEPENDENCIES.md) file.
+
+Quick start for Linux/Debian-based systems:
+
+```bash
+# Clone the repository if you haven't already
+git clone https://github.com/your-organization/wylloh.git
+cd wylloh-platform
+
+# Run the setup script to install dependencies and make necessary modifications
+cd wylloh-player
+sudo ./setup-build-environment.sh
+
+# Build the player
+mkdir -p build && cd build
+cmake \
+  -DAPP_RENDER_SYSTEM=gles \
+  -DENABLE_INTERNAL_FLATBUFFERS=ON \
+  -DENABLE_INTERNAL_FFMPEG=ON \
+  -DCORE_PLATFORM_NAME=x11 \
+  -DENABLE_TESTING=OFF \
+  ..
+make -j4  # Adjust the number based on your CPU cores
+```
