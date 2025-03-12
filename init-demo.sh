@@ -209,8 +209,36 @@ update_configuration() {
 # Setup Seed One instructions
 setup_seed_one() {
   echo -e "\n${BOLD}6. Seed One Configuration Instructions${NC}"
-  echo -e "${YELLOW}Follow these steps to configure your Raspberry Pi (Seed One):${NC}"
-  echo "1. Update the following file on your Raspberry Pi:"
+  
+  echo -e "\n${YELLOW}OPTION A: Wylloh Player (Recommended)${NC}"
+  echo -e "Follow these steps to set up the Wylloh Player on your Seed One device:"
+  echo "1. Clone the repository on your Seed One:"
+  echo "   git clone https://github.com/wy1bur/wylloh-platform.git"
+  echo "   cd wylloh-platform/wylloh-player"
+  echo
+  echo "2. Run the setup script as root:"
+  echo "   sudo ./setup.sh"
+  echo
+  echo "3. When prompted, enter your MacBook's IP address: $LOCAL_IP"
+  echo
+  echo "4. The script will automatically:"
+  echo "   - Install all required dependencies"
+  echo "   - Configure the Wylloh Player for the demo environment"
+  echo "   - Build the Wylloh Player from source"
+  echo "   - Create desktop shortcuts and autostart entries"
+  echo
+  echo "5. After setup completes, restart your Seed One:"
+  echo "   sudo reboot"
+  echo
+  echo "6. The Wylloh Player will automatically start and connect to your demo environment"
+  echo
+  echo "7. Alternatively, you can use the automatic configuration script:"
+  echo "   ./setup/configure-demo.sh --local-ip=$LOCAL_IP --ganache-port=$GANACHE_PORT --ipfs-port=$IPFS_GATEWAY_PORT"
+  echo "   --contract=$CONTRACT_ADDRESS --token-factory=$TOKEN_FACTORY_ADDRESS"
+  
+  echo -e "\n${YELLOW}OPTION B: Legacy Kodi Add-on (Deprecated)${NC}"
+  echo -e "If you need to use the legacy Kodi add-on implementation on your Seed One:"
+  echo "1. Update the following file on your Seed One:"
   echo "   /etc/wylloh/config.json"
   echo
   echo "2. Use this configuration:"
@@ -224,39 +252,8 @@ setup_seed_one() {
 }
 EOF
   echo
-  echo "3. Restart the Wylloh service on your Raspberry Pi:"
+  echo "3. Restart the Wylloh service on your Seed One:"
   echo "   sudo systemctl restart wylloh"
-  
-  echo -e "\n${BOLD}7. Installing Wylloh Player on Seed One${NC}"
-  echo -e "${YELLOW}To install the custom Wylloh Player on your Raspberry Pi:${NC}"
-  echo "1. Ensure you have the required dependencies:"
-  echo "   sudo apt update && sudo apt upgrade -y"
-  echo "   sudo apt install -y git cmake build-essential autoconf libtool pkg-config"
-  echo "   sudo apt install -y libssl-dev zlib1g-dev libyajl-dev libxml2-dev libxslt1-dev python3-dev"
-  echo "   sudo apt install -y libcurl4-openssl-dev libsqlite3-dev libmicrohttpd-dev"
-  echo
-  echo "2. Clone the Wylloh Player repository to your Raspberry Pi:"
-  echo "   git clone https://github.com/wy1bur/wylloh-player.git"
-  echo "   cd wylloh-player"
-  echo
-  echo "3. Create build directory and configure:"
-  echo "   mkdir build"
-  echo "   cd build"
-  echo "   cmake -DCMAKE_BUILD_TYPE=Debug .."
-  echo
-  echo "4. Compile (this may take some time on a Raspberry Pi):"
-  echo "   make -j$(nproc)"
-  echo
-  echo "5. Make sure demo mode is enabled in Wylloh Player settings:"
-  echo "   - Start Wylloh Player: ./wylloh-player"
-  echo "   - Navigate to Settings > Wylloh > General"
-  echo "   - Enable 'Demo Mode'"
-  echo "   - Configure the IPFS gateway URL to: http://$LOCAL_IP:$IPFS_GATEWAY_PORT/ipfs/"
-  echo
-  echo "6. Automatic Configuration Alternative:"
-  echo "   If you prefer automatic configuration, use this command:"
-  echo "   ./setup/configure-demo.sh --local-ip=$LOCAL_IP --ganache-port=$GANACHE_PORT --ipfs-port=$IPFS_GATEWAY_PORT"
-  echo "   --contract=$CONTRACT_ADDRESS --token-factory=$TOKEN_FACTORY_ADDRESS"
 }
 
 # Main execution

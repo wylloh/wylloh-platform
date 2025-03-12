@@ -10,7 +10,7 @@ This guide explains how to set up and run a fully local demo environment for Wyl
   - IPFS (`brew install ipfs`)
   - jq (`brew install jq`)
 
-- Raspberry Pi 4 (Seed One) on the same local network
+- Seed One device (currently using Raspberry Pi 4 hardware) on the same local network
 
 ## Setup Instructions
 
@@ -91,7 +91,7 @@ yarn stop-demo
 5. Browse movie store
 6. Buy token
 
-### *Switch to Raspberry Pi (Seed One)*
+### *Switch to Seed One*
 
 ### On Seed One:
 7. Connect Wallet on Seed One
@@ -99,66 +99,64 @@ yarn stop-demo
 9. *Movie automatically appears in library*
 10. Play movie
 
-## Configure Seed One
+## Configure Seed One with Wylloh Player
 
-After running the initialization script, you'll receive instructions for configuring your Raspberry Pi. 
+After running the initialization script, you'll need to set up the Wylloh Player on your Seed One device.
 
 ### Option 1: Automated Setup (Recommended)
 
 For a streamlined setup experience, use the automated installation script:
 
-1. Clone the repository on your Raspberry Pi:
+1. Clone the repository on your Seed One:
    ```bash
    git clone https://github.com/wy1bur/wylloh-platform.git
-   cd wylloh-platform/seed-one
+   cd wylloh-platform/wylloh-player
    ```
 
-2. Run the setup script as root:
+2. Run the setup script as root (the Seed One uses Raspberry Pi OS):
    ```bash
    sudo ./setup.sh
    ```
 
 3. Follow the prompts in the script:
    - Enter your MacBook's IP address when requested
-   - The script will automatically install all dependencies, configure services, and set up the Kodi addon
+   - Optionally customize ports and contract addresses
+   - The script will automatically install all dependencies, configure services, and build the Wylloh Player
 
-4. Restart your Raspberry Pi:
+4. Restart your Seed One:
    ```bash
    sudo reboot
    ```
 
 ### Option 2: Manual Setup
 
-If you prefer to set up the Seed One manually, follow these steps:
+If you prefer to set up the Wylloh Player manually, follow these steps:
 
-1. Install dependencies:
+1. Install dependencies (on the Seed One's Raspberry Pi OS):
    ```bash
    sudo apt update && sudo apt upgrade -y
-   sudo apt install -y nodejs npm git python3 ffmpeg kodi
+   sudo apt install -y git cmake build-essential autoconf libtool pkg-config
+   sudo apt install -y libssl-dev zlib1g-dev libyajl-dev libxml2-dev libxslt1-dev python3-dev
+   sudo apt install -y libcurl4-openssl-dev libsqlite3-dev libmicrohttpd-dev
+   sudo apt install -y rapidjson-dev libfmt-dev
+   sudo apt install -y libegl1-mesa-dev libgles2-mesa-dev libgl1-mesa-dev
+   sudo apt install -y libudev-dev libpulse-dev libavahi-client-dev
    ```
 
 2. Clone the repository:
    ```bash
-   git clone https://github.com/wy1bur/wylloh-platform.git
-   cd wylloh-platform/seed-one
+   git clone https://github.com/wy1bur/wylloh-player.git
+   cd wylloh-player
    ```
 
 3. Create required directories:
    ```bash
-   sudo mkdir -p /opt/wylloh
    sudo mkdir -p /etc/wylloh
    sudo mkdir -p /var/lib/wylloh/media
    sudo mkdir -p /var/lib/wylloh/metadata
    ```
 
-4. Copy files:
-   ```bash
-   sudo cp -r * /opt/wylloh/
-   cd /opt/wylloh
-   sudo npm install
-   ```
-
-5. Create config file:
+4. Create config file:
    ```bash
    sudo nano /etc/wylloh/config.json
    ```
@@ -167,97 +165,70 @@ If you prefer to set up the Seed One manually, follow these steps:
    ```json
    {
      "providerUrl": "http://YOUR_MACBOOK_IP:8545",
-     "ipfsGateway": "http://YOUR_MACBOOK_IP:8080",
+     "ipfsGateway": "http://YOUR_MACBOOK_IP:8080/ipfs/",
      "contractAddress": "0x5FbDB2315678afecb367f032d93F642f64180aa3",
      "tokenFactoryAddress": "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512",
      "demoMode": true,
      "logLevel": "info",
      "mediaPath": "/var/lib/wylloh/media",
-     "metadataPath": "/var/lib/wylloh/metadata",
-     "kodiEnabled": true
+     "metadataPath": "/var/lib/wylloh/metadata"
    }
    ```
 
-6. Create system service:
+5. Build the Wylloh Player:
    ```bash
-   sudo nano /etc/systemd/system/wylloh.service
-   ```
-   
-   Add this configuration (replace YOUR_USERNAME with your Pi username):
-   ```
-   [Unit]
-   Description=Wylloh Media Platform
-   After=network.target
-
-   [Service]
-   Type=simple
-   User=YOUR_USERNAME
-   WorkingDirectory=/opt/wylloh
-   ExecStart=/usr/bin/node /opt/wylloh/index.js
-   Restart=on-failure
-   RestartSec=10
-   StandardOutput=syslog
-   StandardError=syslog
-   SyslogIdentifier=wylloh
-
-   [Install]
-   WantedBy=multi-user.target
+   mkdir build
+   cd build
+   cmake -DCMAKE_BUILD_TYPE=Release -DENABLE_TESTING=OFF ..
+   make -j$(nproc)
    ```
 
-7. Install Kodi addon:
+6. Create desktop shortcut:
    ```bash
-   mkdir -p ~/.kodi/addons
-   cp -r /opt/wylloh/kodi-addon/plugin.video.wylloh ~/.kodi/addons/
-   ```
-
-8. Start services:
-   ```bash
-   sudo systemctl daemon-reload
-   sudo systemctl enable wylloh
-   sudo systemctl start wylloh
-   ```
-
-9. Set up Kodi autostart:
-   ```bash
-   mkdir -p ~/.config/autostart
-   nano ~/.config/autostart/kodi.desktop
+   mkdir -p ~/.local/share/applications
+   nano ~/.local/share/applications/wylloh-player.desktop
    ```
    
    Add:
    ```
    [Desktop Entry]
    Type=Application
-   Name=Kodi
-   Exec=kodi
+   Name=Wylloh Player
+   Comment=Wylloh Media Player
+   Exec=/home/YOUR_USERNAME/wylloh-player/build/wylloh-player
+   Icon=/home/YOUR_USERNAME/wylloh-player/media/icon256x256.png
+   Terminal=false
+   Categories=AudioVideo;Video;Player;TV;
    ```
 
-10. Restart the Raspberry Pi:
-    ```bash
-    sudo reboot
-    ```
+7. Set up autostart:
+   ```bash
+   mkdir -p ~/.config/autostart
+   cp ~/.local/share/applications/wylloh-player.desktop ~/.config/autostart/
+   ```
 
-## Troubleshooting Seed One
+8. Restart your Seed One:
+   ```bash
+   sudo reboot
+   ```
+
+## Troubleshooting Wylloh Player on Seed One
 
 - **Connection Issues**: 
-  - Ensure MacBook and Raspberry Pi are on the same network
+  - Ensure MacBook and Seed One are on the same network
   - Verify MacBook IP address is correct in `/etc/wylloh/config.json`
   - Check MacBook firewall settings to allow ports 8545 and 8080
 
-- **Service Issues**:
-  - Check service status: `sudo systemctl status wylloh`
-  - View logs: `sudo journalctl -u wylloh -n 50`
-  - Restart service: `sudo systemctl restart wylloh`
+- **Build Issues**:
+  - If you encounter build errors, make sure all dependencies are installed
+  - Check for specific error messages in the build output
+  - Try building with debug flags: `cmake -DCMAKE_BUILD_TYPE=Debug ..`
 
-- **Kodi Add-on Issues**:
-  - Check Kodi is running: `ps aux | grep kodi`
-  - Verify add-on installation: `ls -la ~/.kodi/addons/plugin.video.wylloh`
-  - Check Kodi logs: `tail -f ~/.kodi/temp/kodi.log`
-
-- **Configuration Issues**:
-  - If you see incorrect API or IPFS URLs, edit `/etc/wylloh/config.json`
-  - Make sure `apiUrl`, `providerUrl`, and `ipfsGateway` all point to your MacBook IP
-  - For wallet auto-connect, ensure `autoConnectWallet` is set to `true`
-  - After any config changes, restart the service: `sudo systemctl restart wylloh`
+- **Runtime Issues**:
+  - Check logs in `~/.wylloh-player/temp/wylloh-player.log`
+  - Verify the configuration in Settings > Wylloh > General
+  - Ensure Demo Mode is enabled
+  - Verify the IPFS gateway and provider URLs are correct
 
 ## Working with MetaMask
 
