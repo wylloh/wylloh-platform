@@ -1,5 +1,4 @@
 import React from 'react';
-import { BrowserRouter as Router } from 'react-router-dom';
 import { ThemeProvider } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
 import { SnackbarProvider } from 'notistack';
@@ -15,17 +14,15 @@ function App() {
     <ThemeProvider theme={theme}>
       <CssBaseline />
       <SnackbarProvider maxSnack={3}>
-        <Router>
-          <AuthProvider>
-            <WalletProvider>
-              <PlatformProvider>
-                <Layout>
-                  <AppRoutes />
-                </Layout>
-              </PlatformProvider>
-            </WalletProvider>
-          </AuthProvider>
-        </Router>
+        <AuthProvider>
+          <WalletProvider>
+            <PlatformProvider>
+              <Layout>
+                <AppRoutes />
+              </Layout>
+            </PlatformProvider>
+          </WalletProvider>
+        </AuthProvider>
       </SnackbarProvider>
     </ThemeProvider>
   );

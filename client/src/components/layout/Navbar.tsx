@@ -99,7 +99,8 @@ const Navbar: React.FC = () => {
   };
   
   // Format account address for display
-  const formatAddress = (address: string) => {
+  const formatAddress = (address: string | null | undefined) => {
+    if (!address) return 'Unknown';
     return `${address.substring(0, 6)}...${address.substring(address.length - 4)}`;
   };
   

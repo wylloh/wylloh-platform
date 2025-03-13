@@ -83,7 +83,7 @@ const PlayerPage: React.FC = () => {
   }, [id]);
   
   const handlePreviewEnded = () => {
-    setPreviewEndDialogOpen(true);
+        setPreviewEndDialogOpen(true);
   };
   
   const handlePurchase = () => {
@@ -93,7 +93,7 @@ const PlayerPage: React.FC = () => {
   const handleConfirmPurchase = () => {
     // Here you would integrate with web3 to execute purchase
     setPurchaseDialogOpen(false);
-    
+  
     // For the demo, simulate purchase success
     setIsPreview(false);
   };
@@ -117,19 +117,19 @@ const PlayerPage: React.FC = () => {
     return (
       <Container maxWidth="lg" sx={{ mt: 4, textAlign: 'center' }}>
         <Typography variant="h4" color="error">
-          Content Not Found
-        </Typography>
+            Content Not Found
+          </Typography>
         <Typography variant="body1" sx={{ mt: 2 }}>
           The content you're looking for could not be found.
-        </Typography>
-        <Button 
-          variant="contained" 
+          </Typography>
+          <Button 
+            variant="contained" 
           color="primary" 
           sx={{ mt: 3 }}
           onClick={() => navigate('/marketplace')}
         >
           Browse Marketplace
-        </Button>
+          </Button>
       </Container>
     );
   }
@@ -171,30 +171,30 @@ const PlayerPage: React.FC = () => {
                   <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
                     <Box>
                       <Typography variant="h4" gutterBottom>
-                        {content.title}
-                      </Typography>
+                  {content.title}
+                </Typography>
                       <Typography variant="subtitle1" color="text.secondary">
                         {content.creator} • {content.duration}
-                      </Typography>
-                    </Box>
+                  </Typography>
+                </Box>
                     
-                    {isPreview ? (
-                      <Button
-                        variant="contained"
-                        color="primary"
-                        startIcon={<ShoppingCart />}
+                {isPreview ? (
+                    <Button
+                      variant="contained"
+                      color="primary"
+                      startIcon={<ShoppingCart />}
                         onClick={handlePurchase}
                         disabled={!active || !isCorrectNetwork || !isAuthenticated}
-                      >
+                    >
                         Purchase ({content.price} ETH)
-                      </Button>
-                    ) : (
-                      <Chip
+                    </Button>
+                ) : (
+                    <Chip 
                         icon={<VerifiedUser />}
                         label="Owned"
-                        color="success"
-                        variant="outlined"
-                      />
+                      color="success"
+                      variant="outlined"
+                    />
                     )}
                   </Box>
                   
@@ -285,7 +285,7 @@ const PlayerPage: React.FC = () => {
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setPreviewEndDialogOpen(false)}>Close</Button>
-          <Button
+          <Button 
             onClick={() => {
               setPreviewEndDialogOpen(false);
               handlePurchase();
