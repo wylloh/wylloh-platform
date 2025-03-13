@@ -99,140 +99,155 @@ wylloh-platform/
   - Token verification
   - IPFS content retrieval
 
-### 6. Wylloh Player (`/wylloh-player`)
-- **Purpose**: Custom media player based on Kodi fork
-- **Technology**: C++, CMake
-- **Status**: Active development, current player implementation
+### 6. Wylloh Player (`/player`)
+- **Purpose**: Web-based media player with native extensions
+- **Technology**: Progressive Web App, React, WebAssembly, native extensions
+- **Status**: Active development, replacing previous Kodi-based player
 - **Key Features**:
-  - Native IPFS integration
-  - Blockchain wallet integration
-  - Token-based content access
-  - Enhanced UI for media playback
+  - Cross-platform media playback
+  - Blockchain license verification
+  - IPFS content retrieval
+  - Offline playback support
+  - Hardware acceleration via native extensions
+  - Synchronized experience across devices
 
-## Wylloh Player Architecture (`/wylloh-player`)
+## Web-Based Player Architecture (`/player`)
 
-As a Kodi fork, the Wylloh Player inherits Kodi's complex architecture while adding custom components for blockchain and IPFS integration. Below is the high-level directory structure:
+The Wylloh Player now uses a web-first approach with strategic native extensions for platform-specific capabilities:
 
 ```
-wylloh-player/
-├── addons/                 # Core and optional addons
-│   ├── skin.wylloh/        # Custom Wylloh skin/UI
-│   └── ...
-├── cmake/                  # CMake modules and configuration
-│   ├── modules/            # CMake finder scripts
-│   ├── scripts/            # Build helper scripts
-│   └── platform/           # Platform-specific configurations
-├── docs/                   # Documentation
-├── lib/                    # Core libraries
-│   ├── ffmpeg/             # Media playback (key dependency)
-│   ├── cpluff/             # Plugin system
-│   └── ...
-├── system/                 # System-specific components
-│   ├── players/            # Media player components
-│   └── settings/           # Default configurations
-├── tools/                  # Build and development tools
-│   ├── buildsteps/         # Build scripts and helpers
-│   ├── depends/            # Dependency management system
-│   └── Linux/              # Linux-specific tools
-├── xbmc/                   # Core application source
-│   ├── application/        # Main application
-│   ├── cores/              # Core functionality
-│   ├── filesystem/         # File system abstraction
-│   ├── guilib/             # UI framework
-│   ├── platform/           # Platform-specific code
-│   ├── wylloh/             # Custom Wylloh components
-│   │   ├── wallet/         # Blockchain wallet integration
-│   │   ├── ipfs/           # IPFS integration
-│   │   └── tokens/         # Token verification
-│   └── windowing/          # Display handling
-└── CMakeLists.txt          # Main build configuration
+player/
+├── src/                 # Core player functionality
+│   ├── components/      # UI components
+│   ├── hooks/           # React hooks
+│   ├── services/        # Core services (playback, metadata, etc.)
+│   └── state/           # State management
+├── extensions/          # Native extensions
+│   ├── hardware/        # Hardware acceleration 
+│   ├── storage/         # Secure storage
+│   └── ipfs/            # IPFS node integration
+├── web/                 # Pure web implementation
+│   ├── app/             # Web app shell
+│   ├── pwa/             # Progressive Web App capabilities
+│   └── build/           # Build output
+└── platforms/           # Platform-specific code
+    ├── desktop/         # Desktop wrapper (Electron/Tauri)
+    └── seed-one/        # Seed One specific implementation
 ```
 
-### Key Components
+### Integration with Shared Components
 
-#### 1. Core Architecture (inherited from Kodi)
-- **Application (`xbmc/application/`)**: Main application loop and initialization
-- **GUI Library (`xbmc/guilib/`)**: UI rendering and controls
-- **File System (`xbmc/filesystem/`)**: Virtual file system for multiple sources
-- **Cores (`xbmc/cores/`)**: Media playback engines and decoders
+The player leverages shared code from:
 
-#### 2. Custom Wylloh Components (`xbmc/wylloh/`)
-- **Wallet Integration**: Connects to blockchain wallets for token verification
-- **IPFS Integration**: Native support for IPFS protocol and content addressing
-- **Token Verification**: Validates ownership of content through blockchain tokens
-
-#### 3. Build System
-- **CMake**: Primary build system
-- **Depends System (`tools/depends/`)**: Handles complex dependencies
-- **Build Steps (`tools/buildsteps/`)**: Platform-specific build scripts
-
-### Build Dependencies
-
-The Wylloh Player has several critical dependencies:
-
-1. **FFmpeg**: Media decoding (audio/video playback)
-2. **OpenGL/GLES**: Rendering
-3. **CMake**: Build system
-4. **Web3 Libraries**: Blockchain interaction
-5. **IPFS Libraries**: Content addressing and retrieval
-
-### Build Approaches
-
-Two main approaches to building Wylloh Player:
-
-1. **Direct Build**: Using system libraries and manually satisfying dependencies
-   - Faster for development when dependencies are already available
-   - More prone to versioning issues
-
-2. **Depends System Build**: Using Kodi's dedicated dependency system
-   - More reliable across different environments
-   - Slower initial build but better consistency
-   - Recommended for Seed One deployment
-
-### Customization Points
-
-Key areas where Wylloh Player extends Kodi:
-
-1. **Content Sources**: Extended to support IPFS URIs and gateways
-2. **Authentication**: Added wallet-based authentication
-3. **UI/UX**: Custom skin with token and ownership indicators
-4. **Settings**: Additional configuration for blockchain and IPFS
-
-### Common Build Issues
-
-1. **FFmpeg Integration**: Version compatibility issues
-2. **Wallet Dependencies**: Missing crypto libraries
-3. **Permission Issues**: File access during build process
-4. **Target Naming**: Inconsistencies in target references
+```
+shared/
+├── blockchain/          # Blockchain integration
+│   ├── contracts/       # Smart contract interfaces
+│   ├── wallet/          # Wallet connection
+│   └── verification/    # License verification
+├── ipfs/                # IPFS utilities
+│   ├── content/         # Content addressing
+│   ├── gateways/        # Gateway management
+│   └── cache/           # Caching strategies
+└── media/               # Media utilities
+    ├── formats/         # Format handling
+    ├── metadata/        # Metadata extraction
+    └── playback/        # Playback helpers
+```
 
 ## Evolution of the Media Player
 
 The Wylloh media player has evolved through different approaches:
 
-1. **Initial Phase**: Kodi Add-on
-   - Implementation in `/seed-one/kodi-addon/`
-   - Python-based plugin for unmodified Kodi
-   - Limited UI customization
-   - Integration through Kodi API
+1. **Initial Phase**: Kodi with Add-on
+   - Implementation in `seed-one/kodi-addon/`
+   - Used Kodi as the base player with a custom add-on
+   - Limited integration capabilities with blockchain
 
-2. **Current Phase**: Custom Kodi Fork (Wylloh Player)
-   - Implementation in `/wylloh-player/`
-   - Deep integration with C++ codebase
-   - Custom branding and UI
-   - Native IPFS and blockchain integration
-   - Enhanced security and performance
+2. **Intermediate Phase**: Custom Kodi Fork (Wylloh Player)
+   - Implementation in `/archive/kodi-player/`
+   - Customized Kodi codebase for deeper integration
+   - Challenging build process and maintenance
+
+3. **Current Phase**: Web-Based Player with Native Extensions
+   - Implementation in `/player/`
+   - Progressive Web App with platform-specific extensions
+   - Better cross-platform consistency
+   - Improved development velocity
+   - Enhanced integration with blockchain and IPFS
 
 ## Integration Points
 
-### IPFS Integration
-- **Web Interface**: Uses `storage` service for IPFS uploads
-- **Wylloh Player**: Native integration via `IPFSManager` class
-- **Reference**: Original implementation in `seed-one/kodi-addon/resources/lib/ipfs_manager.py`
+The various components of the Wylloh platform integrate through well-defined interfaces:
 
-### Blockchain Integration
-- **Web Interface**: Direct wallet connection via web3 provider
-- **Wylloh Player**: Native integration via `WalletManager` and `WalletConnection` classes
-- **Reference**: Original implementation in `seed-one/kodi-addon/resources/lib/wallet.py`
+### 1. Blockchain Integration
+
+- **Web Client**: Browser wallet connection via Web3.js
+- **Web Player**: Same Web3 integration as web client
+- **Seed One**: Native wallet implementation via ethers.js 
+
+### 2. IPFS Content Delivery
+
+- **Web Client**: Uses HTTP gateways with browser caching
+- **Web Player**: Uses HTTP gateways with enhanced browser caching
+- **Seed One**: Native IPFS node with local pinning and caching
+
+### 3. License Verification
+
+- **Shared Implementation**: Core verification logic in shared/blockchain library 
+- **Web Client**: Client-side verification with server validation
+- **Web Player**: Client-side verification with optional server validation
+- **Seed One**: Local verification with cached validation results for offline use
+
+### 4. Content Browsing
+
+Both web interface (`client/`) and Wylloh Player (`player/`) share:
+- Content metadata structures
+- Display components
+- Filtering logic
+- Search implementation
+
+### 5. Content Playback
+
+- **Primary**: Through Wylloh Player (`player/`)
+- **Preview**: Direct in web interface for samples
+- **Offline**: Supported on Seed One with downloaded content
+
+### 6. Wallet Integration
+
+All platforms use a common protocol for:
+- Wallet connection
+- Token verification
+- License retrieval
+- Transaction signing
+
+## Feature Matrix
+
+| Feature | Web Client | Web Player | Seed One |
+|---------|------------|------------|----------|
+| Content Discovery | Full | Basic | Basic |
+| Content Purchase | Full | No | No |
+| Content Playback | Preview Only | Full | Full |
+| Offline Access | No | Limited | Full |
+| IPFS Integration | Gateway | Gateway | Native Node |
+| Wallet Integration | Browser | Browser | Native |
+| License Management | Full | View Only | View Only |
+
+## Development Focus
+
+Current development priorities:
+
+1. Enhancing the Web Player with robust playback and verification
+2. Integrating shared libraries across all components
+3. Optimizing the Seed One browser-based experience
+4. Creating a seamless cross-device experience 
+5. Building offline capabilities on all platforms
+
+## Deployment Architecture
+
+- **Web Client & Web Player**: Deployed to CDN/hosting as static assets
+- **Server**: Deployed to cloud provider (AWS/GCP)
+- **Seed One**: Local installation on Raspberry Pi hardware
 
 ## Demo Environment
 
