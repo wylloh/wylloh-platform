@@ -97,3 +97,4 @@ echo "The Wylloh Player will automatically start in kiosk mode on next boot."
 echo -e "\nTo reboot now, run:${BOLD}"
 echo "  sudo reboot"
 echo -e "${NC}"
+
