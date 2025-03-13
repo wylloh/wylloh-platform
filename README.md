@@ -114,6 +114,39 @@ Deploy smart contracts to the Mumbai testnet:
 yarn deploy-contracts:testnet
 ```
 
+## Demo Mode
+
+To easily run the Wylloh platform in demo mode with all required services:
+
+```bash
+# Start the demo environment (includes Ganache and IPFS)
+yarn demo
+
+# Run the client application
+cd client && yarn start
+
+# When you're done, stop all services
+yarn stop-demo
+```
+
+The demo mode includes:
+- Local Ganache blockchain with pre-loaded test accounts
+- Local IPFS node running in offline mode
+- Sample content pre-loaded into IPFS
+- Automatic configuration for client, API, and storage components
+
+For additional demo options, run:
+```bash
+yarn demo --help
+```
+
+For a dry run to see what would happen without starting services:
+```bash
+yarn demo --dry-run
+```
+
+For more detailed instructions, see the [DEMO-README.MD](./DEMO-README.MD) file.
+
 ## Contributing
 
 Please read [CONTRIBUTING.md](CONTRIBUTING.md) for details on our code of conduct and the process for submitting pull requests.

@@ -17,9 +17,32 @@ CLIENT_ENV_FILE="client/.env.demo.local"
 API_ENV_FILE="api/.env.demo.local"
 STORAGE_ENV_FILE="storage/.env.demo.local"
 SAMPLE_CONTENT_DIR="./demo-assets"
+DRY_RUN=false
+
+# Parse command line arguments
+for arg in "$@"; do
+  case $arg in
+    --dry-run)
+      DRY_RUN=true
+      shift
+      ;;
+    --help)
+      echo "Usage: ./init-demo.sh [OPTIONS]"
+      echo ""
+      echo "Options:"
+      echo "  --dry-run     Show what would be done without actually starting services"
+      echo "  --help        Display this help message"
+      exit 0
+      ;;
+  esac
+done
 
 echo -e "${BOLD}Wylloh Demo Environment Setup${NC}"
 echo "===============================\n"
+
+if [ "$DRY_RUN" = true ]; then
+  echo -e "${YELLOW}Running in dry-run mode. No services will be started.${NC}\n"
+fi
 
 # Check for required tools
 check_dependency() {
@@ -30,19 +53,52 @@ check_dependency() {
   fi
 }
 
+# Check Node.js version compatibility
+check_node_version() {
+  NODE_VERSION=$(node -v | cut -d "v" -f 2)
+  NODE_MAJOR=$(echo $NODE_VERSION | cut -d "." -f 1)
+  
+  if [ "$NODE_MAJOR" -gt 18 ]; then
+    echo -e "${YELLOW}Warning: You are using Node.js v$NODE_VERSION, which may cause compatibility issues with Hardhat.${NC}"
+    echo "For best results, consider using Node.js v16 or v18 for this demo."
+    echo "You can use nvm to switch versions:"
+    echo "  nvm install 18"
+    echo "  nvm use 18"
+    echo ""
+    
+    # Ask if user wants to continue, unless in dry-run mode
+    if [ "$DRY_RUN" = false ]; then
+      read -p "Do you want to continue with Node.js v$NODE_VERSION? (y/n) " -n 1 -r
+      echo ""
+      if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+        echo "Exiting demo setup. Please use a compatible Node.js version and try again."
+        exit 1
+      fi
+    else
+      echo -e "${YELLOW}In dry-run mode - would prompt for Node.js version confirmation here${NC}"
+    fi
+  fi
+}
+
 # Check dependencies
 echo "Checking dependencies..."
 check_dependency "node" "brew install node"
 check_dependency "npm" "brew install node"
 check_dependency "ipfs" "brew install ipfs"
 check_dependency "jq" "brew install jq"
+check_node_version
 
 # Stop existing services
 stop_services() {
   echo -e "\n${YELLOW}Stopping any existing services...${NC}"
-  pkill -f "ganache" || true
-  pkill -f "ipfs daemon" || true
-  sleep 2
+  
+  if [ "$DRY_RUN" = false ]; then
+    pkill -f "ganache" || true
+    pkill -f "ipfs daemon" || true
+    sleep 2
+  else
+    echo -e "${YELLOW}In dry-run mode - would stop existing services${NC}"
+  fi
 }
 
 # 1. Start local blockchain
@@ -50,22 +106,29 @@ start_ganache() {
   echo -e "\n${BOLD}1. Starting local blockchain (Ganache)${NC}"
   echo "Starting Ganache on port $GANACHE_PORT..."
   
-  # Start Ganache with deterministic addresses and specific chain ID
-  ganache --deterministic --chain.chainId 1337 --wallet.defaultBalance 1000 --port $GANACHE_PORT > /tmp/ganache.log 2>&1 &
-  
-  GANACHE_PID=$!
-  echo $GANACHE_PID > /tmp/ganache.pid
-  sleep 2
-  
-  if ps -p $GANACHE_PID > /dev/null; then
-    echo -e "${GREEN}✓ Ganache started successfully (PID: $GANACHE_PID)${NC}"
-    # Extract account information
-    TEST_ACCOUNT=$(curl -s -X POST --data '{"jsonrpc":"2.0","method":"eth_accounts","params":[],"id":1}' http://localhost:$GANACHE_PORT | jq -r '.result[0]')
-    TEST_PRIVATE_KEY="0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80"  # First deterministic private key from Ganache
-    echo "Test account: $TEST_ACCOUNT"
+  if [ "$DRY_RUN" = false ]; then
+    # Start Ganache with deterministic addresses and specific chain ID
+    ganache --deterministic --chain.chainId 1337 --wallet.defaultBalance 1000 --port $GANACHE_PORT > /tmp/ganache.log 2>&1 &
+    
+    GANACHE_PID=$!
+    echo $GANACHE_PID > /tmp/ganache.pid
+    sleep 2
+    
+    if ps -p $GANACHE_PID > /dev/null; then
+      echo -e "${GREEN}✓ Ganache started successfully (PID: $GANACHE_PID)${NC}"
+      # Extract account information
+      TEST_ACCOUNT=$(curl -s -X POST --data '{"jsonrpc":"2.0","method":"eth_accounts","params":[],"id":1}' http://localhost:$GANACHE_PORT | jq -r '.result[0]')
+      TEST_PRIVATE_KEY="0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80"  # First deterministic private key from Ganache
+      echo "Test account: $TEST_ACCOUNT"
+    else
+      echo -e "${RED}✗ Failed to start Ganache${NC}"
+      exit 1
+    fi
   else
-    echo -e "${RED}✗ Failed to start Ganache${NC}"
-    exit 1
+    echo -e "${YELLOW}In dry-run mode - would start Ganache on port $GANACHE_PORT${NC}"
+    TEST_ACCOUNT="0x90f8bf6a479f320ead074411a4b0e7944ea8c9c1"  # Deterministic address from Ganache
+    TEST_PRIVATE_KEY="0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80"  # First deterministic private key from Ganache
+    echo "Test account would be: $TEST_ACCOUNT"
   fi
 }
 
@@ -73,25 +136,29 @@ start_ganache() {
 start_ipfs() {
   echo -e "\n${BOLD}2. Starting local IPFS node${NC}"
   
-  # Initialize IPFS if needed
-  if [ ! -d ~/.ipfs ]; then
-    echo "Initializing IPFS..."
-    ipfs init
-  fi
-  
-  # Start IPFS daemon in offline mode
-  echo "Starting IPFS daemon in offline mode..."
-  ipfs daemon --offline > /tmp/ipfs.log 2>&1 &
-  
-  IPFS_PID=$!
-  echo $IPFS_PID > /tmp/ipfs.pid
-  sleep 5
-  
-  if ps -p $IPFS_PID > /dev/null; then
-    echo -e "${GREEN}✓ IPFS started successfully (PID: $IPFS_PID)${NC}"
+  if [ "$DRY_RUN" = false ]; then
+    # Initialize IPFS if needed
+    if [ ! -d ~/.ipfs ]; then
+      echo "Initializing IPFS..."
+      ipfs init
+    fi
+    
+    # Start IPFS daemon in offline mode
+    echo "Starting IPFS daemon in offline mode..."
+    ipfs daemon --offline > /tmp/ipfs.log 2>&1 &
+    
+    IPFS_PID=$!
+    echo $IPFS_PID > /tmp/ipfs.pid
+    sleep 5
+    
+    if ps -p $IPFS_PID > /dev/null; then
+      echo -e "${GREEN}✓ IPFS started successfully (PID: $IPFS_PID)${NC}"
+    else
+      echo -e "${RED}✗ Failed to start IPFS${NC}"
+      exit 1
+    fi
   else
-    echo -e "${RED}✗ Failed to start IPFS${NC}"
-    exit 1
+    echo -e "${YELLOW}In dry-run mode - would initialize IPFS if needed and start IPFS daemon${NC}"
   fi
 }
 
@@ -99,11 +166,34 @@ start_ipfs() {
 deploy_contracts() {
   echo -e "\n${BOLD}3. Deploying smart contracts${NC}"
   
+  # Check if hardhat.config.js exists and offer fix for ESM projects
+  if [ -f "hardhat.config.js" ] && grep -q "\"type\": \"module\"" package.json; then
+    echo -e "${YELLOW}Warning: Your project is an ESM project (has \"type\": \"module\" in package.json) but Hardhat config uses .js extension.${NC}"
+    
+    if [ "$DRY_RUN" = false ]; then
+      echo "Would you like to rename hardhat.config.js to hardhat.config.cjs to fix this? (y/n)"
+      read -n 1 -r
+      echo ""
+      if [[ $REPLY =~ ^[Yy]$ ]]; then
+        mv hardhat.config.js hardhat.config.cjs
+        echo "Renamed hardhat.config.js to hardhat.config.cjs"
+      else
+        echo "Continuing without renaming the file. Contract deployment may fail."
+      fi
+    else
+      echo -e "${YELLOW}In dry-run mode - would prompt to rename hardhat.config.js to hardhat.config.cjs${NC}"
+    fi
+  fi
+  
   # Run deployment script
   echo "Running contract deployment..."
   
-  # This assumes you have a deployment script. Modify as needed for your project
-  npx hardhat run scripts/deploy/deploy.js --network localhost
+  if [ "$DRY_RUN" = false ]; then
+    # This assumes you have a deployment script. Modify as needed for your project
+    npx hardhat run scripts/deploy/deploy.js --network localhost
+  else
+    echo -e "${YELLOW}In dry-run mode - would deploy contracts to local blockchain${NC}"
+  fi
   
   # For demo purposes, we're using a placeholder contract address
   # In a real scenario, you'd extract this from the deployment output
@@ -120,22 +210,31 @@ load_sample_content() {
   echo -e "\n${BOLD}4. Loading sample content to IPFS${NC}"
   
   # Check if sample content directory exists
-  if [ ! -d "$SAMPLE_CONTENT_DIR" ]; then
+  if [ ! -d "$SAMPLE_CONTENT_DIR" ] && [ "$DRY_RUN" = false ]; then
     echo "Creating sample content directory..."
     mkdir -p "$SAMPLE_CONTENT_DIR"
+  elif [ "$DRY_RUN" = true ]; then
+    echo -e "${YELLOW}In dry-run mode - would create sample content directory if needed${NC}"
   fi
   
   # Check for sample movie file
   SAMPLE_MOVIE="$SAMPLE_CONTENT_DIR/sample_movie.mp4"
-  if [ ! -f "$SAMPLE_MOVIE" ]; then
+  if [ ! -f "$SAMPLE_MOVIE" ] && [ "$DRY_RUN" = false ]; then
     echo "Downloading sample movie file..."
     # Download a Creative Commons sample video - Big Buck Bunny
     curl -L -o "$SAMPLE_MOVIE" "https://download.blender.org/peach/bigbuckbunny_movies/BigBuckBunny_320x180.mp4"
+  elif [ "$DRY_RUN" = true ]; then
+    echo -e "${YELLOW}In dry-run mode - would download sample movie file if needed${NC}"
   fi
   
   # Add to IPFS
   echo "Adding sample movie to IPFS..."
-  MOVIE_CID=$(ipfs add -Q "$SAMPLE_MOVIE")
+  if [ "$DRY_RUN" = false ]; then
+    MOVIE_CID=$(ipfs add -Q "$SAMPLE_MOVIE")
+  else
+    MOVIE_CID="Qme4M6BcWt6iKHPP2YwwYg6KbX3uHYN559AFEA77N7cW9D" # Placeholder CID for dry run
+    echo -e "${YELLOW}In dry-run mode - would add sample movie to IPFS${NC}"
+  fi
   
   echo -e "${GREEN}✓ Sample content loaded to IPFS${NC}"
   echo "Movie CID: $MOVIE_CID"
@@ -143,7 +242,9 @@ load_sample_content() {
   # Create metadata
   echo "Creating movie metadata..."
   METADATA_FILE="$SAMPLE_CONTENT_DIR/metadata.json"
-  cat > "$METADATA_FILE" << EOF
+  
+  if [ "$DRY_RUN" = false ]; then
+    cat > "$METADATA_FILE" << EOF
 {
   "title": "Big Buck Bunny",
   "description": "A sample movie for Wylloh demo",
@@ -154,9 +255,14 @@ load_sample_content() {
   "thumbnailCid": "$MOVIE_CID"
 }
 EOF
+    
+    # Add metadata to IPFS
+    METADATA_CID=$(ipfs add -Q "$METADATA_FILE")
+  else
+    echo -e "${YELLOW}In dry-run mode - would create metadata file and add to IPFS${NC}"
+    METADATA_CID="Qmaht9C4amfdKrDwo21XxYjPyLTowotGHpvMzSwp1kULjJ" # Placeholder CID for dry run
+  fi
   
-  # Add metadata to IPFS
-  METADATA_CID=$(ipfs add -Q "$METADATA_FILE")
   echo "Metadata CID: $METADATA_CID"
 }
 
@@ -169,39 +275,43 @@ update_configuration() {
   
   echo "Local IP: $LOCAL_IP"
   
-  # Create client environment file
-  mkdir -p "client"
-  echo "Creating client environment file..."
-  cp "$DEMO_ENV_FILE" "$CLIENT_ENV_FILE"
-  
-  # Create API environment file
-  mkdir -p "api"
-  echo "Creating API environment file..."
-  cp "$DEMO_ENV_FILE" "$API_ENV_FILE"
-  
-  # Create storage environment file
-  mkdir -p "storage"
-  echo "Creating storage environment file..."
-  cp "$DEMO_ENV_FILE" "$STORAGE_ENV_FILE"
-  
-  # Update client environment values
-  sed -i '' "s|REACT_APP_CONTRACT_ADDRESS=.*|REACT_APP_CONTRACT_ADDRESS=\"$CONTRACT_ADDRESS\"|g" "$CLIENT_ENV_FILE"
-  sed -i '' "s|REACT_APP_TOKEN_FACTORY_ADDRESS=.*|REACT_APP_TOKEN_FACTORY_ADDRESS=\"$TOKEN_FACTORY_ADDRESS\"|g" "$CLIENT_ENV_FILE"
-  sed -i '' "s|REACT_APP_TEST_ACCOUNT_ADDRESS=.*|REACT_APP_TEST_ACCOUNT_ADDRESS=\"$TEST_ACCOUNT\"|g" "$CLIENT_ENV_FILE"
-  sed -i '' "s|REACT_APP_TEST_PRIVATE_KEY=.*|REACT_APP_TEST_PRIVATE_KEY=\"$TEST_PRIVATE_KEY\"|g" "$CLIENT_ENV_FILE"
-  sed -i '' "s|REACT_APP_SAMPLE_MOVIE_CID=.*|REACT_APP_SAMPLE_MOVIE_CID=\"$MOVIE_CID\"|g" "$CLIENT_ENV_FILE"
-  sed -i '' "s|REACT_APP_LOCAL_IP=.*|REACT_APP_LOCAL_IP=\"$LOCAL_IP\"|g" "$CLIENT_ENV_FILE"
-  
-  # Update API environment values
-  sed -i '' "s|JWT_SECRET=.*|JWT_SECRET=\"wylloh-demo-secret\"|g" "$API_ENV_FILE"
-  sed -i '' "s|MONGODB_URI=.*|MONGODB_URI=\"mongodb://localhost:27017/wylloh-demo\"|g" "$API_ENV_FILE"
-  sed -i '' "s|API_PORT=.*|API_PORT=4000|g" "$API_ENV_FILE"
-  sed -i '' "s|TOKEN_CONTRACT_ADDRESS=.*|TOKEN_CONTRACT_ADDRESS=\"$CONTRACT_ADDRESS\"|g" "$API_ENV_FILE"
-  
-  # Update storage environment values
-  sed -i '' "s|IPFS_API_URL=.*|IPFS_API_URL=\"http://localhost:$IPFS_API_PORT\"|g" "$STORAGE_ENV_FILE"
-  sed -i '' "s|IPFS_GATEWAY_URL=.*|IPFS_GATEWAY_URL=\"http://localhost:$IPFS_GATEWAY_PORT\"|g" "$STORAGE_ENV_FILE"
-  sed -i '' "s|STORAGE_PORT=.*|STORAGE_PORT=4001|g" "$STORAGE_ENV_FILE"
+  if [ "$DRY_RUN" = false ]; then
+    # Create client environment file
+    mkdir -p "client"
+    echo "Creating client environment file..."
+    cp "$DEMO_ENV_FILE" "$CLIENT_ENV_FILE"
+    
+    # Create API environment file
+    mkdir -p "api"
+    echo "Creating API environment file..."
+    cp "$DEMO_ENV_FILE" "$API_ENV_FILE"
+    
+    # Create storage environment file
+    mkdir -p "storage"
+    echo "Creating storage environment file..."
+    cp "$DEMO_ENV_FILE" "$STORAGE_ENV_FILE"
+    
+    # Update client environment values
+    sed -i '' "s|REACT_APP_CONTRACT_ADDRESS=.*|REACT_APP_CONTRACT_ADDRESS=\"$CONTRACT_ADDRESS\"|g" "$CLIENT_ENV_FILE"
+    sed -i '' "s|REACT_APP_TOKEN_FACTORY_ADDRESS=.*|REACT_APP_TOKEN_FACTORY_ADDRESS=\"$TOKEN_FACTORY_ADDRESS\"|g" "$CLIENT_ENV_FILE"
+    sed -i '' "s|REACT_APP_TEST_ACCOUNT_ADDRESS=.*|REACT_APP_TEST_ACCOUNT_ADDRESS=\"$TEST_ACCOUNT\"|g" "$CLIENT_ENV_FILE"
+    sed -i '' "s|REACT_APP_TEST_PRIVATE_KEY=.*|REACT_APP_TEST_PRIVATE_KEY=\"$TEST_PRIVATE_KEY\"|g" "$CLIENT_ENV_FILE"
+    sed -i '' "s|REACT_APP_SAMPLE_MOVIE_CID=.*|REACT_APP_SAMPLE_MOVIE_CID=\"$MOVIE_CID\"|g" "$CLIENT_ENV_FILE"
+    sed -i '' "s|REACT_APP_LOCAL_IP=.*|REACT_APP_LOCAL_IP=\"$LOCAL_IP\"|g" "$CLIENT_ENV_FILE"
+    
+    # Update API environment values
+    sed -i '' "s|JWT_SECRET=.*|JWT_SECRET=\"wylloh-demo-secret\"|g" "$API_ENV_FILE"
+    sed -i '' "s|MONGODB_URI=.*|MONGODB_URI=\"mongodb://localhost:27017/wylloh-demo\"|g" "$API_ENV_FILE"
+    sed -i '' "s|API_PORT=.*|API_PORT=4000|g" "$API_ENV_FILE"
+    sed -i '' "s|TOKEN_CONTRACT_ADDRESS=.*|TOKEN_CONTRACT_ADDRESS=\"$CONTRACT_ADDRESS\"|g" "$API_ENV_FILE"
+    
+    # Update storage environment values
+    sed -i '' "s|IPFS_API_URL=.*|IPFS_API_URL=\"http://localhost:$IPFS_API_PORT\"|g" "$STORAGE_ENV_FILE"
+    sed -i '' "s|IPFS_GATEWAY_URL=.*|IPFS_GATEWAY_URL=\"http://localhost:$IPFS_GATEWAY_PORT\"|g" "$STORAGE_ENV_FILE"
+    sed -i '' "s|STORAGE_PORT=.*|STORAGE_PORT=4001|g" "$STORAGE_ENV_FILE"
+  else
+    echo -e "${YELLOW}In dry-run mode - would create and update environment files for client, API, and storage services${NC}"
+  fi
   
   echo -e "${GREEN}✓ Configuration updated${NC}"
 }
@@ -214,7 +324,7 @@ setup_seed_one() {
   echo -e "Follow these steps to set up the Wylloh Player on your Seed One device:"
   echo "1. Clone the repository on your Seed One:"
   echo "   git clone https://github.com/wy1bur/wylloh-platform.git"
-  echo "   cd wylloh-platform/wylloh-player"
+  echo "   cd wylloh-platform/seed-one"
   echo
   echo "2. Run the setup script as root:"
   echo "   sudo ./setup.sh"
@@ -248,7 +358,8 @@ setup_seed_one() {
   "ipfsGateway": "http://$LOCAL_IP:$IPFS_GATEWAY_PORT",
   "contractAddress": "$CONTRACT_ADDRESS",
   "tokenFactoryAddress": "$TOKEN_FACTORY_ADDRESS",
-  "demoMode": true
+  "demoMode": true,
+  "playerUrl": "http://$LOCAL_IP:3000/player"
 }
 EOF
   echo
@@ -267,8 +378,10 @@ setup_seed_one
 
 echo -e "\n${GREEN}${BOLD}Demo environment successfully initialized!${NC}"
 echo -e "To start the demo, run:${BOLD}"
-echo "  yarn dev"
+echo "  cd client && BROWSER=open yarn start"
 echo -e "${NC}"
+echo "The above command will automatically open your browser to localhost:3000"
+echo
 echo "To stop the demo services when you're done:"
 echo "  ./stop-demo.sh"
 
