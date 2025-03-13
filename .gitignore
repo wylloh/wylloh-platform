@@ -88,6 +88,9 @@ thumbs.db
 /archive/kodi-player/.wallet_cache/
 /archive/kodi-player/.wallet_connection.json
 
+# Original player implementation (archived)
+/archive/player_original/
+
 # Temporary files
 *.tmp
 *.temp

@@ -1,1 +1,45 @@
-# Add directories or file patterns to ignore during indexing (e.g. foo/ or *.csv)
+# Archived Kodi-based player specific (kept for reference)
+/archive/kodi-player/build*/
+/archive/kodi-player/kodi-build*/
+/archive/kodi-player/xbmc-build*/
+/archive/kodi-player/Debug/
+/archive/kodi-player/Release/
+/archive/kodi-player/RelWithDebInfo/
+/archive/kodi-player/MinSizeRel/
+/archive/kodi-player/__pycache__/
+/archive/kodi-player/CMakeCache.txt
+/archive/kodi-player/CMakeFiles/
+/archive/kodi-player/cmake_install.cmake
+/archive/kodi-player/Makefile
+/archive/kodi-player/kodi.log
+/archive/kodi-player/kodi.old.log
+/archive/kodi-player/wylloh-player.log
+/archive/kodi-player/wylloh-player.old.log
+/archive/kodi-player/system/players/VideoPlayer/*
+/archive/kodi-player/addons/packages/
+/archive/kodi-player/addons/skin.*/media/*.xbt
+/archive/kodi-player/userdata/Database/
+/archive/kodi-player/userdata/playlists/
+/archive/kodi-player/userdata/Thumbnails/
+/archive/kodi-player/userdata/cache/
+/archive/kodi-player/tools/depends/**/config.cache
+/archive/kodi-player/tools/depends/**/config.log
+/archive/kodi-player/tools/depends/**/config.status
+/archive/kodi-player/downloads/
+/archive/kodi-player/wylloh-config/
+/archive/kodi-player/wylloh-wallet/
+/archive/kodi-player/.wallet_cache/
+/archive/kodi-player/.wallet_connection.json
+
+# Original player implementation (archived)
+/archive/player_original/
+
+# Temporary files
+*.tmp
+*.temp
+
+# Wylloh Player - new web-based implementation
+/player/node_modules/
+/player/dist/
+/player/coverage/
+/player/.env*
