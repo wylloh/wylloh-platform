@@ -6,13 +6,12 @@ Wylloh is a blockchain-based media licensing system that revolutionizes how digi
 
 The project is organized as a monorepo with the following main components:
 
-- `client`: React frontend application
+- `client`: React frontend application including player components
 - `api`: Backend REST API services
 - `storage`: IPFS/Filecoin storage service
 - `contracts`: Smart contracts for the Polygon blockchain
-- `player`: Web-based media player (works in browser and Seed One)
 - `seed-one`: Configuration for Seed One media player hardware
-- `archive`: Archived code (including deprecated Kodi-based implementations)
+- `archive`: Archived code (including deprecated implementations)
 
 ## Features
 
@@ -125,20 +124,33 @@ This project is licensed under the proprietary license - see the [LICENSE](LICEN
 
 ### Wylloh Player
 
-The Wylloh Player is a web-based media player built with modern web technologies. It's designed to work both in web browsers and on the Seed One hardware via Chromium in kiosk mode.
+The Wylloh Player is now fully integrated into the client application as a set of modular components. It's designed to work both in web browsers and on the Seed One hardware via Chromium in kiosk mode. The player architecture uses responsive design and platform detection to adapt to different environments.
+
+#### Player Architecture
+
+The player is built with these key components:
+
+- `VideoPlayer`: Core video playback component
+- `PlayerContainer`: Manages the overall player UI and controls
+- `PlaybackControls`: Play/pause and related controls
+- `VolumeControls`: Volume and mute functionality
+- `DisplayControls`: Fullscreen, subtitles, and playback speed
+- `TimeDisplay`: Progress bar and time display
+- `PlatformContext`: Detects and provides platform information (web browser vs Seed One)
 
 #### Running the Player
 
-For development:
+The player is now part of the client application:
+
 ```bash
-cd player
+cd client
 yarn install
-yarn dev
+yarn start
 ```
 
 For production build:
 ```bash
-cd player
+cd client
 yarn install
 yarn build
 ```
