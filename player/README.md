@@ -32,6 +32,24 @@ The player is organized into several key component groups:
 - `src/utils/`: Helper functions and utilities
 - `src/pages/`: Page-level components, including PlayerPage
 - `src/hooks/`: Custom React hooks for player functionality
+- `src/integration/`: Platform-specific adapters for web and Seed One
+
+## Quick Start
+
+For the fastest way to test the player:
+
+```bash
+cd player
+./scripts/quick-test.sh
+```
+
+This will check dependencies, install packages if needed, and start the player in development mode.
+
+To test the Seed One version locally:
+
+```bash
+./scripts/quick-test.sh --seedone
+```
 
 ## Development
 
@@ -57,6 +75,20 @@ yarn build
 
 The build output will be in the `dist` directory.
 
+## Integration with Demo Environment
+
+To integrate the player with the demo environment:
+
+```bash
+./scripts/integrate-with-demo.sh
+```
+
+For Seed One integration:
+
+```bash
+./scripts/integrate-with-demo.sh --seedone
+```
+
 ## Seed One Deployment
 
 The player is designed to run on the Seed One hardware through Chromium in kiosk mode. 
@@ -69,6 +101,10 @@ To run tests:
 ```bash
 yarn test
 ```
+
+For detailed testing instructions, see:
+- [TESTING.md](./TESTING.md) - Comprehensive testing guide
+- [INTEGRATION-README.md](./INTEGRATION-README.md) - Integration testing guide
 
 ## Previous Implementations
 
