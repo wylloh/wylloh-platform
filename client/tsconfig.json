@@ -20,6 +20,7 @@
       "noEmit": true,
       "jsx": "react-jsx",
       "baseUrl": "src",
+      "types": ["node"],
       "paths": {
         "@components/*": ["components/*"],
         "@contexts/*": ["contexts/*"],
@@ -31,12 +32,7 @@
         "@styles/*": ["styles/*"],
         "@types/*": ["types/*"],
         "@config/*": ["config/*"]
-      },
-      "typeRoots": [
-        "node_modules/@types",
-        "src/types",
-        "src"
-      ]
+      }
     },
     "include": [
       "src/**/*.ts",

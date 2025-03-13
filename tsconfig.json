@@ -1,7 +1,11 @@
 {
     "compilerOptions": {
-      "target": "es2020",
-      "lib": ["dom", "dom.iterable", "esnext"],
+      "target": "es5",
+      "lib": [
+        "dom",
+        "dom.iterable",
+        "esnext"
+      ],
       "allowJs": true,
       "skipLibCheck": true,
       "esModuleInterop": true,
@@ -17,6 +21,15 @@
       "jsx": "react-jsx",
       "baseUrl": "."
     },
-    "include": ["client/src", "api/src", "storage/src"],
-    "exclude": ["**/node_modules", "tools/**/*", "seed-one/**/*"]
+    "include": [
+      "client/src",
+      "api/src",
+      "storage/src"
+    ],
+    "exclude": [
+      "**/node_modules", 
+      "archive/**/*",
+      "tools/**/*", 
+      "seed-one/**/*"
+    ]
   }
