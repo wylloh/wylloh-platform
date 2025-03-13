@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Box, IconButton, Typography, Chip, Paper } from '@mui/material';
-import { ArrowBack, Warning, ShoppingCart } from '@mui/icons-material';
+import { Box, IconButton, Typography, Chip } from '@mui/material';
+import { ArrowBack, Warning } from '@mui/icons-material';
 import VideoPlayer from './VideoPlayer';
 import PlaybackControls from './controls/PlaybackControls';
 import VolumeControls from './controls/VolumeControls';
