@@ -91,6 +91,9 @@ thumbs.db
 # Original player implementation (archived)
 /archive/player_original/
 
+# Original Seed One implementation (archived)
+/archive/seed-one_original/
+
 # Temporary files
 *.tmp
 *.temp
