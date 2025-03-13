@@ -10,8 +10,9 @@ The project is organized as a monorepo with the following main components:
 - `api`: Backend REST API services
 - `storage`: IPFS/Filecoin storage service
 - `contracts`: Smart contracts for the Polygon blockchain
-- `seed-one`: Seed One media player application
-- `wylloh-player`: Custom media player application based on Kodi (replaces previous Kodi add-on approach)
+- `player`: Web-based media player (works in browser and Seed One)
+- `seed-one`: Configuration for Seed One media player hardware
+- `archive`: Archived code (including deprecated Kodi-based implementations)
 
 ## Features
 
@@ -82,6 +83,7 @@ Or start individual services:
 yarn client  # Start the React frontend
 yarn api     # Start the API server
 yarn storage # Start the storage service
+yarn player  # Start the player in development mode
 ```
 
 ### Testing
@@ -96,6 +98,7 @@ Or test individual components:
 
 ```
 yarn test-contracts  # Test smart contracts
+yarn test-player     # Test player components
 ```
 
 ### Deployment
@@ -122,31 +125,47 @@ This project is licensed under the proprietary license - see the [LICENSE](LICEN
 
 ### Wylloh Player
 
-The Wylloh Player is a custom media player application based on Kodi. Building it requires several dependencies and specific configurations.
+The Wylloh Player is a web-based media player built with modern web technologies. It's designed to work both in web browsers and on the Seed One hardware via Chromium in kiosk mode.
 
-#### Building the Wylloh Player
+#### Running the Player
 
-For detailed instructions on building the Wylloh Player, see the [BUILDING_DEPENDENCIES.md](wylloh-player/BUILDING_DEPENDENCIES.md) file.
-
-Quick start for Linux/Debian-based systems:
-
+For development:
 ```bash
-# Clone the repository if you haven't already
-git clone https://github.com/your-organization/wylloh.git
-cd wylloh-platform
-
-# Run the setup script to install dependencies and make necessary modifications
-cd wylloh-player
-sudo ./setup-build-environment.sh
-
-# Build the player
-mkdir -p build && cd build
-cmake \
-  -DAPP_RENDER_SYSTEM=gles \
-  -DENABLE_INTERNAL_FLATBUFFERS=ON \
-  -DENABLE_INTERNAL_FFMPEG=ON \
-  -DCORE_PLATFORM_NAME=x11 \
-  -DENABLE_TESTING=OFF \
-  ..
-make -j4  # Adjust the number based on your CPU cores
+cd player
+yarn install
+yarn dev
 ```
+
+For production build:
+```bash
+cd player
+yarn install
+yarn build
+```
+
+#### Installing on Seed One
+
+The Seed One deployment uses Chromium in kiosk mode to provide a seamless media center experience.
+
+1. Set up the Seed One hardware:
+```bash
+# Install dependencies
+sudo apt update
+sudo apt install -y chromium-browser
+
+# Clone the repository
+git clone https://github.com/your-organization/wylloh.git
+cd wylloh
+
+# Install the setup script
+cd seed-one
+sudo ./setup.sh
+```
+
+2. The setup script will:
+   - Configure Chromium in kiosk mode
+   - Set up auto-start on boot
+   - Configure wallet connection
+   - Set up network connectivity
+
+3. For manual configuration, see the [Seed One Setup Guide](seed-one/README.md)

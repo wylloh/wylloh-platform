@@ -90,14 +90,16 @@ yarn stop-demo
 4. Mint ERC-1155 token set 
 5. Browse movie store
 6. Buy token
+7. Play content in web browser
 
 ### *Switch to Seed One*
 
 ### On Seed One:
-7. Connect Wallet on Seed One
-8. *Token is automatically detected in wallet*
-9. *Movie automatically appears in library*
-10. Play movie
+8. Access Wylloh Player via Chromium in kiosk mode
+9. Connect Wallet on Seed One
+10. *Token is automatically detected in wallet*
+11. *Movie automatically appears in library*
+12. Play movie
 
 ## Configure Seed One with Wylloh Player
 
@@ -110,7 +112,7 @@ For a streamlined setup experience, use the automated installation script:
 1. Clone the repository on your Seed One:
    ```bash
    git clone https://github.com/wy1bur/wylloh-platform.git
-   cd wylloh-platform/wylloh-player
+   cd wylloh-platform/seed-one
    ```
 
 2. Run the setup script as root (the Seed One uses Raspberry Pi OS):
@@ -121,7 +123,7 @@ For a streamlined setup experience, use the automated installation script:
 3. Follow the prompts in the script:
    - Enter your MacBook's IP address when requested
    - Optionally customize ports and contract addresses
-   - The script will automatically install all dependencies, configure services, and build the Wylloh Player
+   - The script will automatically install all dependencies and configure Chromium in kiosk mode
 
 4. Restart your Seed One:
    ```bash
@@ -135,25 +137,18 @@ If you prefer to set up the Wylloh Player manually, follow these steps:
 1. Install dependencies (on the Seed One's Raspberry Pi OS):
    ```bash
    sudo apt update && sudo apt upgrade -y
-   sudo apt install -y git cmake build-essential autoconf libtool pkg-config
-   sudo apt install -y libssl-dev zlib1g-dev libyajl-dev libxml2-dev libxslt1-dev python3-dev
-   sudo apt install -y libcurl4-openssl-dev libsqlite3-dev libmicrohttpd-dev
-   sudo apt install -y rapidjson-dev libfmt-dev
-   sudo apt install -y libegl1-mesa-dev libgles2-mesa-dev libgl1-mesa-dev
-   sudo apt install -y libudev-dev libpulse-dev libavahi-client-dev
+   sudo apt install -y chromium-browser xdotool unclutter
    ```
 
 2. Clone the repository:
    ```bash
-   git clone https://github.com/wy1bur/wylloh-player.git
-   cd wylloh-player
+   git clone https://github.com/wy1bur/wylloh-platform.git
+   cd wylloh-platform
    ```
 
 3. Create required directories:
    ```bash
    sudo mkdir -p /etc/wylloh
-   sudo mkdir -p /var/lib/wylloh/media
-   sudo mkdir -p /var/lib/wylloh/metadata
    ```
 
 4. Create config file:
@@ -169,24 +164,14 @@ If you prefer to set up the Wylloh Player manually, follow these steps:
      "contractAddress": "0x5FbDB2315678afecb367f032d93F642f64180aa3",
      "tokenFactoryAddress": "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512",
      "demoMode": true,
-     "logLevel": "info",
-     "mediaPath": "/var/lib/wylloh/media",
-     "metadataPath": "/var/lib/wylloh/metadata"
+     "playerUrl": "http://YOUR_MACBOOK_IP:3000/player"
    }
    ```
 
-5. Build the Wylloh Player:
+5. Set up autostart with Chromium in kiosk mode:
    ```bash
-   mkdir build
-   cd build
-   cmake -DCMAKE_BUILD_TYPE=Release -DENABLE_TESTING=OFF ..
-   make -j$(nproc)
-   ```
-
-6. Create desktop shortcut:
-   ```bash
-   mkdir -p ~/.local/share/applications
-   nano ~/.local/share/applications/wylloh-player.desktop
+   mkdir -p ~/.config/autostart
+   nano ~/.config/autostart/wylloh-kiosk.desktop
    ```
    
    Add:
@@ -195,19 +180,29 @@ If you prefer to set up the Wylloh Player manually, follow these steps:
    Type=Application
    Name=Wylloh Player
    Comment=Wylloh Media Player
-   Exec=/home/YOUR_USERNAME/wylloh-player/build/wylloh-player
-   Icon=/home/YOUR_USERNAME/wylloh-player/media/icon256x256.png
+   Exec=/bin/bash -c "chromium-browser --kiosk --no-default-browser-check --no-first-run --disable-translate --disable-infobars --disable-suggestions-service --disable-save-password-bubble --disable-session-crashed-bubble --start-maximized --noerrdialogs --disable-pinch --overscroll-history-navigation=0 http://YOUR_MACBOOK_IP:3000/player"
+   Icon=/home/pi/wylloh-platform/player/public/wylloh-icon.png
    Terminal=false
-   Categories=AudioVideo;Video;Player;TV;
+   X-GNOME-Autostart-enabled=true
    ```
 
-7. Set up autostart:
+6. Hide cursor and disable screen blanking:
    ```bash
-   mkdir -p ~/.config/autostart
-   cp ~/.local/share/applications/wylloh-player.desktop ~/.config/autostart/
+   nano ~/.config/autostart/unclutter.desktop
+   ```
+   
+   Add:
+   ```
+   [Desktop Entry]
+   Type=Application
+   Name=Unclutter
+   Comment=Hide the mouse cursor
+   Exec=unclutter -idle 0.5
+   Terminal=false
+   X-GNOME-Autostart-enabled=true
    ```
 
-8. Restart your Seed One:
+7. Restart your Seed One:
    ```bash
    sudo reboot
    ```
@@ -219,16 +214,15 @@ If you prefer to set up the Wylloh Player manually, follow these steps:
   - Verify MacBook IP address is correct in `/etc/wylloh/config.json`
   - Check MacBook firewall settings to allow ports 8545 and 8080
 
-- **Build Issues**:
-  - If you encounter build errors, make sure all dependencies are installed
-  - Check for specific error messages in the build output
-  - Try building with debug flags: `cmake -DCMAKE_BUILD_TYPE=Debug ..`
+- **Browser Issues**:
+  - If Chromium doesn't start in kiosk mode, check the autostart configuration
+  - Try manually launching Chromium with the kiosk parameters
+  - Check Chromium logs: `~/.config/chromium/chrome_debug.log`
 
 - **Runtime Issues**:
-  - Check logs in `~/.wylloh-player/temp/wylloh-player.log`
-  - Verify the configuration in Settings > Wylloh > General
-  - Ensure Demo Mode is enabled
-  - Verify the IPFS gateway and provider URLs are correct
+  - Check browser console logs for errors (connect keyboard and press F12)
+  - Verify the wallet connection is working
+  - Ensure the player URL is accessible from the Seed One
 
 ## Working with MetaMask
 
@@ -248,11 +242,11 @@ To connect MetaMask to your local Ganache instance:
 
 The Wylloh platform consists of three main components:
 
-1. **Client**: React-based web interface (runs on port 3000)
-2. **API**: Backend API service (runs on port 4000)
-3. **Storage**: IPFS integration service (runs on port 4001)
+1. **Web Interface**: The client application for content management
+2. **Web Player**: The browser-based player that also runs on Seed One
+3. **Backend Services**: API and storage services that support the web applications
 
-All three components are started automatically by the demo script.
+All components interact with the local blockchain and IPFS during the demo.
 
 ## Notes
 

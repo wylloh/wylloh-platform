@@ -1,78 +1,81 @@
-# Wylloh Player
+# Wylloh Web Player
 
-A web-based media player for tokenized content with native extensions for enhanced performance and security.
+This is Wylloh's web-based media player implementation, designed to run both in web browsers and on the Seed One hardware via Chromium in kiosk mode.
 
 ## Architecture Overview
 
-The Wylloh Player is built using a "web-first" approach with strategic native extensions for platform-specific capabilities:
+The Wylloh Player is built using modern web technologies:
 
-### Core Components
+- **React**: For UI components and state management
+- **TypeScript**: For type safety and better developer experience
+- **Material UI**: For consistent design language
+- **Zustand**: For global state management
+- **React Router**: For navigation
+- **Web APIs**: For video playback and hardware acceleration
 
-1. **Web-based Player** (`/web`)
-   - PWA (Progressive Web App) architecture
-   - React-based UI components
-   - Media Source Extensions (MSE) for adaptive streaming
-   - Web3 integration for wallet connectivity
+## Key Features
 
-2. **Native Extensions** (`/extensions`)
-   - Hardware acceleration bridges
-   - Secure storage modules
-   - IPFS node integration
-   - Offline license verification
+- **Cross-platform compatibility**: Works in browsers and on Seed One hardware
+- **Responsive design**: Adapts to different screen sizes
+- **Blockchain integration**: Verifies content ownership using wallet connection
+- **IPFS content retrieval**: Loads content from IPFS through configurable gateways
+- **Offline support**: Progressive Web App capabilities for offline playback
+- **Advanced playback controls**: Including subtitles, playback speed, quality selection
 
-3. **Shared Core** (`/src`)
-   - Player state management
-   - License verification logic
-   - Content metadata handling
-   - Playback control
+## Component Organization
 
-## Integration with Existing Code
+The player is organized into several key component groups:
 
-This player leverages existing code from:
-
-- **Client Web App**: Reuses UI components and wallet integration
-- **Seed One Application**: Adapts blockchain verification and IPFS connectivity
-- **Previous Player**: Incorporates media format handling knowledge
+- `src/components/player/`: Core player components like VideoPlayer and PlayerContainer
+- `src/components/controls/`: UI controls for playback, volume, display, and time
+- `src/state/`: Global state management with Zustand
+- `src/utils/`: Helper functions and utilities
+- `src/pages/`: Page-level components, including PlayerPage
+- `src/hooks/`: Custom React hooks for player functionality
 
 ## Development
 
-### Local Development Setup
+To start the development server:
 
 ```bash
-# Install dependencies
 cd player
-npm install
-
-# Start development server
-npm run dev
+yarn install
+yarn dev
 ```
 
-### Building for Production
+The player will be available at `http://localhost:3000`
+
+## Building for Production
+
+To build for production:
 
 ```bash
-# Build web version
-npm run build:web
-
-# Build with native extensions
-npm run build:desktop
+cd player
+yarn install
+yarn build
 ```
 
-### Platform-specific Builds
+The build output will be in the `dist` directory.
 
-Instructions for building platform-specific versions (including Seed One) will be added as they are developed.
+## Seed One Deployment
 
-## Implementation Status
+The player is designed to run on the Seed One hardware through Chromium in kiosk mode. 
+See the main [README.md](../README.md) and [DEMO-README.MD](../DEMO-README.MD) for setup instructions.
 
-- [ ] Core web player functionality
-- [ ] Wallet integration
-- [ ] License verification
-- [ ] IPFS content retrieval
-- [ ] Offline playback
-- [ ] Native extensions for Seed One
+## Testing
 
-## Relationship to Other Components
+To run tests:
 
-- Uses blockchain interfaces from `shared/blockchain`
-- Leverages IPFS utilities from `shared/ipfs`
-- Integrates with the Wylloh web platform for content discovery and purchasing
-- Provides playback capabilities for the Seed One hardware 
+```bash
+yarn test
+```
+
+## Previous Implementations
+
+This web-based player replaces previous Kodi-based implementations, which are now archived in the `/archive` directory. The web-based approach offers:
+
+1. **Easier development**: Using familiar web technologies
+2. **Better cross-platform support**: Same codebase for web and Seed One
+3. **Improved maintainability**: No complex C++ dependencies
+4. **Faster iteration**: Quick development and deployment cycles
+5. **Modern UI**: Consistent design across platforms 

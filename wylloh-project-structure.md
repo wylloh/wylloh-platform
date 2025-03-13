@@ -12,8 +12,9 @@ wylloh-platform/
 ├── api/                  # Backend services 
 ├── storage/              # IPFS/FileCoin integration
 ├── contracts/            # Smart contracts
-├── seed-one/             # Reference Kodi add-on implementation (deprecated)
-├── wylloh-player/        # Custom Kodi fork (current player implementation)
+├── player/               # Web-based media player (current implementation)
+├── seed-one/             # Seed One reference implementation 
+├── archive/              # Archived code (including legacy Kodi implementations)
 └── demo-assets/          # Sample content for demo
 ```
 
@@ -21,8 +22,8 @@ wylloh-platform/
 
 ```
 +------------------+     +---------------------+
-|  Web Interface   |     |  Wylloh Player      |
-|  (client/)       |<--->|  (wylloh-player/)   |
+|  Web Interface   |     |  Web Player         |
+|  (client/)       |<--->|  (player/)          |
 +------------------+     +---------------------+
         ^                          ^
         |                          |
@@ -32,11 +33,11 @@ wylloh-platform/
 |  (api/)          |     |  (seed-one/)      |
 +------------------+     +-------------------+
         ^                    |
-        |                    | Reference implementation
+        |                    | Chromium kiosk mode
         v                    v
 +------------------+     +-------------------+
-|  Storage Service |     |  Kodi Add-on      |
-|  (storage/)      |     |  (deprecated)     |
+|  Storage Service |     |  Web Player       |
+|  (storage/)      |     |  (same codebase)  |
 +------------------+     +-------------------+
         ^
         |
@@ -89,50 +90,68 @@ wylloh-platform/
   - Ownership verification
   - Content licensing
 
-### 5. Seed One (`/seed-one`)
-- **Purpose**: Original implementation as a Kodi add-on
-- **Technology**: Python, Kodi add-on framework
-- **Status**: Deprecated, reference implementation
-- **Key Features**:
-  - Wallet connection
-  - Content playback
-  - Token verification
-  - IPFS content retrieval
-
-### 6. Wylloh Player (`/player`)
-- **Purpose**: Web-based media player with native extensions
-- **Technology**: Progressive Web App, React, WebAssembly, native extensions
+### 5. Player (`/player`)
+- **Purpose**: Web-based media player for all platforms
+- **Technology**: React, TypeScript, MUI, Progressive Web App
 - **Status**: Active development, replacing previous Kodi-based player
 - **Key Features**:
-  - Cross-platform media playback
+  - Cross-platform media playback (browser/desktop/Seed One)
+  - Responsive design for different device sizes
   - Blockchain license verification
   - IPFS content retrieval
   - Offline playback support
-  - Hardware acceleration via native extensions
-  - Synchronized experience across devices
+  - Platform-specific optimizations
+
+### 6. Seed One (`/seed-one`)
+- **Purpose**: Reference implementation for dedicated media hardware
+- **Technology**: Chromium kiosk mode, same web player codebase
+- **Status**: Active development
+- **Key Features**:
+  - Chromium-based kiosk setup
+  - Web player integration
+  - Hardware-specific configuration
+  - Automatic startup scripts
+
+### 7. Archive (`/archive`)
+- **Purpose**: Archived previous implementations
+- **Technology**: Includes C++ Kodi fork and Python add-ons
+- **Status**: Deprecated, maintained for reference only
 
 ## Web-Based Player Architecture (`/player`)
 
-The Wylloh Player now uses a web-first approach with strategic native extensions for platform-specific capabilities:
+The Wylloh Player uses a web-first approach for all platforms:
 
 ```
 player/
 ├── src/                 # Core player functionality
 │   ├── components/      # UI components
+│   │   ├── player/      # Player components
+│   │   ├── controls/    # Playback controls
+│   │   └── ui/          # General UI components
 │   ├── hooks/           # React hooks
+│   ├── utils/           # Helper utilities
 │   ├── services/        # Core services (playback, metadata, etc.)
-│   └── state/           # State management
-├── extensions/          # Native extensions
-│   ├── hardware/        # Hardware acceleration 
-│   ├── storage/         # Secure storage
-│   └── ipfs/            # IPFS node integration
-├── web/                 # Pure web implementation
-│   ├── app/             # Web app shell
-│   ├── pwa/             # Progressive Web App capabilities
-│   └── build/           # Build output
-└── platforms/           # Platform-specific code
-    ├── desktop/         # Desktop wrapper (Electron/Tauri)
-    └── seed-one/        # Seed One specific implementation
+│   ├── contexts/        # React contexts
+│   ├── state/           # State management
+│   ├── types/           # TypeScript type definitions
+│   └── pages/           # Page components
+├── public/              # Static assets
+├── extensions/          # Optional browser extensions
+└── web/                 # Web-specific configuration
+```
+
+### Seed One Integration
+
+The player is deployed to Seed One devices using a Chromium kiosk mode setup:
+
+```
+seed-one/
+├── setup/               # Setup scripts
+│   ├── kiosk.sh         # Kiosk mode configuration
+│   ├── autostart.sh     # Autostart configuration
+│   └── network.sh       # Network configuration
+├── scripts/             # Management scripts
+└── config/              # Configuration templates
 ```
 
 ### Integration with Shared Components
@@ -160,21 +179,22 @@ shared/
 The Wylloh media player has evolved through different approaches:
 
 1. **Initial Phase**: Kodi with Add-on
-   - Implementation in `seed-one/kodi-addon/`
+   - Implementation in `archive/seed-one/kodi-addon/`
    - Used Kodi as the base player with a custom add-on
    - Limited integration capabilities with blockchain
 
 2. **Intermediate Phase**: Custom Kodi Fork (Wylloh Player)
-   - Implementation in `/archive/kodi-player/`
+   - Implementation in `archive/kodi-player/`
    - Customized Kodi codebase for deeper integration
    - Challenging build process and maintenance
 
-3. **Current Phase**: Web-Based Player with Native Extensions
+3. **Current Phase**: Web-Based Player (Progressive Web App)
    - Implementation in `/player/`
-   - Progressive Web App with platform-specific extensions
+   - Modern web technologies with responsive design
    - Better cross-platform consistency
    - Improved development velocity
    - Enhanced integration with blockchain and IPFS
+   - Deployment on Seed One via Chromium Kiosk mode
 
 ## Integration Points
 
@@ -182,22 +202,22 @@ The various components of the Wylloh platform integrate through well-defined int
 
 ### 1. Blockchain Integration
 
-- **Web Client**: Browser wallet connection via Web3.js
-- **Web Player**: Same Web3 integration as web client
-- **Seed One**: Native wallet implementation via ethers.js 
+- **Web Client**: Browser wallet connection via Web3.js/ethers.js
+- **Web Player**: Same wallet integration as web client
+- **Seed One**: Same wallet integration running in Chromium
 
 ### 2. IPFS Content Delivery
 
 - **Web Client**: Uses HTTP gateways with browser caching
 - **Web Player**: Uses HTTP gateways with enhanced browser caching
-- **Seed One**: Native IPFS node with local pinning and caching
+- **Seed One**: Same gateway strategy with potential for local IPFS node
 
 ### 3. License Verification
 
 - **Shared Implementation**: Core verification logic in shared/blockchain library 
 - **Web Client**: Client-side verification with server validation
 - **Web Player**: Client-side verification with optional server validation
-- **Seed One**: Local verification with cached validation results for offline use
+- **Seed One**: Same verification running in Chromium with offline capabilities
 
 ### 4. Content Browsing
 
@@ -211,7 +231,7 @@ Both web interface (`client/`) and Wylloh Player (`player/`) share:
 
 - **Primary**: Through Wylloh Player (`player/`)
 - **Preview**: Direct in web interface for samples
-- **Offline**: Supported on Seed One with downloaded content
+- **Offline**: Supported via Progressive Web App capabilities
 
 ### 6. Wallet Integration
 
@@ -229,8 +249,8 @@ All platforms use a common protocol for:
 | Content Purchase | Full | No | No |
 | Content Playback | Preview Only | Full | Full |
 | Offline Access | No | Limited | Full |
-| IPFS Integration | Gateway | Gateway | Native Node |
-| Wallet Integration | Browser | Browser | Native |
+| IPFS Integration | Gateway | Gateway | Gateway + Optional Node |
+| Wallet Integration | Browser | Browser | Browser |
 | License Management | Full | View Only | View Only |
 
 ## Development Focus
@@ -241,13 +261,13 @@ Current development priorities:
 2. Integrating shared libraries across all components
 3. Optimizing the Seed One browser-based experience
 4. Creating a seamless cross-device experience 
-5. Building offline capabilities on all platforms
+5. Building offline capabilities using PWA technologies
 
 ## Deployment Architecture
 
 - **Web Client & Web Player**: Deployed to CDN/hosting as static assets
 - **Server**: Deployed to cloud provider (AWS/GCP)
-- **Seed One**: Local installation on Raspberry Pi hardware
+- **Seed One**: Local installation running Chromium in kiosk mode
 
 ## Demo Environment
 
@@ -269,8 +289,8 @@ When testing, it's important to understand which component handles which functio
 
 1. **Content Upload**: Web interface (`client/`) through storage service (`storage/`)
 2. **Token Minting**: Web interface (`client/`) through smart contracts (`contracts/`)  
-3. **Content Browsing**: Both web interface (`client/`) and Wylloh Player (`wylloh-player/`)
-4. **Content Playback**: Primary through Wylloh Player (`wylloh-player/`)
+3. **Content Browsing**: Both web interface (`client/`) and Wylloh Player (`player/`)
+4. **Content Playback**: Primary through Wylloh Player (`player/`)
 5. **Wallet Integration**: Both web interface and Wylloh Player have their own implementations
 
 ## Ongoing Development Focus

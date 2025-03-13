@@ -8,30 +8,29 @@ The Seed One component provides a dedicated hardware device for viewing content 
 
 - Blockchain wallet for token verification
 - IPFS for content retrieval
-- Media player for content playback
+- Web-based player for content playback
 
-## Architectural Update: Wylloh Player
+## Architectural Update: Web-Based Player
 
-> **Note:** We're transitioning from a Kodi add-on approach to a dedicated Wylloh Player application.
+> **Note:** We've transitioned from a Kodi-based approach to a modern web-based player running in Chromium kiosk mode.
 
-Previously, the Seed One used Kodi media player with a custom add-on for Wylloh integration. Our new approach involves developing a dedicated Wylloh Player (based on Kodi's codebase) that provides:
+Previously, the Seed One used a Kodi-based media player. Our new approach involves a web-based player that provides:
 
-- Deeper integration with the Wylloh ecosystem
-- Streamlined user experience focused on tokenized content
-- Native wallet connection functionality
-- Custom branding and UI tailored to Wylloh's needs
-- Enhanced IPFS integration with content caching and pinning
+- Better cross-platform consistency between Seed One and web browsers
+- Streamlined development using modern web technologies
+- Simplified deployment and updates
+- Improved integration with the Wylloh ecosystem
+- Enhanced IPFS and blockchain connectivity
+- Consistent UI across all platforms
 
-During this transition period, both implementations are maintained in the repository:
-- `kodi-addon/`: The original Kodi add-on implementation
-- `wylloh-player/`: The new custom player implementation (under active development)
+The player now runs in Chromium kiosk mode on the Seed One hardware, delivering a seamless, full-screen experience while using the same codebase as our web player.
 
 ## Enhanced IPFS Integration
 
-The new Wylloh Player includes significant improvements for IPFS content handling on Seed One hardware:
+The Wylloh Player includes significant improvements for IPFS content handling:
 
 - **Multi-Gateway Support**: Configure multiple IPFS gateways with automatic fallback for reliable content retrieval
-- **Content Caching**: Intelligent local caching of content with configurable size limits and expiry times
+- **Content Caching**: Intelligent browser-based caching of content with configurable size limits and expiry times
 - **Content Pinning**: Ability to pin important content to prevent it from being removed from cache
 - **Auto-Pinning**: Automatic pinning of content owned by the connected wallet
 - **Network Participation Foundation**: Infrastructure for future participation in the Wylloh distributed storage network
@@ -45,7 +44,6 @@ These features ensure reliable content access even with intermittent internet co
 - Internet connection
 - HDMI connection to a display
 - At least 16GB SD card (32GB+ recommended for content caching)
-- External storage (optional, recommended for expanded content caching)
 
 ## Quick Setup
 
@@ -75,38 +73,29 @@ See the detailed instructions in the [DEMO-README.MD](../DEMO-README.MD) file in
 
 - `setup.sh` - Automated installation script
 - `config.json.template` - Template for Wylloh configuration
-- `wylloh.service` - Systemd service definition
-- `kodi.desktop` - Autostart file for Kodi
-- `kodi-addon/` - Directory containing the Wylloh Kodi addon
+- `kiosk.sh` - Script to launch Chromium in kiosk mode
+- `autostart/` - Autostart configurations for kiosk mode
+- `scripts/` - Utility scripts for the Seed One
 
 ## Architecture
 
-### Current Implementation (Kodi Add-on)
+The Seed One now operates as follows:
 
-The Seed One currently operates as follows:
+1. Chromium browser launches in kiosk mode on startup
+2. The browser loads the Wylloh web player application
+3. The player connects to:
+   - Local blockchain node (on your MacBook in demo mode)
+   - IPFS gateway (on your MacBook in demo mode)
+   - API service (on your MacBook in demo mode)
+4. User connects their wallet directly in the browser
+5. Content is streamed from IPFS via HTTP gateways
+6. The player handles all license verification and playback
 
-1. The Wylloh service runs in the background, connecting to:
-   - Local blockchain node (on your MacBook)
-   - IPFS gateway (on your MacBook)
-   - API service (on your MacBook)
-
-2. Kodi media player loads the Wylloh addon
-
-3. The addon communicates with the Wylloh service to:
-   - Verify token ownership
-   - Retrieve content metadata
-   - Stream content from IPFS
-
-### Future Implementation (Wylloh Player)
-
-The new Wylloh Player architecture will:
-
-1. Eliminate the need for a separate Kodi installation
-2. Provide native integration with the Wylloh wallet
-3. Streamline the content browsing and playback experience
-4. Offer customized UI specifically designed for tokenized content
-
-This architectural shift will result in a more cohesive user experience and simplified setup process for Seed One devices.
+This architecture provides:
+- Unified codebase between web and Seed One
+- Simplified development and maintenance
+- Faster feature deployment
+- Consistent user experience across platforms
 
 ## Configuration
 
@@ -114,16 +103,20 @@ The Seed One uses a configuration file located at `/etc/wylloh/config.json`. Key
 
 - `providerUrl`: The blockchain provider URL (points to MacBook in demo mode)
 - `ipfsGateway`: The IPFS gateway URL (points to MacBook in demo mode)
-- `apiUrl`: The API service URL (points to MacBook in demo mode)
-- `autoConnectWallet`: When set to true, automatically connects to wallet on startup
+- `playerUrl`: The URL to load for the player (points to MacBook in demo mode)
 - `demoMode`: Enables special behavior for demo environment
-- `kodiEnabled`: Enables the Kodi integration
+- `kioskEnabled`: Enables the Chromium kiosk mode
 
 In demo mode, all services are expected to run on the same machine (your MacBook) and the Seed One connects to them via the local network.
 
 ## Troubleshooting
 
 For troubleshooting tips, see the [DEMO-README.MD](../DEMO-README.MD) file.
+
+Common issues:
+- If Chromium doesn't start in kiosk mode, check the autostart configuration
+- If the player doesn't load, verify network connectivity to the MacBook
+- For playback issues, check the browser console (connect a keyboard and press F12)
 
 ## License
 
