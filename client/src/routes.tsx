@@ -14,6 +14,10 @@ import MyCollectionPage from './pages/user/MyCollectionPage';
 import NotFoundPage from './pages/NotFoundPage';
 import LoginPage from './pages/auth/LoginPage';
 import RegisterPage from './pages/auth/RegisterPage';
+import PlatformTestPage from './pages/PlatformTestPage';
+import PlayerTestPage from './pages/test/PlayerTestPage';
+import KioskSimulatorPage from './pages/test/KioskSimulatorPage';
+import TestHubPage from './pages/test/TestHubPage';
 
 const AppRoutes: React.FC = () => {
   return (
@@ -29,6 +33,10 @@ const AppRoutes: React.FC = () => {
       <Route path="collection" element={<MyCollectionPage />} />
       <Route path="login" element={<LoginPage />} />
       <Route path="register" element={<RegisterPage />} />
+      <Route path="platform-test" element={<PlatformTestPage />} />
+      <Route path="player-test" element={<PlayerTestPage />} />
+      <Route path="kiosk-simulator" element={<KioskSimulatorPage />} />
+      <Route path="test" element={<TestHubPage />} />
       <Route path="*" element={<NotFoundPage />} />
     </Routes>
   );
