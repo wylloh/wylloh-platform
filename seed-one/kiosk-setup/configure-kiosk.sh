@@ -110,3 +110,5 @@ chown -R pi:pi "$CHROMIUM_PREFS_DIR"
 echo -e "\n${GREEN}${BOLD}Chromium kiosk mode configured successfully!${NC}"
 echo "The Wylloh Player will launch in kiosk mode to: $PLAYER_URL"
 
+
+
