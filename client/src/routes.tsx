@@ -5,6 +5,7 @@ import { Routes, Route } from 'react-router-dom';
 import HomePage from './pages/HomePage';
 import MarketplacePage from './pages/marketplace/MarketplacePage';
 import ContentDetailsPage from './pages/marketplace/ContentDetailsPage';
+import TestContentDetails from './pages/marketplace/TestContentDetails';
 import DashboardPage from './pages/creator/DashboardPage';
 import UploadPage from './pages/creator/UploadPage';
 import EditContentPage from './pages/creator/EditContentPage';
@@ -25,6 +26,7 @@ const AppRoutes: React.FC = () => {
       <Route index element={<HomePage />} />
       <Route path="marketplace" element={<MarketplacePage />} />
       <Route path="marketplace/:id" element={<ContentDetailsPage />} />
+      <Route path="test-content-details" element={<TestContentDetails />} />
       <Route path="creator/dashboard" element={<DashboardPage />} />
       <Route path="creator/upload" element={<UploadPage />} />
       <Route path="creator/edit/:id" element={<EditContentPage />} />

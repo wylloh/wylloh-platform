@@ -17,7 +17,8 @@ import {
   Fullscreen, 
   Speed,
   TouchApp,
-  BugReport
+  BugReport,
+  ShoppingBag
 } from '@mui/icons-material';
 import { Link } from 'react-router-dom';
 
@@ -52,6 +53,12 @@ const TestHubPage: React.FC = () => {
       description: 'Test touch-optimized controls by adding ?platform=seedone&touch=true to any URL',
       path: '/player/1?platform=seedone&touch=true',
       icon: <TouchApp />
+    },
+    {
+      name: 'Content Details Page Test',
+      description: 'Test the marketplace content details page with licensing tiers',
+      path: '/test-content-details',
+      icon: <ShoppingBag />
     }
   ];
 
@@ -130,6 +137,12 @@ const TestHubPage: React.FC = () => {
         <Typography variant="body1" paragraph>
           <strong>Touch-Optimized UI Test:</strong> Tests how the player behaves with touch controls.
           Forces touch mode regardless of your actual device.
+        </Typography>
+        
+        <Typography variant="body1" paragraph>
+          <strong>Content Details Page Test:</strong> Tests the content details page that shows
+          different licensing tiers available for token holders. Important for demonstrating the 
+          token utility model.
         </Typography>
       </Box>
     </Container>

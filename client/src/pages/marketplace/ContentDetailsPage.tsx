@@ -141,7 +141,8 @@ const ContentDetailsPage: React.FC = () => {
       setLoading(true);
       try {
         // In a real app, this would be an API call
-        const foundContent = mockContent.find(item => item.id === id);
+        const contentId = id || '1'; // Default to ID 1 if no ID is provided
+        const foundContent = mockContent.find(item => item.id === contentId);
         if (foundContent) {
           setContent(foundContent);
         }
