@@ -103,3 +103,4 @@ thumbs.db
 /player/dist/
 /player/coverage/
 /player/.env*
+client/package-lock.json
