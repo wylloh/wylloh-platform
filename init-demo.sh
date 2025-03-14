@@ -117,8 +117,8 @@ start_ganache() {
     if ps -p $GANACHE_PID > /dev/null; then
       echo -e "${GREEN}✓ Ganache started successfully (PID: $GANACHE_PID)${NC}"
       # Extract account information
-      TEST_ACCOUNT=$(curl -s -X POST --data '{"jsonrpc":"2.0","method":"eth_accounts","params":[],"id":1}' http://localhost:$GANACHE_PORT | jq -r '.result[0]')
-      TEST_PRIVATE_KEY="0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80"  # First deterministic private key from Ganache
+      TEST_ACCOUNT=$(curl -s -X POST --data '{"jsonrpc":"2.0","method":"eth_accounts","params":[],"id":1}' http://localhost:$GANACHE_PORT | jq -r '.result[2]')
+      TEST_PRIVATE_KEY="0x4f3edf983ac636a65a842ce7c78d9aa706d3b113bce9c46f30d7d21715b23b1d"  # Third deterministic private key from Ganache
       echo "Test account: $TEST_ACCOUNT"
     else
       echo -e "${RED}✗ Failed to start Ganache${NC}"
@@ -126,8 +126,8 @@ start_ganache() {
     fi
   else
     echo -e "${YELLOW}In dry-run mode - would start Ganache on port $GANACHE_PORT${NC}"
-    TEST_ACCOUNT="0x90f8bf6a479f320ead074411a4b0e7944ea8c9c1"  # Deterministic address from Ganache
-    TEST_PRIVATE_KEY="0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80"  # First deterministic private key from Ganache
+    TEST_ACCOUNT="0x22d491bde2303f2f43325b2108d26f1eaba1e32b"  # Deterministic address from Ganache
+    TEST_PRIVATE_KEY="0x4f3edf983ac636a65a842ce7c78d9aa706d3b113bce9c46f30d7d21715b23b1d"  # Corresponding private key
     echo "Test account would be: $TEST_ACCOUNT"
   fi
 }
