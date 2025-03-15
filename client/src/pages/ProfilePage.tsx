@@ -175,7 +175,11 @@ const ProfilePage: React.FC = () => {
                 }
               }}
             >
-              <Tab label="My Content" icon={<MovieCreation />} iconPosition="start" />
+              <Tab 
+                label={user.proStatus === 'verified' ? "My Content" : "My Collection"} 
+                icon={<MovieCreation />} 
+                iconPosition="start" 
+              />
               <Tab label="Analytics" icon={<BarChart />} iconPosition="start" />
               <Tab label="Wallet" icon={<Wallet />} iconPosition="start" />
             </Tabs>
@@ -184,15 +188,19 @@ const ProfilePage: React.FC = () => {
             {selectedTab === 0 && (
               <Box sx={{ p: 3 }}>
                 <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-                  <Typography variant="h6">Your Content</Typography>
-                  <Button 
-                    variant="contained" 
-                    color="primary"
-                    startIcon={<MovieCreation />}
-                    onClick={() => navigate('/creator/upload')}
-                  >
-                    Upload New Content
-                  </Button>
+                  <Typography variant="h6">
+                    {user.proStatus === 'verified' ? "Your Content" : "Your Collection"}
+                  </Typography>
+                  {user.proStatus === 'verified' && (
+                    <Button 
+                      variant="contained" 
+                      color="primary"
+                      startIcon={<MovieCreation />}
+                      onClick={() => navigate('/creator/upload')}
+                    >
+                      Upload Film Package
+                    </Button>
+                  )}
                 </Box>
                 
                 {mockUserContent.length > 0 ? (

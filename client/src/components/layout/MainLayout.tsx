@@ -113,7 +113,7 @@ const MainLayout: React.FC = () => {
                     <ListItemIcon>
                       <UploadIcon />
                     </ListItemIcon>
-                    <ListItemText primary="Upload Content" />
+                    <ListItemText primary="Upload Film Package" />
                   </ListItemButton>
                 </ListItem>
               </>

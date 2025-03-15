@@ -52,7 +52,7 @@ const UploadPage: React.FC = () => {
         <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
           <CloudUploadIcon sx={{ mr: 2, color: 'primary.main', fontSize: 36 }} />
           <Typography variant="h4" component="h1">
-            Upload New Content
+            Upload Film Package
           </Typography>
         </Box>
         

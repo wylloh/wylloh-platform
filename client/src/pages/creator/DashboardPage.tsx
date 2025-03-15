@@ -417,7 +417,7 @@ const DashboardPage: React.FC = () => {
               to="/creator/upload"
               sx={{ width: '80%', mb: 2 }}
             >
-              Upload New Content
+              Upload Film Package
             </Button>
             
             <Button
@@ -452,7 +452,7 @@ const DashboardPage: React.FC = () => {
             to="/creator/upload"
             sx={{ mt: 2 }}
           >
-            Upload New Content
+            Upload Film Package
           </Button>
         </Box>
       );
