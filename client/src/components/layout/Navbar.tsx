@@ -28,7 +28,9 @@ import {
   VideoLibrary,
   Dashboard,
   FileUpload,
-  Home
+  Home,
+  AdminPanelSettings,
+  VerifiedUser
 } from '@mui/icons-material';
 import { useWallet } from '../../contexts/WalletContext';
 import { useAuth } from '../../contexts/AuthContext';
@@ -59,7 +61,7 @@ const Navbar: React.FC = () => {
   const [mobileMenuAnchorEl, setMobileMenuAnchorEl] = useState<null | HTMLElement>(null);
   const [userMenuAnchorEl, setUserMenuAnchorEl] = useState<null | HTMLElement>(null);
   const { active, account, isCorrectNetwork, connect, disconnect } = useWallet();
-  const { isAuthenticated, logout } = useAuth();
+  const { isAuthenticated, logout, user } = useAuth();
   const navigate = useNavigate();
   
   // For elevated app bar when scrolling
@@ -105,6 +107,9 @@ const Navbar: React.FC = () => {
     return `${address.substring(0, 6)}...${address.substring(address.length - 4)}`;
   };
   
+  // Check if user is admin
+  const isAdmin = user?.roles?.includes('admin');
+  
   // Navigation links
   const navLinks = [
     { text: 'Home', to: '/', icon: <Home /> },
@@ -122,6 +127,11 @@ const Navbar: React.FC = () => {
     { text: 'Profile', to: '/profile', icon: <AccountCircle /> },
     { text: 'My Collection', to: '/collection', icon: <Collections /> },
   ];
+  
+  // Admin menu items (only if user has admin role)
+  const adminMenuItems = isAdmin ? [
+    { text: 'Pro Verification', to: '/admin/pro-verification', icon: <VerifiedUser /> },
+  ] : [];
   
   return (
     <AppBar position="static" elevation={trigger ? 4 : 0} sx={{ bgcolor: 'background.default', borderBottom: '1px solid', borderColor: 'divider' }}>
@@ -321,6 +331,29 @@ const Navbar: React.FC = () => {
             <ListItemText>{item.text}</ListItemText>
           </MenuItem>
         ))}
+        
+        {/* Admin menu items - only shown if user is admin */}
+        {adminMenuItems.length > 0 && (
+          <>
+            <Divider />
+            <Typography variant="caption" color="text.secondary" sx={{ px: 2, py: 1, display: 'block' }}>
+              Admin
+            </Typography>
+            {adminMenuItems.map((item) => (
+              <MenuItem 
+                key={item.text} 
+                component={RouterLink} 
+                to={item.to}
+              >
+                <ListItemIcon>
+                  {item.icon}
+                </ListItemIcon>
+                <ListItemText>{item.text}</ListItemText>
+              </MenuItem>
+            ))}
+          </>
+        )}
+        
         <Divider />
         <MenuItem onClick={handleLogout}>
           <ListItemIcon>

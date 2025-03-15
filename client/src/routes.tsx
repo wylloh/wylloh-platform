@@ -10,7 +10,7 @@ import DashboardPage from './pages/creator/DashboardPage';
 import UploadPage from './pages/creator/UploadPage';
 import EditContentPage from './pages/creator/EditContentPage';
 import PlayerPage from './pages/player/PlayerPage';
-import ProfilePage from './pages/user/ProfilePage';
+import ProfilePage from './pages/ProfilePage';
 import MyCollectionPage from './pages/user/MyCollectionPage';
 import NotFoundPage from './pages/NotFoundPage';
 import LoginPage from './pages/auth/LoginPage';
@@ -19,6 +19,24 @@ import PlatformTestPage from './pages/PlatformTestPage';
 import PlayerTestPage from './pages/test/PlayerTestPage';
 import KioskSimulatorPage from './pages/test/KioskSimulatorPage';
 import TestHubPage from './pages/test/TestHubPage';
+
+// Admin components
+import ProVerificationPanel from './components/admin/ProVerificationPanel';
+
+// Admin page layout
+const AdminLayout = ({ children }: { children: React.ReactNode }) => (
+  <div className="admin-layout">
+    <h1>Admin Dashboard</h1>
+    {children}
+  </div>
+);
+
+// Admin page wrapper component
+const AdminPage = ({ component: Component }: { component: React.ComponentType }) => (
+  <AdminLayout>
+    <Component />
+  </AdminLayout>
+);
 
 const AppRoutes: React.FC = () => {
   return (
@@ -35,6 +53,13 @@ const AppRoutes: React.FC = () => {
       <Route path="collection" element={<MyCollectionPage />} />
       <Route path="login" element={<LoginPage />} />
       <Route path="register" element={<RegisterPage />} />
+      
+      {/* Admin routes */}
+      <Route path="admin">
+        <Route path="pro-verification" element={<AdminPage component={ProVerificationPanel} />} />
+      </Route>
+      
+      {/* Test routes */}
       <Route path="platform-test" element={<PlatformTestPage />} />
       <Route path="player-test" element={<PlayerTestPage />} />
       <Route path="kiosk-simulator" element={<KioskSimulatorPage />} />

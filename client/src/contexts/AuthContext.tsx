@@ -7,8 +7,21 @@ interface AuthContextType {
   login: (email: string, password: string) => Promise<boolean>;
   logout: () => void;
   register: (username: string, email: string, password: string) => Promise<boolean>;
+  requestProStatus: (proData: ProVerificationData) => Promise<boolean>;
   loading: boolean;
   error: string | null;
+}
+
+export interface ProVerificationData {
+  fullName: string;
+  biography: string;
+  professionalLinks: {
+    imdb?: string;
+    website?: string;
+    vimeo?: string;
+    linkedin?: string;
+  };
+  filmographyHighlights?: string;
 }
 
 interface User {
@@ -17,6 +30,10 @@ interface User {
   email: string;
   roles: string[];
   walletAddress?: string;
+  proStatus?: 'pending' | 'verified' | 'rejected';
+  proVerificationData?: ProVerificationData;
+  dateProRequested?: string;
+  dateProVerified?: string;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -89,11 +106,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             id: '1',
             username: 'testuser',
             email: email,
-            roles: ['user', 'creator'], // Include 'creator' role
-            walletAddress: account || undefined
+            roles: ['user'], // Default role
+            walletAddress: account || undefined,
+            proStatus: email === 'pro@example.com' ? 'verified' as const : undefined // Demo only: pre-verified pro for demo
           }
         }
       };
+      
+      // For demo purposes, add admin role for specific test email
+      if (email === 'admin@example.com') {
+        mockResponse.data.user.roles.push('admin');
+      }
       
       if (mockResponse.success) {
         const { token, user } = mockResponse.data;
@@ -123,16 +146,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // In a real app, this would be an API call
       // Simulating API call for development
       
+      // Create roles array with default user role
+      const roles = ['user'];
+      
+      // For demo purposes, add admin role for specific test email
+      if (email === 'admin@example.com') {
+        roles.push('admin');
+      }
+      
       // Mock successful registration
       const mockResponse = {
         success: true,
         data: {
           token: 'mock-jwt-token',
           user: {
-            id: Date.now().toString(), // Generate random ID
+            id: Date.now().toString(),
             username,
             email,
-            roles: ['user', 'creator'], // Include 'creator' role
+            roles,
             walletAddress: account || undefined
           }
         }
@@ -158,6 +189,45 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  const requestProStatus = async (proData: ProVerificationData): Promise<boolean> => {
+    setLoading(true);
+    setError(null);
+    
+    try {
+      // In a real app, this would be an API call
+      // Simulating API call for development
+      
+      if (!user) {
+        throw new Error('You must be logged in to request Pro status');
+      }
+      
+      // Mock successful pro status request
+      const mockResponse = {
+        success: true
+      };
+      
+      if (mockResponse.success) {
+        const updatedUser = {
+          ...user,
+          proStatus: 'pending' as const, // Use const assertion
+          proVerificationData: proData,
+          dateProRequested: new Date().toISOString()
+        };
+        
+        setUser(updatedUser);
+        localStorage.setItem('user', JSON.stringify(updatedUser));
+        setLoading(false);
+        return true;
+      } else {
+        throw new Error('Failed to submit Pro status request');
+      }
+    } catch (err: any) {
+      setError(err.message || 'Pro status request failed');
+      setLoading(false);
+      return false;
+    }
+  };
+
   const logout = () => {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
@@ -171,6 +241,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     login,
     logout,
     register,
+    requestProStatus,
     loading,
     error
   };
