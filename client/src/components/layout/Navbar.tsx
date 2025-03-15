@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link as RouterLink, useNavigate } from 'react-router-dom';
 import {
   AppBar,
@@ -60,8 +60,9 @@ const Logo = () => (
 const Navbar: React.FC = () => {
   const [mobileMenuAnchorEl, setMobileMenuAnchorEl] = useState<null | HTMLElement>(null);
   const [userMenuAnchorEl, setUserMenuAnchorEl] = useState<null | HTMLElement>(null);
-  const { active, account, isCorrectNetwork, connect, disconnect } = useWallet();
-  const { isAuthenticated, logout, user } = useAuth();
+  const [debugInfo, setDebugInfo] = useState<string>('');
+  const { active, account, chainId, isCorrectNetwork, connect, disconnect } = useWallet();
+  const { isAuthenticated, user, login, logout } = useAuth();
   const navigate = useNavigate();
   
   // For elevated app bar when scrolling
@@ -133,246 +134,308 @@ const Navbar: React.FC = () => {
     { text: 'Pro Verification', to: '/admin/pro-verification', icon: <VerifiedUser /> },
   ] : [];
   
+  // Add debug effect
+  useEffect(() => {
+    // Update debug info when relevant states change
+    const info = {
+      walletActive: active,
+      walletAccount: account,
+      walletChainId: chainId,
+      authAuthenticated: isAuthenticated,
+      authUser: user ? { email: user.email, status: user.proStatus } : null,
+      timestamp: new Date().toISOString()
+    };
+    
+    setDebugInfo(JSON.stringify(info, null, 2));
+    
+    // Also log to console for troubleshooting
+    console.log('Debug Info Updated:', info);
+    
+    // If wallet is connected but user isn't authenticated, try to match wallet
+    if (active && account && !isAuthenticated) {
+      console.log('Detected wallet connected but not authenticated, checking for matches');
+      // Map of demo wallet addresses to emails (lowercase for case-insensitive matching)
+      const demoWallets: Record<string, string> = {
+        '0x90f8bf6a479f320ead074411a4b0e7944ea8c9c1': 'pro@example.com',
+        '0x8db97c7cece249c2b98bdc0226cc4c2a57bf52fc': 'user@example.com',
+      };
+      
+      const accountLower = account.toLowerCase();
+      if (demoWallets[accountLower]) {
+        console.log(`Navbar attempting to login as ${demoWallets[accountLower]} with wallet ${account}`);
+        // Manually trigger login from here
+        login(demoWallets[accountLower], 'password')
+          .then(success => console.log('Manual login attempt result:', success))
+          .catch(err => console.error('Manual login error:', err));
+      } else {
+        console.log('Wallet not matched to demo account:', accountLower);
+        console.log('Available wallets:', Object.keys(demoWallets));
+      }
+    }
+  }, [active, account, chainId, isAuthenticated, user, login]);
+  
   return (
-    <AppBar position="static" elevation={trigger ? 4 : 0} sx={{ bgcolor: 'background.default', borderBottom: '1px solid', borderColor: 'divider' }}>
-      <Container maxWidth="xl">
-        <Toolbar disableGutters>
-          {/* Logo - mobile */}
-          <Box sx={{ flexGrow: 1, display: { xs: 'flex', md: 'none' } }}>
-            <IconButton
-              size="large"
-              aria-label="menu"
-              aria-controls="menu-appbar"
-              aria-haspopup="true"
-              onClick={handleMobileMenuOpen}
-              color="inherit"
-            >
-              <MenuIcon />
-            </IconButton>
-            <Logo />
-          </Box>
-          
-          {/* Logo - desktop */}
-          <Box sx={{ display: { xs: 'none', md: 'flex' }, mr: 2 }}>
-            <Logo />
-          </Box>
-          
-          {/* Navigation Links - desktop */}
-          <Box sx={{ flexGrow: 1, display: { xs: 'none', md: 'flex' } }}>
-            {navLinks.map((link) => (
-              <Button
-                key={link.text}
-                component={RouterLink}
-                to={link.to}
-                sx={{ mx: 1, color: 'white', display: 'block' }}
+    <>
+      <AppBar position="static" elevation={trigger ? 4 : 0} sx={{ bgcolor: 'background.default', borderBottom: '1px solid', borderColor: 'divider' }}>
+        <Container maxWidth="xl">
+          <Toolbar disableGutters>
+            {/* Logo - mobile */}
+            <Box sx={{ flexGrow: 1, display: { xs: 'flex', md: 'none' } }}>
+              <IconButton
+                size="large"
+                aria-label="menu"
+                aria-controls="menu-appbar"
+                aria-haspopup="true"
+                onClick={handleMobileMenuOpen}
+                color="inherit"
               >
-                {link.text}
-              </Button>
-            ))}
-            
-            {isAuthenticated && user?.proStatus !== 'verified' && (
-              <Button
-                component={RouterLink}
-                to="/collection"
-                sx={{ mx: 1, color: 'white', display: 'block' }}
-              >
-                My Collection
-              </Button>
-            )}
-            
-            {creatorLinks.map((link) => (
-              <Button
-                key={link.text}
-                component={RouterLink}
-                to={link.to}
-                sx={{ mx: 1, color: 'white', display: 'block' }}
-              >
-                {link.text}
-              </Button>
-            ))}
-          </Box>
-          
-          {/* Right side - Wallet & User */}
-          <Box sx={{ flexGrow: 0, display: 'flex', alignItems: 'center' }}>
-            {/* Wallet connect button */}
-            <Box sx={{ mr: 2, display: { xs: 'none', sm: 'flex' } }}>
-              <ConnectWalletButton />
+                <MenuIcon />
+              </IconButton>
+              <Logo />
             </Box>
             
-            {/* User menu */}
-            {isAuthenticated ? (
-              <Tooltip title="Open user menu">
-                <IconButton onClick={handleUserMenuOpen} sx={{ p: 0 }}>
-                  <Avatar alt="User" src="/static/images/avatar/1.jpg" />
-                </IconButton>
-              </Tooltip>
-            ) : (
-              <Button
-                variant="contained"
-                color="primary"
-                component={RouterLink}
-                to="/login"
-                startIcon={<Login />}
-                sx={{ display: { xs: 'none', sm: 'flex' } }}
-              >
-                Sign In
-              </Button>
-            )}
-          </Box>
-        </Toolbar>
-      </Container>
-      
-      {/* Mobile Menu */}
-      <Menu
-        anchorEl={mobileMenuAnchorEl}
-        id="mobile-menu"
-        open={isMobileMenuOpen}
-        onClose={handleMobileMenuClose}
-        PaperProps={{
-          elevation: 0,
-          sx: { width: 250, maxWidth: '100%' }
-        }}
-      >
-        {navLinks.map((link) => (
-          <MenuItem 
-            key={link.text} 
-            component={RouterLink} 
-            to={link.to}
-            onClick={handleMobileMenuClose}
-          >
-            <ListItemIcon>
-              {link.icon}
-            </ListItemIcon>
-            <ListItemText>{link.text}</ListItemText>
-          </MenuItem>
-        ))}
+            {/* Logo - desktop */}
+            <Box sx={{ display: { xs: 'none', md: 'flex' }, mr: 2 }}>
+              <Logo />
+            </Box>
+            
+            {/* Navigation Links - desktop */}
+            <Box sx={{ flexGrow: 1, display: { xs: 'none', md: 'flex' } }}>
+              {navLinks.map((link) => (
+                <Button
+                  key={link.text}
+                  component={RouterLink}
+                  to={link.to}
+                  sx={{ mx: 1, color: 'white', display: 'block' }}
+                >
+                  {link.text}
+                </Button>
+              ))}
+              
+              {isAuthenticated && user?.proStatus !== 'verified' && (
+                <Button
+                  component={RouterLink}
+                  to="/collection"
+                  sx={{ mx: 1, color: 'white', display: 'block' }}
+                >
+                  My Collection
+                </Button>
+              )}
+              
+              {creatorLinks.map((link) => (
+                <Button
+                  key={link.text}
+                  component={RouterLink}
+                  to={link.to}
+                  sx={{ mx: 1, color: 'white', display: 'block' }}
+                >
+                  {link.text}
+                </Button>
+              ))}
+            </Box>
+            
+            {/* Right side - Wallet & User */}
+            <Box sx={{ flexGrow: 0, display: 'flex', alignItems: 'center' }}>
+              {/* Wallet connect button */}
+              <Box sx={{ mr: 2, display: { xs: 'none', sm: 'flex' } }}>
+                <ConnectWalletButton />
+              </Box>
+              
+              {/* User menu */}
+              {isAuthenticated ? (
+                <Tooltip title="Open user menu">
+                  <IconButton onClick={handleUserMenuOpen} sx={{ p: 0 }}>
+                    <Avatar alt="User" src="/static/images/avatar/1.jpg" />
+                  </IconButton>
+                </Tooltip>
+              ) : (
+                <Button
+                  variant="contained"
+                  color="primary"
+                  component={RouterLink}
+                  to="/login"
+                  startIcon={<Login />}
+                  sx={{ display: { xs: 'none', sm: 'flex' } }}
+                >
+                  Sign In
+                </Button>
+              )}
+            </Box>
+          </Toolbar>
+        </Container>
         
-        {creatorLinks.length > 0 && (
-          <>
-            <Divider />
-            {creatorLinks.map((link) => (
-              <MenuItem 
-                key={link.text} 
-                component={RouterLink} 
-                to={link.to}
-                onClick={handleMobileMenuClose}
-              >
-                <ListItemIcon>
-                  {link.icon}
-                </ListItemIcon>
-                <ListItemText>{link.text}</ListItemText>
-              </MenuItem>
-            ))}
-          </>
-        )}
-        
-        <Divider />
-        
-        <MenuItem onClick={handleWalletConnect}>
-          <ListItemIcon>
-            <Wallet />
-          </ListItemIcon>
-          <ListItemText>
-            {active ? formatAddress(account) : 'Connect Wallet'}
-          </ListItemText>
-        </MenuItem>
-        
-        {isAuthenticated ? (
-          <>
-            {userMenuItems.map((item) => (
-              <MenuItem 
-                key={item.text} 
-                component={RouterLink} 
-                to={item.to}
-                onClick={handleMobileMenuClose}
-              >
-                <ListItemIcon>
-                  {item.icon}
-                </ListItemIcon>
-                <ListItemText>{item.text}</ListItemText>
-              </MenuItem>
-            ))}
-            <MenuItem onClick={handleLogout}>
+        {/* Mobile Menu */}
+        <Menu
+          anchorEl={mobileMenuAnchorEl}
+          id="mobile-menu"
+          open={isMobileMenuOpen}
+          onClose={handleMobileMenuClose}
+          PaperProps={{
+            elevation: 0,
+            sx: { width: 250, maxWidth: '100%' }
+          }}
+        >
+          {navLinks.map((link) => (
+            <MenuItem 
+              key={link.text} 
+              component={RouterLink} 
+              to={link.to}
+              onClick={handleMobileMenuClose}
+            >
               <ListItemIcon>
-                <Logout />
+                {link.icon}
               </ListItemIcon>
-              <ListItemText>Logout</ListItemText>
+              <ListItemText>{link.text}</ListItemText>
             </MenuItem>
-          </>
-        ) : (
-          <MenuItem 
-            component={RouterLink} 
-            to="/login"
-            onClick={handleMobileMenuClose}
-          >
+          ))}
+          
+          {creatorLinks.length > 0 && (
+            <>
+              <Divider />
+              {creatorLinks.map((link) => (
+                <MenuItem 
+                  key={link.text} 
+                  component={RouterLink} 
+                  to={link.to}
+                  onClick={handleMobileMenuClose}
+                >
+                  <ListItemIcon>
+                    {link.icon}
+                  </ListItemIcon>
+                  <ListItemText>{link.text}</ListItemText>
+                </MenuItem>
+              ))}
+            </>
+          )}
+          
+          <Divider />
+          
+          <MenuItem onClick={handleWalletConnect}>
             <ListItemIcon>
-              <Login />
+              <Wallet />
             </ListItemIcon>
-            <ListItemText>Sign In</ListItemText>
+            <ListItemText>
+              {active ? formatAddress(account) : 'Connect Wallet'}
+            </ListItemText>
           </MenuItem>
-        )}
-      </Menu>
-      
-      {/* User Menu */}
-      <Menu
-        id="menu-user"
-        anchorEl={userMenuAnchorEl}
-        open={isUserMenuOpen}
-        onClose={handleUserMenuClose}
-        onClick={handleUserMenuClose}
-        transformOrigin={{ horizontal: 'right', vertical: 'top' }}
-        anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
-        PaperProps={{
-          sx: {
-            mt: 1,
-            width: 200,
-          },
-        }}
-      >
-        {userMenuItems.map((item) => (
-          <MenuItem 
-            key={item.text} 
-            component={RouterLink} 
-            to={item.to}
-          >
-            <ListItemIcon>
-              {item.icon}
-            </ListItemIcon>
-            <ListItemText>{item.text}</ListItemText>
-          </MenuItem>
-        ))}
-        
-        {/* Admin menu items - only shown if user is admin */}
-        {adminMenuItems.length > 0 && (
-          <>
-            <Divider />
-            <Typography variant="caption" color="text.secondary" sx={{ px: 2, py: 1, display: 'block' }}>
-              Admin
-            </Typography>
-            {adminMenuItems.map((item) => (
-              <MenuItem 
-                key={item.text} 
-                component={RouterLink} 
-                to={item.to}
-              >
+          
+          {isAuthenticated ? (
+            <>
+              {userMenuItems.map((item) => (
+                <MenuItem 
+                  key={item.text} 
+                  component={RouterLink} 
+                  to={item.to}
+                  onClick={handleMobileMenuClose}
+                >
+                  <ListItemIcon>
+                    {item.icon}
+                  </ListItemIcon>
+                  <ListItemText>{item.text}</ListItemText>
+                </MenuItem>
+              ))}
+              <MenuItem onClick={handleLogout}>
                 <ListItemIcon>
-                  {item.icon}
+                  <Logout />
                 </ListItemIcon>
-                <ListItemText>{item.text}</ListItemText>
+                <ListItemText>Logout</ListItemText>
               </MenuItem>
-            ))}
-          </>
-        )}
+            </>
+          ) : (
+            <MenuItem 
+              component={RouterLink} 
+              to="/login"
+              onClick={handleMobileMenuClose}
+            >
+              <ListItemIcon>
+                <Login />
+              </ListItemIcon>
+              <ListItemText>Sign In</ListItemText>
+            </MenuItem>
+          )}
+        </Menu>
         
-        <Divider />
-        <MenuItem onClick={handleLogout}>
-          <ListItemIcon>
-            <Logout />
-          </ListItemIcon>
-          <ListItemText>Logout</ListItemText>
-        </MenuItem>
-      </Menu>
-    </AppBar>
+        {/* User Menu */}
+        <Menu
+          id="menu-user"
+          anchorEl={userMenuAnchorEl}
+          open={isUserMenuOpen}
+          onClose={handleUserMenuClose}
+          onClick={handleUserMenuClose}
+          transformOrigin={{ horizontal: 'right', vertical: 'top' }}
+          anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
+          PaperProps={{
+            sx: {
+              mt: 1,
+              width: 200,
+            },
+          }}
+        >
+          {userMenuItems.map((item) => (
+            <MenuItem 
+              key={item.text} 
+              component={RouterLink} 
+              to={item.to}
+            >
+              <ListItemIcon>
+                {item.icon}
+              </ListItemIcon>
+              <ListItemText>{item.text}</ListItemText>
+            </MenuItem>
+          ))}
+          
+          {/* Admin menu items - only shown if user is admin */}
+          {adminMenuItems.length > 0 && (
+            <>
+              <Divider />
+              <Typography variant="caption" color="text.secondary" sx={{ px: 2, py: 1, display: 'block' }}>
+                Admin
+              </Typography>
+              {adminMenuItems.map((item) => (
+                <MenuItem 
+                  key={item.text} 
+                  component={RouterLink} 
+                  to={item.to}
+                >
+                  <ListItemIcon>
+                    {item.icon}
+                  </ListItemIcon>
+                  <ListItemText>{item.text}</ListItemText>
+                </MenuItem>
+              ))}
+            </>
+          )}
+          
+          <Divider />
+          <MenuItem onClick={handleLogout}>
+            <ListItemIcon>
+              <Logout />
+            </ListItemIcon>
+            <ListItemText>Logout</ListItemText>
+          </MenuItem>
+        </Menu>
+      </AppBar>
+      
+      {/* Add debug section - only visible in development */}
+      {process.env.NODE_ENV === 'development' && (
+        <div style={{ 
+          position: 'fixed', 
+          bottom: 0, 
+          right: 0, 
+          backgroundColor: 'rgba(0,0,0,0.8)', 
+          color: 'white',
+          padding: '8px',
+          zIndex: 9999,
+          fontSize: '10px',
+          maxWidth: '300px',
+          maxHeight: '200px',
+          overflow: 'auto',
+          fontFamily: 'monospace'
+        }}>
+          <pre>{debugInfo}</pre>
+        </div>
+      )}
+    </>
   );
 };
 

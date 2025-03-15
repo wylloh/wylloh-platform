@@ -33,6 +33,7 @@ const ConnectWalletButton: React.FC = () => {
   const [open, setOpen] = useState(false);
   const [balance, setBalance] = useState<string | null>(null);
   const [isMetaMaskInstalled, setIsMetaMaskInstalled] = useState<boolean | null>(null);
+  const [walletDebugInfo, setWalletDebugInfo] = useState<string>('');
 
   // Debug logs
   console.log('ConnectWalletButton rendered with:', { 
@@ -81,6 +82,27 @@ const ConnectWalletButton: React.FC = () => {
 
     getBalance();
   }, [active, account, provider]);
+
+  // Add debug effect
+  useEffect(() => {
+    const info = {
+      component: 'ConnectWalletButton',
+      walletActive: active,
+      walletAccount: account,
+      accountType: account ? typeof account : 'null',
+      accountLength: account ? account.length : 0,
+      timestamp: new Date().toISOString()
+    };
+    
+    setWalletDebugInfo(JSON.stringify(info, null, 2));
+    console.log('Wallet Button Debug:', info);
+    
+    // Directly call connect if we have MetaMask but no connection yet
+    if ((window as any).ethereum && !active) {
+      console.log('ConnectWalletButton - MetaMask detected but not connected, auto-connecting...');
+      connect().catch(err => console.error('Auto connect error:', err));
+    }
+  }, [active, account, connect]);
 
   const handleClickOpen = () => {
     console.log('Opening wallet dialog');
@@ -276,6 +298,26 @@ const ConnectWalletButton: React.FC = () => {
             <Button onClick={handleClose}>Close</Button>
           </DialogActions>
         </Dialog>
+      )}
+      
+      {/* Debug info */}
+      {process.env.NODE_ENV === 'development' && (
+        <div style={{ 
+          position: 'fixed', 
+          bottom: 0, 
+          left: 0, 
+          backgroundColor: 'rgba(0,0,0,0.8)', 
+          color: 'white',
+          padding: '8px',
+          zIndex: 9999,
+          fontSize: '10px',
+          maxWidth: '300px',
+          maxHeight: '200px',
+          overflow: 'auto',
+          fontFamily: 'monospace'
+        }}>
+          <pre>{walletDebugInfo}</pre>
+        </div>
       )}
     </>
   );
