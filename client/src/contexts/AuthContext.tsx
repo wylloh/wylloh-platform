@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, ReactNode, useRef } from 'react';
 import { useWallet } from './WalletContext';
 
 interface AuthContextType {
@@ -43,6 +43,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
+  const autoLoginAttempted = useRef<Record<string, boolean>>({});
 
   // Safely get wallet context, providing default values
   const { account = null } = useWallet();
@@ -83,19 +84,41 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const autoLoginForDemo = async () => {
       // Only try to auto-login if not already authenticated and we have a wallet address
       if (!isAuthenticated && account && !loading) {
-        console.log('Checking for demo wallet association:', account);
+        // Skip if we've already tried to auto-login with this account
+        if (autoLoginAttempted.current[account]) {
+          return;
+        }
         
-        // Map of demo wallet addresses to emails
+        console.log('Debug - Auto-login check:', { 
+          isAuthenticated, 
+          account, 
+          loading,
+          accountLowerCase: account.toLowerCase(),
+        });
+        
+        // Mark that we've attempted login with this account
+        autoLoginAttempted.current[account] = true;
+        
+        // Map of demo wallet addresses to emails (convert to lowercase for case-insensitive matching)
         const demoWallets: Record<string, string> = {
-          '0x90F8bf6A479f320ead074411a4B0e7944Ea8c9C1': 'pro@example.com',
-          '0x8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC': 'user@example.com',
+          '0x90f8bf6a479f320ead074411a4b0e7944ea8c9c1': 'pro@example.com',
+          '0x8db97c7cece249c2b98bdc0226cc4c2a57bf52fc': 'user@example.com',
         };
         
-        // If we recognize this wallet, auto-login that user
-        if (demoWallets[account]) {
-          console.log(`Auto-logging in as ${demoWallets[account]} for demo`);
-          // Use the existing login function
-          await login(demoWallets[account], 'password');
+        // If we recognize this wallet, auto-login that user (use lowercase for matching)
+        const accountLower = account.toLowerCase();
+        if (demoWallets[accountLower]) {
+          console.log(`Auto-logging in as ${demoWallets[accountLower]} for demo`);
+          try {
+            // Use the existing login function
+            const success = await login(demoWallets[accountLower], 'password');
+            console.log('Auto-login result:', success);
+          } catch (error) {
+            console.error('Error during auto-login:', error);
+          }
+        } else {
+          console.log('Wallet not recognized for auto-login:', accountLower);
+          console.log('Available wallets:', Object.keys(demoWallets));
         }
       }
     };
