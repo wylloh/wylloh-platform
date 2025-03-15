@@ -21,8 +21,8 @@ import UploadForm from '../../components/creator/UploadForm';
 const UploadPage: React.FC = () => {
   const { isAuthenticated, user } = useAuth();
   
-  // Check if user has creator role
-  const isCreator = user?.roles.includes('creator');
+  // Check if user has verified Pro status
+  const isProVerified = user?.proStatus === 'verified';
   
   return (
     <Container maxWidth="lg">
@@ -73,11 +73,16 @@ const UploadPage: React.FC = () => {
               </Button>
             </Box>
           </Paper>
-        ) : !isCreator ? (
+        ) : !isProVerified ? (
           <Paper sx={{ p: 3, mb: 3 }}>
             <Alert severity="info">
-              <AlertTitle>Creator Role Required</AlertTitle>
-              Your account needs to be upgraded to a creator account to upload content.
+              <AlertTitle>Pro Status Verification Required</AlertTitle>
+              Your account needs to have verified Pro status to upload content.
+              {user?.proStatus === 'pending' && (
+                <Typography variant="body2" sx={{ mt: 1 }}>
+                  Your Pro verification request is pending. Please wait for admin approval.
+                </Typography>
+              )}
             </Alert>
             <Box sx={{ mt: 2 }}>
               <Button
@@ -85,7 +90,7 @@ const UploadPage: React.FC = () => {
                 component={Link}
                 to="/profile"
               >
-                Go to Profile Settings
+                Go to Profile
               </Button>
             </Box>
           </Paper>

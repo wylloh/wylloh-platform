@@ -25,7 +25,8 @@ import {
   DialogContent,
   DialogContentText,
   DialogActions,
-  ListItemIcon
+  ListItemIcon,
+  AlertTitle
 } from '@mui/material';
 import {
   Add as AddIcon,
@@ -138,12 +139,15 @@ function a11yProps(index: number) {
 }
 
 const DashboardPage: React.FC = () => {
-  const { user } = useAuth();
+  const { user, isAuthenticated } = useAuth();
   const [loading, setLoading] = useState(true);
   const [content, setContent] = useState<any[]>([]);
   const [tabValue, setTabValue] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [actionSuccess, setActionSuccess] = useState<string | null>(null);
+  
+  // Check if user has verified Pro status
+  const isProVerified = user?.proStatus === 'verified';
   
   // Menu state
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
@@ -567,7 +571,44 @@ const DashboardPage: React.FC = () => {
           </Alert>
         )}
         
-        {loading ? (
+        {!isAuthenticated ? (
+          <Paper sx={{ p: 3, mb: 3 }}>
+            <Alert severity="warning">
+              <AlertTitle>Authentication Required</AlertTitle>
+              You need to be logged in to access the creator dashboard.
+            </Alert>
+            <Box sx={{ mt: 2 }}>
+              <Button
+                variant="contained"
+                component={Link}
+                to="/login"
+              >
+                Go to Login
+              </Button>
+            </Box>
+          </Paper>
+        ) : !isProVerified ? (
+          <Paper sx={{ p: 3, mb: 3 }}>
+            <Alert severity="info">
+              <AlertTitle>Pro Status Verification Required</AlertTitle>
+              Your account needs to have verified Pro status to access the creator dashboard.
+              {user?.proStatus === 'pending' && (
+                <Typography variant="body2" sx={{ mt: 1 }}>
+                  Your Pro verification request is pending. Please wait for admin approval.
+                </Typography>
+              )}
+            </Alert>
+            <Box sx={{ mt: 2 }}>
+              <Button
+                variant="contained"
+                component={Link}
+                to="/profile"
+              >
+                Go to Profile
+              </Button>
+            </Box>
+          </Paper>
+        ) : loading ? (
           <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}>
             <CircularProgress />
           </Box>

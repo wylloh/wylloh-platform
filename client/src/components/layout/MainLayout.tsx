@@ -98,7 +98,7 @@ const MainLayout: React.FC = () => {
                 <ListItemText primary="My Collection" />
               </ListItemButton>
             </ListItem>
-            {user?.roles.includes('creator') && (
+            {user?.proStatus === 'verified' && (
               <>
                 <ListItem disablePadding>
                   <ListItemButton component={Link} to="/creator/dashboard">

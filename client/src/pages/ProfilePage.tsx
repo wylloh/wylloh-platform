@@ -126,7 +126,7 @@ const ProfilePage: React.FC = () => {
                       variant="outlined" 
                     />
                   )}
-                  {user.roles.includes('creator') && (
+                  {user.proStatus === 'verified' && (
                     <Chip 
                       icon={<MovieCreation />} 
                       label="Creator" 

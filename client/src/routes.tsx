@@ -20,6 +20,9 @@ import PlayerTestPage from './pages/test/PlayerTestPage';
 import KioskSimulatorPage from './pages/test/KioskSimulatorPage';
 import TestHubPage from './pages/test/TestHubPage';
 
+// Auth components
+import ProtectedRoute from './components/auth/ProtectedRoute';
+
 // Admin components
 import ProVerificationPanel from './components/admin/ProVerificationPanel';
 
@@ -45,18 +48,44 @@ const AppRoutes: React.FC = () => {
       <Route path="marketplace" element={<MarketplacePage />} />
       <Route path="marketplace/:id" element={<ContentDetailsPage />} />
       <Route path="test-content-details" element={<TestContentDetails />} />
-      <Route path="creator/dashboard" element={<DashboardPage />} />
-      <Route path="creator/upload" element={<UploadPage />} />
-      <Route path="creator/edit/:id" element={<EditContentPage />} />
+      
+      {/* Creator routes - protected with Pro status verification */}
+      <Route path="creator/dashboard" element={
+        <ProtectedRoute requireProVerified>
+          <DashboardPage />
+        </ProtectedRoute>
+      } />
+      <Route path="creator/upload" element={
+        <ProtectedRoute requireProVerified>
+          <UploadPage />
+        </ProtectedRoute>
+      } />
+      <Route path="creator/edit/:id" element={
+        <ProtectedRoute requireProVerified>
+          <EditContentPage />
+        </ProtectedRoute>
+      } />
+      
       <Route path="player/:id" element={<PlayerPage />} />
       <Route path="profile" element={<ProfilePage />} />
-      <Route path="collection" element={<MyCollectionPage />} />
+      
+      {/* User collection - protected but doesn't require Pro status */}
+      <Route path="collection" element={
+        <ProtectedRoute>
+          <MyCollectionPage />
+        </ProtectedRoute>
+      } />
+      
       <Route path="login" element={<LoginPage />} />
       <Route path="register" element={<RegisterPage />} />
       
       {/* Admin routes */}
       <Route path="admin">
-        <Route path="pro-verification" element={<AdminPage component={ProVerificationPanel} />} />
+        <Route path="pro-verification" element={
+          <ProtectedRoute requireAdmin>
+            <AdminPage component={ProVerificationPanel} />
+          </ProtectedRoute>
+        } />
       </Route>
       
       {/* Test routes */}
