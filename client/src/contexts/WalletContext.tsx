@@ -42,6 +42,8 @@ interface WalletContextType {
   connecting: boolean;
   walletModalOpen: boolean;
   setWalletModalOpen: (open: boolean) => void;
+  setSkipAutoConnect: (skip: boolean) => void;
+  skipAutoConnect: boolean;
 }
 
 const WalletContext = createContext<WalletContextType>({
@@ -57,12 +59,15 @@ const WalletContext = createContext<WalletContextType>({
   connecting: false,
   walletModalOpen: false,
   setWalletModalOpen: () => {},
+  setSkipAutoConnect: () => {},
+  skipAutoConnect: false,
 });
 
 export function WalletProvider({ children }: { children: ReactNode }) {
   const { activate, deactivate, active, account, chainId, library } = useWeb3React();
   const [connecting, setConnecting] = useState(false);
   const [walletModalOpen, setWalletModalOpen] = useState(false);
+  const [skipAutoConnect, setSkipAutoConnect] = useState(false);
 
   // Debug log for Web3React state
   console.log('Web3React state:', { active, account, chainId, library: library ? 'exists' : 'null' });
@@ -93,8 +98,42 @@ export function WalletProvider({ children }: { children: ReactNode }) {
   const disconnect = () => {
     console.log('Disconnecting wallet...');
     try {
+      // Force clear the auto-connect state for testing purposes
+      const { ethereum } = window as any;
+      if (ethereum && ethereum.isMetaMask) {
+        console.log('Attempting to clear auto-connect state in MetaMask...');
+        // This uses a non-standard method for demo purposes
+        // It may not work in all MetaMask versions, but helps with testing
+        if (ethereum._state && ethereum._state.accounts) {
+          console.log('Clearing MetaMask internal state');
+        }
+      }
+      
+      // Fully disconnect from Web3-React
       deactivate();
+      
+      // Clear local storage of any connection data
+      localStorage.removeItem('walletconnect');
+      localStorage.removeItem('WALLETCONNECT_DEEPLINK_CHOICE');
+      
+      // For MetaMask testing - deactivate any permissions (non-standard)
+      if (ethereum && ethereum.request) {
+        ethereum.request({
+          method: 'wallet_revokePermissions',
+          params: [{ eth_accounts: {} }],
+        }).then(() => {
+          console.log('Permissions revoked successfully');
+        }).catch((error: any) => {
+          console.log('Error revoking permissions (might be unsupported):', error);
+        });
+      }
+      
       console.log('Wallet disconnected successfully');
+      
+      // Force page reload to clear any cached state
+      setTimeout(() => {
+        window.location.reload();
+      }, 100);
     } catch (error) {
       console.error('Error disconnecting wallet:', error);
     }
@@ -204,7 +243,14 @@ export function WalletProvider({ children }: { children: ReactNode }) {
 
   // Auto-connect if previously connected
   useEffect(() => {
-    console.log('Checking for auto-connect...');
+    console.log('Checking for auto-connect...', { skipAutoConnect });
+    
+    // Skip auto-connect if the skip flag is set
+    if (skipAutoConnect) {
+      console.log('Skipping auto-connect due to skipAutoConnect flag');
+      return;
+    }
+    
     injected.isAuthorized().then((isAuthorized) => {
       console.log('isAuthorized:', isAuthorized);
       if (isAuthorized) {
@@ -217,7 +263,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
           });
       }
     });
-  }, [activate]);
+  }, [activate, skipAutoConnect]);
 
   // Log any state changes
   useEffect(() => {
@@ -244,6 +290,8 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     connecting,
     walletModalOpen,
     setWalletModalOpen,
+    skipAutoConnect,
+    setSkipAutoConnect,
   };
 
   return <WalletContext.Provider value={value}>{children}</WalletContext.Provider>;
@@ -268,6 +316,8 @@ export function useWallet() {
       connecting: false,
       walletModalOpen: false,
       setWalletModalOpen: () => {},
+      skipAutoConnect: false,
+      setSkipAutoConnect: () => {},
     };
   }
   

@@ -46,7 +46,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const autoLoginAttempted = useRef<Record<string, boolean>>({});
 
   // Safely get wallet context, providing default values
-  const { account = null } = useWallet();
+  const { account = null, skipAutoConnect = false } = useWallet();
 
   // Check for existing session on initial load
   useEffect(() => {
@@ -83,7 +83,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const autoLoginForDemo = async () => {
       // Only try to auto-login if not already authenticated and we have a wallet address
-      if (!isAuthenticated && account && !loading) {
+      // Also respect the skipAutoConnect flag from WalletContext
+      if (!isAuthenticated && account && !loading && !skipAutoConnect) {
         // Skip if we've already tried to auto-login with this account
         if (autoLoginAttempted.current[account]) {
           return;
@@ -93,6 +94,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           isAuthenticated, 
           account, 
           loading,
+          skipAutoConnect,
           accountLowerCase: account.toLowerCase(),
         });
         
@@ -124,7 +126,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
     
     autoLoginForDemo();
-  }, [account, isAuthenticated, loading]);
+  }, [account, isAuthenticated, loading, skipAutoConnect]);
 
   // Update user wallet address when wallet connection changes
   useEffect(() => {

@@ -12,7 +12,9 @@ import {
   Link,
   Chip,
   Paper,
-  Divider
+  Divider,
+  Switch,
+  FormControlLabel
 } from '@mui/material';
 import { 
   AccountBalanceWallet as WalletIcon,
@@ -30,7 +32,7 @@ const shortenAddress = (address: string) => {
 };
 
 const ConnectWalletButton: React.FC = () => {
-  const { connect, disconnect, account, active, chainId, isCorrectNetwork, switchNetwork, connecting, provider } = useWallet();
+  const { connect, disconnect, account, active, chainId, isCorrectNetwork, switchNetwork, connecting, provider, skipAutoConnect, setSkipAutoConnect } = useWallet();
   const { isAuthenticated, login } = useAuth();
   const [open, setOpen] = useState(false);
   const [balance, setBalance] = useState<string | null>(null);
@@ -85,7 +87,20 @@ const ConnectWalletButton: React.FC = () => {
     getBalance();
   }, [active, account, provider]);
 
-  // Add debug effect
+  // Toggle auto-connect for testing
+  const handleSkipAutoConnectToggle = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const newValue = event.target.checked;
+    console.log('Setting skipAutoConnect to:', newValue);
+    setSkipAutoConnect(newValue);
+    
+    // If disabling auto-connect and already connected, disconnect
+    if (newValue && active) {
+      console.log('Auto-disconnecting since we disabled auto-connect');
+      disconnect();
+    }
+  };
+
+  // Update debug display to show skip auto-connect status
   useEffect(() => {
     const info = {
       component: 'ConnectWalletButton',
@@ -93,18 +108,19 @@ const ConnectWalletButton: React.FC = () => {
       walletAccount: account,
       accountType: account ? typeof account : 'null',
       accountLength: account ? account.length : 0,
+      skipAutoConnect,
       timestamp: new Date().toISOString()
     };
     
     setWalletDebugInfo(JSON.stringify(info, null, 2));
     console.log('Wallet Button Debug:', info);
     
-    // Directly call connect if we have MetaMask but no connection yet
-    if ((window as any).ethereum && !active) {
+    // Only auto-connect if not skipping
+    if ((window as any).ethereum && !active && !skipAutoConnect) {
       console.log('ConnectWalletButton - MetaMask detected but not connected, auto-connecting...');
       connect().catch(err => console.error('Auto connect error:', err));
     }
-  }, [active, account, connect]);
+  }, [active, account, connect, skipAutoConnect]);
 
   // Direct login attempt for recognized wallets
   useEffect(() => {
@@ -197,6 +213,20 @@ const ConnectWalletButton: React.FC = () => {
     };
   }, []);
 
+  // Get wallet display name
+  const getWalletDisplayName = (address: string | null | undefined): string => {
+    if (!address) return 'Not Connected';
+    
+    const lowerAddress = address.toLowerCase();
+    if (lowerAddress === '0x90f8bf6a479f320ead074411a4b0e7944ea8c9c1') {
+      return 'Creator Wallet (Pro)';
+    } else if (lowerAddress === '0x8db97c7cece249c2b98bdc0226cc4c2a57bf52fc') {
+      return 'Consumer Wallet (User)';
+    }
+    
+    return 'Unknown Wallet';
+  };
+
   // Render connecting state
   if (connecting) {
     console.log('Rendering connecting state');
@@ -250,6 +280,15 @@ const ConnectWalletButton: React.FC = () => {
             </Box>
           </DialogTitle>
           <DialogContent>
+            <Paper variant="outlined" sx={{ p: 2, mb: 2 }}>
+              <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+                Wallet Type
+              </Typography>
+              <Typography variant="body1" sx={{ fontWeight: 'bold' }}>
+                {getWalletDisplayName(account)}
+              </Typography>
+            </Paper>
+            
             <Paper variant="outlined" sx={{ p: 2, mb: 2 }}>
               <Typography variant="subtitle2" color="text.secondary" gutterBottom>
                 Wallet Address
@@ -332,6 +371,36 @@ const ConnectWalletButton: React.FC = () => {
             <Button onClick={handleClose}>Close</Button>
           </DialogActions>
         </Dialog>
+      )}
+      
+      {/* Test Mode Controls - only in development */}
+      {process.env.NODE_ENV === 'development' && (
+        <Box sx={{ 
+          position: 'fixed', 
+          top: 0, 
+          right: 0, 
+          bgcolor: 'rgba(0,0,0,0.8)', 
+          color: 'white',
+          p: 1, 
+          zIndex: 9999,
+          borderBottomLeftRadius: 8
+        }}>
+          <FormControlLabel
+            control={
+              <Switch 
+                size="small"
+                checked={skipAutoConnect}
+                onChange={handleSkipAutoConnectToggle}
+                color="warning"
+              />
+            }
+            label={
+              <Typography variant="caption" sx={{ fontSize: '10px' }}>
+                Test Mode (No Auto-Connect)
+              </Typography>
+            }
+          />
+        </Box>
       )}
       
       {/* Debug info */}
