@@ -208,17 +208,29 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     injected.isAuthorized().then((isAuthorized) => {
       console.log('isAuthorized:', isAuthorized);
       if (isAuthorized) {
-        activate(injected, undefined, true).catch((error) => {
-          console.error('Error auto-connecting wallet:', error);
-        });
+        activate(injected, undefined, true)
+          .then(() => {
+            console.log('Wallet auto-connected successfully');
+          })
+          .catch((error) => {
+            console.error('Error auto-connecting wallet:', error);
+          });
       }
     });
   }, [activate]);
 
   // Log any state changes
   useEffect(() => {
-    console.log('WalletContext state updated:', { active, account, chainId, isCorrectNetwork });
-  }, [active, account, chainId, isCorrectNetwork]);
+    console.log('WalletContext state updated:', { 
+      active, 
+      account, 
+      chainId, 
+      isCorrectNetwork,
+      accountType: account ? typeof account : 'null',
+      accountLength: account ? account.length : 0,
+      provider: provider ? 'exists' : 'null'
+    });
+  }, [active, account, chainId, isCorrectNetwork, provider]);
 
   const value = {
     connect,
