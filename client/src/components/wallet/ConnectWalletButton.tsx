@@ -43,6 +43,9 @@ const ConnectWalletButton: React.FC = () => {
     message: '',
     type: 'info' as 'info' | 'warning' | 'error' | 'success'
   });
+  
+  // Flag to prevent multiple auto-connect attempts
+  const autoConnectAttemptedRef = useRef<boolean>(false);
 
   // Debug logs
   console.log('ConnectWalletButton rendered with:', { 
@@ -107,13 +110,21 @@ const ConnectWalletButton: React.FC = () => {
       console.log('Wallet Button Debug:', info);
     }
     
-    // Auto-connect if MetaMask is detected and not already connected
+    // Auto-connect if MetaMask is detected and not already connected,
+    // but only do this once to prevent infinite popups
     const { ethereum } = window as any;
-    if (ethereum && ethereum.isMetaMask && !active) {
+    if (ethereum && ethereum.isMetaMask && !active && !autoConnectAttemptedRef.current && !connecting) {
       console.log('ConnectWalletButton - MetaMask detected but not connected, auto-connecting...');
-      connect().catch(err => console.error('Auto connect error:', err));
+      autoConnectAttemptedRef.current = true;
+      connect().catch(err => {
+        console.error('Auto connect error:', err);
+        // Reset the flag after a timeout to allow a retry later
+        setTimeout(() => {
+          autoConnectAttemptedRef.current = false;
+        }, 5000);
+      });
     }
-  }, [active, connect]);
+  }, [active, connect, connecting]);
 
   // Direct login attempt for recognized wallets - this is actually a good pattern for production
   useEffect(() => {
@@ -165,6 +176,16 @@ const ConnectWalletButton: React.FC = () => {
       window.open('https://metamask.io/download/', '_blank');
       return;
     }
+    
+    // Prevent rapid re-clicks
+    if (connecting) {
+      console.log('Already connecting, ignoring click');
+      return;
+    }
+    
+    // Reset the auto-connect attempt flag
+    autoConnectAttemptedRef.current = false;
+    
     console.log('Calling connect function');
     try {
       await connect();
@@ -421,8 +442,28 @@ const ConnectWalletButton: React.FC = () => {
               Disconnect
             </Button>
           ) : (
-            <Button onClick={handleConnect} color="primary" disabled={!isMetaMaskInstalled || connecting}>
-              {connecting ? 'Connecting...' : 'Connect'}
+            <Button 
+              onClick={handleConnect} 
+              color="primary" 
+              disabled={!isMetaMaskInstalled || connecting}
+              sx={{ 
+                minWidth: '100px',
+                position: 'relative'
+              }}
+            >
+              {connecting ? (
+                <>
+                  <CircularProgress 
+                    size={16} 
+                    sx={{ 
+                      position: 'absolute',
+                      left: 10,
+                      color: 'inherit'
+                    }} 
+                  />
+                  <span style={{ marginLeft: '8px' }}>Connecting...</span>
+                </>
+              ) : 'Connect'}
             </Button>
           )}
           <Button onClick={handleClose} color="inherit">

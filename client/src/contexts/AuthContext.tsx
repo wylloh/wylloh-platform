@@ -411,27 +411,58 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     
     console.log('AuthContext - Attempting auto-login with wallet:', walletAddress);
     
-    // Map of demo wallet addresses to emails (convert to lowercase for case-insensitive matching)
+    // Make sure we're operating with a clean state before attempting login
+    // This prevents the previous user from remaining logged in
+    if (state.isAuthenticated) {
+      console.log('AuthContext - Logging out previous user before attempting auto-login');
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      // Update state immediately to ensure clean login
+      setState({
+        user: null,
+        loading: false,
+        error: null,
+        isAuthenticated: false,
+      });
+    }
+    
+    // Map of demo wallet addresses to emails (convert to lowercase for case-insensitivity)
     const demoWallets: Record<string, string> = {
       '0x90f8bf6a479f320ead074411a4b0e7944ea8c9c1': 'pro@example.com',
       '0x8db97c7cece249c2b98bdc0226cc4c2a57bf52fc': 'user@example.com',
     };
     
-    // If we recognize this wallet, auto-login that user (use lowercase for matching)
+    // Ensure we have a lowercase version for case-insensitive comparison
     const accountLower = walletAddress.toLowerCase();
+    
+    // Log the available wallets and the current wallet
+    console.log('AuthContext - Available wallets:', Object.keys(demoWallets));
+    console.log('AuthContext - Current wallet (lowercase):', accountLower);
+    
+    // If we recognize this wallet, auto-login that user (use lowercase for matching)
     if (demoWallets[accountLower]) {
-      console.log(`AuthContext - Auto-logging in as ${demoWallets[accountLower]} for wallet`);
+      const email = demoWallets[accountLower];
+      console.log(`AuthContext - Auto-logging in as ${email} for wallet ${accountLower}`);
+      
       try {
+        // Add a small delay to ensure previous state changes have taken effect
+        await new Promise(resolve => setTimeout(resolve, 100));
+        
         // Use the existing login function
-        const success = await login(demoWallets[accountLower], 'password');
-        console.log('AuthContext - Auto-login result:', success);
+        const success = await login(email, 'password');
+        console.log('AuthContext - Auto-login result:', success ? 'SUCCESS' : 'FAILED', 'for', email);
+        
+        if (success) {
+          // Additional confirmation of the login
+          console.log('AuthContext - Successfully logged in as:', email);
+        }
       } catch (error) {
         console.error('AuthContext - Error during auto-login:', error);
       }
     } else {
       console.log('AuthContext - Wallet not recognized for auto-login:', accountLower);
     }
-  }, [login]);
+  }, [login, state.isAuthenticated]);
   
   // Check for pending wallet login after functions are defined
   useEffect(() => {

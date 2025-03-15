@@ -192,13 +192,20 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       const newAccount = accounts[0];
       console.log('WalletContext - New account:', newAccount);
       
-      // Show prompt to connect the new wallet
-      setWalletPrompt({
-        show: true,
-        account: newAccount
-      });
+      // Only show the prompt if this is a different account than the currently connected one
+      if (newAccount.toLowerCase() !== account?.toLowerCase()) {
+        console.log('WalletContext - Account has changed from', account, 'to', newAccount);
+        
+        // Show prompt to connect the new wallet
+        setWalletPrompt({
+          show: true,
+          account: newAccount
+        });
+      } else {
+        console.log('WalletContext - Same account, no action needed:', newAccount);
+      }
     }
-  }, [disconnect]);
+  }, [disconnect, account]);
 
   // Handle connecting new wallet after switch
   const handleConnectNewWallet = useCallback(() => {
