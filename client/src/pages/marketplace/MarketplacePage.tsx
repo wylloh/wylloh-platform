@@ -37,6 +37,18 @@ import { generatePlaceholderImage } from '../../utils/placeholders';
 // Mock content data
 const mockContent = [
   {
+    id: 'big-buck-bunny',
+    title: 'Big Buck Bunny',
+    description: 'A short film featuring a large rabbit dealing with three bullying rodents.',
+    image: 'https://peach.blender.org/wp-content/uploads/bbb-splash.png',
+    contentType: 'short film',
+    creator: 'Pro Creator',
+    price: 0.01,
+    available: 995,
+    totalSupply: 1000,
+    releaseDate: new Date().toLocaleDateString('en-US')
+  },
+  {
     id: '1',
     title: 'The Digital Frontier',
     description: 'A journey into the world of blockchain and digital ownership.',

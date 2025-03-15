@@ -41,11 +41,25 @@ import {
   Dashboard as DashboardIcon,
   InsertChart as InsertChartIcon,
 } from '@mui/icons-material';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 
 // Mock content data for demonstration
 const mockContent = [
+  {
+    id: 'big-buck-bunny',
+    title: 'Big Buck Bunny',
+    description: 'A short film featuring a large rabbit dealing with three bullying rodents.',
+    thumbnailUrl: 'https://peach.blender.org/wp-content/uploads/bbb-splash.png',
+    contentType: 'short',
+    status: 'active',
+    visibility: 'public',
+    createdAt: new Date().toISOString(),
+    views: 0,
+    tokenized: false,
+    tokenId: null,
+    sales: 0
+  },
   {
     id: '1',
     title: 'The Digital Frontier',
@@ -145,6 +159,7 @@ const DashboardPage: React.FC = () => {
   const [tabValue, setTabValue] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [actionSuccess, setActionSuccess] = useState<string | null>(null);
+  const navigate = useNavigate();
   
   // Check if user has verified Pro status
   const isProVerified = user?.proStatus === 'verified';
@@ -230,15 +245,24 @@ const DashboardPage: React.FC = () => {
   };
   
   const handleTokenizeContent = () => {
-    // In a real app, this would call an API to tokenize the content
-    setContent(prevContent => 
-      prevContent.map(item => 
-        item.id === contentToTokenize 
-          ? {...item, tokenized: true, tokenId: Math.random().toString(36).substring(2, 10)} 
-          : item
-      )
-    );
-    setActionSuccess('Content tokenized successfully');
+    // Find the content to tokenize
+    const selectedContent = content.find(item => item.id === contentToTokenize);
+    
+    if (selectedContent) {
+      // Navigate to the TokenizePublishPage with the content info
+      navigate('/creator/tokenize-publish', {
+        state: {
+          contentInfo: {
+            id: selectedContent.id,
+            title: selectedContent.title,
+            description: selectedContent.description,
+            thumbnailUrl: selectedContent.thumbnailUrl,
+            contentType: selectedContent.contentType
+          }
+        }
+      });
+    }
+    
     handleCloseTokenizeDialog();
   };
   
@@ -727,33 +751,33 @@ const DashboardPage: React.FC = () => {
           open={tokenizeDialogOpen}
           onClose={handleCloseTokenizeDialog}
         >
-          <DialogTitle>Tokenize Content</DialogTitle>
+          <DialogTitle>Tokenize & Publish Content</DialogTitle>
           <DialogContent>
             <DialogContentText>
-              Tokenizing your content will create a blockchain-based license token that can be sold on the marketplace. This action is irreversible.
+              You're about to tokenize and publish your content to the marketplace. This will allow you to set licensing terms, token supply, and pricing.
             </DialogContentText>
             <Box sx={{ mt: 2 }}>
               <Typography variant="subtitle2" gutterBottom>
-                Token Details:
+                In the next steps, you'll be able to configure:
               </Typography>
               <Typography variant="body2">
-                • Token standard: ERC-1155
+                • License terms for different use cases
               </Typography>
               <Typography variant="body2">
-                • Initial supply: 1,000 tokens
+                • Token supply amount and pricing
               </Typography>
               <Typography variant="body2">
-                • Royalty: 10% on secondary sales
+                • Royalty percentages for secondary sales
               </Typography>
               <Typography variant="body2">
-                • Network: Polygon
+                • Marketplace listing details
               </Typography>
             </Box>
           </DialogContent>
           <DialogActions>
             <Button onClick={handleCloseTokenizeDialog}>Cancel</Button>
             <Button onClick={handleTokenizeContent} color="primary" variant="contained">
-              Tokenize Content
+              Proceed to Tokenize
             </Button>
           </DialogActions>
         </Dialog>

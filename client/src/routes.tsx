@@ -8,6 +8,7 @@ import ContentDetailsPage from './pages/marketplace/ContentDetailsPage';
 import TestContentDetails from './pages/marketplace/TestContentDetails';
 import DashboardPage from './pages/creator/DashboardPage';
 import UploadPage from './pages/creator/UploadPage';
+import TokenizePublishPage from './pages/creator/TokenizePublishPage';
 import EditContentPage from './pages/creator/EditContentPage';
 import PlayerPage from './pages/player/PlayerPage';
 import ProfilePage from './pages/ProfilePage';
@@ -58,6 +59,11 @@ const AppRoutes: React.FC = () => {
       <Route path="creator/upload" element={
         <ProtectedRoute requireProVerified>
           <UploadPage />
+        </ProtectedRoute>
+      } />
+      <Route path="creator/tokenize-publish" element={
+        <ProtectedRoute requireProVerified>
+          <TokenizePublishPage />
         </ProtectedRoute>
       } />
       <Route path="creator/edit/:id" element={

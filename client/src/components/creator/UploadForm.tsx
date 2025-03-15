@@ -500,12 +500,28 @@ const UploadForm: React.FC = () => {
       // Simulate API call to create content
       await new Promise(resolve => setTimeout(resolve, 1000));
       
+      // Generate a unique ID for the content
+      const contentId = `content-${Date.now()}`;
+      
       // Success!
       setSubmitSuccess(true);
       
-      // Reset form after short delay
+      // Navigate to TokenizePublishPage after short delay
       setTimeout(() => {
-        navigate('/creator/dashboard');
+        navigate('/creator/tokenize-publish', { 
+          state: { 
+            contentInfo: {
+              id: contentId,
+              title: formData.title,
+              description: formData.description,
+              contentType: formData.contentType,
+              mainFileCid,
+              previewCid,
+              thumbnailCid,
+              metadata: formData.metadata
+            }
+          }
+        });
       }, 2000);
     } catch (error: any) {
       console.error('Error submitting content:', error);
