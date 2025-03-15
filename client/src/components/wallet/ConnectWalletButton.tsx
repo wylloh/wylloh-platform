@@ -21,6 +21,7 @@ import {
   Warning as WarningIcon
 } from '@mui/icons-material';
 import { useWallet } from '../../contexts/WalletContext';
+import { useAuth } from '../../contexts/AuthContext';
 import { ethers } from 'ethers';
 
 const shortenAddress = (address: string) => {
@@ -30,6 +31,7 @@ const shortenAddress = (address: string) => {
 
 const ConnectWalletButton: React.FC = () => {
   const { connect, disconnect, account, active, chainId, isCorrectNetwork, switchNetwork, connecting, provider } = useWallet();
+  const { isAuthenticated, login } = useAuth();
   const [open, setOpen] = useState(false);
   const [balance, setBalance] = useState<string | null>(null);
   const [isMetaMaskInstalled, setIsMetaMaskInstalled] = useState<boolean | null>(null);
@@ -103,6 +105,38 @@ const ConnectWalletButton: React.FC = () => {
       connect().catch(err => console.error('Auto connect error:', err));
     }
   }, [active, account, connect]);
+
+  // Direct login attempt for recognized wallets
+  useEffect(() => {
+    // Only attempt if we have an account, are not authenticated, and active
+    if (active && account && !isAuthenticated) {
+      console.log('ConnectWalletButton - Attempting direct wallet matching for:', account);
+      
+      // Demo wallet mapping (lowercase for case-insensitivity)
+      const demoWallets: Record<string, string> = {
+        '0x90f8bf6a479f320ead074411a4b0e7944ea8c9c1': 'pro@example.com',
+        '0x8db97c7cece249c2b98bdc0226cc4c2a57bf52fc': 'user@example.com',
+      };
+      
+      const accountLower = account.toLowerCase();
+      if (demoWallets[accountLower]) {
+        // We found a matching wallet address
+        const email = demoWallets[accountLower];
+        console.log(`ConnectWalletButton - Found matching wallet! Logging in as: ${email}`);
+        
+        // Attempt login
+        login(email, 'password')
+          .then(success => {
+            console.log(`ConnectWalletButton - Login attempt result for ${email}:`, success);
+          })
+          .catch(error => {
+            console.error(`ConnectWalletButton - Login error for ${email}:`, error);
+          });
+      } else {
+        console.log('ConnectWalletButton - No matching wallet found in:', Object.keys(demoWallets));
+      }
+    }
+  }, [active, account, isAuthenticated, login]);
 
   const handleClickOpen = () => {
     console.log('Opening wallet dialog');
