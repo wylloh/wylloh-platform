@@ -78,6 +78,31 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     checkAuth();
   }, []);
 
+  // Auto-login based on wallet address for demo purposes
+  useEffect(() => {
+    const autoLoginForDemo = async () => {
+      // Only try to auto-login if not already authenticated and we have a wallet address
+      if (!isAuthenticated && account && !loading) {
+        console.log('Checking for demo wallet association:', account);
+        
+        // Map of demo wallet addresses to emails
+        const demoWallets: Record<string, string> = {
+          '0x90F8bf6A479f320ead074411a4B0e7944Ea8c9C1': 'pro@example.com',
+          '0x8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC': 'user@example.com',
+        };
+        
+        // If we recognize this wallet, auto-login that user
+        if (demoWallets[account]) {
+          console.log(`Auto-logging in as ${demoWallets[account]} for demo`);
+          // Use the existing login function
+          await login(demoWallets[account], 'password');
+        }
+      }
+    };
+    
+    autoLoginForDemo();
+  }, [account, isAuthenticated, loading]);
+
   // Update user wallet address when wallet connection changes
   useEffect(() => {
     if (isAuthenticated && user && account && account !== user.walletAddress) {
