@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
+import React, { createContext, useContext, useEffect, useState, ReactNode, useCallback } from 'react';
 import { useWeb3React } from '@web3-react/core';
 import { InjectedConnector } from '@web3-react/injected-connector';
 import { WalletConnectConnector } from '@web3-react/walletconnect-connector';
@@ -8,18 +8,24 @@ import { ethers } from 'ethers';
 const POLYGON_MAINNET_ID = 137;
 const POLYGON_MUMBAI_ID = 80001;
 
-// Get chain ID from environment, defaulting to Mumbai testnet
-const CHAIN_ID = parseInt(process.env.REACT_APP_CHAIN_ID || '80001', 10);
+// For local development with Ganache
+const GANACHE_ID = 1337;
+
+// Get chain ID from environment, defaulting to Ganache for local development
+const CHAIN_ID = parseInt(process.env.REACT_APP_CHAIN_ID || '1337', 10);
+
+console.log('WalletContext initialized with CHAIN_ID:', CHAIN_ID);
 
 // Configure the connectors
 const injected = new InjectedConnector({
-  supportedChainIds: [POLYGON_MAINNET_ID, POLYGON_MUMBAI_ID],
+  supportedChainIds: [POLYGON_MAINNET_ID, POLYGON_MUMBAI_ID, GANACHE_ID],
 });
 
 const walletconnect = new WalletConnectConnector({
   rpc: {
     [POLYGON_MAINNET_ID]: 'https://polygon-rpc.com',
     [POLYGON_MUMBAI_ID]: 'https://rpc-mumbai.maticvigil.com',
+    [GANACHE_ID]: 'http://localhost:8545',
   },
   qrcode: true,
 });
@@ -58,17 +64,23 @@ export function WalletProvider({ children }: { children: ReactNode }) {
   const [connecting, setConnecting] = useState(false);
   const [walletModalOpen, setWalletModalOpen] = useState(false);
 
+  // Debug log for Web3React state
+  console.log('Web3React state:', { active, account, chainId, library: library ? 'exists' : 'null' });
+
   // Check if connected to the correct network
-  const isCorrectNetwork = chainId === CHAIN_ID;
+  // Also support Ganache for local development
+  const isCorrectNetwork = chainId === CHAIN_ID || chainId === GANACHE_ID;
 
   // Get provider
   const provider = library ? library as ethers.providers.Web3Provider : null;
 
   // Connect wallet
   const connect = async () => {
+    console.log('Connecting wallet...');
     setConnecting(true);
     try {
       await activate(injected, undefined, true);
+      console.log('Wallet connected successfully');
       setWalletModalOpen(false);
     } catch (error) {
       console.error('Error connecting wallet:', error);
@@ -79,22 +91,75 @@ export function WalletProvider({ children }: { children: ReactNode }) {
 
   // Disconnect wallet
   const disconnect = () => {
+    console.log('Disconnecting wallet...');
     try {
       deactivate();
+      console.log('Wallet disconnected successfully');
     } catch (error) {
       console.error('Error disconnecting wallet:', error);
     }
   };
 
+  // Handle MetaMask events
+  const handleAccountsChanged = useCallback((accounts: string[]) => {
+    console.log('Accounts changed:', accounts);
+    if (accounts.length === 0) {
+      // MetaMask is locked or the user has not connected any accounts
+      disconnect();
+    }
+  }, []);
+
+  const handleChainChanged = useCallback((chainId: string) => {
+    console.log('Chain changed:', chainId);
+    // Reload the page when they change networks
+    window.location.reload();
+  }, []);
+
+  // Add listeners for MetaMask events
+  useEffect(() => {
+    const { ethereum } = window as any;
+    if (ethereum && ethereum.isMetaMask) {
+      ethereum.on('accountsChanged', handleAccountsChanged);
+      ethereum.on('chainChanged', handleChainChanged);
+    }
+
+    return () => {
+      if (ethereum && ethereum.isMetaMask) {
+        ethereum.removeListener('accountsChanged', handleAccountsChanged);
+        ethereum.removeListener('chainChanged', handleChainChanged);
+      }
+    };
+  }, [handleAccountsChanged, handleChainChanged]);
+
   // Switch to the correct network
   const switchNetwork = async () => {
+    console.log('Switching network...');
     if (!library?.provider?.request) {
+      console.error('Provider not available for network switch');
       return;
     }
 
     try {
+      // For local Ganache
+      if (CHAIN_ID === GANACHE_ID) {
+        await library.provider.request({
+          method: 'wallet_addEthereumChain',
+          params: [
+            {
+              chainId: `0x${GANACHE_ID.toString(16)}`,
+              chainName: 'Ganache Local',
+              nativeCurrency: {
+                name: 'ETH',
+                symbol: 'ETH',
+                decimals: 18,
+              },
+              rpcUrls: ['http://localhost:8545'],
+            },
+          ],
+        });
+      }
       // Check if Mumbai testnet
-      if (CHAIN_ID === POLYGON_MUMBAI_ID) {
+      else if (CHAIN_ID === POLYGON_MUMBAI_ID) {
         await library.provider.request({
           method: 'wallet_addEthereumChain',
           params: [
@@ -131,6 +196,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
           ],
         });
       }
+      console.log('Network switched successfully');
     } catch (error) {
       console.error('Error switching network:', error);
     }
@@ -138,7 +204,9 @@ export function WalletProvider({ children }: { children: ReactNode }) {
 
   // Auto-connect if previously connected
   useEffect(() => {
+    console.log('Checking for auto-connect...');
     injected.isAuthorized().then((isAuthorized) => {
+      console.log('isAuthorized:', isAuthorized);
       if (isAuthorized) {
         activate(injected, undefined, true).catch((error) => {
           console.error('Error auto-connecting wallet:', error);
@@ -147,7 +215,12 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     });
   }, [activate]);
 
-      const value = {
+  // Log any state changes
+  useEffect(() => {
+    console.log('WalletContext state updated:', { active, account, chainId, isCorrectNetwork });
+  }, [active, account, chainId, isCorrectNetwork]);
+
+  const value = {
     connect,
     disconnect,
     account,

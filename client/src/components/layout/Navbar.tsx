@@ -32,6 +32,7 @@ import {
 } from '@mui/icons-material';
 import { useWallet } from '../../contexts/WalletContext';
 import { useAuth } from '../../contexts/AuthContext';
+import ConnectWalletButton from '../wallet/ConnectWalletButton';
 
 // Logo component
 const Logo = () => (
@@ -123,38 +124,26 @@ const Navbar: React.FC = () => {
   ];
   
   return (
-    <AppBar 
-      position="sticky" 
-      elevation={trigger ? 4 : 0}
-      sx={{ 
-        backgroundColor: trigger ? 'rgba(18, 18, 18, 0.95)' : 'transparent',
-        backdropFilter: trigger ? 'blur(8px)' : 'none',
-        transition: 'background-color 0.3s ease, backdrop-filter 0.3s ease'
-      }}
-    >
+    <AppBar position="static" elevation={trigger ? 4 : 0} sx={{ bgcolor: 'background.default', borderBottom: '1px solid', borderColor: 'divider' }}>
       <Container maxWidth="xl">
         <Toolbar disableGutters>
-          {/* Logo - on all screens */}
-          <Box sx={{ display: { xs: 'none', md: 'flex' }, mr: 4 }}>
-            <Logo />
-          </Box>
-          
-          {/* Mobile menu icon */}
-          <Box sx={{ flexGrow: 0, display: { xs: 'flex', md: 'none' } }}>
+          {/* Logo - mobile */}
+          <Box sx={{ flexGrow: 1, display: { xs: 'flex', md: 'none' } }}>
             <IconButton
               size="large"
               aria-label="menu"
-              aria-controls="menu-mobile"
+              aria-controls="menu-appbar"
               aria-haspopup="true"
               onClick={handleMobileMenuOpen}
               color="inherit"
             >
               <MenuIcon />
             </IconButton>
+            <Logo />
           </Box>
           
-          {/* Logo centered on mobile */}
-          <Box sx={{ flexGrow: 1, display: { xs: 'flex', md: 'none' }, justifyContent: 'center' }}>
+          {/* Logo - desktop */}
+          <Box sx={{ display: { xs: 'none', md: 'flex' }, mr: 2 }}>
             <Logo />
           </Box>
           
@@ -186,26 +175,9 @@ const Navbar: React.FC = () => {
           {/* Right side - Wallet & User */}
           <Box sx={{ flexGrow: 0, display: 'flex', alignItems: 'center' }}>
             {/* Wallet connect button */}
-            {!active ? (
-              <Button
-                variant="outlined"
-                color="primary"
-                startIcon={<Wallet />}
-                onClick={handleWalletConnect}
-                sx={{ mr: 2, display: { xs: 'none', sm: 'flex' } }}
-              >
-                Connect Wallet
-              </Button>
-            ) : (
-              <Chip
-                icon={<Wallet />}
-                label={formatAddress(account)}
-                color={isCorrectNetwork ? "primary" : "error"}
-                variant="outlined"
-                size="medium"
-                sx={{ mr: 2, display: { xs: 'none', sm: 'flex' } }}
-              />
-            )}
+            <Box sx={{ mr: 2, display: { xs: 'none', sm: 'flex' } }}>
+              <ConnectWalletButton />
+            </Box>
             
             {/* User menu */}
             {isAuthenticated ? (
@@ -232,25 +204,13 @@ const Navbar: React.FC = () => {
       
       {/* Mobile Menu */}
       <Menu
-        id="menu-mobile"
         anchorEl={mobileMenuAnchorEl}
-        anchorOrigin={{
-          vertical: 'top',
-          horizontal: 'right',
-        }}
-        transformOrigin={{
-          vertical: 'top',
-          horizontal: 'right',
-        }}
+        id="mobile-menu"
         open={isMobileMenuOpen}
         onClose={handleMobileMenuClose}
-        keepMounted
         PaperProps={{
-          sx: {
-            mt: 5,
-            width: 240,
-            maxHeight: '85vh',
-          },
+          elevation: 0,
+          sx: { width: 250, maxWidth: '100%' }
         }}
       >
         {navLinks.map((link) => (
@@ -288,21 +248,14 @@ const Navbar: React.FC = () => {
         
         <Divider />
         
-        {!active ? (
-          <MenuItem onClick={handleWalletConnect}>
-            <ListItemIcon>
-              <Wallet />
-            </ListItemIcon>
-            <ListItemText>Connect Wallet</ListItemText>
-          </MenuItem>
-        ) : (
-          <MenuItem onClick={handleMobileMenuClose}>
-            <ListItemIcon>
-              <Wallet color={isCorrectNetwork ? "primary" : "error"} />
-            </ListItemIcon>
-            <ListItemText>{formatAddress(account)}</ListItemText>
-          </MenuItem>
-        )}
+        <MenuItem onClick={handleWalletConnect}>
+          <ListItemIcon>
+            <Wallet />
+          </ListItemIcon>
+          <ListItemText>
+            {active ? formatAddress(account) : 'Connect Wallet'}
+          </ListItemText>
+        </MenuItem>
         
         {isAuthenticated ? (
           <>
