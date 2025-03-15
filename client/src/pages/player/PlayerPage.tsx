@@ -107,7 +107,7 @@ const PlayerPage: React.FC = () => {
       <Container maxWidth="lg" sx={{ mt: 4, textAlign: 'center' }}>
         <CircularProgress size={60} />
         <Typography variant="h6" sx={{ mt: 2 }}>
-          Loading content...
+          Loading film...
         </Typography>
       </Container>
     );
@@ -117,8 +117,8 @@ const PlayerPage: React.FC = () => {
     return (
       <Container maxWidth="lg" sx={{ mt: 4, textAlign: 'center' }}>
         <Typography variant="h4" color="error">
-            Content Not Found
-          </Typography>
+            Film Not Found
+        </Typography>
         <Typography variant="body1" sx={{ mt: 2 }}>
           The content you're looking for could not be found.
           </Typography>

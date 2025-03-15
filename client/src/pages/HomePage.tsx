@@ -154,7 +154,7 @@ const HomePage: React.FC = () => {
                 component={Link} 
                 to="/marketplace"
               >
-                Explore Content
+                Explore Films
               </Button>
             </Box>
           </Grid>
@@ -168,7 +168,7 @@ const HomePage: React.FC = () => {
             <Box sx={{ flexGrow: 1 }}>
               <Typography variant="h6">Connect your wallet to get started</Typography>
               <Typography variant="body2">
-                Access your content library and discover new titles on the marketplace.
+                Access your film library and discover new titles on the marketplace.
               </Typography>
             </Box>
             <Button 
@@ -184,7 +184,7 @@ const HomePage: React.FC = () => {
 
       {/* Featured Content */}
       <Typography variant="h4" component="h2" gutterBottom>
-        Featured Content
+        Featured Films
       </Typography>
       <Grid container spacing={4} sx={{ mb: 6 }}>
         {featuredContent.map((content) => (

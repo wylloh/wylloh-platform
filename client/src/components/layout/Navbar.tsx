@@ -117,7 +117,7 @@ const Navbar: React.FC = () => {
   ];
   
   // Creator links (if authenticated)
-  const creatorLinks = isAuthenticated ? [
+  const creatorLinks = isAuthenticated && user?.proStatus === 'verified' ? [
     { text: 'Dashboard', to: '/creator/dashboard', icon: <Dashboard /> },
     { text: 'Upload', to: '/creator/upload', icon: <FileUpload /> },
   ] : [];
@@ -169,6 +169,16 @@ const Navbar: React.FC = () => {
                 {link.text}
               </Button>
             ))}
+            
+            {isAuthenticated && user?.proStatus !== 'verified' && (
+              <Button
+                component={RouterLink}
+                to="/collection"
+                sx={{ mx: 1, color: 'white', display: 'block' }}
+              >
+                My Collection
+              </Button>
+            )}
             
             {creatorLinks.map((link) => (
               <Button
