@@ -4,6 +4,18 @@ import { InjectedConnector } from '@web3-react/injected-connector';
 import { WalletConnectConnector } from '@web3-react/walletconnect-connector';
 import { ethers } from 'ethers';
 
+// Add Snackbar for notifications
+import { 
+  Snackbar, 
+  Alert, 
+  Button, 
+  Dialog, 
+  DialogTitle, 
+  DialogContent,
+  DialogContentText,
+  DialogActions
+} from '@mui/material';
+
 // Define chain IDs for supported networks
 const POLYGON_MAINNET_ID = 137;
 const POLYGON_MUMBAI_ID = 80001;
@@ -68,6 +80,26 @@ export function WalletProvider({ children }: { children: ReactNode }) {
   const [connecting, setConnecting] = useState(false);
   const [walletModalOpen, setWalletModalOpen] = useState(false);
   const [skipAutoConnect, setSkipAutoConnect] = useState(false);
+  
+  // Notification states
+  const [notification, setNotification] = useState<{
+    show: boolean;
+    message: string;
+    severity: 'success' | 'info' | 'warning' | 'error';
+  }>({
+    show: false,
+    message: '',
+    severity: 'info'
+  });
+  
+  // Wallet switch prompt dialog state
+  const [walletPrompt, setWalletPrompt] = useState<{
+    show: boolean;
+    account: string | null;
+  }>({
+    show: false,
+    account: null
+  });
 
   // Debug log for Web3React state
   console.log('Web3React state:', { active, account, chainId, library: library ? 'exists' : 'null' });
@@ -139,14 +171,85 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  // Handle MetaMask events
+  // Handle accounts changed (user switched accounts in MetaMask)
   const handleAccountsChanged = useCallback((accounts: string[]) => {
-    console.log('Accounts changed:', accounts);
+    console.log('WalletContext - Wallet accounts changed:', accounts);
+    
     if (accounts.length === 0) {
-      // MetaMask is locked or the user has not connected any accounts
+      // User disconnected their wallet
+      console.log('WalletContext - No accounts connected, disconnecting');
+      
+      // Show notification about wallet disconnect
+      setNotification({
+        show: true,
+        message: 'Wallet disconnected. You have been logged out.',
+        severity: 'info'
+      });
+      
       disconnect();
+    } else {
+      // User switched to a different account
+      const newAccount = accounts[0];
+      console.log('WalletContext - New account:', newAccount);
+      
+      // Show prompt to connect the new wallet
+      setWalletPrompt({
+        show: true,
+        account: newAccount
+      });
     }
-  }, []);
+  }, [disconnect]);
+
+  // Handle connecting new wallet after switch
+  const handleConnectNewWallet = useCallback(() => {
+    if (!walletPrompt.account) return;
+    
+    // Close the prompt
+    setWalletPrompt({
+      show: false,
+      account: null
+    });
+    
+    // Show notification about wallet switch
+    setNotification({
+      show: true,
+      message: 'Wallet switched. Connecting to new account...',
+      severity: 'info'
+    });
+    
+    // Dispatch a custom event to notify the app about the account change
+    const walletChangeEvent = new CustomEvent('wallet-account-changed', { 
+      detail: { account: walletPrompt.account }
+    });
+    window.dispatchEvent(walletChangeEvent);
+  }, [walletPrompt.account]);
+  
+  // Handle declining to connect new wallet
+  const handleDeclineWalletConnect = useCallback(() => {
+    // Close the prompt
+    setWalletPrompt({
+      show: false,
+      account: null
+    });
+    
+    // Disconnect completely to be safe
+    disconnect();
+    
+    // Show notification
+    setNotification({
+      show: true,
+      message: 'New wallet connection declined. You have been logged out.',
+      severity: 'info'
+    });
+  }, [disconnect]);
+  
+  // Handle closing the notification
+  const handleCloseNotification = () => {
+    setNotification(prev => ({
+      ...prev,
+      show: false
+    }));
+  };
 
   const handleChainChanged = useCallback((chainId: string) => {
     console.log('Chain changed:', chainId);
@@ -294,7 +397,47 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     setSkipAutoConnect,
   };
 
-  return <WalletContext.Provider value={value}>{children}</WalletContext.Provider>;
+  // Return context provider with notifications and dialogs
+  return (
+    <WalletContext.Provider value={value}>
+      {children}
+      
+      {/* Notification snackbar */}
+      <Snackbar 
+        open={notification.show} 
+        autoHideDuration={6000} 
+        onClose={handleCloseNotification}
+        anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
+      >
+        <Alert onClose={handleCloseNotification} severity={notification.severity}>
+          {notification.message}
+        </Alert>
+      </Snackbar>
+      
+      {/* Wallet switch prompt dialog */}
+      <Dialog
+        open={walletPrompt.show}
+        onClose={handleDeclineWalletConnect}
+      >
+        <DialogTitle>New Wallet Detected</DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            A new wallet has been detected: {walletPrompt.account ? `${walletPrompt.account.slice(0, 6)}...${walletPrompt.account.slice(-4)}` : ''}
+            <br /><br />
+            Would you like to connect this wallet and sign in with the associated account?
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleDeclineWalletConnect} color="error">
+            Decline
+          </Button>
+          <Button onClick={handleConnectNewWallet} color="primary" autoFocus>
+            Connect
+          </Button>
+        </DialogActions>
+      </Dialog>
+    </WalletContext.Provider>
+  );
 }
 
 export function useWallet() {

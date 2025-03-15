@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   Button, 
   Dialog, 
@@ -32,12 +32,17 @@ const shortenAddress = (address: string) => {
 };
 
 const ConnectWalletButton: React.FC = () => {
-  const { connect, disconnect, account, active, chainId, isCorrectNetwork, switchNetwork, connecting, provider, skipAutoConnect, setSkipAutoConnect } = useWallet();
+  const { connect, disconnect, account, active, chainId, isCorrectNetwork, switchNetwork, connecting, provider } = useWallet();
   const { isAuthenticated, login } = useAuth();
   const [open, setOpen] = useState(false);
   const [balance, setBalance] = useState<string | null>(null);
   const [isMetaMaskInstalled, setIsMetaMaskInstalled] = useState<boolean | null>(null);
   const [walletDebugInfo, setWalletDebugInfo] = useState<string>('');
+  const [connectionIndicator, setConnectionIndicator] = useState({
+    show: false,
+    message: '',
+    type: 'info' as 'info' | 'warning' | 'error' | 'success'
+  });
 
   // Debug logs
   console.log('ConnectWalletButton rendered with:', { 
@@ -87,46 +92,34 @@ const ConnectWalletButton: React.FC = () => {
     getBalance();
   }, [active, account, provider]);
 
-  // Toggle auto-connect for testing
-  const handleSkipAutoConnectToggle = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const newValue = event.target.checked;
-    console.log('Setting skipAutoConnect to:', newValue);
-    setSkipAutoConnect(newValue);
-    
-    // If disabling auto-connect and already connected, disconnect
-    if (newValue && active) {
-      console.log('Auto-disconnecting since we disabled auto-connect');
-      disconnect();
-    }
-  };
-
-  // Update debug display to show skip auto-connect status
+  // Update debug display - only in development mode
   useEffect(() => {
     const info = {
       component: 'ConnectWalletButton',
       walletActive: active,
       walletAccount: account,
-      accountType: account ? typeof account : 'null',
-      accountLength: account ? account.length : 0,
-      skipAutoConnect,
+      walletType: getWalletDisplayName(account),
       timestamp: new Date().toISOString()
     };
     
-    setWalletDebugInfo(JSON.stringify(info, null, 2));
-    console.log('Wallet Button Debug:', info);
+    if (process.env.NODE_ENV === 'development') {
+      setWalletDebugInfo(JSON.stringify(info, null, 2));
+      console.log('Wallet Button Debug:', info);
+    }
     
-    // Only auto-connect if not skipping
-    if ((window as any).ethereum && !active && !skipAutoConnect) {
+    // Auto-connect if MetaMask is detected and not already connected
+    const { ethereum } = window as any;
+    if (ethereum && ethereum.isMetaMask && !active) {
       console.log('ConnectWalletButton - MetaMask detected but not connected, auto-connecting...');
       connect().catch(err => console.error('Auto connect error:', err));
     }
-  }, [active, account, connect, skipAutoConnect]);
+  }, [active, connect]);
 
-  // Direct login attempt for recognized wallets
+  // Direct login attempt for recognized wallets - this is actually a good pattern for production
   useEffect(() => {
     // Only attempt if we have an account, are not authenticated, and active
     if (active && account && !isAuthenticated) {
-      console.log('ConnectWalletButton - Attempting direct wallet matching for:', account);
+      console.log('ConnectWalletButton - Attempting wallet auto-login for:', account);
       
       // Demo wallet mapping (lowercase for case-insensitivity)
       const demoWallets: Record<string, string> = {
@@ -138,18 +131,20 @@ const ConnectWalletButton: React.FC = () => {
       if (demoWallets[accountLower]) {
         // We found a matching wallet address
         const email = demoWallets[accountLower];
-        console.log(`ConnectWalletButton - Found matching wallet! Logging in as: ${email}`);
+        console.log(`ConnectWalletButton - Auto-login with wallet: ${getWalletDisplayName(account)}`);
         
-        // Attempt login
+        // Attempt login - this matches production Web3 behavior where connecting a wallet
+        // automatically logs in the associated account
         login(email, 'password')
           .then(success => {
-            console.log(`ConnectWalletButton - Login attempt result for ${email}:`, success);
+            console.log(`Auto-login ${success ? 'successful' : 'failed'} for ${email}`);
           })
           .catch(error => {
-            console.error(`ConnectWalletButton - Login error for ${email}:`, error);
+            console.error(`Auto-login error for ${email}:`, error);
           });
       } else {
-        console.log('ConnectWalletButton - No matching wallet found in:', Object.keys(demoWallets));
+        // In production, we would show a registration form for new wallets
+        console.log('Unrecognized wallet - would prompt for registration in production');
       }
     }
   }, [active, account, isAuthenticated, login]);
@@ -213,7 +208,7 @@ const ConnectWalletButton: React.FC = () => {
     };
   }, []);
 
-  // Get wallet display name
+  // Get wallet display name (keep this functionality for the demo)
   const getWalletDisplayName = (address: string | null | undefined): string => {
     if (!address) return 'Not Connected';
     
@@ -227,201 +222,214 @@ const ConnectWalletButton: React.FC = () => {
     return 'Unknown Wallet';
   };
 
-  // Render connecting state
-  if (connecting) {
-    console.log('Rendering connecting state');
-    return (
-      <Button
-        variant="contained"
-        color="primary"
-        startIcon={<CircularProgress size={20} color="inherit" />}
-        disabled
-      >
-        Connecting...
-      </Button>
-    );
-  }
+  // Listen for wallet connection changes
+  useEffect(() => {
+    const handleWalletChanged = (event: Event) => {
+      // Display indicator when wallet changes
+      setConnectionIndicator({
+        show: true,
+        message: 'Wallet changed. Updating connection...',
+        type: 'info'
+      });
+      
+      // Hide after 5 seconds
+      setTimeout(() => {
+        setConnectionIndicator({
+          show: false,
+          message: '',
+          type: 'info'
+        });
+      }, 5000);
+    };
+    
+    window.addEventListener('wallet-account-changed', handleWalletChanged);
+    
+    return () => {
+      window.removeEventListener('wallet-account-changed', handleWalletChanged);
+    };
+  }, []);
+  
+  // Show connection status changes
+  useEffect(() => {
+    if (active && account) {
+      setConnectionIndicator({
+        show: true,
+        message: 'Wallet connected successfully',
+        type: 'success'
+      });
+    } else if (!active && previousActive.current) {
+      setConnectionIndicator({
+        show: true,
+        message: 'Wallet disconnected',
+        type: 'warning'
+      });
+    }
+    
+    // Hide after 5 seconds
+    const timer = setTimeout(() => {
+      setConnectionIndicator({
+        show: false,
+        message: '',
+        type: 'info'
+      });
+    }, 5000);
+    
+    // Track previous active state
+    previousActive.current = active;
+    
+    return () => clearTimeout(timer);
+  }, [active, account]);
+  
+  // Reference to track previous active state
+  const previousActive = useRef(active);
 
-  // Render connected state
-  if (active && account) {
-    console.log('Rendering connected state for account:', account);
-    return (
-      <>
-        <Button
-          variant="contained"
-          color={isCorrectNetwork ? "primary" : "error"}
-          startIcon={<WalletIcon />}
-          onClick={handleClickOpen}
-          sx={{ textTransform: 'none' }}
-        >
-          {isCorrectNetwork ? (
-            <Box sx={{ display: 'flex', alignItems: 'center' }}>
-              <CheckCircleIcon sx={{ fontSize: 16, mr: 0.5 }} />
-              {shortenAddress(account)}
-            </Box>
-          ) : (
-            <Box sx={{ display: 'flex', alignItems: 'center' }}>
-              <WarningIcon sx={{ fontSize: 16, mr: 0.5 }} />
-              Wrong Network
-            </Box>
-          )}
-        </Button>
-        <Dialog open={open} onClose={handleClose}>
-          <DialogTitle>
-            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              Wallet Connected
-              <Chip 
-                icon={<CheckCircleIcon />} 
-                label="Connected" 
-                color="success" 
-                size="small" 
-                variant="outlined" 
-              />
-            </Box>
-          </DialogTitle>
-          <DialogContent>
-            <Paper variant="outlined" sx={{ p: 2, mb: 2 }}>
-              <Typography variant="subtitle2" color="text.secondary" gutterBottom>
-                Wallet Type
-              </Typography>
-              <Typography variant="body1" sx={{ fontWeight: 'bold' }}>
-                {getWalletDisplayName(account)}
-              </Typography>
-            </Paper>
-            
-            <Paper variant="outlined" sx={{ p: 2, mb: 2 }}>
-              <Typography variant="subtitle2" color="text.secondary" gutterBottom>
-                Wallet Address
-              </Typography>
-              <Typography variant="body2" component="div" sx={{ wordBreak: "break-all", fontFamily: "monospace" }}>
-                {account}
-              </Typography>
-            </Paper>
-            
-            {balance !== null && (
-              <Paper variant="outlined" sx={{ p: 2, mb: 2 }}>
-                <Typography variant="subtitle2" color="text.secondary" gutterBottom>
-                  Balance
-                </Typography>
-                <Typography variant="h6">
-                  {balance} ETH
-                </Typography>
-              </Paper>
-            )}
-            
-            {!isCorrectNetwork && (
-              <Box sx={{ mt: 2, mb: 2 }}>
-                <Typography color="error" variant="subtitle1" gutterBottom>
-                  <WarningIcon sx={{ verticalAlign: 'middle', mr: 1 }} />
-                  You are connected to the wrong network
-                </Typography>
-                <Button
-                  variant="contained"
-                  color="primary"
-                  onClick={handleSwitchNetwork}
-                  sx={{ mt: 1 }}
-                >
-                  Switch to Correct Network
-                </Button>
-              </Box>
-            )}
-          </DialogContent>
-          <DialogActions>
-            <Button onClick={handleClose}>Close</Button>
-            <Button onClick={handleDisconnect} color="error">Disconnect</Button>
-          </DialogActions>
-        </Dialog>
-      </>
-    );
-  }
-
-  // Render not connected state
-  console.log('Rendering not connected state');
+  // Render Dialog content
   return (
     <>
       <Button
         variant="contained"
         color="primary"
         startIcon={<WalletIcon />}
-        onClick={handleConnect}
+        onClick={handleClickOpen}
+        sx={{ position: 'relative' }}
       >
-        Connect Wallet
+        {active && account ? (
+          <Box sx={{ display: 'flex', alignItems: 'center' }}>
+            <Box sx={{ display: 'flex', alignItems: 'center' }}>
+              {isCorrectNetwork ? (
+                <CheckCircleIcon sx={{ fontSize: 16, mr: 0.5 }} />
+              ) : (
+                <WarningIcon sx={{ fontSize: 16, mr: 0.5, color: 'error.main' }} />
+              )}
+              {shortenAddress(account)}
+            </Box>
+          </Box>
+        ) : (
+          'Connect Wallet'
+        )}
+        
+        {/* Connection indicator */}
+        {connectionIndicator.show && (
+          <Chip
+            label={connectionIndicator.message}
+            color={
+              connectionIndicator.type === 'success' ? 'success' :
+              connectionIndicator.type === 'warning' ? 'warning' :
+              connectionIndicator.type === 'error' ? 'error' : 'info'
+            }
+            size="small"
+            sx={{
+              position: 'absolute',
+              top: '-20px',
+              left: '50%',
+              transform: 'translateX(-50%)',
+              zIndex: 2,
+              whiteSpace: 'nowrap'
+            }}
+          />
+        )}
       </Button>
-      
-      {/* MetaMask not installed dialog */}
-      {isMetaMaskInstalled === false && open && (
-        <Dialog open={open} onClose={handleClose}>
-          <DialogTitle>MetaMask Not Detected</DialogTitle>
-          <DialogContent>
+      <Dialog open={open} onClose={handleClose} maxWidth="sm" fullWidth>
+        <DialogTitle>
+          Wallet Connection
+          {account && (
+            <Chip 
+              label={getWalletDisplayName(account)} 
+              color={getWalletDisplayName(account).includes('Pro') ? "success" : "primary"}
+              size="small" 
+              sx={{ ml: 1 }} 
+            />
+          )}
+        </DialogTitle>
+        <DialogContent>
+          {!isMetaMaskInstalled && (
             <DialogContentText>
-              To connect your wallet, you need to install the MetaMask browser extension.
-            </DialogContentText>
-            <Box sx={{ display: 'flex', justifyContent: 'center', mt: 3 }}>
+              You need to install MetaMask to connect your wallet.
               <Button
-                variant="contained" 
+                variant="outlined"
                 color="primary"
                 startIcon={<OpenInNewIcon />}
                 onClick={() => window.open('https://metamask.io/download/', '_blank')}
+                sx={{ ml: 2 }}
               >
                 Install MetaMask
               </Button>
-            </Box>
-          </DialogContent>
-          <DialogActions>
-            <Button onClick={handleClose}>Close</Button>
-          </DialogActions>
-        </Dialog>
-      )}
-      
-      {/* Test Mode Controls - only in development */}
-      {process.env.NODE_ENV === 'development' && (
-        <Box sx={{ 
-          position: 'fixed', 
-          top: 0, 
-          right: 0, 
-          bgcolor: 'rgba(0,0,0,0.8)', 
-          color: 'white',
-          p: 1, 
-          zIndex: 9999,
-          borderBottomLeftRadius: 8
-        }}>
-          <FormControlLabel
-            control={
-              <Switch 
-                size="small"
-                checked={skipAutoConnect}
-                onChange={handleSkipAutoConnectToggle}
-                color="warning"
-              />
-            }
-            label={
-              <Typography variant="caption" sx={{ fontSize: '10px' }}>
-                Test Mode (No Auto-Connect)
-              </Typography>
-            }
-          />
-        </Box>
-      )}
-      
-      {/* Debug info */}
-      {process.env.NODE_ENV === 'development' && (
-        <div style={{ 
-          position: 'fixed', 
-          bottom: 0, 
-          left: 0, 
-          backgroundColor: 'rgba(0,0,0,0.8)', 
-          color: 'white',
-          padding: '8px',
-          zIndex: 9999,
-          fontSize: '10px',
-          maxWidth: '300px',
-          maxHeight: '200px',
-          overflow: 'auto',
-          fontFamily: 'monospace'
-        }}>
-          <pre>{walletDebugInfo}</pre>
-        </div>
-      )}
+            </DialogContentText>
+          )}
+
+          {isMetaMaskInstalled && !active && (
+            <DialogContentText>
+              Connect your wallet to access the platform features.
+            </DialogContentText>
+          )}
+
+          {active && account && (
+            <>
+              <Box sx={{ mb: 2 }}>
+                <Typography variant="subtitle1">Connected Wallet</Typography>
+                <Typography variant="body1" sx={{ wordBreak: 'break-all' }}>
+                  {account}
+                </Typography>
+                {balance && (
+                  <Typography variant="body2" color="textSecondary">
+                    Balance: {balance} ETH
+                  </Typography>
+                )}
+              </Box>
+
+              {!isCorrectNetwork && (
+                <Paper elevation={0} sx={{ p: 2, bgcolor: 'warning.light', mb: 2 }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                    <WarningIcon color="warning" sx={{ mr: 1 }} />
+                    <Typography variant="body2">
+                      You're on the wrong network. Please switch to connect to this application.
+                    </Typography>
+                  </Box>
+                  <Button
+                    variant="outlined"
+                    color="warning"
+                    onClick={handleSwitchNetwork}
+                    sx={{ mt: 1 }}
+                  >
+                    Switch Network
+                  </Button>
+                </Paper>
+              )}
+
+              {/* Debug info - only shown in development if explicitly enabled */}
+              {process.env.NODE_ENV === 'development' && process.env.REACT_APP_SHOW_DEBUG === 'true' && (
+                <Box sx={{ mt: 2 }}>
+                  <Divider sx={{ my: 1 }} />
+                  <Typography variant="caption" component="pre" sx={{ 
+                    fontSize: '0.7rem', 
+                    bgcolor: 'grey.100', 
+                    p: 1, 
+                    borderRadius: 1,
+                    overflow: 'auto',
+                    maxHeight: '150px'
+                  }}>
+                    {walletDebugInfo}
+                  </Typography>
+                </Box>
+              )}
+            </>
+          )}
+        </DialogContent>
+        <DialogActions>
+          {active && account ? (
+            <Button onClick={handleDisconnect} color="error">
+              Disconnect
+            </Button>
+          ) : (
+            <Button onClick={handleConnect} color="primary" disabled={!isMetaMaskInstalled || connecting}>
+              {connecting ? 'Connecting...' : 'Connect'}
+            </Button>
+          )}
+          <Button onClick={handleClose} color="inherit">
+            Close
+          </Button>
+        </DialogActions>
+      </Dialog>
     </>
   );
 };

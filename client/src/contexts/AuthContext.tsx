@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode, useRef } from 'react';
+import React, { createContext, useContext, useState, useEffect, ReactNode, useRef, useCallback } from 'react';
 import { useWallet } from './WalletContext';
 
 interface AuthContextType {
@@ -10,18 +10,6 @@ interface AuthContextType {
   requestProStatus: (proData: ProVerificationData) => Promise<boolean>;
   loading: boolean;
   error: string | null;
-}
-
-export interface ProVerificationData {
-  fullName: string;
-  biography: string;
-  professionalLinks: {
-    imdb?: string;
-    website?: string;
-    vimeo?: string;
-    linkedin?: string;
-  };
-  filmographyHighlights?: string;
 }
 
 interface User {
@@ -36,19 +24,102 @@ interface User {
   dateProVerified?: string;
 }
 
+// Export the interface to make it available to other components
+export interface ProVerificationData {
+  fullName: string;
+  biography: string;
+  professionalLinks: {
+    imdb?: string;
+    website?: string;
+    vimeo?: string;
+    linkedin?: string;
+  };
+  filmographyHighlights?: string;
+}
+
+// AuthState interface to strongly type the state
+interface AuthState {
+  user: User | null;
+  loading: boolean;
+  error: string | null;
+  isAuthenticated: boolean;
+}
+
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
-  const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState<boolean>(true);
-  const [error, setError] = useState<string | null>(null);
-  const autoLoginAttempted = useRef<Record<string, boolean>>({});
+  const [state, setState] = useState<AuthState>({
+    user: null,
+    loading: true,
+    error: null,
+    isAuthenticated: false,
+  });
+  
+  // Get wallet context
+  const { account, active } = useWallet();
+  
+  // Keep track of previous account to detect changes
+  const previousAccountRef = React.useRef<string | null | undefined>(account);
+  
+  // Track attempts to avoid infinite auto-login loops
+  const autoLoginAttemptedRef = React.useRef<Record<string, boolean>>({});
 
-  // Safely get wallet context, providing default values
-  const { account = null, skipAutoConnect = false } = useWallet();
-
-  // Check for existing session on initial load
+  // When wallet account changes, log out current user if authenticated
+  useEffect(() => {
+    // Skip initial render
+    if (previousAccountRef.current !== undefined && 
+        account !== previousAccountRef.current && 
+        state.isAuthenticated) {
+      console.log('AuthContext - Wallet account changed, logging out current user');
+      logout();
+    }
+    
+    // Update the ref for next comparison
+    previousAccountRef.current = account;
+  }, [account, state.isAuthenticated]);
+  
+  // Listen for the wallet-account-changed event
+  useEffect(() => {
+    const handleWalletAccountChanged = (event: Event) => {
+      console.log('AuthContext - wallet-account-changed event received');
+      
+      // Extract the new account from the event if available
+      const newAccount = (event as CustomEvent)?.detail?.account;
+      console.log('AuthContext - New wallet account:', newAccount);
+      
+      // Reset auto-login tracking for the new account
+      if (newAccount) {
+        autoLoginAttemptedRef.current[newAccount] = false;
+        
+        // Force logout the current user if authenticated
+        if (state.isAuthenticated) {
+          console.log('AuthContext - Logging out current user due to wallet change');
+          setState({
+            user: null,
+            loading: false,
+            error: null,
+            isAuthenticated: false,
+          });
+          localStorage.removeItem('token');
+          localStorage.removeItem('user');
+        }
+        
+        // Queue the auto-login attempt after this render cycle
+        setTimeout(() => {
+          // Store the wallet address for login attempt after functions are defined
+          localStorage.setItem('pendingWalletLogin', newAccount);
+        }, 100);
+      }
+    };
+    
+    window.addEventListener('wallet-account-changed', handleWalletAccountChanged);
+    
+    return () => {
+      window.removeEventListener('wallet-account-changed', handleWalletAccountChanged);
+    };
+  }, [state.isAuthenticated]);
+  
+  // Load user from localStorage on initial render
   useEffect(() => {
     const checkAuth = async () => {
       try {
@@ -60,8 +131,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           const userData = JSON.parse(localStorage.getItem('user') || '{}');
           
           if (userData && userData.id) {
-            setUser(userData);
-            setIsAuthenticated(true);
+            setState({
+              user: userData,
+              loading: false,
+              error: null,
+              isAuthenticated: true,
+            });
           } else {
             // Invalid stored user data
             localStorage.removeItem('token');
@@ -70,9 +145,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
       } catch (err) {
         console.error('Auth check error:', err);
-        setError('Authentication verification failed');
-      } finally {
-        setLoading(false);
+        setState({
+          user: null,
+          loading: false,
+          error: 'Authentication verification failed',
+          isAuthenticated: false,
+        });
       }
     };
 
@@ -84,22 +162,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const autoLoginForDemo = async () => {
       // Only try to auto-login if not already authenticated and we have a wallet address
       // Also respect the skipAutoConnect flag from WalletContext
-      if (!isAuthenticated && account && !loading && !skipAutoConnect) {
+      if (!state.isAuthenticated && account && !state.loading && !active) {
         // Skip if we've already tried to auto-login with this account
-        if (autoLoginAttempted.current[account]) {
+        if (autoLoginAttemptedRef.current[account]) {
           return;
         }
         
         console.log('Debug - Auto-login check:', { 
-          isAuthenticated, 
+          isAuthenticated: state.isAuthenticated, 
           account, 
-          loading,
-          skipAutoConnect,
+          loading: state.loading,
+          active,
           accountLowerCase: account.toLowerCase(),
         });
         
         // Mark that we've attempted login with this account
-        autoLoginAttempted.current[account] = true;
+        autoLoginAttemptedRef.current[account] = true;
         
         // Map of demo wallet addresses to emails (convert to lowercase for case-insensitive matching)
         const demoWallets: Record<string, string> = {
@@ -126,22 +204,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
     
     autoLoginForDemo();
-  }, [account, isAuthenticated, loading, skipAutoConnect]);
+  }, [account, state.isAuthenticated, state.loading, active]);
 
   // Update user wallet address when wallet connection changes
   useEffect(() => {
-    if (isAuthenticated && user && account && account !== user.walletAddress) {
-      const updatedUser = { ...user, walletAddress: account };
-      setUser(updatedUser);
+    if (state.isAuthenticated && state.user && account && account !== state.user.walletAddress) {
+      const updatedUser = { ...state.user, walletAddress: account };
+      setState({
+        ...state,
+        user: updatedUser,
+      });
       localStorage.setItem('user', JSON.stringify(updatedUser));
       
       // In a real app, you would update this on the server as well
     }
-  }, [account, isAuthenticated, user]);
+  }, [account, state.isAuthenticated, state.user]);
 
+  // Login function
   const login = async (email: string, password: string): Promise<boolean> => {
-    setLoading(true);
-    setError(null);
+    setState({
+      ...state,
+      loading: true,
+      error: null,
+    });
     
     try {
       // In a real app, this would be an API call
@@ -174,23 +259,33 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         localStorage.setItem('token', token);
         localStorage.setItem('user', JSON.stringify(user));
         
-        setUser(user);
-        setIsAuthenticated(true);
-        setLoading(false);
+        setState({
+          user,
+          loading: false,
+          error: null,
+          isAuthenticated: true,
+        });
         return true;
       } else {
         throw new Error('Invalid credentials');
       }
     } catch (err: any) {
-      setError(err.message || 'Login failed');
-      setLoading(false);
+      setState({
+        ...state,
+        error: err.message || 'Login failed',
+        loading: false,
+      });
       return false;
     }
   };
 
+  // Register function
   const register = async (username: string, email: string, password: string): Promise<boolean> => {
-    setLoading(true);
-    setError(null);
+    setState({
+      ...state,
+      loading: true,
+      error: null,
+    });
     
     try {
       // In a real app, this would be an API call
@@ -225,29 +320,39 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         localStorage.setItem('token', token);
         localStorage.setItem('user', JSON.stringify(user));
         
-        setUser(user);
-        setIsAuthenticated(true);
-        setLoading(false);
+        setState({
+          user,
+          loading: false,
+          error: null,
+          isAuthenticated: true,
+        });
         return true;
       } else {
         throw new Error('Registration failed');
       }
     } catch (err: any) {
-      setError(err.message || 'Registration failed');
-      setLoading(false);
+      setState({
+        ...state,
+        error: err.message || 'Registration failed',
+        loading: false,
+      });
       return false;
     }
   };
 
+  // Request Pro Status function
   const requestProStatus = async (proData: ProVerificationData): Promise<boolean> => {
-    setLoading(true);
-    setError(null);
+    setState({
+      ...state,
+      loading: true,
+      error: null,
+    });
     
     try {
       // In a real app, this would be an API call
       // Simulating API call for development
       
-      if (!user) {
+      if (!state.user) {
         throw new Error('You must be logged in to request Pro status');
       }
       
@@ -258,42 +363,95 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       
       if (mockResponse.success) {
         const updatedUser = {
-          ...user,
+          ...state.user,
           proStatus: 'pending' as const, // Use const assertion
           proVerificationData: proData,
           dateProRequested: new Date().toISOString()
         };
         
-        setUser(updatedUser);
+        setState({
+          ...state,
+          user: updatedUser,
+        });
         localStorage.setItem('user', JSON.stringify(updatedUser));
-        setLoading(false);
+        setState({
+          ...state,
+          loading: false,
+        });
         return true;
       } else {
         throw new Error('Failed to submit Pro status request');
       }
     } catch (err: any) {
-      setError(err.message || 'Pro status request failed');
-      setLoading(false);
+      setState({
+        ...state,
+        error: err.message || 'Pro status request failed',
+        loading: false,
+      });
       return false;
     }
   };
 
+  // Logout function
   const logout = () => {
+    console.log('AuthContext - Logging out user:', state.user?.email);
     localStorage.removeItem('token');
     localStorage.removeItem('user');
-    setUser(null);
-    setIsAuthenticated(false);
+    setState({
+      user: null,
+      loading: false,
+      error: null,
+      isAuthenticated: false,
+    });
   };
 
+  // Function to attempt auto-login with a wallet address
+  const attemptAutoLoginWithWallet = useCallback(async (walletAddress: string) => {
+    if (!walletAddress) return;
+    
+    console.log('AuthContext - Attempting auto-login with wallet:', walletAddress);
+    
+    // Map of demo wallet addresses to emails (convert to lowercase for case-insensitive matching)
+    const demoWallets: Record<string, string> = {
+      '0x90f8bf6a479f320ead074411a4b0e7944ea8c9c1': 'pro@example.com',
+      '0x8db97c7cece249c2b98bdc0226cc4c2a57bf52fc': 'user@example.com',
+    };
+    
+    // If we recognize this wallet, auto-login that user (use lowercase for matching)
+    const accountLower = walletAddress.toLowerCase();
+    if (demoWallets[accountLower]) {
+      console.log(`AuthContext - Auto-logging in as ${demoWallets[accountLower]} for wallet`);
+      try {
+        // Use the existing login function
+        const success = await login(demoWallets[accountLower], 'password');
+        console.log('AuthContext - Auto-login result:', success);
+      } catch (error) {
+        console.error('AuthContext - Error during auto-login:', error);
+      }
+    } else {
+      console.log('AuthContext - Wallet not recognized for auto-login:', accountLower);
+    }
+  }, [login]);
+  
+  // Check for pending wallet login after functions are defined
+  useEffect(() => {
+    const pendingWallet = localStorage.getItem('pendingWalletLogin');
+    if (pendingWallet) {
+      console.log('AuthContext - Found pending wallet login:', pendingWallet);
+      attemptAutoLoginWithWallet(pendingWallet);
+      localStorage.removeItem('pendingWalletLogin');
+    }
+  }, [attemptAutoLoginWithWallet]);
+
   const value = {
-    isAuthenticated,
-    user,
+    isAuthenticated: state.isAuthenticated,
+    user: state.user,
     login,
     logout,
     register,
     requestProStatus,
-    loading,
-    error
+    loading: state.loading,
+    error: state.error
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
