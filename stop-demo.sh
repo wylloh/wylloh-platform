@@ -115,10 +115,6 @@ for ENV_FILE in "${ENV_FILES[@]}"; do
   fi
 done
 
-# Clean up demo content from marketplace
-echo "Cleaning up demo content from marketplace..."
-yarn workspace @wylloh/client run cleanup-demo-content
-
 # Clean up demo assets
 echo "Cleaning up demo content..."
 DEMO_FILES=(

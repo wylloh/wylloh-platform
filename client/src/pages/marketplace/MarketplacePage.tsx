@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { 
   Container, 
   Typography, 
@@ -20,7 +20,8 @@ import {
   Pagination,
   SelectChangeEvent,
   IconButton,
-  Tooltip
+  Tooltip,
+  Skeleton
 } from '@mui/material';
 import { 
   Search as SearchIcon, 
@@ -33,136 +34,7 @@ import {
 import { Link } from 'react-router-dom';
 import { useWallet } from '../../contexts/WalletContext';
 import { generatePlaceholderImage } from '../../utils/placeholders';
-
-// Mock content data
-const mockContent = [
-  {
-    id: 'big-buck-bunny',
-    title: 'Big Buck Bunny',
-    description: 'A short film featuring a large rabbit dealing with three bullying rodents.',
-    image: 'https://peach.blender.org/wp-content/uploads/bbb-splash.png',
-    contentType: 'short film',
-    creator: 'Pro Creator',
-    price: 0.01,
-    available: 995,
-    totalSupply: 1000,
-    releaseDate: new Date().toLocaleDateString('en-US'),
-    tokenized: true,
-    tokenId: '0x1234...5678'
-  },
-  {
-    id: '1',
-    title: 'The Digital Frontier',
-    description: 'A journey into the world of blockchain and digital ownership.',
-    image: generatePlaceholderImage('The Digital Frontier'),
-    contentType: 'movie',
-    creator: 'Digital Studios',
-    price: 0.01,
-    available: 250,
-    totalSupply: 1000,
-    releaseDate: '2023-10-15',
-    tokenized: true,
-    tokenId: '0x1234...5678'
-  },
-  {
-    id: '2',
-    title: 'Nature Unveiled',
-    description: 'A breathtaking documentary exploring the wonders of nature.',
-    image: generatePlaceholderImage('Nature Unveiled'),
-    contentType: 'documentary',
-    creator: 'EcoVision Films',
-    price: 0.008,
-    available: 450,
-    totalSupply: 1000,
-    releaseDate: '2023-09-22',
-    tokenized: false,
-    tokenId: ''
-  },
-  {
-    id: '3',
-    title: 'Future Horizons',
-    description: 'A science fiction tale about the future of humanity.',
-    image: generatePlaceholderImage('Future Horizons'),
-    contentType: 'movie',
-    creator: 'Quantum Entertainment',
-    price: 0.015,
-    available: 120,
-    totalSupply: 500,
-    releaseDate: '2023-11-05',
-    tokenized: false,
-    tokenId: ''
-  },
-  {
-    id: '4',
-    title: 'Urban Landscapes',
-    description: 'A visual journey through the world\'s most iconic cities.',
-    image: generatePlaceholderImage('Urban Landscapes'),
-    contentType: 'short film',
-    creator: 'Metropolitan Arts',
-    price: 0.005,
-    available: 800,
-    totalSupply: 1000,
-    releaseDate: '2023-08-30',
-    tokenized: false,
-    tokenId: ''
-  },
-  {
-    id: '5',
-    title: 'Emotional Symphony',
-    description: 'A musical exploration of human emotions.',
-    image: generatePlaceholderImage('Emotional Symphony'),
-    contentType: 'music film',
-    creator: 'Harmony Productions',
-    price: 0.007,
-    available: 600,
-    totalSupply: 2000,
-    releaseDate: '2023-10-10',
-    tokenized: false,
-    tokenId: ''
-  },
-  {
-    id: '6',
-    title: 'Culinary Adventures',
-    description: 'A journey through global cuisines and food cultures.',
-    image: generatePlaceholderImage('Culinary Adventures'),
-    contentType: 'series',
-    creator: 'Gourmet Studios',
-    price: 0.01,
-    available: 350,
-    totalSupply: 1000,
-    releaseDate: '2023-09-15',
-    tokenized: false,
-    tokenId: ''
-  },
-  {
-    id: '7',
-    title: 'Sports Legends',
-    description: 'Stories of triumph and perseverance in sports.',
-    image: generatePlaceholderImage('Sports Legends'),
-    contentType: 'documentary',
-    creator: 'Champion Media',
-    price: 0.009,
-    available: 420,
-    totalSupply: 1000,
-    releaseDate: '2023-10-01',
-    tokenized: false,
-    tokenId: ''
-  },
-  {
-    id: '8',
-    title: 'Ocean Depths',
-    description: 'Exploring the mysteries of the deep sea.',
-    image: generatePlaceholderImage('Ocean Depths'),
-    contentType: 'documentary',
-    creator: 'Deep Blue Productions',
-    price: 0.012,
-    available: 280,
-    totalSupply: 750,
-    releaseDate: '2023-11-15',
-    tokenized: false,
-    tokenId: ''
-  }
-];
+import { contentService, Content } from '../../services/content.service';
 
 // Content type options
 const contentTypes = [
@@ -189,10 +61,120 @@ const MarketplacePage: React.FC = () => {
   const [sortBy, setSortBy] = useState<string>('newest');
   const [page, setPage] = useState<number>(1);
   const [favorites, setFavorites] = useState<string[]>([]);
-  const [filteredContent, setFilteredContent] = useState(mockContent);
+  const [content, setContent] = useState<Content[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const { active } = useWallet();
   
   const itemsPerPage = 8;
+
+  useEffect(() => {
+    const fetchContent = async () => {
+      try {
+        setLoading(true);
+        const data = await contentService.getMarketplaceContent();
+        setContent(data);
+        setError(null);
+      } catch (err) {
+        console.error('Error fetching content:', err);
+        setError('Failed to load content. Please try again later.');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchContent();
+  }, []);
+
+  // Filter and sort content
+  const filteredContent = useMemo(() => {
+    let result = [...content];
+    
+    // Apply content type filter
+    if (contentType !== 'all') {
+      result = result.filter(item => item.contentType === contentType);
+    }
+    
+    // Apply search filter
+    if (searchQuery) {
+      const query = searchQuery.toLowerCase();
+      result = result.filter(
+        item => 
+          item.title.toLowerCase().includes(query) || 
+          item.description.toLowerCase().includes(query) ||
+          item.creator.toLowerCase().includes(query)
+      );
+    }
+    
+    // Apply sorting
+    switch (sortBy) {
+      case 'newest':
+        result.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+        break;
+      case 'price_low':
+        result.sort((a, b) => (a.price || 0) - (b.price || 0));
+        break;
+      case 'price_high':
+        result.sort((a, b) => (b.price || 0) - (a.price || 0));
+        break;
+      case 'availability':
+        result.sort((a, b) => (b.available || 0) - (a.available || 0));
+        break;
+      default:
+        break;
+    }
+    
+    return result;
+  }, [content, searchQuery, contentType, sortBy]);
+
+  // Calculate paginated content
+  const paginatedContent = filteredContent.slice(
+    (page - 1) * itemsPerPage,
+    page * itemsPerPage
+  );
+  const totalPages = Math.ceil(filteredContent.length / itemsPerPage);
+
+  if (loading) {
+    return (
+      <Container maxWidth="lg">
+        <Box sx={{ py: 4 }}>
+          <Typography variant="h4" gutterBottom>Marketplace</Typography>
+          <Grid container spacing={4}>
+            {[...Array(4)].map((_, index) => (
+              <Grid item key={index} xs={12} sm={6} md={3}>
+                <Card>
+                  <Skeleton variant="rectangular" height={140} />
+                  <CardContent>
+                    <Skeleton variant="text" />
+                    <Skeleton variant="text" />
+                    <Skeleton variant="text" width="60%" />
+                  </CardContent>
+                </Card>
+              </Grid>
+            ))}
+          </Grid>
+        </Box>
+      </Container>
+    );
+  }
+
+  if (error) {
+    return (
+      <Container maxWidth="lg">
+        <Box sx={{ py: 4, textAlign: 'center' }}>
+          <Typography variant="h5" color="error" gutterBottom>
+            {error}
+          </Typography>
+          <Button 
+            variant="contained" 
+            onClick={() => window.location.reload()}
+          >
+            Retry
+          </Button>
+        </Box>
+      </Container>
+    );
+  }
 
   const handleContentTypeChange = (event: SelectChangeEvent<string>) => {
     setContentType(event.target.value);
@@ -215,57 +197,6 @@ const MarketplacePage: React.FC = () => {
       setFavorites([...favorites, id]);
     }
   };
-
-  useEffect(() => {
-    // Filter and sort content based on user selections
-    let result = [...mockContent];
-    
-    // Only show tokenized content
-    result = result.filter(item => item.tokenized);
-    
-    // Apply content type filter
-    if (contentType !== 'all') {
-      result = result.filter(item => item.contentType === contentType);
-    }
-    
-    // Apply search filter
-    if (searchQuery) {
-      const query = searchQuery.toLowerCase();
-      result = result.filter(
-        item => 
-          item.title.toLowerCase().includes(query) || 
-          item.description.toLowerCase().includes(query) ||
-          item.creator.toLowerCase().includes(query)
-      );
-    }
-    
-    // Apply sorting
-    switch (sortBy) {
-      case 'newest':
-        result.sort((a, b) => new Date(b.releaseDate).getTime() - new Date(a.releaseDate).getTime());
-        break;
-      case 'price_low':
-        result.sort((a, b) => a.price - b.price);
-        break;
-      case 'price_high':
-        result.sort((a, b) => b.price - a.price);
-        break;
-      case 'availability':
-        result.sort((a, b) => b.available - a.available);
-        break;
-      // Popularity would typically be based on some metric from the backend
-      default:
-        break;
-    }
-    
-    setFilteredContent(result);
-  }, [searchQuery, contentType, sortBy]);
-
-  // Calculate paginated content
-  const startIndex = (page - 1) * itemsPerPage;
-  const endIndex = startIndex + itemsPerPage;
-  const paginatedContent = filteredContent.slice(startIndex, endIndex);
-  const totalPages = Math.ceil(filteredContent.length / itemsPerPage);
 
   return (
     <Container maxWidth="lg">

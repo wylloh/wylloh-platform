@@ -32,16 +32,18 @@ import {
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 
+interface RightsThreshold {
+  quantity: number;
+  type: string;
+  description: string;
+}
+
 // Define interface for form data
 interface TokenizationFormData {
   initialSupply: number;
   royaltyPercentage: number;
   initialPrice: string;
-  rightsThresholds: {
-    quantity: number;
-    type: string;
-    description: string;
-  }[];
+  rightsThresholds: RightsThreshold[];
 }
 
 // Define steps
@@ -68,10 +70,14 @@ const TokenizePublishPage: React.FC = () => {
   
   // State for form data
   const [formData, setFormData] = useState<TokenizationFormData>({
-    initialSupply: 1000,
-    royaltyPercentage: 10,
-    initialPrice: '0.01',
-    rightsThresholds: [
+    initialSupply: contentInfo.tokenization?.initialSupply || 1000,
+    royaltyPercentage: contentInfo.tokenization?.royalty || 10,
+    initialPrice: String(contentInfo.tokenization?.price || '0.01'),
+    rightsThresholds: contentInfo.tokenization?.rightsThresholds?.map((threshold: { quantity: number; type: string }) => ({
+      quantity: threshold.quantity,
+      type: threshold.type,
+      description: threshold.type // Use type as description since it's more descriptive in the upload form
+    })) || [
       { quantity: 1, type: 'personal', description: 'Personal Viewing' },
       { quantity: 100, type: 'small_venue', description: 'Small Venue (50 seats)' },
       { quantity: 5000, type: 'streaming', description: 'Streaming Platform' },

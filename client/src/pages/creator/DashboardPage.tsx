@@ -26,7 +26,8 @@ import {
   DialogContentText,
   DialogActions,
   ListItemIcon,
-  AlertTitle
+  AlertTitle,
+  Skeleton
 } from '@mui/material';
 import {
   Add as AddIcon,
@@ -43,80 +44,9 @@ import {
 } from '@mui/icons-material';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
-
-// Mock content data for demonstration
-const mockContent = [
-  {
-    id: 'big-buck-bunny',
-    title: 'Big Buck Bunny',
-    description: 'A short film featuring a large rabbit dealing with three bullying rodents.',
-    thumbnailUrl: 'https://peach.blender.org/wp-content/uploads/bbb-splash.png',
-    contentType: 'short',
-    status: 'active',
-    visibility: 'public',
-    createdAt: new Date().toISOString(),
-    views: 0,
-    tokenized: false,
-    tokenId: null,
-    sales: 0
-  },
-  {
-    id: '1',
-    title: 'The Digital Frontier',
-    description: 'A journey into the world of blockchain and digital ownership.',
-    thumbnailUrl: 'https://source.unsplash.com/random/400x300/?technology',
-    contentType: 'movie',
-    status: 'active',
-    visibility: 'public',
-    createdAt: '2023-11-10T12:00:00.000Z',
-    views: 245,
-    tokenized: true,
-    tokenId: '12345',
-    sales: 18
-  },
-  {
-    id: '2',
-    title: 'Nature Unveiled',
-    description: 'A breathtaking documentary exploring the wonders of nature.',
-    thumbnailUrl: 'https://source.unsplash.com/random/400x300/?nature',
-    contentType: 'documentary',
-    status: 'active',
-    visibility: 'public',
-    createdAt: '2023-10-15T10:30:00.000Z',
-    views: 189,
-    tokenized: true,
-    tokenId: '23456',
-    sales: 12
-  },
-  {
-    id: '3',
-    title: 'Urban Rhythms',
-    description: 'A visual exploration of city life and urban architecture.',
-    thumbnailUrl: 'https://source.unsplash.com/random/400x300/?city',
-    contentType: 'short',
-    status: 'draft',
-    visibility: 'private',
-    createdAt: '2023-11-05T15:45:00.000Z',
-    views: 0,
-    tokenized: false,
-    tokenId: null,
-    sales: 0
-  },
-  {
-    id: '4',
-    title: 'Cosmic Journey',
-    description: 'Explore the mysteries of the universe in this space documentary.',
-    thumbnailUrl: 'https://source.unsplash.com/random/400x300/?space',
-    contentType: 'documentary',
-    status: 'pending',
-    visibility: 'unlisted',
-    createdAt: '2023-10-28T09:15:00.000Z',
-    views: 42,
-    tokenized: false,
-    tokenId: null,
-    sales: 0
-  }
-];
+import { contentService, Content } from '../../services/content.service';
+import { getProjectIpfsUrl } from '../../utils/ipfs';
+import { generatePlaceholderImage } from '../../utils/placeholders';
 
 // Tab content interface
 interface TabPanelProps {
@@ -155,7 +85,7 @@ function a11yProps(index: number) {
 const DashboardPage: React.FC = () => {
   const { user, isAuthenticated } = useAuth();
   const [loading, setLoading] = useState(true);
-  const [content, setContent] = useState<any[]>([]);
+  const [content, setContent] = useState<Content[]>([]);
   const [tabValue, setTabValue] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [actionSuccess, setActionSuccess] = useState<string | null>(null);
@@ -179,16 +109,15 @@ const DashboardPage: React.FC = () => {
   // Load content data
   useEffect(() => {
     const fetchContent = async () => {
-      setLoading(true);
       try {
-        // In a real app, this would be an API call
-        // For demo purposes, we'll use the mock data
-        setTimeout(() => {
-          setContent(mockContent);
-          setLoading(false);
-        }, 1000);
+        setLoading(true);
+        const data = await contentService.getCreatorContent();
+        setContent(data);
+        setError(null);
       } catch (err) {
-        setError('Failed to load your content');
+        console.error('Error fetching content:', err);
+        setError('Failed to load content. Please try again later.');
+      } finally {
         setLoading(false);
       }
     };
@@ -202,7 +131,7 @@ const DashboardPage: React.FC = () => {
   };
   
   // Handle menu open
-  const handleMenuOpen = (event: React.MouseEvent<HTMLElement>, contentId: string) => {
+  const handleMenuClick = (event: React.MouseEvent<HTMLButtonElement>, contentId: string) => {
     setAnchorEl(event.currentTarget);
     setSelectedContentId(contentId);
   };
@@ -256,7 +185,7 @@ const DashboardPage: React.FC = () => {
             id: selectedContent.id,
             title: selectedContent.title,
             description: selectedContent.description,
-            thumbnailUrl: selectedContent.thumbnailUrl,
+            thumbnailUrl: selectedContent.thumbnailCid,
             contentType: selectedContent.contentType
           }
         }
@@ -267,34 +196,45 @@ const DashboardPage: React.FC = () => {
   };
   
   // Handle visibility toggle
-  const handleToggleVisibility = (contentId: string, currentVisibility: string) => {
-    const newVisibility = currentVisibility === 'public' ? 'private' : 'public';
-    
-    // In a real app, this would call an API
-    setContent(prevContent => 
-      prevContent.map(item => 
-        item.id === contentId 
-          ? {...item, visibility: newVisibility} 
-          : item
-      )
-    );
-    
-    setActionSuccess(`Content is now ${newVisibility}`);
+  const handleToggleVisibility = async (contentId: string, currentVisibility: Content['visibility']) => {
+    try {
+      const newVisibility = currentVisibility === 'public' ? 'private' : 'public';
+      await contentService.updateContentVisibility(contentId, newVisibility);
+      
+      setContent(prevContent => 
+        prevContent.map(item => 
+          item.id === contentId 
+            ? {...item, visibility: newVisibility} 
+            : item
+        )
+      );
+      
+      setActionSuccess(`Content is now ${newVisibility}`);
+    } catch (err) {
+      console.error('Error updating visibility:', err);
+      setError('Failed to update visibility. Please try again.');
+    }
     handleMenuClose();
   };
   
   // Handle status change
-  const handleSetStatus = (contentId: string, newStatus: string) => {
-    // In a real app, this would call an API
-    setContent(prevContent => 
-      prevContent.map(item => 
-        item.id === contentId 
-          ? {...item, status: newStatus} 
-          : item
-      )
-    );
-    
-    setActionSuccess(`Content status changed to ${newStatus}`);
+  const handleSetStatus = async (contentId: string, newStatus: Content['status']) => {
+    try {
+      await contentService.updateContentStatus(contentId, newStatus);
+      
+      setContent(prevContent => 
+        prevContent.map(item => 
+          item.id === contentId 
+            ? {...item, status: newStatus} 
+            : item
+        )
+      );
+      
+      setActionSuccess(`Content status changed to ${newStatus}`);
+    } catch (err) {
+      console.error('Error updating status:', err);
+      setError('Failed to update status. Please try again.');
+    }
     handleMenuClose();
   };
   
@@ -490,7 +430,7 @@ const DashboardPage: React.FC = () => {
               <CardMedia
                 component="img"
                 height="140"
-                image={item.thumbnailUrl}
+                image={item.thumbnailCid ? getProjectIpfsUrl(item.thumbnailCid) : generatePlaceholderImage(item.title)}
                 alt={item.title}
               />
               
@@ -569,7 +509,7 @@ const DashboardPage: React.FC = () => {
                 
                 <IconButton 
                   aria-label="more" 
-                  onClick={(e) => handleMenuOpen(e, item.id)}
+                  onClick={(e) => handleMenuClick(e, item.id)}
                   size="small"
                 >
                   <MoreVertIcon />
@@ -582,6 +522,48 @@ const DashboardPage: React.FC = () => {
     );
   };
   
+  if (loading) {
+    return (
+      <Container maxWidth="lg">
+        <Box sx={{ py: 4 }}>
+          <Typography variant="h4" gutterBottom>Creator Dashboard</Typography>
+          <Grid container spacing={4}>
+            {[...Array(4)].map((_, index) => (
+              <Grid item key={index} xs={12}>
+                <Card>
+                  <Skeleton variant="rectangular" height={140} />
+                  <CardContent>
+                    <Skeleton variant="text" />
+                    <Skeleton variant="text" />
+                    <Skeleton variant="text" width="60%" />
+                  </CardContent>
+                </Card>
+              </Grid>
+            ))}
+          </Grid>
+        </Box>
+      </Container>
+    );
+  }
+
+  if (error) {
+    return (
+      <Container maxWidth="lg">
+        <Box sx={{ py: 4, textAlign: 'center' }}>
+          <Typography variant="h5" color="error" gutterBottom>
+            {error}
+          </Typography>
+          <Button 
+            variant="contained" 
+            onClick={() => window.location.reload()}
+          >
+            Retry
+          </Button>
+        </Box>
+      </Container>
+    );
+  }
+
   return (
     <Container maxWidth="lg">
       <Box sx={{ pt: 4 }}>
@@ -632,10 +614,6 @@ const DashboardPage: React.FC = () => {
               </Button>
             </Box>
           </Paper>
-        ) : loading ? (
-          <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}>
-            <CircularProgress />
-          </Box>
         ) : (
           <>
             {/* Statistics Section */}
@@ -684,7 +662,7 @@ const DashboardPage: React.FC = () => {
           onClose={handleMenuClose}
         >
           <MenuItem 
-            onClick={() => selectedContentId && handleToggleVisibility(
+            onClick={(e) => selectedContentId && handleToggleVisibility(
               selectedContentId, 
               content.find(item => item.id === selectedContentId)?.visibility || 'private'
             )}

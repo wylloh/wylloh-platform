@@ -44,6 +44,8 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useWallet } from '../../contexts/WalletContext';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import { uploadToIPFS, checkIpfsConnection } from '../../utils/ipfs';
+import { Buffer } from 'buffer';
 
 // Define content types
 const CONTENT_TYPES = [
@@ -438,48 +440,24 @@ const UploadForm: React.FC = () => {
   const uploadFile = async (file: File, fileType: 'mainFile' | 'previewFile' | 'thumbnailFile'): Promise<string> => {
     if (!file) throw new Error('No file provided');
     
+    // Check IPFS connection first
+    const isConnected = await checkIpfsConnection();
+    if (!isConnected) {
+      throw new Error('Cannot connect to IPFS. Please ensure the IPFS daemon is running in offline mode.');
+    }
+    
     // Set upload status to uploading
     setUploadStatus(prev => ({
       ...prev,
       [fileType]: { progress: 0, status: 'uploading' }
     }));
     
-    // Create form data for file upload
-    const formData = new FormData();
-    formData.append('file', file);
-    
-    // Upload file to IPFS through our API
-    // In a real implementation, we would make an actual API call
-    // Here we'll simulate the upload process for demonstration
-
     try {
-      // Upload file to IPFS through our API
-      // In a real implementation, we would make an actual API call
-      // Here we'll simulate the upload process
+      // Convert file to buffer
+      const buffer = await file.arrayBuffer().then(Buffer.from);
       
-      // Simulate API delay and progress updates
-      await new Promise<void>((resolve) => {
-        let progress = 0;
-        const interval = setInterval(() => {
-          progress += 10;
-          
-          setUploadStatus(prev => ({
-            ...prev,
-            [fileType]: { 
-              ...prev[fileType],
-              progress 
-            }
-          }));
-          
-          if (progress >= 100) {
-            clearInterval(interval);
-            resolve();
-          }
-        }, 300);
-      });
-      
-      // Simulate a successful response with a CID
-      const mockCid = `Qm${Math.random().toString(36).substring(2, 15)}${Math.random().toString(36).substring(2, 15)}`;
+      // Upload to local IPFS node
+      const result = await uploadToIPFS(buffer);
       
       // Update upload status to success
       setUploadStatus(prev => ({
@@ -487,12 +465,14 @@ const UploadForm: React.FC = () => {
         [fileType]: { 
           progress: 100, 
           status: 'success',
-          cid: mockCid
+          cid: result.cid
         }
       }));
       
-      return mockCid;
+      return result.cid;
     } catch (error: any) {
+      console.error(`Error uploading ${fileType}:`, error);
+      
       // Update upload status to error
       setUploadStatus(prev => ({
         ...prev,
@@ -516,22 +496,36 @@ const UploadForm: React.FC = () => {
     
     try {
       // Upload main file
-      const mainFileCid = formData.mainFile 
-        ? await uploadFile(formData.mainFile, 'mainFile')
-        : '';
+      let mainFileCid = '';
+      try {
+        mainFileCid = formData.mainFile 
+          ? await uploadFile(formData.mainFile, 'mainFile')
+          : '';
+      } catch (error: any) {
+        throw new Error(`Failed to upload main file: ${error.message}`);
+      }
       
       // Upload preview file if provided
-      const previewCid = formData.previewFile 
-        ? await uploadFile(formData.previewFile, 'previewFile')
-        : '';
+      let previewCid = '';
+      try {
+        previewCid = formData.previewFile 
+          ? await uploadFile(formData.previewFile, 'previewFile')
+          : '';
+      } catch (error: any) {
+        console.warn('Preview file upload failed:', error);
+        // Continue without preview file
+      }
       
       // Upload thumbnail if provided
-      const thumbnailCid = formData.thumbnailFile 
-        ? await uploadFile(formData.thumbnailFile, 'thumbnailFile')
-        : '';
-      
-      // Simulate API call to create content
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      let thumbnailCid = '';
+      try {
+        thumbnailCid = formData.thumbnailFile 
+          ? await uploadFile(formData.thumbnailFile, 'thumbnailFile')
+          : '';
+      } catch (error: any) {
+        console.warn('Thumbnail upload failed:', error);
+        // Continue without thumbnail
+      }
       
       // Generate a unique ID for the content
       const contentId = `content-${Date.now()}`;
@@ -551,7 +545,8 @@ const UploadForm: React.FC = () => {
               mainFileCid,
               previewCid,
               thumbnailCid,
-              metadata: formData.metadata
+              metadata: formData.metadata,
+              tokenization: formData.tokenization
             }
           }
         });
@@ -559,6 +554,16 @@ const UploadForm: React.FC = () => {
     } catch (error: any) {
       console.error('Error submitting content:', error);
       setSubmitError(error.message || 'Failed to submit content');
+      
+      // Show error in UI
+      setUploadStatus(prev => ({
+        ...prev,
+        mainFile: { 
+          ...prev.mainFile,
+          status: 'error',
+          message: error.message
+        }
+      }));
     } finally {
       setSubmitting(false);
     }
@@ -1063,6 +1068,14 @@ const UploadForm: React.FC = () => {
       <Typography variant="h6" gutterBottom>
         Tokenization Settings
       </Typography>
+
+      <Alert severity="info" sx={{ mb: 3 }}>
+        <AlertTitle>Preliminary Settings</AlertTitle>
+        <Typography variant="body2">
+          These settings are initial values that you can adjust in the final tokenization step before publishing to the marketplace. Once tokenized, these settings cannot be changed.
+        </Typography>
+      </Alert>
+
       <Grid container spacing={3}>
         <Grid item xs={12}>
           <FormControl fullWidth>
