@@ -18,6 +18,8 @@ import {
 import { Link } from 'react-router-dom';
 import { PlayArrow, Info } from '@mui/icons-material';
 import { contentService, PurchasedContent } from '../../services/content.service';
+import { generatePlaceholderImage } from '../../utils/placeholders';
+import { getProjectIpfsUrl } from '../../utils/ipfs';
 
 const MyCollectionPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
@@ -29,6 +31,7 @@ const MyCollectionPage: React.FC = () => {
       try {
         setLoading(true);
         const collection = await contentService.getPurchasedContent();
+        console.log('Fetched collection:', collection);
         setPurchasedContent(collection);
         setError(null);
       } catch (err) {
@@ -41,6 +44,22 @@ const MyCollectionPage: React.FC = () => {
 
     fetchCollection();
   }, []);
+
+  // Helper function to get image URL for content
+  const getContentImageUrl = (content: PurchasedContent) => {
+    if (content.thumbnailCid) {
+      console.log('Using thumbnailCid for image:', content.thumbnailCid);
+      return getProjectIpfsUrl(content.thumbnailCid);
+    }
+    
+    if (content.image) {
+      console.log('Using image URL:', content.image);
+      return content.image;
+    }
+    
+    console.log('Using placeholder for image with title:', content.title);
+    return generatePlaceholderImage(content.title);
+  };
 
   return (
     <Container maxWidth="lg">
@@ -80,7 +99,7 @@ const MyCollectionPage: React.FC = () => {
                   <CardMedia
                     component="img"
                     height="140"
-                    image={content.image}
+                    image={getContentImageUrl(content)}
                     alt={content.title}
                   />
                   
@@ -122,7 +141,7 @@ const MyCollectionPage: React.FC = () => {
                       size="small" 
                       startIcon={<Info />}
                       component={Link}
-                      to={`/marketplace/${content.id}`}
+                      to={`/marketplace/content/${content.id}`}
                     >
                       Details
                     </Button>

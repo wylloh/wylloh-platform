@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, Link } from 'react-router-dom';
 import {
   Box,
   Container,
@@ -16,65 +16,72 @@ import {
   Card,
   CardContent,
   Grid,
-  Divider
+  Divider,
+  Alert
 } from '@mui/material';
 import { VerifiedUser, ShoppingCart, Warning } from '@mui/icons-material';
 import { useWallet } from '../../contexts/WalletContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { usePlatform } from '../../contexts/PlatformContext';
 import PlayerContainer from '../../components/player/PlayerContainer';
-
-// Mock content data (would be fetched from API in a real app)
-const mockContent = [
-  {
-    id: '1',
-    title: 'The Digital Frontier',
-    description: 'A journey into the world of blockchain and digital ownership.',
-    previewUrl: 'https://sample-videos.com/video123/mp4/720/big_buck_bunny_720p_1mb.mp4', // Sample video URL
-    fullContentUrl: 'https://sample-videos.com/video123/mp4/720/big_buck_bunny_720p_10mb.mp4', // Sample video URL
-    thumbnailUrl: 'https://source.unsplash.com/random/800x500/?technology',
-    contentType: 'movie',
-    creator: 'Digital Studios',
-    duration: '84 minutes',
-    previewDuration: '2 minutes',
-    owned: false,
-    price: 0.01
-  },
-  // Additional mock content would be here
-];
+import { contentService, Content, PurchasedContent } from '../../services/content.service';
+import { getProjectIpfsUrl } from '../../utils/ipfs';
+import { generatePlaceholderImage } from '../../utils/placeholders';
 
 const PlayerPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
-  const [content, setContent] = useState<any | null>(null);
+  const [content, setContent] = useState<Content | null>(null);
   const [loading, setLoading] = useState(true);
   const [purchaseDialogOpen, setPurchaseDialogOpen] = useState(false);
   const [previewEndDialogOpen, setPreviewEndDialogOpen] = useState(false);
   const [isPreview, setIsPreview] = useState(true);
+  const [isPurchased, setIsPurchased] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   
   const navigate = useNavigate();
   const { active, isCorrectNetwork } = useWallet();
   const { isAuthenticated } = useAuth();
   const { isSeedOne, isTouchDevice } = usePlatform();
   
+  // Check if a user owns this content
+  const checkOwnership = async (contentId: string) => {
+    try {
+      const purchasedContent = await contentService.getPurchasedContent();
+      console.log('Checking if user owns content:', contentId, 'in', purchasedContent);
+      const isOwned = purchasedContent.some(item => item.id === contentId);
+      setIsPreview(!isOwned);
+      setIsPurchased(isOwned);
+      return isOwned;
+    } catch (err) {
+      console.error('Error checking ownership:', err);
+      return false;
+    }
+  };
+  
   // Load content data
   useEffect(() => {
     const fetchContent = async () => {
+      if (!id) {
+        setError('No content ID provided');
+        setLoading(false);
+        return;
+      }
+
       setLoading(true);
       try {
-        // In a real app, this would be an API call
-        // Simulating API delay
-        setTimeout(() => {
-          const foundContent = mockContent.find(item => item.id === id);
-          if (foundContent) {
-            setContent(foundContent);
-            // Check if user owns this content (would be based on blockchain in real app)
-            // For demo, let's assume content with ID '1' is not owned, others are
-            setIsPreview(id === '1');
-          }
-          setLoading(false);
-        }, 1500);
+        const contentData = await contentService.getContentById(id);
+        console.log('Fetched content:', contentData);
+        
+        if (contentData) {
+          setContent(contentData);
+          await checkOwnership(id);
+        } else {
+          setError('Content not found');
+        }
       } catch (error) {
         console.error('Error fetching content:', error);
+        setError('Failed to load content');
+      } finally {
         setLoading(false);
       }
     };
@@ -83,23 +90,61 @@ const PlayerPage: React.FC = () => {
   }, [id]);
   
   const handlePreviewEnded = () => {
-        setPreviewEndDialogOpen(true);
+    setPreviewEndDialogOpen(true);
   };
   
   const handlePurchase = () => {
     setPurchaseDialogOpen(true);
   };
   
-  const handleConfirmPurchase = () => {
-    // Here you would integrate with web3 to execute purchase
-    setPurchaseDialogOpen(false);
-  
-    // For the demo, simulate purchase success
-    setIsPreview(false);
+  const handleConfirmPurchase = async () => {
+    if (!content) return;
+    
+    try {
+      // Purchase the token
+      await contentService.purchaseToken(content.id, 1);
+      
+      // Close dialog and update state
+      setPurchaseDialogOpen(false);
+      setIsPreview(false);
+      setIsPurchased(true);
+    } catch (error) {
+      console.error('Error purchasing content:', error);
+      // Show error to user
+    }
   };
   
   const handleBack = () => {
     navigate(-1);
+  };
+  
+  // Get appropriate video URL
+  const getVideoUrl = () => {
+    if (!content) return '';
+    
+    if (!isPreview && content.mainFileCid) {
+      // Full content
+      return getProjectIpfsUrl(content.mainFileCid);
+    } else if (content.previewCid) {
+      // Preview content
+      return getProjectIpfsUrl(content.previewCid);
+    } else {
+      // Fallback to mock URL
+      return 'https://sample-videos.com/video123/mp4/720/big_buck_bunny_720p_2mb.mp4';
+    }
+  };
+  
+  // Get thumbnail URL
+  const getThumbnailUrl = () => {
+    if (!content) return '';
+    
+    if (content.thumbnailCid) {
+      return getProjectIpfsUrl(content.thumbnailCid);
+    } else if (content.image) {
+      return content.image;
+    } else {
+      return generatePlaceholderImage(content?.title || 'Video');
+    }
   };
   
   if (loading) {
@@ -107,35 +152,42 @@ const PlayerPage: React.FC = () => {
       <Container maxWidth="lg" sx={{ mt: 4, textAlign: 'center' }}>
         <CircularProgress size={60} />
         <Typography variant="h6" sx={{ mt: 2 }}>
-          Loading film...
+          Loading content...
         </Typography>
       </Container>
     );
   }
   
-  if (!content) {
+  if (error || !content) {
     return (
-      <Container maxWidth="lg" sx={{ mt: 4, textAlign: 'center' }}>
-        <Typography variant="h4" color="error">
-            Film Not Found
-        </Typography>
-        <Typography variant="body1" sx={{ mt: 2 }}>
-          The content you're looking for could not be found.
+      <Container maxWidth="lg" sx={{ mt: 4 }}>
+        <Alert severity="error" sx={{ mb: 3 }}>
+          {error || 'Content not found'}
+        </Alert>
+        <Box sx={{ textAlign: 'center' }}>
+          <Typography variant="body1" sx={{ mt: 2 }}>
+            The content you're looking for could not be found.
           </Typography>
           <Button 
             variant="contained" 
-          color="primary" 
-          sx={{ mt: 3 }}
-          onClick={() => navigate('/marketplace')}
-        >
-          Browse Marketplace
+            color="primary" 
+            sx={{ mt: 3, mr: 2 }}
+            component={Link}
+            to="/marketplace"
+          >
+            Browse Marketplace
           </Button>
+          <Button 
+            variant="outlined"
+            sx={{ mt: 3 }}
+            onClick={() => navigate(-1)}
+          >
+            Go Back
+          </Button>
+        </Box>
       </Container>
     );
   }
-  
-  // Determine content URL based on preview status
-  const videoUrl = isPreview ? content.previewUrl : content.fullContentUrl;
   
   return (
     <Box sx={{ 
@@ -148,13 +200,13 @@ const PlayerPage: React.FC = () => {
       <Container maxWidth="xl" disableGutters={isSeedOne}>
         {/* Player Section */}
         <PlayerContainer
-          src={videoUrl}
-          poster={content.thumbnailUrl}
+          src={getVideoUrl()}
+          poster={getThumbnailUrl()}
           contentMetadata={{
             title: content.title,
             creator: content.creator,
             description: content.description,
-            duration: content.duration
+            duration: content.metadata?.duration || '10 minutes'
           }}
           previewMode={isPreview}
           isPlatformSeedOne={isSeedOne}
@@ -171,30 +223,30 @@ const PlayerPage: React.FC = () => {
                   <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
                     <Box>
                       <Typography variant="h4" gutterBottom>
-                  {content.title}
-                </Typography>
+                        {content.title}
+                      </Typography>
                       <Typography variant="subtitle1" color="text.secondary">
-                        {content.creator} • {content.duration}
-                  </Typography>
-                </Box>
+                        {content.creator} • {content.metadata?.duration || '10 minutes'}
+                      </Typography>
+                    </Box>
                     
-                {isPreview ? (
-                    <Button
-                      variant="contained"
-                      color="primary"
-                      startIcon={<ShoppingCart />}
+                    {isPreview ? (
+                      <Button
+                        variant="contained"
+                        color="primary"
+                        startIcon={<ShoppingCart />}
                         onClick={handlePurchase}
                         disabled={!active || !isCorrectNetwork || !isAuthenticated}
-                    >
-                        Purchase ({content.price} ETH)
-                    </Button>
-                ) : (
-                    <Chip 
+                      >
+                        Purchase ({content.price || 0.01} ETH)
+                      </Button>
+                    ) : (
+                      <Chip 
                         icon={<VerifiedUser />}
                         label="Owned"
-                      color="success"
-                      variant="outlined"
-                    />
+                        color="success"
+                        variant="outlined"
+                      />
                     )}
                   </Box>
                   
@@ -235,22 +287,13 @@ const PlayerPage: React.FC = () => {
                     <strong>Type:</strong> {content.contentType}
                   </Typography>
                   <Typography variant="body2" paragraph>
-                    <strong>Duration:</strong> {content.duration}
+                    <strong>Duration:</strong> {content.metadata?.duration || 'Not specified'}
                   </Typography>
                   <Typography variant="body2" paragraph>
                     <strong>Creator:</strong> {content.creator}
                   </Typography>
                   <Typography variant="body2" paragraph>
-                    <strong>Token ID:</strong> #{id}
-                  </Typography>
-                  
-                  <Divider sx={{ my: 2 }} />
-                  
-                  <Typography variant="h6" gutterBottom>
-                    License Info
-                  </Typography>
-                  <Typography variant="body2">
-                    This content is licensed under the Wylloh Content License, which grants the token holder the right to view and use the content for personal, non-commercial purposes.
+                    <strong>Token ID:</strong> #{content.tokenId || content.id}
                   </Typography>
                 </Paper>
               </Grid>
@@ -259,42 +302,52 @@ const PlayerPage: React.FC = () => {
         )}
       </Container>
       
-      {/* Purchase Dialog */}
-      <Dialog open={purchaseDialogOpen} onClose={() => setPurchaseDialogOpen(false)}>
-        <DialogTitle>Purchase Content</DialogTitle>
-        <DialogContent>
-          <DialogContentText>
-            You are about to purchase "{content.title}" for {content.price} ETH. This will grant you a license to view the full content.
-          </DialogContentText>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setPurchaseDialogOpen(false)}>Cancel</Button>
-          <Button onClick={handleConfirmPurchase} color="primary" variant="contained">
-            Confirm Purchase
-          </Button>
-        </DialogActions>
-      </Dialog>
-      
-      {/* Preview End Dialog */}
+      {/* Preview ended dialog */}
       <Dialog open={previewEndDialogOpen} onClose={() => setPreviewEndDialogOpen(false)}>
         <DialogTitle>Preview Ended</DialogTitle>
         <DialogContent>
           <DialogContentText>
-            You've reached the end of the preview for "{content.title}". Purchase a license to view the full content.
+            You have reached the end of the preview for "{content.title}". 
+            Would you like to purchase the full content?
           </DialogContentText>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setPreviewEndDialogOpen(false)}>Close</Button>
+          <Button onClick={() => setPreviewEndDialogOpen(false)}>
+            Close
+          </Button>
           <Button 
+            variant="contained" 
+            color="primary"
             onClick={() => {
               setPreviewEndDialogOpen(false);
               handlePurchase();
             }}
-            color="primary"
-            variant="contained"
             disabled={!active || !isCorrectNetwork || !isAuthenticated}
           >
             Purchase Now
+          </Button>
+        </DialogActions>
+      </Dialog>
+      
+      {/* Purchase dialog */}
+      <Dialog open={purchaseDialogOpen} onClose={() => setPurchaseDialogOpen(false)}>
+        <DialogTitle>Confirm Purchase</DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            You are about to purchase "{content.title}" for {content.price || 0.01} ETH. 
+            This will give you full access to the content.
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setPurchaseDialogOpen(false)}>
+            Cancel
+          </Button>
+          <Button 
+            variant="contained" 
+            color="primary"
+            onClick={handleConfirmPurchase}
+          >
+            Confirm Purchase
           </Button>
         </DialogActions>
       </Dialog>
