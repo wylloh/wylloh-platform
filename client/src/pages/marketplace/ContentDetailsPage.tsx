@@ -35,6 +35,7 @@ import {
   Skeleton,
   IconButton,
   Tooltip,
+  CircularProgress,
 } from '@mui/material';
 import {
   PlayArrow,
@@ -61,6 +62,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { contentService } from '../../services/content.service';
 import { getProjectIpfsUrl } from '../../utils/ipfs';
 import { generatePlaceholderImage } from '../../utils/placeholders';
+import { Content } from '../../services/content.service';
 
 // Add interfaces for content types
 interface SecondaryMarketListing {
@@ -70,35 +72,28 @@ interface SecondaryMarketListing {
 }
 
 // Interface for detailed content display
-interface DetailedContent {
-  id: string;
-  title: string;
-  description: string;
-  longDescription: string;
-  image: string;
-  contentType: string;
-  creator: string;
-  creatorAddress: string;
-  creatorAvatar: string;
-  price: number;
-  available: number;
-  totalSupply: number;
-  releaseDate: string;
-  duration: string;
-  genre: string[];
-  cast: string[];
-  director: string;
-  producer: string;
-  ratings: { imdb: number; metacritic: number };
-  trailerUrl: string;
-  tokenized: boolean;
-  tokenId: string;
-  rightsThresholds: { quantity: number; type: string }[];
-  transactionHistory: { date: string; type: string; quantity: number; price: number }[];
-  secondaryMarket: SecondaryMarketListing[];
-  mainFileCid?: string;
-  thumbnailCid?: string;
-  previewCid?: string;
+interface DetailedContent extends Content {
+  longDescription?: string;
+  releaseDate?: string;
+  duration?: string;
+  ratings?: {
+    imdb: number;
+    metacritic: number;
+  };
+  cast?: string[];
+  director?: string;
+  producer?: string;
+  rightsThresholds?: any[];
+  transactionHistory?: any[];
+  secondaryMarket?: SecondaryMarketListing[];
+  genre?: string[];
+  trailerUrl?: string;
+  creatorAvatar?: string;
+  createdAt: string;
+  status: 'draft' | 'pending' | 'active';
+  visibility: 'public' | 'private' | 'unlisted';
+  views: number;
+  sales: number;
 }
 
 // Mock content data - in a real app, this would come from an API
@@ -144,7 +139,17 @@ const mockContent: DetailedContent[] = [
     ],
     mainFileCid: 'Qm...',
     thumbnailCid: 'Qm...',
-    previewCid: 'Qm...'
+    previewCid: 'Qm...',
+    metadata: {
+      cast: ['John Smith', 'Jane Doe', 'David Johnson'],
+      director: 'Alexandra Rivera',
+      producer: 'Blockchain Media Productions'
+    },
+    createdAt: '2023-10-15T00:00:00.000Z',
+    status: 'active',
+    visibility: 'public',
+    views: 245,
+    sales: 18
   },
   // Additional mock content would be here
 ];
@@ -187,6 +192,11 @@ const ContentDetailsPage: React.FC = () => {
   const { active, account, isCorrectNetwork } = useWallet();
   const { isAuthenticated } = useAuth();
   const navigate = useNavigate();
+  const [purchaseInProgress, setPurchaseInProgress] = useState(false);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [purchaseErrorDialogOpen, setPurchaseErrorDialogOpen] = useState(false);
+  const [purchaseSuccessDialogOpen, setPurchaseSuccessDialogOpen] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchContent = async () => {
@@ -244,7 +254,13 @@ const ContentDetailsPage: React.FC = () => {
             secondaryMarket: [],
             mainFileCid: contentData.mainFileCid,
             thumbnailCid: contentData.thumbnailCid,
-            previewCid: contentData.previewCid
+            previewCid: contentData.previewCid,
+            metadata: contentData.metadata,
+            createdAt: contentData.createdAt,
+            status: contentData.status,
+            visibility: contentData.visibility,
+            views: contentData.views || 0,
+            sales: contentData.sales || 0
           };
           
           setContent(detailedContent);
@@ -286,17 +302,38 @@ const ContentDetailsPage: React.FC = () => {
     setPurchaseDialogOpen(false);
   };
 
-  const handlePurchase = () => {
-    // In a real app, this would initiate the blockchain transaction
-    console.log(`Purchasing ${quantity} tokens for content ${id}`);
-    handlePurchaseDialogClose();
-    // Show success message or navigate to success page
+  const handlePurchase = async () => {
+    if (!content) return;
+    
+    try {
+      // Set a loading state
+      setPurchaseInProgress(true);
+      
+      // Purchase token using content service
+      await contentService.purchaseToken(content.id, Number(quantity));
+      
+      // Close the dialog
+      handlePurchaseDialogClose();
+      
+      // Show success message
+      setSuccessMessage(`Successfully purchased ${quantity} token${Number(quantity) > 1 ? 's' : ''} for "${content.title}".`);
+      
+      // Show success dialog
+      setPurchaseSuccessDialogOpen(true);
+      setPurchaseErrorDialogOpen(false);
+    } catch (error: any) {
+      console.error('Error purchasing token:', error);
+      setErrorMessage(error.message || 'Failed to complete purchase');
+      setPurchaseErrorDialogOpen(true);
+    } finally {
+      setPurchaseInProgress(false);
+    }
   };
 
   // Calculate total price
-  const totalPrice = content ? Number(quantity) * content.price : 0;
+  const totalPrice = content ? Number(quantity) * (content.price || 0) : 0;
 
-  // Update the purchase card to show secondary market prices
+  // Update the purchase card to show ETH
   const renderPurchaseCard = () => {
     if (!content) return null;
     
@@ -323,14 +360,15 @@ const ContentDetailsPage: React.FC = () => {
             </Box>
             <LinearProgress 
               variant="determinate" 
-              value={(content.available / content.totalSupply) * 100} 
+              value={content.available && content.totalSupply ? (content.available / content.totalSupply) * 100 : 0} 
               sx={{ mb: 1 }}
             />
             <Typography variant="body2" color="text.secondary">
-              {Math.round((content.available / content.totalSupply) * 100)}% still available
+              {content.available && content.totalSupply ? 
+                Math.round((content.available / content.totalSupply) * 100) : 0}% still available
             </Typography>
             <Typography variant="h5" color="primary" sx={{ mt: 2 }}>
-              {content.price} MATIC
+              {content.price || 0} ETH
             </Typography>
           </Box>
 
@@ -348,7 +386,7 @@ const ContentDetailsPage: React.FC = () => {
                       secondary={`Seller: ${listing.seller}`}
                     />
                     <Typography variant="h6" color="primary">
-                      {listing.price} MATIC
+                      {listing.price} ETH
                     </Typography>
                   </ListItem>
                 ))}
@@ -365,7 +403,7 @@ const ContentDetailsPage: React.FC = () => {
               fullWidth
               variant="outlined"
               inputProps={{ min: 1, max: content.available }}
-              helperText={`Total: ${totalPrice.toFixed(4)} MATIC`}
+              helperText={`Total: ${totalPrice.toFixed(4)} ETH`}
             />
           </Box>
 
@@ -376,11 +414,15 @@ const ContentDetailsPage: React.FC = () => {
                 color="primary"
                 fullWidth
                 size="large"
-                startIcon={<ShoppingCart />}
+                startIcon={purchaseInProgress ? null : <ShoppingCart />}
                 onClick={handlePurchaseDialogOpen}
-                disabled={!isCorrectNetwork || Number(quantity) < 1 || Number(quantity) > content.available}
+                disabled={purchaseInProgress || !isCorrectNetwork || Number(quantity) < 1 || (content.available ? Number(quantity) > content.available : true)}
               >
-                {isCorrectNetwork ? 'Purchase Now' : 'Switch Network to Purchase'}
+                {purchaseInProgress ? (
+                  <CircularProgress size={24} color="inherit" />
+                ) : (
+                  isCorrectNetwork ? 'Purchase Now' : 'Switch Network to Purchase'
+                )}
               </Button>
             ) : (
               <Button
@@ -558,7 +600,7 @@ const ContentDetailsPage: React.FC = () => {
                 </Typography>
               </Box>
               <Box sx={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 1, mb: 2 }}>
-                {content.genre.map((genre: string) => (
+                {content.genre && Array.isArray(content.genre) && content.genre.map((genre: string) => (
                   <Chip key={genre} label={genre} size="small" />
                 ))}
                 <Chip
@@ -587,12 +629,12 @@ const ContentDetailsPage: React.FC = () => {
                   Ratings:
                 </Typography>
                 <Chip
-                  label={`IMDb: ${content.ratings.imdb}/10`}
+                  label={`IMDb: ${content.ratings?.imdb}/10`}
                   size="small"
                   sx={{ mr: 1 }}
                 />
                 <Chip
-                  label={`Metacritic: ${content.ratings.metacritic}/100`}
+                  label={`Metacritic: ${content.ratings?.metacritic}/100`}
                   size="small"
                 />
               </Box>
@@ -616,25 +658,55 @@ const ContentDetailsPage: React.FC = () => {
               </Box>
               <TabPanel value={tabValue} index={0}>
                 <Typography variant="body1" paragraph>
-                  {content.longDescription.split('\n\n').map((paragraph: string, idx: number) => (
+                  {content.longDescription ? content.longDescription.split('\n\n').map((paragraph: string, idx: number) => (
                     <React.Fragment key={idx}>
                       {paragraph}
                       <br /><br />
                     </React.Fragment>
-                  ))}
+                  )) : content.description}
                 </Typography>
               </TabPanel>
               <TabPanel value={tabValue} index={1}>
                 <Typography variant="h6" gutterBottom>Cast</Typography>
                 <List>
-                  {content.cast.map((person: string) => (
-                    <ListItem key={person}>
-                      <ListItemIcon>
-                        <Avatar>{person.charAt(0)}</Avatar>
-                      </ListItemIcon>
-                      <ListItemText primary={person} />
+                  {(content.cast && Array.isArray(content.cast) && content.cast.length > 0) ? (
+                    content.cast.map((person: string) => (
+                      <ListItem key={person}>
+                        <ListItemIcon>
+                          <Avatar>{person.charAt(0)}</Avatar>
+                        </ListItemIcon>
+                        <ListItemText primary={person} />
+                      </ListItem>
+                    ))
+                  ) : content.metadata && content.metadata.cast ? (
+                    typeof content.metadata.cast === 'string' ? (
+                      content.metadata.cast.split(',').map((person: string) => (
+                        <ListItem key={person}>
+                          <ListItemIcon>
+                            <Avatar>{person.charAt(0)}</Avatar>
+                          </ListItemIcon>
+                          <ListItemText primary={person} />
+                        </ListItem>
+                      ))
+                    ) : Array.isArray(content.metadata.cast) ? (
+                      content.metadata.cast.map((person: string) => (
+                        <ListItem key={person}>
+                          <ListItemIcon>
+                            <Avatar>{person.charAt(0)}</Avatar>
+                          </ListItemIcon>
+                          <ListItemText primary={person} />
+                        </ListItem>
+                      ))
+                    ) : (
+                      <ListItem>
+                        <ListItemText primary="Cast information not available" />
+                      </ListItem>
+                    )
+                  ) : (
+                    <ListItem>
+                      <ListItemText primary="Cast information not available" />
                     </ListItem>
-                  ))}
+                  )}
                 </List>
                 <Divider sx={{ my: 2 }} />
                 <Typography variant="h6" gutterBottom>Crew</Typography>
@@ -643,13 +715,19 @@ const ContentDetailsPage: React.FC = () => {
                     <ListItemIcon>
                       <Avatar>D</Avatar>
                     </ListItemIcon>
-                    <ListItemText primary={content.director} secondary="Director" />
+                    <ListItemText 
+                      primary={content.director || (content.metadata?.director) || 'Director information not available'} 
+                      secondary="Director" 
+                    />
                   </ListItem>
                   <ListItem>
                     <ListItemIcon>
                       <Avatar>P</Avatar>
                     </ListItemIcon>
-                    <ListItemText primary={content.producer} secondary="Producer" />
+                    <ListItemText 
+                      primary={content.producer || (content.metadata?.producer) || 'Producer information not available'} 
+                      secondary="Producer" 
+                    />
                   </ListItem>
                 </List>
               </TabPanel>
@@ -658,7 +736,7 @@ const ContentDetailsPage: React.FC = () => {
                   Wylloh licenses use a unique modular rights system. By accumulating more tokens, you can unlock additional rights for this content:
                 </Typography>
                 <List>
-                  {content.rightsThresholds.map((threshold: any) => (
+                  {content.rightsThresholds?.map((threshold: any) => (
                     <ListItem key={threshold.type} divider>
                       <ListItemIcon>
                         {threshold.quantity === 1 ? <VerifiedUser color="primary" /> : <Theaters />}
@@ -670,7 +748,17 @@ const ContentDetailsPage: React.FC = () => {
                       {threshold.quantity === 1 ? (
                         <Chip color="primary" size="small" label="Basic" />
                       ) : (
-                        <Chip color="secondary" size="small" label={`Tier ${content.rightsThresholds.indexOf(threshold) + 1}`} />
+                        <Chip 
+                          color="secondary" 
+                          size="small" 
+                          label={`Tier ${
+                            content.rightsThresholds && 
+                            Array.isArray(content.rightsThresholds) && 
+                            threshold ? 
+                              content.rightsThresholds.indexOf(threshold) + 1 : 
+                              1
+                          }`} 
+                        />
                       )}
                     </ListItem>
                   ))}
@@ -691,12 +779,12 @@ const ContentDetailsPage: React.FC = () => {
                       <TableCell>Date</TableCell>
                       <TableCell>Type</TableCell>
                       <TableCell align="right">Quantity</TableCell>
-                      <TableCell align="right">Price (MATIC)</TableCell>
-                      <TableCell align="right">Total (MATIC)</TableCell>
+                      <TableCell align="right">Price (ETH)</TableCell>
+                      <TableCell align="right">Total (ETH)</TableCell>
                     </TableRow>
                   </TableHead>
                   <TableBody>
-                    {content.transactionHistory.map((tx: any, index: number) => (
+                    {content.transactionHistory?.map((tx: any, index: number) => (
                       <TableRow key={index}>
                         <TableCell>{tx.date}</TableCell>
                         <TableCell>{tx.type}</TableCell>
@@ -770,7 +858,7 @@ const ContentDetailsPage: React.FC = () => {
         <DialogTitle>Confirm Purchase</DialogTitle>
         <DialogContent>
           <DialogContentText>
-            You are about to purchase {quantity} license token{Number(quantity) !== 1 ? 's' : ''} for "{content.title}" at {content.price} MATIC each.
+            You are about to purchase {quantity} license token{Number(quantity) !== 1 ? 's' : ''} for "{content.title}" at {content.price} ETH each.
           </DialogContentText>
           <Box sx={{ mt: 2, mb: 2 }}>
             <Typography variant="subtitle1">
@@ -778,7 +866,7 @@ const ContentDetailsPage: React.FC = () => {
             </Typography>
             <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
               <Typography variant="body1">Unit Price:</Typography>
-              <Typography variant="body1">{content.price} MATIC</Typography>
+              <Typography variant="body1">{content.price} ETH</Typography>
             </Box>
             <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
               <Typography variant="body1">Quantity:</Typography>
@@ -786,12 +874,12 @@ const ContentDetailsPage: React.FC = () => {
             </Box>
             <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
               <Typography variant="body1">Network Fee (est.):</Typography>
-              <Typography variant="body1">~0.001 MATIC</Typography>
+              <Typography variant="body1">~0.001 ETH</Typography>
             </Box>
             <Divider sx={{ my: 1 }} />
             <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
               <Typography variant="h6">Total:</Typography>
-              <Typography variant="h6">{totalPrice.toFixed(4)} MATIC</Typography>
+              <Typography variant="h6">{totalPrice.toFixed(4)} ETH</Typography>
             </Box>
           </Box>
           <Alert severity="info" sx={{ mt: 2 }}>
@@ -802,6 +890,74 @@ const ContentDetailsPage: React.FC = () => {
           <Button onClick={handlePurchaseDialogClose}>Cancel</Button>
           <Button onClick={handlePurchase} variant="contained" color="primary">
             Confirm Purchase
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Success Dialog */}
+      <Dialog
+        open={purchaseSuccessDialogOpen}
+        onClose={() => {
+          setPurchaseSuccessDialogOpen(false);
+          setSuccessMessage(null);
+        }}
+      >
+        <DialogTitle>Purchase Successful</DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            {successMessage}
+          </DialogContentText>
+          <Box sx={{ mt: 2 }}>
+            <Alert severity="success">
+              You can now view your purchased content in your collection.
+            </Alert>
+          </Box>
+        </DialogContent>
+        <DialogActions>
+          <Button 
+            onClick={() => {
+              setPurchaseSuccessDialogOpen(false);
+              setSuccessMessage(null);
+            }}
+          >
+            Close
+          </Button>
+          <Button 
+            variant="contained" 
+            color="primary"
+            component={Link}
+            to="/collection"
+          >
+            View My Collection
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Error Dialog */}
+      <Dialog
+        open={purchaseErrorDialogOpen}
+        onClose={() => {
+          setPurchaseErrorDialogOpen(false);
+          setErrorMessage(null);
+        }}
+      >
+        <DialogTitle>Purchase Failed</DialogTitle>
+        <DialogContent>
+          <Alert severity="error" sx={{ mb: 2 }}>
+            {errorMessage || 'There was an error processing your purchase.'}
+          </Alert>
+          <Typography variant="body2">
+            Please try again or contact support if the issue persists.
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button 
+            onClick={() => {
+              setPurchaseErrorDialogOpen(false);
+              setErrorMessage(null);
+            }}
+          >
+            Close
           </Button>
         </DialogActions>
       </Dialog>

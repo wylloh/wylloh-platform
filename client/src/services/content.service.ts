@@ -25,6 +25,13 @@ export interface Content {
   sales: number;
 }
 
+// Add interface for purchased content
+export interface PurchasedContent extends Content {
+  purchaseDate: string;
+  purchasePrice: number;
+  purchaseQuantity: number;
+}
+
 interface ApiResponse<T> {
   data: T;
   message?: string;
@@ -98,8 +105,9 @@ const mockContent: Content[] = [
   }
 ];
 
-// Local storage key for user-created content when API is unavailable
+// Local storage keys
 const LOCAL_CONTENT_KEY = 'wylloh_local_content';
+const LOCAL_PURCHASED_CONTENT_KEY = 'wylloh_local_purchased_content';
 
 class ContentService {
   private readonly baseUrl = `${API_BASE_URL}/content`;
@@ -349,6 +357,92 @@ class ContentService {
     });
     
     return Array.from(seen.values());
+  }
+
+  // Purchase content token
+  async purchaseToken(contentId: string, quantity: number): Promise<boolean> {
+    try {
+      // In a real implementation, this would call the blockchain
+      // For demo, we'll simulate the purchase with local storage
+      const contentData = await this.getContentById(contentId);
+      
+      if (!contentData) {
+        throw new Error('Content not found');
+      }
+      
+      // Check if content is available for purchase
+      if (!contentData.tokenized) {
+        throw new Error('Content is not tokenized');
+      }
+      
+      if ((contentData.available || 0) < quantity) {
+        throw new Error('Not enough tokens available');
+      }
+      
+      // Get current purchased content
+      const purchasedContent = this.getLocalPurchasedContent();
+      
+      // Check if already purchased
+      const existingPurchase = purchasedContent.find(item => item.id === contentId);
+      
+      if (existingPurchase) {
+        // Update existing purchase
+        existingPurchase.purchaseQuantity += quantity;
+        existingPurchase.purchaseDate = new Date().toISOString();
+      } else {
+        // Add new purchase
+        const purchase: PurchasedContent = {
+          ...contentData,
+          purchaseDate: new Date().toISOString(),
+          purchasePrice: contentData.price || 0.01,
+          purchaseQuantity: quantity
+        };
+        
+        purchasedContent.push(purchase);
+      }
+      
+      // Update available supply
+      const updatedContent = {...contentData};
+      updatedContent.available = (updatedContent.available || 0) - quantity;
+      
+      // Update local content storage
+      const localContent = this.getLocalContent();
+      const contentIndex = localContent.findIndex(item => item.id === contentId);
+      
+      if (contentIndex >= 0) {
+        localContent[contentIndex] = updatedContent;
+        localStorage.setItem(LOCAL_CONTENT_KEY, JSON.stringify(localContent));
+      }
+      
+      // Save purchased content
+      localStorage.setItem(LOCAL_PURCHASED_CONTENT_KEY, JSON.stringify(purchasedContent));
+      
+      return true;
+    } catch (error) {
+      console.error('Error purchasing token:', error);
+      throw error;
+    }
+  }
+  
+  // Get purchased content for the user
+  async getPurchasedContent(): Promise<PurchasedContent[]> {
+    try {
+      return this.getLocalPurchasedContent();
+    } catch (error) {
+      console.error('Error getting purchased content:', error);
+      return [];
+    }
+  }
+  
+  // Helper to get purchased content from local storage
+  private getLocalPurchasedContent(): PurchasedContent[] {
+    try {
+      const localPurchased = localStorage.getItem(LOCAL_PURCHASED_CONTENT_KEY);
+      return localPurchased ? JSON.parse(localPurchased) : [];
+    } catch (error) {
+      console.error('Error retrieving local purchased content:', error);
+      return [];
+    }
   }
 }
 

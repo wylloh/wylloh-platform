@@ -54,13 +54,13 @@ export const formatFileSize = (bytes: number): string => {
   /**
    * Format a currency value
    * @param value The numeric value
-   * @param currency The currency code (e.g., 'USD', 'MATIC')
+   * @param currency The currency code (e.g., 'USD', 'ETH')
    * @param decimals Number of decimal places
    * @returns Formatted currency string
    */
-  export const formatCurrency = (value: number, currency: string = 'MATIC', decimals: number = 4): string => {
+  export const formatCurrency = (value: number, currency: string = 'ETH', decimals: number = 4): string => {
     // For crypto currencies, use more decimal places
-    if (['MATIC', 'ETH', 'BTC'].includes(currency)) {
+    if (['ETH', 'MATIC', 'BTC'].includes(currency)) {
       return `${value.toFixed(decimals)} ${currency}`;
     }
     

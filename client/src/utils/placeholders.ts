@@ -50,6 +50,12 @@ export function generatePlaceholderImage(
   width: number = 800, 
   height: number = 500
 ): string {
+  // Check for empty seed
+  if (!seed) {
+    console.warn('Empty seed provided to generatePlaceholderImage, using default');
+    seed = 'default';
+  }
+  
   // Use a consistent hash function to generate a stable placeholder
   const hashCode = (str: string) => {
     let hash = 0;
@@ -66,5 +72,14 @@ export function generatePlaceholderImage(
   
   // Generate and return URL with the seed's hash and appropriate category
   const seedNumber = hashCode(seed);
-  return `https://picsum.photos/seed/${seedNumber}/${width}/${height}?${category}`;
+  const imageUrl = `https://picsum.photos/seed/${seedNumber}/${width}/${height}?${category}`;
+  
+  console.log('Generated placeholder image:', {
+    seed,
+    category,
+    seedNumber,
+    imageUrl
+  });
+  
+  return imageUrl;
 }
