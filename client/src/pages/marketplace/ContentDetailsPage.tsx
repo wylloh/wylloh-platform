@@ -59,13 +59,48 @@ import {
 import { useWallet } from '../../contexts/WalletContext';
 import { useAuth } from '../../contexts/AuthContext';
 
+// Add interfaces for content types
+interface SecondaryMarketListing {
+  seller: string;
+  quantity: number;
+  price: number;
+}
+
+interface Content {
+  id: string;
+  title: string;
+  description: string;
+  longDescription: string;
+  image: string;
+  contentType: string;
+  creator: string;
+  creatorAddress: string;
+  creatorAvatar: string;
+  price: number;
+  available: number;
+  totalSupply: number;
+  releaseDate: string;
+  duration: string;
+  genre: string[];
+  cast: string[];
+  director: string;
+  producer: string;
+  ratings: { imdb: number; metacritic: number };
+  trailerUrl: string;
+  tokenized: boolean;
+  tokenId: string;
+  rightsThresholds: { quantity: number; type: string }[];
+  transactionHistory: { date: string; type: string; quantity: number; price: number }[];
+  secondaryMarket: SecondaryMarketListing[];
+}
+
 // Mock content data - in a real app, this would come from an API
-const mockContent = [
+const mockContent: Content[] = [
   {
     id: '1',
     title: 'The Digital Frontier',
-    description: 'A journey into the world of blockchain and digital ownership. This groundbreaking documentary explores how blockchain technology is revolutionizing creative industries, enabling new forms of ownership, distribution, and monetization. Follow innovators and early adopters as they navigate this digital frontier and shape the future of media consumption.',
-    longDescription: 'In "The Digital Frontier," we explore the revolutionary impact of blockchain technology on creative industries. This documentary takes viewers on a journey through the evolving landscape of digital ownership, interviewing pioneers who are redefining how content is created, distributed, and monetized.\n\nThe film examines the historical context of digital rights management, the problems with traditional distribution models, and how blockchain provides innovative solutions through tokenization and smart contracts. It features case studies of successful projects that have leveraged these technologies to create new relationships between creators and audiences.\n\nThrough in-depth interviews with technologists, legal experts, and content creators, the documentary provides insights into both the technical aspects and the human stories behind this technological revolution. It also addresses challenges and criticisms, offering a balanced view of the potential and limitations of blockchain in creative industries.',
+    description: 'A journey into the world of blockchain and digital ownership.',
+    longDescription: 'In "The Digital Frontier," we explore the revolutionary impact of blockchain technology on creative industries. This documentary takes viewers on a journey through the evolving landscape of digital ownership, interviewing pioneers who are redefining how content is created, distributed, and monetized.',
     image: 'https://source.unsplash.com/random/1200x600/?technology',
     contentType: 'documentary',
     creator: 'Digital Studios',
@@ -82,6 +117,8 @@ const mockContent = [
     producer: 'Blockchain Media Productions',
     ratings: { imdb: 8.2, metacritic: 85 },
     trailerUrl: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
+    tokenized: true,
+    tokenId: '0x1234...5678',
     rightsThresholds: [
       { quantity: 1, type: 'Personal Viewing' },
       { quantity: 100, type: 'Small Venue (50 seats)' },
@@ -93,6 +130,10 @@ const mockContent = [
       { date: '2023-10-16', type: 'Purchase', quantity: 5, price: 0.01 },
       { date: '2023-10-17', type: 'Purchase', quantity: 10, price: 0.01 },
       { date: '2023-10-18', type: 'Secondary Sale', quantity: 2, price: 0.015 }
+    ],
+    secondaryMarket: [
+      { seller: '0xabcd...efgh', quantity: 2, price: 0.015 },
+      { seller: '0xijkl...mnop', quantity: 1, price: 0.016 }
     ]
   },
   // Additional mock content would be here
@@ -126,7 +167,7 @@ function TabPanel(props: TabPanelProps) {
 
 const ContentDetailsPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
-  const [content, setContent] = useState<any | null>(null);
+  const [content, setContent] = useState<Content | null>(null);
   const [loading, setLoading] = useState(true);
   const [tabValue, setTabValue] = useState(0);
   const [quantity, setQuantity] = useState('1');
@@ -191,6 +232,124 @@ const ContentDetailsPage: React.FC = () => {
 
   // Calculate total price
   const totalPrice = content ? Number(quantity) * content.price : 0;
+
+  // Update the purchase card to show secondary market prices
+  const renderPurchaseCard = () => {
+    if (!content) return null;
+    
+    return (
+      <Card sx={{ mb: 3 }}>
+        <CardContent>
+          <Typography variant="h6" gutterBottom>
+            Purchase License
+          </Typography>
+          <Divider sx={{ mb: 2 }} />
+          
+          {/* Primary Market */}
+          <Box sx={{ mb: 3 }}>
+            <Typography variant="subtitle1" gutterBottom>
+              Primary Market
+            </Typography>
+            <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+              <Typography variant="h5" sx={{ mr: 1 }}>
+                {content.available}
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                / {content.totalSupply}
+              </Typography>
+            </Box>
+            <LinearProgress 
+              variant="determinate" 
+              value={(content.available / content.totalSupply) * 100} 
+              sx={{ mb: 1 }}
+            />
+            <Typography variant="body2" color="text.secondary">
+              {Math.round((content.available / content.totalSupply) * 100)}% still available
+            </Typography>
+            <Typography variant="h5" color="primary" sx={{ mt: 2 }}>
+              {content.price} MATIC
+            </Typography>
+          </Box>
+
+          {/* Secondary Market */}
+          {content.secondaryMarket && content.secondaryMarket.length > 0 && (
+            <Box sx={{ mb: 3 }}>
+              <Typography variant="subtitle1" gutterBottom>
+                Secondary Market
+              </Typography>
+              <List>
+                {content.secondaryMarket.map((listing: SecondaryMarketListing, index: number) => (
+                  <ListItem key={index} divider>
+                    <ListItemText
+                      primary={`${listing.quantity} License${listing.quantity > 1 ? 's' : ''}`}
+                      secondary={`Seller: ${listing.seller}`}
+                    />
+                    <Typography variant="h6" color="primary">
+                      {listing.price} MATIC
+                    </Typography>
+                  </ListItem>
+                ))}
+              </List>
+            </Box>
+          )}
+
+          <Box sx={{ mb: 3 }}>
+            <TextField
+              label="Quantity"
+              type="text"
+              value={quantity}
+              onChange={handleQuantityChange}
+              fullWidth
+              variant="outlined"
+              inputProps={{ min: 1, max: content.available }}
+              helperText={`Total: ${totalPrice.toFixed(4)} MATIC`}
+            />
+          </Box>
+
+          {isAuthenticated ? (
+            active ? (
+              <Button
+                variant="contained"
+                color="primary"
+                fullWidth
+                size="large"
+                startIcon={<ShoppingCart />}
+                onClick={handlePurchaseDialogOpen}
+                disabled={!isCorrectNetwork || Number(quantity) < 1 || Number(quantity) > content.available}
+              >
+                {isCorrectNetwork ? 'Purchase Now' : 'Switch Network to Purchase'}
+              </Button>
+            ) : (
+              <Button
+                variant="contained"
+                fullWidth
+                size="large"
+                startIcon={<AccountBalanceWalletIcon />}
+                onClick={() => {/* Connect wallet logic */}}
+              >
+                Connect Wallet to Purchase
+              </Button>
+            )
+          ) : (
+            <Button
+              variant="contained"
+              fullWidth
+              size="large"
+              component={Link}
+              to="/login"
+            >
+              Login to Purchase
+            </Button>
+          )}
+          <Box sx={{ mt: 2 }}>
+            <Typography variant="body2" color="text.secondary" align="center">
+              Purchase includes perpetual license with resale rights
+            </Typography>
+          </Box>
+        </CardContent>
+      </Card>
+    );
+  };
 
   if (loading) {
     return (
@@ -474,96 +633,7 @@ const ContentDetailsPage: React.FC = () => {
 
         {/* Right Column - Purchase and Creator Info */}
         <Grid item xs={12} md={4}>
-          {/* Purchase Card */}
-          <Card sx={{ mb: 3 }}>
-            <CardContent>
-              <Typography variant="h6" gutterBottom>
-                Purchase License
-              </Typography>
-              <Divider sx={{ mb: 2 }} />
-              <Box sx={{ mb: 2 }}>
-                <Typography variant="body2" color="text.secondary" gutterBottom>
-                  Available Licenses
-                </Typography>
-                <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
-                  <Typography variant="h5" sx={{ mr: 1 }}>
-                    {content.available}
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary">
-                    / {content.totalSupply}
-                  </Typography>
-                </Box>
-                <LinearProgress 
-                  variant="determinate" 
-                  value={(content.available / content.totalSupply) * 100} 
-                  sx={{ mb: 1 }}
-                />
-                <Typography variant="body2" color="text.secondary">
-                  {Math.round((content.available / content.totalSupply) * 100)}% still available
-                </Typography>
-              </Box>
-              <Box sx={{ mb: 3 }}>
-                <Typography variant="body2" color="text.secondary" gutterBottom>
-                  Price per License
-                </Typography>
-                <Typography variant="h5" color="primary" gutterBottom>
-                  {content.price} MATIC
-                </Typography>
-              </Box>
-              <Box sx={{ mb: 3 }}>
-                <TextField
-                  label="Quantity"
-                  type="text"
-                  value={quantity}
-                  onChange={handleQuantityChange}
-                  fullWidth
-                  variant="outlined"
-                  inputProps={{ min: 1, max: content.available }}
-                  helperText={`Total: ${totalPrice.toFixed(4)} MATIC`}
-                />
-              </Box>
-              {isAuthenticated ? (
-                active ? (
-                  <Button
-                    variant="contained"
-                    color="primary"
-                    fullWidth
-                    size="large"
-                    startIcon={<ShoppingCart />}
-                    onClick={handlePurchaseDialogOpen}
-                    disabled={!isCorrectNetwork || Number(quantity) < 1 || Number(quantity) > content.available}
-                  >
-                    {isCorrectNetwork ? 'Purchase Now' : 'Switch Network to Purchase'}
-                  </Button>
-                ) : (
-                  <Button
-                    variant="contained"
-                    fullWidth
-                    size="large"
-                    startIcon={<AccountBalanceWalletIcon />}
-                    onClick={() => {/* Connect wallet logic */}}
-                  >
-                    Connect Wallet to Purchase
-                  </Button>
-                )
-              ) : (
-                <Button
-                  variant="contained"
-                  fullWidth
-                  size="large"
-                  component={Link}
-                  to="/login"
-                >
-                  Login to Purchase
-                </Button>
-              )}
-              <Box sx={{ mt: 2 }}>
-                <Typography variant="body2" color="text.secondary" align="center">
-                  Purchase includes perpetual license with resale rights
-                </Typography>
-              </Box>
-            </CardContent>
-          </Card>
+          {renderPurchaseCard()}
 
           {/* Creator Info Card */}
           <Card>

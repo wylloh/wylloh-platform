@@ -23,7 +23,9 @@ import {
   IconButton,
   Divider,
   Stack,
-  Chip
+  Chip,
+  FormControlLabel,
+  Switch
 } from '@mui/material';
 import {
   CloudUpload,
@@ -61,6 +63,7 @@ const UPLOAD_STEPS = [
   'Media Upload',
   'Preview & Thumbnail',
   'Additional Metadata',
+  'Tokenization',
   'Review & Submit'
 ];
 
@@ -83,6 +86,16 @@ interface UploadFormData {
   mainFile?: File;
   previewFile?: File;
   thumbnailFile?: File;
+  tokenization: {
+    enabled: boolean;
+    initialSupply: number;
+    price: number;
+    royalty: number;
+    rightsThresholds: {
+      quantity: number;
+      type: string;
+    }[];
+  };
 }
 
 // Define interface for upload status
@@ -137,6 +150,18 @@ const UploadForm: React.FC = () => {
       genres: [],
       tags: [],
       cast: []
+    },
+    tokenization: {
+      enabled: true,
+      initialSupply: 1000,
+      price: 0.01,
+      royalty: 10,
+      rightsThresholds: [
+        { quantity: 1, type: 'Personal Viewing' },
+        { quantity: 100, type: 'Small Venue (50 seats)' },
+        { quantity: 5000, type: 'Streaming Platform' },
+        { quantity: 10000, type: 'Theatrical Exhibition' }
+      ]
     }
   });
   
@@ -367,7 +392,11 @@ const UploadForm: React.FC = () => {
         // All additional metadata is optional
         break;
         
-      case 4: // Review & Submit
+      case 4: // Tokenization
+        // Tokenization settings are optional
+        break;
+        
+      case 5: // Review & Submit
         // Final validation before submission
         if (!formData.title.trim()) {
           newErrors.title = 'Title is required';
@@ -476,7 +505,7 @@ const UploadForm: React.FC = () => {
   
   // Handle form submission
   const handleSubmit = async () => {
-    if (!validateStep(4)) return;
+    if (!validateStep(5)) return;
     
     setSubmitting(true);
     setSubmitError(null);
@@ -543,6 +572,8 @@ const UploadForm: React.FC = () => {
       case 3:
         return renderAdditionalMetadata();
       case 4:
+        return renderTokenization();
+      case 5:
         return renderReviewAndSubmit();
       default:
         return null;
@@ -1018,6 +1049,175 @@ const UploadForm: React.FC = () => {
             ))}
           </Box>
         </Grid>
+      </Grid>
+    </Box>
+  );
+  
+  // Render tokenization step
+  const renderTokenization = () => (
+    <Box sx={{ mt: 2 }}>
+      <Typography variant="h6" gutterBottom>
+        Tokenization Settings
+      </Typography>
+      <Grid container spacing={3}>
+        <Grid item xs={12}>
+          <FormControl fullWidth>
+            <FormControlLabel
+              control={
+                <Switch
+                  checked={formData.tokenization.enabled}
+                  onChange={(e) => setFormData(prev => ({
+                    ...prev,
+                    tokenization: {
+                      ...prev.tokenization,
+                      enabled: e.target.checked
+                    }
+                  }))}
+                />
+              }
+              label="Enable Tokenization"
+            />
+          </FormControl>
+        </Grid>
+        
+        {formData.tokenization.enabled && (
+          <>
+            <Grid item xs={12} md={6}>
+              <TextField
+                fullWidth
+                label="Initial Token Supply"
+                type="number"
+                value={formData.tokenization.initialSupply}
+                onChange={(e) => setFormData(prev => ({
+                  ...prev,
+                  tokenization: {
+                    ...prev.tokenization,
+                    initialSupply: Number(e.target.value)
+                  }
+                }))}
+                InputProps={{
+                  inputProps: { min: 1 }
+                }}
+              />
+            </Grid>
+            <Grid item xs={12} md={6}>
+              <TextField
+                fullWidth
+                label="Token Price (MATIC)"
+                type="number"
+                value={formData.tokenization.price}
+                onChange={(e) => setFormData(prev => ({
+                  ...prev,
+                  tokenization: {
+                    ...prev.tokenization,
+                    price: Number(e.target.value)
+                  }
+                }))}
+                InputProps={{
+                  inputProps: { min: 0, step: 0.001 }
+                }}
+              />
+            </Grid>
+            <Grid item xs={12} md={6}>
+              <TextField
+                fullWidth
+                label="Royalty Percentage"
+                type="number"
+                value={formData.tokenization.royalty}
+                onChange={(e) => setFormData(prev => ({
+                  ...prev,
+                  tokenization: {
+                    ...prev.tokenization,
+                    royalty: Number(e.target.value)
+                  }
+                }))}
+                InputProps={{
+                  inputProps: { min: 0, max: 100 }
+                }}
+              />
+            </Grid>
+            <Grid item xs={12}>
+              <Typography variant="subtitle1" gutterBottom>
+                Rights Thresholds
+              </Typography>
+              {formData.tokenization.rightsThresholds.map((threshold, index) => (
+                <Box key={index} sx={{ display: 'flex', gap: 2, mb: 2 }}>
+                  <TextField
+                    label="Quantity"
+                    type="number"
+                    value={threshold.quantity}
+                    onChange={(e) => {
+                      const newThresholds = [...formData.tokenization.rightsThresholds];
+                      newThresholds[index] = {
+                        ...newThresholds[index],
+                        quantity: Number(e.target.value)
+                      };
+                      setFormData(prev => ({
+                        ...prev,
+                        tokenization: {
+                          ...prev.tokenization,
+                          rightsThresholds: newThresholds
+                        }
+                      }));
+                    }}
+                    InputProps={{
+                      inputProps: { min: 1 }
+                    }}
+                  />
+                  <TextField
+                    label="Rights Type"
+                    value={threshold.type}
+                    onChange={(e) => {
+                      const newThresholds = [...formData.tokenization.rightsThresholds];
+                      newThresholds[index] = {
+                        ...newThresholds[index],
+                        type: e.target.value
+                      };
+                      setFormData(prev => ({
+                        ...prev,
+                        tokenization: {
+                          ...prev.tokenization,
+                          rightsThresholds: newThresholds
+                        }
+                      }));
+                    }}
+                  />
+                  <IconButton
+                    onClick={() => {
+                      const newThresholds = formData.tokenization.rightsThresholds.filter((_, i) => i !== index);
+                      setFormData(prev => ({
+                        ...prev,
+                        tokenization: {
+                          ...prev.tokenization,
+                          rightsThresholds: newThresholds
+                        }
+                      }));
+                    }}
+                  >
+                    <DeleteOutline />
+                  </IconButton>
+                </Box>
+              ))}
+              <Button
+                startIcon={<AddCircleOutline />}
+                onClick={() => {
+                  setFormData(prev => ({
+                    ...prev,
+                    tokenization: {
+                      ...prev.tokenization,
+                      rightsThresholds: [
+                        ...prev.tokenization.rightsThresholds,
+                        { quantity: 1, type: 'New Right' }
+                      ]
+                    }
+                  }));
+                }}
+              >
+                Add Threshold
+              </Button>
+            </Grid>
+          </>
+        )}
       </Grid>
     </Box>
   );

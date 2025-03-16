@@ -46,7 +46,9 @@ const mockContent = [
     price: 0.01,
     available: 995,
     totalSupply: 1000,
-    releaseDate: new Date().toLocaleDateString('en-US')
+    releaseDate: new Date().toLocaleDateString('en-US'),
+    tokenized: true,
+    tokenId: '0x1234...5678'
   },
   {
     id: '1',
@@ -58,7 +60,9 @@ const mockContent = [
     price: 0.01,
     available: 250,
     totalSupply: 1000,
-    releaseDate: '2023-10-15'
+    releaseDate: '2023-10-15',
+    tokenized: true,
+    tokenId: '0x1234...5678'
   },
   {
     id: '2',
@@ -70,7 +74,9 @@ const mockContent = [
     price: 0.008,
     available: 450,
     totalSupply: 1000,
-    releaseDate: '2023-09-22'
+    releaseDate: '2023-09-22',
+    tokenized: false,
+    tokenId: ''
   },
   {
     id: '3',
@@ -82,7 +88,9 @@ const mockContent = [
     price: 0.015,
     available: 120,
     totalSupply: 500,
-    releaseDate: '2023-11-05'
+    releaseDate: '2023-11-05',
+    tokenized: false,
+    tokenId: ''
   },
   {
     id: '4',
@@ -94,7 +102,9 @@ const mockContent = [
     price: 0.005,
     available: 800,
     totalSupply: 1000,
-    releaseDate: '2023-08-30'
+    releaseDate: '2023-08-30',
+    tokenized: false,
+    tokenId: ''
   },
   {
     id: '5',
@@ -106,7 +116,9 @@ const mockContent = [
     price: 0.007,
     available: 600,
     totalSupply: 2000,
-    releaseDate: '2023-10-10'
+    releaseDate: '2023-10-10',
+    tokenized: false,
+    tokenId: ''
   },
   {
     id: '6',
@@ -118,7 +130,9 @@ const mockContent = [
     price: 0.01,
     available: 350,
     totalSupply: 1000,
-    releaseDate: '2023-09-15'
+    releaseDate: '2023-09-15',
+    tokenized: false,
+    tokenId: ''
   },
   {
     id: '7',
@@ -130,7 +144,9 @@ const mockContent = [
     price: 0.009,
     available: 420,
     totalSupply: 1000,
-    releaseDate: '2023-10-01'
+    releaseDate: '2023-10-01',
+    tokenized: false,
+    tokenId: ''
   },
   {
     id: '8',
@@ -142,7 +158,9 @@ const mockContent = [
     price: 0.012,
     available: 280,
     totalSupply: 750,
-    releaseDate: '2023-11-15'
+    releaseDate: '2023-11-15',
+    tokenized: false,
+    tokenId: ''
   }
 ];
 
@@ -201,6 +219,9 @@ const MarketplacePage: React.FC = () => {
   useEffect(() => {
     // Filter and sort content based on user selections
     let result = [...mockContent];
+    
+    // Only show tokenized content
+    result = result.filter(item => item.tokenized);
     
     // Apply content type filter
     if (contentType !== 'all') {
