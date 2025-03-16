@@ -248,6 +248,8 @@ load_sample_content() {
 {
   "title": "Big Buck Bunny",
   "description": "A sample movie for Wylloh demo",
+  "isDemo": true,
+  "demoVersion": "$(date +%s)",
   "director": "Sacha Goedegebure",
   "year": 2008,
   "contentCid": "$MOVIE_CID",

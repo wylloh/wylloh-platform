@@ -81,6 +81,8 @@ interface UploadFormData {
     director?: string;
     cast?: string[];
     tags?: string[];
+    isDemo?: boolean;
+    demoVersion?: string;
     [key: string]: any;
   };
   mainFile?: File;
@@ -149,7 +151,9 @@ const UploadForm: React.FC = () => {
     metadata: {
       genres: [],
       tags: [],
-      cast: []
+      cast: [],
+      isDemo: false,
+      demoVersion: ''
     },
     tokenization: {
       enabled: true,
