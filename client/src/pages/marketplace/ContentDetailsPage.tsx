@@ -227,7 +227,11 @@ const ContentDetailsPage: React.FC = () => {
             releaseDate: new Date(contentData.createdAt).toLocaleDateString(),
             duration: contentData.metadata?.duration || '10 minutes',
             genre: contentData.metadata?.genre ? [contentData.metadata.genre] : ['Demo'],
-            cast: contentData.metadata?.cast ? contentData.metadata.cast.split(',') : ['Demo Cast'],
+            cast: Array.isArray(contentData.metadata?.cast) 
+              ? contentData.metadata.cast 
+              : typeof contentData.metadata?.cast === 'string'
+                ? contentData.metadata.cast.split(',')
+                : ['Demo Cast'],
             director: contentData.metadata?.director || 'Demo Director',
             producer: contentData.metadata?.producer || 'Demo Producer',
             ratings: { 
@@ -679,8 +683,8 @@ const ContentDetailsPage: React.FC = () => {
                       </ListItem>
                     ))
                   ) : content.metadata && content.metadata.cast ? (
-                    typeof content.metadata.cast === 'string' ? (
-                      content.metadata.cast.split(',').map((person: string) => (
+                    Array.isArray(content.metadata.cast) ? (
+                      content.metadata.cast.map((person: string) => (
                         <ListItem key={person}>
                           <ListItemIcon>
                             <Avatar>{person.charAt(0)}</Avatar>
@@ -688,8 +692,8 @@ const ContentDetailsPage: React.FC = () => {
                           <ListItemText primary={person} />
                         </ListItem>
                       ))
-                    ) : Array.isArray(content.metadata.cast) ? (
-                      content.metadata.cast.map((person: string) => (
+                    ) : typeof content.metadata.cast === 'string' ? (
+                      content.metadata.cast.split(',').map((person: string) => (
                         <ListItem key={person}>
                           <ListItemIcon>
                             <Avatar>{person.charAt(0)}</Avatar>
