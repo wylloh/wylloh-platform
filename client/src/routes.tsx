@@ -47,7 +47,7 @@ const AppRoutes: React.FC = () => {
     <Routes>
       <Route index element={<HomePage />} />
       <Route path="marketplace" element={<MarketplacePage />} />
-      <Route path="marketplace/:id" element={<ContentDetailsPage />} />
+      <Route path="marketplace/content/:id" element={<ContentDetailsPage />} />
       <Route path="test-content-details" element={<TestContentDetails />} />
       
       {/* Creator routes - protected with Pro status verification */}

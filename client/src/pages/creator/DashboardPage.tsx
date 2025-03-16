@@ -292,6 +292,19 @@ const DashboardPage: React.FC = () => {
     }
   };
   
+  // Function to get content image URL
+  const getContentImageUrl = (item: Content) => {
+    if (item.thumbnailCid) {
+      return getProjectIpfsUrl(item.thumbnailCid);
+    }
+    
+    if (item.image) {
+      return item.image;
+    }
+    
+    return generatePlaceholderImage(item.title);
+  };
+  
   // Render stats cards
   const renderStatistics = () => {
     const totalContent = content.length;
@@ -422,7 +435,7 @@ const DashboardPage: React.FC = () => {
               <CardMedia
                 component="img"
                 height="140"
-                image={item.thumbnailCid ? getProjectIpfsUrl(item.thumbnailCid) : generatePlaceholderImage(item.title)}
+                image={getContentImageUrl(item)}
                 alt={item.title}
               />
               

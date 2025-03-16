@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import Table from '@mui/material/Table';
 import TableBody from '@mui/material/TableBody';
 import TableCell from '@mui/material/TableCell';
@@ -58,6 +58,9 @@ import {
 } from '@mui/icons-material';
 import { useWallet } from '../../contexts/WalletContext';
 import { useAuth } from '../../contexts/AuthContext';
+import { contentService } from '../../services/content.service';
+import { getProjectIpfsUrl } from '../../utils/ipfs';
+import { generatePlaceholderImage } from '../../utils/placeholders';
 
 // Add interfaces for content types
 interface SecondaryMarketListing {
@@ -66,7 +69,8 @@ interface SecondaryMarketListing {
   price: number;
 }
 
-interface Content {
+// Interface for detailed content display
+interface DetailedContent {
   id: string;
   title: string;
   description: string;
@@ -92,10 +96,13 @@ interface Content {
   rightsThresholds: { quantity: number; type: string }[];
   transactionHistory: { date: string; type: string; quantity: number; price: number }[];
   secondaryMarket: SecondaryMarketListing[];
+  mainFileCid?: string;
+  thumbnailCid?: string;
+  previewCid?: string;
 }
 
 // Mock content data - in a real app, this would come from an API
-const mockContent: Content[] = [
+const mockContent: DetailedContent[] = [
   {
     id: '1',
     title: 'The Digital Frontier',
@@ -134,7 +141,10 @@ const mockContent: Content[] = [
     secondaryMarket: [
       { seller: '0xabcd...efgh', quantity: 2, price: 0.015 },
       { seller: '0xijkl...mnop', quantity: 1, price: 0.016 }
-    ]
+    ],
+    mainFileCid: 'Qm...',
+    thumbnailCid: 'Qm...',
+    previewCid: 'Qm...'
   },
   // Additional mock content would be here
 ];
@@ -167,33 +177,86 @@ function TabPanel(props: TabPanelProps) {
 
 const ContentDetailsPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
-  const [content, setContent] = useState<Content | null>(null);
+  const [content, setContent] = useState<DetailedContent | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [tabValue, setTabValue] = useState(0);
   const [quantity, setQuantity] = useState('1');
   const [isFavorite, setIsFavorite] = useState(false);
   const [purchaseDialogOpen, setPurchaseDialogOpen] = useState(false);
   const { active, account, isCorrectNetwork } = useWallet();
   const { isAuthenticated } = useAuth();
+  const navigate = useNavigate();
 
   useEffect(() => {
-    // Simulate API call to fetch content details
     const fetchContent = async () => {
+      if (!id) {
+        setError("Content ID not found");
+        setLoading(false);
+        return;
+      }
+
       setLoading(true);
       try {
-        // In a real app, this would be an API call
-        const contentId = id || '1'; // Default to ID 1 if no ID is provided
-        const foundContent = mockContent.find(item => item.id === contentId);
-        if (foundContent) {
-          setContent(foundContent);
+        const contentData = await contentService.getContentById(id);
+        if (contentData) {
+          // Convert content data to detailed display format
+          const detailedContent: DetailedContent = {
+            id: contentData.id,
+            title: contentData.title,
+            description: contentData.description,
+            longDescription: contentData.description, // Use description as longDescription
+            image: contentData.image || '',
+            contentType: contentData.contentType,
+            creator: contentData.creator,
+            creatorAddress: contentData.creatorAddress,
+            creatorAvatar: generatePlaceholderImage(contentData.creator), // Generate placeholder avatar
+            price: contentData.price || 0.01,
+            available: contentData.available || 0,
+            totalSupply: contentData.totalSupply || 0,
+            releaseDate: new Date(contentData.createdAt).toLocaleDateString(),
+            duration: contentData.metadata?.duration || '10 minutes',
+            genre: contentData.metadata?.genre ? [contentData.metadata.genre] : ['Demo'],
+            cast: contentData.metadata?.cast ? contentData.metadata.cast.split(',') : ['Demo Cast'],
+            director: contentData.metadata?.director || 'Demo Director',
+            producer: contentData.metadata?.producer || 'Demo Producer',
+            ratings: { 
+              imdb: contentData.metadata?.imdbRating || 8.5, 
+              metacritic: contentData.metadata?.metacriticRating || 85 
+            },
+            trailerUrl: contentData.metadata?.trailerUrl || '',
+            tokenized: contentData.tokenized,
+            tokenId: contentData.tokenId || '',
+            rightsThresholds: contentData.metadata?.rightsThresholds || [
+              { quantity: 1, type: 'Personal Viewing' },
+              { quantity: 100, type: 'Small Venue (50 seats)' },
+              { quantity: 5000, type: 'Streaming Platform' },
+              { quantity: 10000, type: 'Theatrical Exhibition' }
+            ],
+            transactionHistory: [
+              { 
+                date: new Date(contentData.createdAt).toLocaleDateString(), 
+                type: 'Mint', 
+                quantity: contentData.totalSupply || 1000, 
+                price: contentData.price || 0.01
+              }
+            ],
+            secondaryMarket: [],
+            mainFileCid: contentData.mainFileCid,
+            thumbnailCid: contentData.thumbnailCid,
+            previewCid: contentData.previewCid
+          };
+          
+          setContent(detailedContent);
+          setError(null);
+        } else {
+          setError("Content not found");
         }
-      } catch (error) {
+      } catch (error: any) {
         console.error('Error fetching content:', error);
+        setError(error.message || "Failed to load content details");
       } finally {
-        // Simulate network delay
-        setTimeout(() => {
-          setLoading(false);
-        }, 800);
+        setLoading(false);
       }
     };
 
@@ -351,27 +414,34 @@ const ContentDetailsPage: React.FC = () => {
     );
   };
 
+  // Function to get content image URL
+  const getContentImageUrl = () => {
+    if (!content) return '';
+    
+    if (content.thumbnailCid) {
+      return getProjectIpfsUrl(content.thumbnailCid);
+    }
+    
+    if (content.image) {
+      return content.image;
+    }
+    
+    return generatePlaceholderImage(content.title);
+  };
+
   if (loading) {
     return (
       <Container maxWidth="lg">
-        <Box sx={{ mb: 4 }}>
-          <Button
-            component={Link}
-            to="/marketplace"
-            startIcon={<ArrowBack />}
-            sx={{ mb: 2 }}
-          >
-            Back to Marketplace
-          </Button>
+        <Box sx={{ py: 4 }}>
           <Skeleton variant="rectangular" height={400} sx={{ mb: 2 }} />
           <Skeleton variant="text" height={60} sx={{ mb: 1 }} />
           <Skeleton variant="text" height={30} sx={{ mb: 2 }} />
           <Grid container spacing={3}>
             <Grid item xs={12} md={8}>
-              <Skeleton variant="rectangular" height={200} />
+              <Skeleton variant="rectangular" height={250} />
             </Grid>
             <Grid item xs={12} md={4}>
-              <Skeleton variant="rectangular" height={200} />
+              <Skeleton variant="rectangular" height={250} />
             </Grid>
           </Grid>
         </Box>
@@ -379,21 +449,16 @@ const ContentDetailsPage: React.FC = () => {
     );
   }
 
-  if (!content) {
+  if (error || !content) {
     return (
       <Container maxWidth="lg">
-        <Box sx={{ my: 4, textAlign: 'center' }}>
-          <Typography variant="h5" color="text.secondary" gutterBottom>
-            Content Not Found
+        <Box sx={{ py: 4, textAlign: 'center' }}>
+          <Typography variant="h5" color="error" gutterBottom>
+            {error || "Content not found"}
           </Typography>
-          <Typography variant="body1" paragraph>
-            The content you are looking for does not exist or has been removed.
-          </Typography>
-          <Button
-            variant="contained"
-            component={Link}
-            to="/marketplace"
-            startIcon={<ArrowBack />}
+          <Button 
+            variant="contained" 
+            onClick={() => navigate('/marketplace')}
           >
             Back to Marketplace
           </Button>
@@ -404,282 +469,298 @@ const ContentDetailsPage: React.FC = () => {
 
   return (
     <Container maxWidth="lg">
-      {/* Back Button */}
-      <Button
-        component={Link}
-        to="/marketplace"
-        startIcon={<ArrowBack />}
-        sx={{ mb: 2 }}
-      >
-        Back to Marketplace
-      </Button>
-
-      {/* Main Content */}
-      <Grid container spacing={4}>
-        {/* Left Column - Media and Details */}
-        <Grid item xs={12} md={8}>
-          {/* Media Preview */}
-          <Box
-            sx={{
-              position: 'relative',
-              height: 0,
-              paddingTop: '56.25%', // 16:9 aspect ratio
-              backgroundImage: `url(${content.image})`,
-              backgroundSize: 'cover',
-              backgroundPosition: 'center',
-              mb: 3,
-              borderRadius: 1,
-              boxShadow: 3
-            }}
+      <Box sx={{ py: 4 }}>
+        {/* Navigation */}
+        <Box sx={{ mb: 3, display: 'flex', alignItems: 'center' }}>
+          <Button
+            component={Link}
+            to="/marketplace"
+            startIcon={<ArrowBack />}
+            sx={{ mr: 2 }}
           >
+            Back to Marketplace
+          </Button>
+          <Box sx={{ flexGrow: 1 }} />
+          <Tooltip title={isFavorite ? "Remove from favorites" : "Add to favorites"}>
+            <IconButton onClick={toggleFavorite} sx={{ mr: 1 }}>
+              {isFavorite ? <Favorite color="error" /> : <FavoriteBorder />}
+            </IconButton>
+          </Tooltip>
+          <Tooltip title="Share">
+            <IconButton>
+              <Share />
+            </IconButton>
+          </Tooltip>
+        </Box>
+
+        {/* Main content */}
+        <Grid container spacing={4}>
+          {/* Left column - Content image and metadata */}
+          <Grid item xs={12} md={8}>
             <Box
               sx={{
-                position: 'absolute',
-                top: 0,
-                left: 0,
+                position: 'relative',
                 width: '100%',
-                height: '100%',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                background: 'rgba(0,0,0,0.3)',
-                borderRadius: 1
+                height: 0,
+                paddingBottom: '56.25%', // 16:9 aspect ratio
+                mb: 3,
+                borderRadius: 1,
+                overflow: 'hidden',
+                bgcolor: 'grey.200',
               }}
             >
-              <Button
-                variant="contained"
-                size="large"
-                startIcon={<PlayArrow />}
-                component={Link}
-                to={`/player/${content.id}`}
+              <img
+                src={getContentImageUrl()}
+                alt={content.title}
+                style={{
+                  position: 'absolute',
+                  top: 0,
+                  left: 0,
+                  width: '100%',
+                  height: '100%',
+                  objectFit: 'cover',
+                }}
+              />
+              <Box
+                sx={{
+                  position: 'absolute',
+                  top: '50%',
+                  left: '50%',
+                  transform: 'translate(-50%, -50%)',
+                }}
               >
-                Watch Preview
-              </Button>
-            </Box>
-          </Box>
-
-          {/* Title and Basic Info */}
-          <Box sx={{ mb: 3 }}>
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
-              <Typography variant="h4" component="h1">
-                {content.title}
-              </Typography>
-              <Box>
-                <Tooltip title="Share">
-                  <IconButton>
-                    <Share />
-                  </IconButton>
-                </Tooltip>
-                <Tooltip title={isFavorite ? "Remove from favorites" : "Add to favorites"}>
-                  <IconButton onClick={toggleFavorite}>
-                    {isFavorite ? <Favorite color="error" /> : <FavoriteBorder />}
-                  </IconButton>
-                </Tooltip>
+                <Button
+                  variant="contained"
+                  startIcon={<PlayArrow />}
+                  size="large"
+                  component={Link}
+                  to={`/player/${content.id}`}
+                  sx={{
+                    borderRadius: 50,
+                    px: 3,
+                    py: 1,
+                    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+                    '&:hover': {
+                      backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                    },
+                  }}
+                >
+                  Preview
+                </Button>
               </Box>
             </Box>
-            <Box sx={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 1, mb: 2 }}>
-              {content.genre.map((genre: string) => (
-                <Chip key={genre} label={genre} size="small" />
-              ))}
-              <Chip
-                icon={<Category fontSize="small" />}
-                label={content.contentType}
-                size="small"
-                color="primary"
-              />
-            </Box>
-            <Box sx={{ display: 'flex', alignItems: 'center', color: 'text.secondary', mb: 1 }}>
-              <DateRange fontSize="small" sx={{ mr: 0.5 }} />
-              <Typography variant="body2" sx={{ mr: 2 }}>
-                {content.releaseDate}
-              </Typography>
-              <Movie fontSize="small" sx={{ mr: 0.5 }} />
-              <Typography variant="body2" sx={{ mr: 2 }}>
-                {content.duration}
-              </Typography>
-              <People fontSize="small" sx={{ mr: 0.5 }} />
-              <Typography variant="body2">
-                Director: {content.director}
-              </Typography>
-            </Box>
-            <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-              <Typography variant="body2" color="text.secondary" sx={{ mr: 1 }}>
-                Ratings:
-              </Typography>
-              <Chip
-                label={`IMDb: ${content.ratings.imdb}/10`}
-                size="small"
-                sx={{ mr: 1 }}
-              />
-              <Chip
-                label={`Metacritic: ${content.ratings.metacritic}/100`}
-                size="small"
-              />
-            </Box>
-          </Box>
 
-          {/* Tabs Panel */}
-          <Box sx={{ width: '100%', mb: 4 }}>
-            <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
-              <Tabs
-                value={tabValue}
-                onChange={handleTabChange}
-                aria-label="content tabs"
-                variant="scrollable"
-                scrollButtons="auto"
-              >
-                <Tab label="Description" icon={<Info />} iconPosition="start" />
-                <Tab label="Cast & Crew" icon={<People />} iconPosition="start" />
-                <Tab label="License Tiers" icon={<ListAlt />} iconPosition="start" />
-                <Tab label="Transaction History" icon={<Timeline />} iconPosition="start" />
-              </Tabs>
-            </Box>
-            <TabPanel value={tabValue} index={0}>
-              <Typography variant="body1" paragraph>
-                {content.longDescription.split('\n\n').map((paragraph: string, idx: number) => (
-                  <React.Fragment key={idx}>
-                    {paragraph}
-                    <br /><br />
-                  </React.Fragment>
-                ))}
-              </Typography>
-            </TabPanel>
-            <TabPanel value={tabValue} index={1}>
-              <Typography variant="h6" gutterBottom>Cast</Typography>
-              <List>
-                {content.cast.map((person: string) => (
-                  <ListItem key={person}>
-                    <ListItemIcon>
-                      <Avatar>{person.charAt(0)}</Avatar>
-                    </ListItemIcon>
-                    <ListItemText primary={person} />
-                  </ListItem>
-                ))}
-              </List>
-              <Divider sx={{ my: 2 }} />
-              <Typography variant="h6" gutterBottom>Crew</Typography>
-              <List>
-                <ListItem>
-                  <ListItemIcon>
-                    <Avatar>D</Avatar>
-                  </ListItemIcon>
-                  <ListItemText primary={content.director} secondary="Director" />
-                </ListItem>
-                <ListItem>
-                  <ListItemIcon>
-                    <Avatar>P</Avatar>
-                  </ListItemIcon>
-                  <ListItemText primary={content.producer} secondary="Producer" />
-                </ListItem>
-              </List>
-            </TabPanel>
-            <TabPanel value={tabValue} index={2}>
-              <Typography variant="body1" paragraph>
-                Wylloh licenses use a unique modular rights system. By accumulating more tokens, you can unlock additional rights for this content:
-              </Typography>
-              <List>
-                {content.rightsThresholds.map((threshold: any) => (
-                  <ListItem key={threshold.type} divider>
-                    <ListItemIcon>
-                      {threshold.quantity === 1 ? <VerifiedUser color="primary" /> : <Theaters />}
-                    </ListItemIcon>
-                    <ListItemText 
-                      primary={threshold.type} 
-                      secondary={`Required Tokens: ${threshold.quantity}`} 
-                    />
-                    {threshold.quantity === 1 ? (
-                      <Chip color="primary" size="small" label="Basic" />
-                    ) : (
-                      <Chip color="secondary" size="small" label={`Tier ${content.rightsThresholds.indexOf(threshold) + 1}`} />
-                    )}
-                  </ListItem>
-                ))}
-              </List>
-              <Box sx={{ mt: 2 }}>
-                <Typography variant="body2" color="text.secondary">
-                  Tokens can be accumulated and stacked to unlock these rights. For example, if you want to stream this content on your platform, you would need to acquire 5,000 tokens.
+            {/* Title and Basic Info */}
+            <Box sx={{ mb: 3 }}>
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
+                <Typography variant="h4" component="h1">
+                  {content.title}
                 </Typography>
               </Box>
-            </TabPanel>
-            <TabPanel value={tabValue} index={3}>
-              <Typography variant="subtitle1" gutterBottom>
-                Recent Transactions
-              </Typography>
-              <Table>
-                <TableHead>
-                  <TableRow>
-                    <TableCell>Date</TableCell>
-                    <TableCell>Type</TableCell>
-                    <TableCell align="right">Quantity</TableCell>
-                    <TableCell align="right">Price (MATIC)</TableCell>
-                    <TableCell align="right">Total (MATIC)</TableCell>
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {content.transactionHistory.map((tx: any, index: number) => (
-                    <TableRow key={index}>
-                      <TableCell>{tx.date}</TableCell>
-                      <TableCell>{tx.type}</TableCell>
-                      <TableCell align="right">{tx.quantity}</TableCell>
-                      <TableCell align="right">{tx.price}</TableCell>
-                      <TableCell align="right">{(tx.quantity * tx.price).toFixed(3)}</TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </TabPanel>
-          </Box>
-        </Grid>
-
-        {/* Right Column - Purchase and Creator Info */}
-        <Grid item xs={12} md={4}>
-          {renderPurchaseCard()}
-
-          {/* Creator Info Card */}
-          <Card>
-            <CardContent>
-              <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-                <Avatar 
-                  src={content.creatorAvatar} 
-                  sx={{ width: 64, height: 64, mr: 2 }}
+              <Box sx={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 1, mb: 2 }}>
+                {content.genre.map((genre: string) => (
+                  <Chip key={genre} label={genre} size="small" />
+                ))}
+                <Chip
+                  icon={<Category fontSize="small" />}
+                  label={content.contentType}
+                  size="small"
+                  color="primary"
                 />
-                <Box>
-                  <Typography variant="h6">
-                    {content.creator}
-                  </Typography>
+              </Box>
+              <Box sx={{ display: 'flex', alignItems: 'center', color: 'text.secondary', mb: 1 }}>
+                <DateRange fontSize="small" sx={{ mr: 0.5 }} />
+                <Typography variant="body2" sx={{ mr: 2 }}>
+                  {content.releaseDate}
+                </Typography>
+                <Movie fontSize="small" sx={{ mr: 0.5 }} />
+                <Typography variant="body2" sx={{ mr: 2 }}>
+                  {content.duration}
+                </Typography>
+                <People fontSize="small" sx={{ mr: 0.5 }} />
+                <Typography variant="body2">
+                  Director: {content.director}
+                </Typography>
+              </Box>
+              <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+                <Typography variant="body2" color="text.secondary" sx={{ mr: 1 }}>
+                  Ratings:
+                </Typography>
+                <Chip
+                  label={`IMDb: ${content.ratings.imdb}/10`}
+                  size="small"
+                  sx={{ mr: 1 }}
+                />
+                <Chip
+                  label={`Metacritic: ${content.ratings.metacritic}/100`}
+                  size="small"
+                />
+              </Box>
+            </Box>
+
+            {/* Tabs Panel */}
+            <Box sx={{ width: '100%', mb: 4 }}>
+              <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
+                <Tabs
+                  value={tabValue}
+                  onChange={handleTabChange}
+                  aria-label="content tabs"
+                  variant="scrollable"
+                  scrollButtons="auto"
+                >
+                  <Tab label="Description" icon={<Info />} iconPosition="start" />
+                  <Tab label="Cast & Crew" icon={<People />} iconPosition="start" />
+                  <Tab label="License Tiers" icon={<ListAlt />} iconPosition="start" />
+                  <Tab label="Transaction History" icon={<Timeline />} iconPosition="start" />
+                </Tabs>
+              </Box>
+              <TabPanel value={tabValue} index={0}>
+                <Typography variant="body1" paragraph>
+                  {content.longDescription.split('\n\n').map((paragraph: string, idx: number) => (
+                    <React.Fragment key={idx}>
+                      {paragraph}
+                      <br /><br />
+                    </React.Fragment>
+                  ))}
+                </Typography>
+              </TabPanel>
+              <TabPanel value={tabValue} index={1}>
+                <Typography variant="h6" gutterBottom>Cast</Typography>
+                <List>
+                  {content.cast.map((person: string) => (
+                    <ListItem key={person}>
+                      <ListItemIcon>
+                        <Avatar>{person.charAt(0)}</Avatar>
+                      </ListItemIcon>
+                      <ListItemText primary={person} />
+                    </ListItem>
+                  ))}
+                </List>
+                <Divider sx={{ my: 2 }} />
+                <Typography variant="h6" gutterBottom>Crew</Typography>
+                <List>
+                  <ListItem>
+                    <ListItemIcon>
+                      <Avatar>D</Avatar>
+                    </ListItemIcon>
+                    <ListItemText primary={content.director} secondary="Director" />
+                  </ListItem>
+                  <ListItem>
+                    <ListItemIcon>
+                      <Avatar>P</Avatar>
+                    </ListItemIcon>
+                    <ListItemText primary={content.producer} secondary="Producer" />
+                  </ListItem>
+                </List>
+              </TabPanel>
+              <TabPanel value={tabValue} index={2}>
+                <Typography variant="body1" paragraph>
+                  Wylloh licenses use a unique modular rights system. By accumulating more tokens, you can unlock additional rights for this content:
+                </Typography>
+                <List>
+                  {content.rightsThresholds.map((threshold: any) => (
+                    <ListItem key={threshold.type} divider>
+                      <ListItemIcon>
+                        {threshold.quantity === 1 ? <VerifiedUser color="primary" /> : <Theaters />}
+                      </ListItemIcon>
+                      <ListItemText 
+                        primary={threshold.type} 
+                        secondary={`Required Tokens: ${threshold.quantity}`} 
+                      />
+                      {threshold.quantity === 1 ? (
+                        <Chip color="primary" size="small" label="Basic" />
+                      ) : (
+                        <Chip color="secondary" size="small" label={`Tier ${content.rightsThresholds.indexOf(threshold) + 1}`} />
+                      )}
+                    </ListItem>
+                  ))}
+                </List>
+                <Box sx={{ mt: 2 }}>
                   <Typography variant="body2" color="text.secondary">
-                    Content Creator
+                    Tokens can be accumulated and stacked to unlock these rights. For example, if you want to stream this content on your platform, you would need to acquire 5,000 tokens.
                   </Typography>
                 </Box>
-              </Box>
-              <Divider sx={{ mb: 2 }} />
-              <Typography variant="body2" paragraph>
-                {content.creator} specializes in creating high-quality documentaries that explore the intersection of technology and society.
-              </Typography>
-              <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 2 }}>
-                <Button
-                  variant="outlined"
-                  size="small"
-                  component={Link}
-                  to={`/creator/${content.creatorAddress}`}
-                >
-                  View Profile
-                </Button>
-                <Button
-                  variant="outlined"
-                  size="small"
-                  startIcon={<PlaylistAdd />}
-                >
-                  Follow Creator
-                </Button>
-              </Box>
-              <Typography variant="body2" color="text.secondary" sx={{ wordBreak: 'break-all' }}>
-                Address: {content.creatorAddress}
-              </Typography>
-            </CardContent>
-          </Card>
+              </TabPanel>
+              <TabPanel value={tabValue} index={3}>
+                <Typography variant="subtitle1" gutterBottom>
+                  Recent Transactions
+                </Typography>
+                <Table>
+                  <TableHead>
+                    <TableRow>
+                      <TableCell>Date</TableCell>
+                      <TableCell>Type</TableCell>
+                      <TableCell align="right">Quantity</TableCell>
+                      <TableCell align="right">Price (MATIC)</TableCell>
+                      <TableCell align="right">Total (MATIC)</TableCell>
+                    </TableRow>
+                  </TableHead>
+                  <TableBody>
+                    {content.transactionHistory.map((tx: any, index: number) => (
+                      <TableRow key={index}>
+                        <TableCell>{tx.date}</TableCell>
+                        <TableCell>{tx.type}</TableCell>
+                        <TableCell align="right">{tx.quantity}</TableCell>
+                        <TableCell align="right">{tx.price}</TableCell>
+                        <TableCell align="right">{(tx.quantity * tx.price).toFixed(3)}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </TabPanel>
+            </Box>
+          </Grid>
+
+          {/* Right column - Purchase card */}
+          <Grid item xs={12} md={4}>
+            {renderPurchaseCard()}
+
+            {/* Creator Info Card */}
+            <Card>
+              <CardContent>
+                <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+                  <Avatar 
+                    src={content.creatorAvatar} 
+                    sx={{ width: 64, height: 64, mr: 2 }}
+                  />
+                  <Box>
+                    <Typography variant="h6">
+                      {content.creator}
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary">
+                      Content Creator
+                    </Typography>
+                  </Box>
+                </Box>
+                <Divider sx={{ mb: 2 }} />
+                <Typography variant="body2" paragraph>
+                  {content.creator} specializes in creating high-quality documentaries that explore the intersection of technology and society.
+                </Typography>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 2 }}>
+                  <Button
+                    variant="outlined"
+                    size="small"
+                    component={Link}
+                    to={`/creator/${content.creatorAddress}`}
+                  >
+                    View Profile
+                  </Button>
+                  <Button
+                    variant="outlined"
+                    size="small"
+                    startIcon={<PlaylistAdd />}
+                  >
+                    Follow Creator
+                  </Button>
+                </Box>
+                <Typography variant="body2" color="text.secondary" sx={{ wordBreak: 'break-all' }}>
+                  Address: {content.creatorAddress}
+                </Typography>
+              </CardContent>
+            </Card>
+          </Grid>
         </Grid>
-      </Grid>
+      </Box>
 
       {/* Purchase Dialog */}
       <Dialog
