@@ -46,6 +46,7 @@ import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { uploadToIPFS, checkIpfsConnection } from '../../utils/ipfs';
 import { Buffer } from 'buffer';
+import { contentService } from '../../services/content.service';
 
 // Define content types
 const CONTENT_TYPES = [
@@ -141,7 +142,7 @@ const UploadForm: React.FC = () => {
   
   // Get auth context
   const { user, isAuthenticated } = useAuth();
-  const { active } = useWallet();
+  const { active, account } = useWallet();
   
   // Form data state
   const [formData, setFormData] = useState<UploadFormData>({
@@ -489,7 +490,7 @@ const UploadForm: React.FC = () => {
   
   // Handle form submission
   const handleSubmit = async () => {
-    if (!validateStep(5)) return;
+    if (submitting) return;
     
     setSubmitting(true);
     setSubmitError(null);
@@ -527,8 +528,28 @@ const UploadForm: React.FC = () => {
         // Continue without thumbnail
       }
       
-      // Generate a unique ID for the content
-      const contentId = `content-${Date.now()}`;
+      // Create content in the service
+      const contentData = {
+        title: formData.title,
+        description: formData.description,
+        contentType: formData.contentType,
+        status: formData.status,
+        visibility: formData.visibility,
+        mainFileCid,
+        previewCid,
+        thumbnailCid,
+        metadata: {
+          ...formData.metadata,
+          uploadDate: new Date().toISOString(),
+          // Add a flag to identify demo content
+          isDemo: formData.metadata.isDemo || false,
+          demoVersion: formData.metadata.demoVersion || '1.0'
+        },
+        creatorAddress: account || '0x0',
+      };
+      
+      // Create the content with our service
+      const createdContent = await contentService.createContent(contentData);
       
       // Success!
       setSubmitSuccess(true);
@@ -538,14 +559,14 @@ const UploadForm: React.FC = () => {
         navigate('/creator/tokenize-publish', { 
           state: { 
             contentInfo: {
-              id: contentId,
-              title: formData.title,
-              description: formData.description,
-              contentType: formData.contentType,
+              id: createdContent.id,
+              title: createdContent.title,
+              description: createdContent.description,
+              contentType: createdContent.contentType,
               mainFileCid,
               previewCid,
               thumbnailCid,
-              metadata: formData.metadata,
+              metadata: createdContent.metadata,
               tokenization: formData.tokenization
             }
           }

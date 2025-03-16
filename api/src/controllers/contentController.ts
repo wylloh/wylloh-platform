@@ -239,3 +239,88 @@ export const searchContent = asyncHandler(async (req: Request, res: Response) =>
     content: searchResults
   });
 });
+
+/**
+ * Get content by the authenticated creator
+ * @route GET /api/content/creator
+ */
+export const getMyContent = asyncHandler(async (req: Request, res: Response) => {
+  const userId = req.user?.id;
+
+  // Filter content by authenticated creator
+  const creatorContent = contentItems.filter(item => item.creator === userId);
+
+  res.status(200).json({
+    message: 'Your content retrieved successfully',
+    count: creatorContent.length,
+    data: creatorContent
+  });
+});
+
+/**
+ * Get all public content for marketplace
+ * @route GET /api/content/marketplace
+ */
+export const getMarketplaceContent = asyncHandler(async (req: Request, res: Response) => {
+  // Filter for public and active content that is tokenized
+  const marketplaceContent = contentItems.filter(
+    item => item.status === 'active' && 
+            item.visibility === 'public'
+  );
+
+  res.status(200).json({
+    message: 'Marketplace content retrieved successfully',
+    count: marketplaceContent.length,
+    data: marketplaceContent
+  });
+});
+
+/**
+ * Tokenize content
+ * @route POST /api/content/:id/tokenize
+ */
+export const tokenizeContent = asyncHandler(async (req: Request, res: Response) => {
+  const userId = req.user?.id;
+  const contentId = req.params.id;
+  const { initialSupply, royaltyPercentage, initialPrice, rightsThresholds } = req.body;
+
+  // Validate input
+  if (!initialSupply || !initialPrice) {
+    throw createError('Please provide initialSupply and initialPrice', 400);
+  }
+
+  // Find content
+  const contentIndex = contentItems.findIndex(item => item.id === contentId);
+  if (contentIndex === -1) {
+    throw createError('Content not found', 404);
+  }
+
+  // Check ownership
+  if (contentItems[contentIndex].creator !== userId) {
+    throw createError('Not authorized to tokenize this content', 403);
+  }
+
+  // In a real implementation, this would interact with a blockchain
+  // Mock tokenization process
+  const tokenId = `0x${Math.random().toString(16).substring(2, 10)}`;
+  
+  // Update content with tokenization info
+  contentItems[contentIndex] = {
+    ...contentItems[contentIndex],
+    tokenized: true,
+    tokenId,
+    initialSupply,
+    availableSupply: initialSupply,
+    price: parseFloat(initialPrice),
+    royaltyPercentage,
+    rightsThresholds,
+    status: 'active', // Automatically activate tokenized content
+    visibility: 'public', // Make tokenized content public
+    updatedAt: new Date().toISOString()
+  };
+
+  res.status(200).json({
+    message: 'Content tokenized successfully',
+    content: contentItems[contentIndex]
+  });
+});

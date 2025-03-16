@@ -27,7 +27,8 @@ import {
   DialogActions,
   ListItemIcon,
   AlertTitle,
-  Skeleton
+  Skeleton,
+  Tooltip
 } from '@mui/material';
 import {
   Add as AddIcon,
@@ -41,6 +42,7 @@ import {
   CloudUpload as CloudUploadIcon,
   Dashboard as DashboardIcon,
   InsertChart as InsertChartIcon,
+  Sell as SellIcon,
 } from '@mui/icons-material';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
@@ -405,19 +407,9 @@ const DashboardPage: React.FC = () => {
     if (filteredContent.length === 0) {
       return (
         <Box sx={{ textAlign: 'center', py: 4 }}>
-          <Typography variant="h6" color="text.secondary" gutterBottom>
-            No content found
+          <Typography variant="body1" color="text.secondary">
+            No content yet in this category.
           </Typography>
-          <Button
-            variant="contained"
-            color="primary"
-            startIcon={<AddIcon />}
-            component={Link}
-            to="/creator/upload"
-            sx={{ mt: 2 }}
-          >
-            Upload Film Package
-          </Button>
         </Box>
       );
     }
@@ -426,7 +418,7 @@ const DashboardPage: React.FC = () => {
       <Grid container spacing={3}>
         {filteredContent.map((item) => (
           <Grid item key={item.id} xs={12} sm={6} md={4}>
-            <Card sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+            <Card sx={{ position: 'relative' }}>
               <CardMedia
                 component="img"
                 height="140"
@@ -434,86 +426,95 @@ const DashboardPage: React.FC = () => {
                 alt={item.title}
               />
               
-              <CardContent sx={{ flexGrow: 1 }}>
-                <Typography variant="h6" component="div" noWrap>
-                  {item.title}
-                </Typography>
+              <CardContent>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                  <Typography variant="h6" component="h2" noWrap sx={{ maxWidth: '70%' }}>
+                    {item.title}
+                  </Typography>
+                  <Box>
+                    {renderStatusChip(item.status)}
+                    {renderVisibilityChip(item.visibility)}
+                  </Box>
+                </Box>
                 
                 <Typography 
                   variant="body2" 
-                  color="text.secondary"
-                  sx={{
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis',
+                  color="text.secondary" 
+                  sx={{ 
+                    mt: 1,
                     display: '-webkit-box',
                     WebkitLineClamp: 2,
                     WebkitBoxOrient: 'vertical',
-                    mb: 2
+                    overflow: 'hidden'
                   }}
                 >
-                  {item.description}
+                  {item.description || 'No description'}
                 </Typography>
                 
-                <Box sx={{ display: 'flex', gap: 1, mb: 1, flexWrap: 'wrap' }}>
-                  {renderStatusChip(item.status)}
-                  {renderVisibilityChip(item.visibility)}
-                  <Chip label={item.contentType} size="small" />
-                  {item.tokenized && (
-                    <Chip icon={<TokenIcon />} label="Tokenized" size="small" color="secondary" />
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 2 }}>
+                  <Chip 
+                    label={item.contentType} 
+                    size="small"
+                    sx={{ fontSize: '0.75rem' }}
+                  />
+                  <Typography variant="caption" color="text.secondary">
+                    Uploaded {formatDate(item.createdAt)}
+                  </Typography>
+                </Box>
+              </CardContent>
+              
+              <CardActions sx={{ justifyContent: 'space-between' }}>
+                <Box>
+                  {item.tokenized ? (
+                    <Tooltip title="Content is tokenized">
+                      <Chip
+                        icon={<SellIcon />}
+                        label={`${item.price} ETH`}
+                        size="small"
+                        color="primary"
+                      />
+                    </Tooltip>
+                  ) : (
+                    <Button
+                      size="small"
+                      variant="outlined"
+                      startIcon={<SellIcon />}
+                      onClick={() => handleOpenTokenizeDialog(item.id)}
+                    >
+                      Tokenize
+                    </Button>
                   )}
                 </Box>
                 
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 1 }}>
-                  <Typography variant="body2" color="text.secondary">
-                    Created: {formatDate(item.createdAt)}
-                  </Typography>
-                  <Typography variant="body2">
-                    Views: {item.views}
-                  </Typography>
+                <Box>
+                  <Tooltip title="Edit">
+                    <IconButton
+                      component={Link}
+                      to={`/creator/edit/${item.id}`}
+                      size="small"
+                    >
+                      <EditIcon fontSize="small" />
+                    </IconButton>
+                  </Tooltip>
+                  
+                  <Tooltip title="Preview">
+                    <IconButton 
+                      component={Link}
+                      to={`/player/${item.id}`}
+                      size="small"
+                    >
+                      <PlayArrowIcon fontSize="small" />
+                    </IconButton>
+                  </Tooltip>
+                  
+                  <IconButton 
+                    aria-label="more" 
+                    onClick={(e) => handleMenuClick(e, item.id)}
+                    size="small"
+                  >
+                    <MoreVertIcon />
+                  </IconButton>
                 </Box>
-                
-                {item.tokenized && (
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 1 }}>
-                    <Typography variant="body2" color="text.secondary">
-                      TokenID: {item.tokenId?.substring(0, 6)}...
-                    </Typography>
-                    <Typography variant="body2">
-                      Sales: {item.sales}
-                    </Typography>
-                  </Box>
-                )}
-              </CardContent>
-              
-              <Divider />
-              
-              <CardActions>
-                <Button 
-                  size="small" 
-                  startIcon={<PlayArrowIcon />}
-                  component={Link}
-                  to={`/player/${item.id}`}
-                >
-                  Play
-                </Button>
-                
-                <Button 
-                  size="small" 
-                  startIcon={<EditIcon />}
-                  component={Link}
-                  to={`/creator/edit/${item.id}`}
-                >
-                  Edit
-                </Button>
-                
-                <Box sx={{ flexGrow: 1 }} />
-                
-                <IconButton 
-                  aria-label="more" 
-                  onClick={(e) => handleMenuClick(e, item.id)}
-                  size="small"
-                >
-                  <MoreVertIcon />
-                </IconButton>
               </CardActions>
             </Card>
           </Grid>

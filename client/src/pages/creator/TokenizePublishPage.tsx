@@ -31,6 +31,7 @@ import {
 } from '@mui/icons-material';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
+import { contentService } from '../../services/content.service';
 
 interface RightsThreshold {
   quantity: number;
@@ -130,18 +131,26 @@ const TokenizePublishPage: React.FC = () => {
     setError(null);
     
     try {
-      // Simulate API call to tokenize and publish content
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      // In a real implementation, this would interact with blockchain
+      // For demo, we'll simulate the tokenization process
       
-      // Success!
-      setSuccess(true);
+      // Prepare tokenization data
+      const tokenizationData = {
+        initialSupply: formData.initialSupply,
+        royaltyPercentage: formData.royaltyPercentage,
+        initialPrice: formData.initialPrice,
+        rightsThresholds: formData.rightsThresholds
+      };
       
-      // Navigate to dashboard after short delay
-      setTimeout(() => {
-        navigate('/creator/dashboard');
-      }, 2000);
-    } catch (err: any) {
-      setError(err.message || 'Failed to tokenize and publish content');
+      // Tokenize content with the content service
+      const tokenizedContent = await contentService.tokenizeContent(contentInfo.id, tokenizationData);
+      
+      // Success! Navigate to marketplace
+      navigate('/marketplace');
+    } catch (error: any) {
+      console.error('Tokenization failed:', error);
+      setError(error.message || 'Failed to tokenize content. Please try again.');
+    } finally {
       setSubmitting(false);
     }
   };

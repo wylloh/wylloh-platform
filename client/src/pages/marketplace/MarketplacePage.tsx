@@ -35,6 +35,7 @@ import { Link } from 'react-router-dom';
 import { useWallet } from '../../contexts/WalletContext';
 import { generatePlaceholderImage } from '../../utils/placeholders';
 import { contentService, Content } from '../../services/content.service';
+import { getProjectIpfsUrl } from '../../utils/ipfs';
 
 // Content type options
 const contentTypes = [
@@ -198,6 +199,112 @@ const MarketplacePage: React.FC = () => {
     }
   };
 
+  const renderContent = () => {
+    if (paginatedContent.length === 0) {
+      return (
+        <Box sx={{ textAlign: 'center', py: 4 }}>
+          <Typography variant="h6" color="text.secondary">
+            No content found matching your criteria
+          </Typography>
+        </Box>
+      );
+    }
+
+    return (
+      <Grid container spacing={4}>
+        {paginatedContent.map((item) => (
+          <Grid item key={item.id} xs={12} sm={6} md={3}>
+            <Card 
+              sx={{ 
+                height: '100%', 
+                display: 'flex', 
+                flexDirection: 'column',
+                position: 'relative' 
+              }}
+            >
+              {/* Favorite button */}
+              <IconButton 
+                sx={{ 
+                  position: 'absolute', 
+                  top: 8, 
+                  right: 8,
+                  bgcolor: 'rgba(255, 255, 255, 0.7)',
+                  '&:hover': { bgcolor: 'rgba(255, 255, 255, 0.9)' }
+                }}
+                onClick={() => toggleFavorite(item.id)}
+              >
+                {favorites.includes(item.id) ? 
+                  <Favorite color="error" /> : 
+                  <FavoriteBorder />}
+              </IconButton>
+              
+              {/* Content image */}
+              <CardMedia
+                component="img"
+                height="140"
+                image={
+                  item.thumbnailCid 
+                    ? getProjectIpfsUrl(item.thumbnailCid) 
+                    : item.image || generatePlaceholderImage(item.title)
+                }
+                alt={item.title}
+              />
+              
+              <CardContent sx={{ flexGrow: 1 }}>
+                <Typography gutterBottom variant="h6" component="h2" noWrap>
+                  {item.title}
+                </Typography>
+                
+                <Typography variant="body2" color="text.secondary" sx={{ 
+                  display: '-webkit-box',
+                  WebkitLineClamp: 2,
+                  WebkitBoxOrient: 'vertical',
+                  overflow: 'hidden',
+                  mb: 1
+                }}>
+                  {item.description}
+                </Typography>
+                
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mt: 1 }}>
+                  <Typography variant="body2" color="text.secondary">
+                    by {item.creator}
+                  </Typography>
+                  
+                  <Chip 
+                    label={item.contentType} 
+                    size="small" 
+                    sx={{ fontSize: '0.7rem' }}
+                  />
+                </Box>
+              </CardContent>
+              
+              <CardActions sx={{ mt: 'auto', justifyContent: 'space-between' }}>
+                <Box>
+                  <Typography variant="h6" color="primary.main" sx={{ fontWeight: 'bold' }}>
+                    {item.price} ETH
+                  </Typography>
+                  <Typography variant="caption" color="text.secondary">
+                    {item.available}/{item.totalSupply} available
+                  </Typography>
+                </Box>
+                
+                <Button 
+                  component={Link} 
+                  to={`/marketplace/content/${item.id}`}
+                  variant="contained" 
+                  size="small"
+                  startIcon={<Info />}
+                >
+                  Details
+                </Button>
+              </CardActions>
+            </Card>
+          </Grid>
+        ))}
+      </Grid>
+    );
+  };
+
   return (
     <Container maxWidth="lg">
       <Typography variant="h4" component="h1" gutterBottom>
@@ -269,95 +376,7 @@ const MarketplacePage: React.FC = () => {
       </Box>
       
       {/* Content Grid */}
-      {paginatedContent.length > 0 ? (
-        <Grid container spacing={3} sx={{ mb: 4 }}>
-          {paginatedContent.map((content) => (
-            <Grid item key={content.id} xs={12} sm={6} md={3}>
-              <Card sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
-                <Box sx={{ position: 'relative' }}>
-                  <CardMedia
-                    component="img"
-                    height="160"
-                    image={content.image}
-                    alt={content.title}
-                  />
-                  <Box sx={{ position: 'absolute', top: 8, right: 8 }}>
-                    <IconButton 
-                      size="small" 
-                      sx={{ 
-                        bgcolor: 'rgba(255,255,255,0.8)', 
-                        '&:hover': { bgcolor: 'rgba(255,255,255,0.9)' } 
-                      }}
-                      onClick={() => toggleFavorite(content.id)}
-                    >
-                      {favorites.includes(content.id) ? 
-                        <Favorite color="error" /> : 
-                        <FavoriteBorder />}
-                    </IconButton>
-                  </Box>
-                </Box>
-                <CardContent sx={{ flexGrow: 1 }}>
-                  <Typography gutterBottom variant="h6" component="h2" noWrap>
-                    {content.title}
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary" sx={{ mb: 1, height: '3em', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                    {content.description}
-                  </Typography>
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
-                    <Chip label={content.contentType.toUpperCase()} size="small" />
-                    <Typography variant="caption" color="text.secondary">
-                      {content.available}/{content.totalSupply}
-                    </Typography>
-                  </Box>
-                  <Typography variant="body2" color="text.secondary">
-                    By {content.creator}
-                  </Typography>
-                </CardContent>
-                <Divider />
-                <CardActions>
-                  <Button 
-                    size="small" 
-                    startIcon={<Info />}
-                    component={Link}
-                    to={`/marketplace/${content.id}`}
-                  >
-                    Details
-                  </Button>
-                  <Button 
-                    size="small" 
-                    startIcon={<PlayArrow />}
-                    component={Link}
-                    to={`/player/${content.id}`}
-                  >
-                    Preview
-                  </Button>
-                  <Box sx={{ flexGrow: 1 }} />
-                  <Typography variant="button" color="primary">
-                    {content.price} MATIC
-                  </Typography>
-                </CardActions>
-              </Card>
-            </Grid>
-          ))}
-        </Grid>
-      ) : (
-        <Box sx={{ py: 4, textAlign: 'center' }}>
-          <Typography variant="h6" color="textSecondary">
-            No content found matching your criteria
-          </Typography>
-          <Button 
-            variant="outlined" 
-            sx={{ mt: 2 }}
-            onClick={() => {
-              setSearchQuery('');
-              setContentType('all');
-              setSortBy('newest');
-            }}
-          >
-            Clear Filters
-          </Button>
-        </Box>
-      )}
+      {renderContent()}
       
       {/* Pagination */}
       {totalPages > 1 && (
