@@ -2,9 +2,53 @@
  * Utility functions for working with IPFS in the frontend
  */
 
+import { create } from 'ipfs-http-client';
+import { Buffer } from 'buffer';
+
 // Default gateway URLs
 const DEFAULT_PUBLIC_GATEWAY = 'https://ipfs.io/ipfs';
 const DEFAULT_PROJECT_GATEWAY = '/api/ipfs'; // Our API's IPFS gateway
+
+// Create IPFS client for local node
+const createIpfsClient = () => {
+  try {
+    console.log('Creating IPFS client...');
+    const client = create({
+      host: '127.0.0.1',
+      port: 5001,
+      protocol: 'http',
+      apiPath: '/api/v0',
+      headers: {
+        'User-Agent': 'Wylloh-Platform',
+      }
+    });
+    console.log('IPFS client created successfully');
+    return client;
+  } catch (error) {
+    console.error('Failed to create IPFS client:', error);
+    throw error;
+  }
+};
+
+const ipfsClient = createIpfsClient();
+
+// Add a function to check IPFS connection with better error handling
+export const checkIpfsConnection = async () => {
+  try {
+    console.log('Checking IPFS connection...');
+    const id = await ipfsClient.id();
+    console.log('IPFS connection successful:', id);
+    return true;
+  } catch (error: any) {
+    console.error('IPFS connection check failed:', error);
+    console.error('Error details:', {
+      message: error.message,
+      name: error.name,
+      stack: error.stack
+    });
+    return false;
+  }
+};
 
 /**
  * Get an IPFS URL for a CID using the specified gateway
@@ -100,4 +144,46 @@ export const getStreamUrl = (cid: string): string => {
  */
 export const normalizeCid = (cid: string): string => {
   return cid.trim().replace(/^ipfs:\/\//, '');
+};
+
+// Upload a file to IPFS with chunked upload for large files
+export const uploadToIPFS = async (fileBuffer: Buffer) => {
+  try {
+    // Check connection first
+    const isConnected = await checkIpfsConnection();
+    if (!isConnected) {
+      throw new Error('Cannot connect to IPFS node. Please ensure IPFS daemon is running.');
+    }
+
+    console.log('Starting IPFS upload...');
+    
+    // Upload to IPFS with chunked upload
+    const added = await ipfsClient.add(
+      {
+        content: fileBuffer,
+      },
+      {
+        pin: true,
+        chunker: 'size-262144', // 256KB chunks
+        rawLeaves: true,
+        wrapWithDirectory: false,
+        progress: (prog) => console.log(`Upload progress: ${prog} bytes`)
+      }
+    );
+    
+    if (!added?.cid) {
+      throw new Error('Upload failed - no CID returned');
+    }
+
+    console.log('Upload successful, CID:', added.cid.toString());
+
+    return {
+      cid: added.cid.toString(),
+      size: fileBuffer.length,
+      path: added.path || ''
+    };
+  } catch (error: any) {
+    console.error('Error uploading to IPFS:', error);
+    throw new Error(error.message || 'Failed to upload to IPFS');
+  }
 };
