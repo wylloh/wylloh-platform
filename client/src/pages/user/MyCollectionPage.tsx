@@ -147,19 +147,29 @@ const MyCollectionPage: React.FC = () => {
                           License Rights
                         </Typography>
                         {content.metadata?.rightsThresholds ? (
-                          content.metadata.rightsThresholds
-                            .filter((tier: {quantity: number, type: string}) => 
-                              tier.quantity <= content.purchaseQuantity
-                            )
-                            .map((tier: {quantity: number, type: string}, i: number) => (
-                              <Chip
-                                key={i}
-                                size="small"
-                                label={tier.type}
-                                sx={{ mr: 0.5, mb: 0.5 }}
-                                color="success"
-                              />
-                            ))
+                          <>
+                            {/* Display purchase quantity for debugging */}
+                            <Typography variant="caption" display="block" sx={{ mb: 1 }}>
+                              You own {content.purchaseQuantity} token{content.purchaseQuantity !== 1 ? 's' : ''}
+                            </Typography>
+                            {console.log('Rights thresholds:', content.metadata.rightsThresholds)}
+                            {console.log('Purchase quantity:', content.purchaseQuantity)}
+                            {content.metadata.rightsThresholds
+                              .filter((tier: {quantity: number, type: string}) => {
+                                const passes = tier.quantity <= content.purchaseQuantity;
+                                console.log(`Tier ${tier.type} (${tier.quantity}) passes: ${passes}`);
+                                return passes;
+                              })
+                              .map((tier: {quantity: number, type: string}, i: number) => (
+                                <Chip
+                                  key={i}
+                                  size="small"
+                                  label={tier.type}
+                                  sx={{ mr: 0.5, mb: 0.5 }}
+                                  color="success"
+                                />
+                              ))}
+                          </>
                         ) : (
                           <Chip
                             size="small"

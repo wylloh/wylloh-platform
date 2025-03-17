@@ -6,6 +6,7 @@ import TableCell from '@mui/material/TableCell';
 import TableHead from '@mui/material/TableHead';
 import TableRow from '@mui/material/TableRow';
 import AccountBalanceWalletIcon from '@mui/icons-material/AccountBalanceWallet';
+import PlayArrow from '@mui/icons-material/PlayArrow';
 import {
   Container,
   Typography,
@@ -38,7 +39,6 @@ import {
   CircularProgress,
 } from '@mui/material';
 import {
-  PlayArrow,
   Download,
   Info,
   People,
@@ -197,6 +197,8 @@ const ContentDetailsPage: React.FC = () => {
   const [purchaseErrorDialogOpen, setPurchaseErrorDialogOpen] = useState(false);
   const [purchaseSuccessDialogOpen, setPurchaseSuccessDialogOpen] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [userOwnsContent, setUserOwnsContent] = useState(false);
+  const [ownedTokens, setOwnedTokens] = useState(0);
 
   useEffect(() => {
     const fetchContent = async () => {
@@ -209,6 +211,24 @@ const ContentDetailsPage: React.FC = () => {
       setLoading(true);
       try {
         const contentData = await contentService.getContentById(id);
+        
+        // Check if user owns this content
+        try {
+          const purchasedContent = await contentService.getPurchasedContent();
+          const ownedContent = purchasedContent.find(item => item.id === id);
+          
+          if (ownedContent) {
+            setUserOwnsContent(true);
+            setOwnedTokens(ownedContent.purchaseQuantity || 0);
+            console.log('User already owns this content', ownedContent);
+          } else {
+            setUserOwnsContent(false);
+            setOwnedTokens(0);
+          }
+        } catch (e) {
+          console.error('Error checking ownership:', e);
+        }
+        
         if (contentData) {
           // Convert content data to detailed display format
           const detailedContent: DetailedContent = {
@@ -337,7 +357,7 @@ const ContentDetailsPage: React.FC = () => {
   // Calculate total price
   const totalPrice = content ? Number(quantity) * (content.price || 0) : 0;
 
-  // Update the purchase card to show ETH
+  // Update the purchase card to show ownership status and play button
   const renderPurchaseCard = () => {
     if (!content) return null;
     
@@ -345,9 +365,29 @@ const ContentDetailsPage: React.FC = () => {
       <Card sx={{ mb: 3 }}>
         <CardContent>
           <Typography variant="h6" gutterBottom>
-            Purchase License
+            {userOwnsContent ? 'You Own This Content' : 'Purchase License'}
           </Typography>
           <Divider sx={{ mb: 2 }} />
+          
+          {/* Ownership information */}
+          {userOwnsContent && (
+            <Box sx={{ mb: 3, bgcolor: 'success.light', p: 2, borderRadius: 1 }}>
+              <Typography variant="body1" color="white" gutterBottom>
+                You own {ownedTokens} token{ownedTokens !== 1 ? 's' : ''} of this content
+              </Typography>
+              <Button
+                variant="contained"
+                color="primary"
+                component={Link}
+                to={`/player/${content.id}`}
+                startIcon={<PlayArrow />}
+                sx={{ mt: 1 }}
+                fullWidth
+              >
+                Play Content
+              </Button>
+            </Box>
+          )}
           
           {/* Primary Market */}
           <Box sx={{ mb: 3 }}>

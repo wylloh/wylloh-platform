@@ -62,7 +62,16 @@ const mockContent: Content[] = [
     // Using a public CID for the official Big Buck Bunny video
     mainFileCid: 'QmVLEz2SxoNiFnuyLpbXsH6SvjPTrHNMU88vCQZyhgBzgw',
     image: 'https://peach.blender.org/wp-content/uploads/bbb-splash.png',
-    metadata: { isDemo: true, demoVersion: '1.0' },
+    metadata: { 
+      isDemo: true, 
+      demoVersion: '1.0',
+      rightsThresholds: [
+        { quantity: 1, type: 'Personal Viewing' },
+        { quantity: 100, type: 'Small Venue' },
+        { quantity: 500, type: 'Commercial Exhibition' },
+        { quantity: 1000, type: 'Broadcast Rights' }
+      ]
+    },
     tokenized: true,
     tokenId: '0x1234...5678',
     price: 0.01,
@@ -423,22 +432,25 @@ class ContentService {
           console.log('- From:', buyerAddress);
           console.log('- To:', sellerAddress);
           console.log('- Value:', ethers.utils.formatEther(priceInWei), 'ETH');
+          console.log('- Price per token:', contentData.price || 0.01, 'ETH');
           console.log('- Content ID:', contentId);
           console.log('- Quantity:', quantity);
           
           // Request transaction - this creates a MetaMask popup
-          // For demo, just simulate success
+          // For demo, simulate success but with correct pricing
+          const totalPrice = (contentData.price || 0.01) * quantity;
           
-          // Record transaction in buyer's wallet
+          // Record transaction in buyer's wallet - with correct price formatting
           localStorage.setItem(
             `transaction_${Date.now()}`, 
             JSON.stringify({
               type: 'purchase',
               from: buyerAddress,
               to: sellerAddress,
-              value: ethers.utils.formatEther(priceInWei),
+              value: totalPrice.toFixed(4),
+              pricePerToken: (contentData.price || 0.01),
+              quantity: quantity,
               contentId,
-              quantity,
               timestamp: new Date().toISOString()
             })
           );
