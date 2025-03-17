@@ -375,6 +375,28 @@ const ContentDetailsPage: React.FC = () => {
               <Typography variant="body1" color="white" gutterBottom>
                 You own {ownedTokens} token{ownedTokens !== 1 ? 's' : ''} of this content
               </Typography>
+              
+              {/* License tier display */}
+              <Box sx={{ mt: 1, mb: 2, bgcolor: 'rgba(255,255,255,0.15)', p: 1, borderRadius: 1 }}>
+                <Typography variant="subtitle2" color="white" gutterBottom>
+                  Your License Rights:
+                </Typography>
+                <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+                  {content.rightsThresholds && 
+                   Array.isArray(content.rightsThresholds) && 
+                   content.rightsThresholds
+                    .filter((tier: {quantity: number, type: string}) => tier.quantity <= ownedTokens)
+                    .map((tier: {quantity: number, type: string}, i: number) => (
+                      <Chip
+                        key={i}
+                        size="small"
+                        label={tier.type}
+                        sx={{ mr: 0.5, mb: 0.5, bgcolor: 'white', color: 'success.dark' }}
+                      />
+                    ))}
+                </Box>
+              </Box>
+                
               <Button
                 variant="contained"
                 color="primary"
@@ -926,6 +948,73 @@ const ContentDetailsPage: React.FC = () => {
               <Typography variant="h6">{totalPrice.toFixed(4)} ETH</Typography>
             </Box>
           </Box>
+          
+          {/* License rights information */}
+          {content.rightsThresholds && Array.isArray(content.rightsThresholds) && (
+            <Box sx={{ mt: 2, mb: 2, bgcolor: 'rgba(25, 118, 210, 0.05)', p: 1.5, borderRadius: 1 }}>
+              <Typography variant="subtitle1" gutterBottom>
+                License Rights You Will Receive:
+              </Typography>
+              
+              {/* Current rights if user already owns some tokens */}
+              {userOwnsContent && ownedTokens > 0 && (
+                <>
+                  <Typography variant="body2" sx={{ mt: 1, mb: 0.5 }}>
+                    Current rights with {ownedTokens} token{ownedTokens !== 1 ? 's' : ''}:
+                  </Typography>
+                  <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, mb: 1.5 }}>
+                    {content.rightsThresholds
+                      .filter(tier => tier.quantity <= ownedTokens)
+                      .map((tier, i) => (
+                        <Chip
+                          key={i}
+                          size="small"
+                          label={tier.type}
+                          sx={{ mr: 0.5, mb: 0.5 }}
+                          color="success"
+                        />
+                      ))}
+                  </Box>
+                </>
+              )}
+              
+              {/* New rights after purchase */}
+              <Typography variant="body2" sx={{ mt: 1, mb: 0.5 }}>
+                After purchase ({Number(ownedTokens) + Number(quantity)} token{Number(ownedTokens) + Number(quantity) !== 1 ? 's' : ''} total):
+              </Typography>
+              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+                {content.rightsThresholds
+                  .filter(tier => tier.quantity <= (Number(ownedTokens) + Number(quantity)))
+                  .map((tier, i) => {
+                    // Check if this is a newly unlocked tier
+                    const isNewTier = tier.quantity > ownedTokens;
+                    
+                    return (
+                      <Chip
+                        key={i}
+                        size="small"
+                        label={tier.type}
+                        sx={{ mr: 0.5, mb: 0.5 }}
+                        color={isNewTier ? "primary" : "success"}
+                        icon={isNewTier ? <Info /> : undefined}
+                      />
+                    );
+                  })}
+              </Box>
+              
+              {/* Display newly unlocked tiers */}
+              {content.rightsThresholds.some(tier => 
+                tier.quantity > ownedTokens && tier.quantity <= (Number(ownedTokens) + Number(quantity))
+              ) && (
+                <Alert severity="info" sx={{ mt: 1.5 }}>
+                  <Typography variant="body2">
+                    <strong>New rights unlocked!</strong> This purchase will grant you additional usage rights.
+                  </Typography>
+                </Alert>
+              )}
+            </Box>
+          )}
+          
           <Alert severity="info" sx={{ mt: 2 }}>
             After purchase, the license token(s) will be transferred to your wallet and will appear in your collection.
           </Alert>
