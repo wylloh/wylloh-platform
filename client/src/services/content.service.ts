@@ -1,5 +1,17 @@
 import axios from 'axios';
 import { API_BASE_URL } from '../config';
+import { ethers } from 'ethers';
+
+// Add custom type declarations for window.ethereum
+declare global {
+  interface Window {
+    ethereum?: {
+      request: (args: { method: string; params?: any[] }) => Promise<any>;
+      on: (event: string, callback: (...args: any[]) => void) => void;
+      removeListener: (event: string, callback: (...args: any[]) => void) => void;
+    };
+  }
+}
 
 export interface Content {
   id: string;
@@ -364,7 +376,7 @@ class ContentService {
   async purchaseToken(contentId: string, quantity: number): Promise<boolean> {
     try {
       // In a real implementation, this would call the blockchain
-      // For demo, we'll simulate the purchase with local storage
+      // For demo, we'll simulate the purchase with local storage and wallet interaction
       const contentData = await this.getContentById(contentId);
       
       if (!contentData) {
@@ -385,6 +397,56 @@ class ContentService {
       
       // Check if already purchased
       const existingPurchase = purchasedContent.find(item => item.id === contentId);
+
+      // Simulate blockchain transaction with window.ethereum if available
+      // This would actually be using the wallet in the real implementation
+      if (window.ethereum) {
+        try {
+          console.log('Simulating blockchain transaction via wallet...');
+          
+          // Get seller's address
+          const sellerAddress = contentData.creatorAddress;
+          
+          // Get price in wei (ETH)
+          const priceInWei = ethers.utils.parseEther(
+            ((contentData.price || 0.01) * quantity).toString()
+          );
+          
+          // Get accounts
+          const accounts = await window.ethereum.request({ 
+            method: 'eth_requestAccounts' 
+          });
+          const buyerAddress = accounts[0];
+          
+          // Log the transaction details for demo purposes
+          console.log('Transaction details:');
+          console.log('- From:', buyerAddress);
+          console.log('- To:', sellerAddress);
+          console.log('- Value:', ethers.utils.formatEther(priceInWei), 'ETH');
+          console.log('- Content ID:', contentId);
+          console.log('- Quantity:', quantity);
+          
+          // Request transaction - this creates a MetaMask popup
+          // For demo, just simulate success
+          
+          // Record transaction in buyer's wallet
+          localStorage.setItem(
+            `transaction_${Date.now()}`, 
+            JSON.stringify({
+              type: 'purchase',
+              from: buyerAddress,
+              to: sellerAddress,
+              value: ethers.utils.formatEther(priceInWei),
+              contentId,
+              quantity,
+              timestamp: new Date().toISOString()
+            })
+          );
+        } catch (error) {
+          console.error('Error with wallet transaction:', error);
+          // Continue with local storage fallback
+        }
+      }
       
       if (existingPurchase) {
         // Update existing purchase
@@ -405,6 +467,7 @@ class ContentService {
       // Update available supply
       const updatedContent = {...contentData};
       updatedContent.available = (updatedContent.available || 0) - quantity;
+      updatedContent.sales = (updatedContent.sales || 0) + quantity;
       
       // Update local content storage
       const localContent = this.getLocalContent();

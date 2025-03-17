@@ -125,6 +125,13 @@ const MyCollectionPage: React.FC = () => {
                     
                     <Box sx={{ display: 'flex', gap: 1, mb: 1, flexWrap: 'wrap' }}>
                       <Chip label={content.contentType.toUpperCase()} size="small" />
+                      {content.purchaseQuantity && (
+                        <Chip 
+                          label={`${content.purchaseQuantity} Token${content.purchaseQuantity > 1 ? 's' : ''}`} 
+                          size="small"
+                          color="primary"
+                        />
+                      )}
                     </Box>
                     
                     <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 1 }}>
@@ -132,6 +139,37 @@ const MyCollectionPage: React.FC = () => {
                         Purchased: {new Date(content.purchaseDate).toLocaleDateString()}
                       </Typography>
                     </Box>
+                    
+                    {/* Rights tier information */}
+                    {content.purchaseQuantity && (
+                      <Box sx={{ mt: 2, bgcolor: 'rgba(25, 118, 210, 0.05)', p: 1, borderRadius: 1 }}>
+                        <Typography variant="subtitle2" color="primary" gutterBottom>
+                          License Rights
+                        </Typography>
+                        {content.metadata?.rightsThresholds ? (
+                          content.metadata.rightsThresholds
+                            .filter((tier: {quantity: number, type: string}) => 
+                              tier.quantity <= content.purchaseQuantity
+                            )
+                            .map((tier: {quantity: number, type: string}, i: number) => (
+                              <Chip
+                                key={i}
+                                size="small"
+                                label={tier.type}
+                                sx={{ mr: 0.5, mb: 0.5 }}
+                                color="success"
+                              />
+                            ))
+                        ) : (
+                          <Chip
+                            size="small"
+                            label="Personal Viewing"
+                            sx={{ mr: 0.5, mb: 0.5 }}
+                            color="success"
+                          />
+                        )}
+                      </Box>
+                    )}
                   </CardContent>
                   
                   <Divider />
