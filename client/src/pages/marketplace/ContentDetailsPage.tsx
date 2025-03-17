@@ -197,9 +197,7 @@ const ContentDetailsPage: React.FC = () => {
   const [purchaseErrorDialogOpen, setPurchaseErrorDialogOpen] = useState(false);
   const [purchaseSuccessDialogOpen, setPurchaseSuccessDialogOpen] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [userOwnsContent, setUserOwnsContent] = useState(false);
-  const [ownedTokens, setOwnedTokens] = useState(0);
-
+  
   // Ownership check state
   const [ownership, setOwnership] = useState<{ owned: boolean, quantity: number }>({
     owned: false,

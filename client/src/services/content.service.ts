@@ -2,7 +2,6 @@ import axios from 'axios';
 import { API_BASE_URL } from '../config';
 import { ethers } from 'ethers';
 import { blockchainService } from './blockchain.service';
-import { useWallet } from '../hooks/useWallet';
 
 // Add custom type declarations for window.ethereum
 declare global {
@@ -11,6 +10,7 @@ declare global {
       request: (args: { method: string; params?: any[] }) => Promise<any>;
       on: (event: string, callback: (...args: any[]) => void) => void;
       removeListener: (event: string, callback: (...args: any[]) => void) => void;
+      selectedAddress?: string;
     };
   }
 }
@@ -610,8 +610,8 @@ class ContentService {
       }
       
       // Fallback to local data
-      const content = this.getContentById(contentId);
-      if (content?.metadata.rightsThresholds) {
+      const content = await this.getContentById(contentId);
+      if (content?.metadata?.rightsThresholds) {
         return content.metadata.rightsThresholds;
       }
       
@@ -620,8 +620,8 @@ class ContentService {
       console.error('Error getting rights thresholds:', error);
       
       // Fallback to local data
-      const content = this.getContentById(contentId);
-      return content?.metadata.rightsThresholds || [];
+      const content = await this.getContentById(contentId);
+      return content?.metadata?.rightsThresholds || [];
     }
   }
 }
