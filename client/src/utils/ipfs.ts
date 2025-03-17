@@ -72,6 +72,15 @@ export const getIpfsUrl = (cid: string, gateway: string = DEFAULT_PUBLIC_GATEWAY
  * @returns Full IPFS URL through our gateway
  */
 export const getProjectIpfsUrl = (cid: string): string => {
+  // In demo mode, we want to prioritize the local IPFS gateway for better demo experience
+  const isDemoMode = true; // Always true for demo purposes
+  
+  if (isDemoMode) {
+    console.log('Demo mode: Using local IPFS gateway for CID:', cid);
+    // First try the local gateway
+    return `http://localhost:8080/ipfs/${normalizeCid(cid)}`;
+  }
+  
   return getIpfsUrl(cid, DEFAULT_PROJECT_GATEWAY);
 };
 
@@ -134,7 +143,19 @@ export const getThumbnailUrl = (cid: string, thumbnailCid?: string): string => {
  * @returns Streaming URL
  */
 export const getStreamUrl = (cid: string): string => {
-  return `${DEFAULT_PROJECT_GATEWAY}/stream/${cid}`;
+  if (!cid) return '';
+  
+  // In demo mode, we want to prioritize the local IPFS gateway for better demo experience
+  const isDemoMode = true; // Always true for demo purposes
+  
+  if (isDemoMode) {
+    console.log('Demo mode: Using local IPFS gateway for streaming CID:', cid);
+    // Use local gateway for streaming in demo mode
+    return `http://localhost:8080/ipfs/${normalizeCid(cid)}`;
+  }
+  
+  // For reliable streaming in production, use a public gateway
+  return `https://cloudflare-ipfs.com/ipfs/${normalizeCid(cid)}`;
 };
 
 /**

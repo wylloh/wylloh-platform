@@ -81,25 +81,79 @@ When finished with the demo:
 yarn stop-demo
 ```
 
-## Demo Flow
+## Detailed Demo Flow Instructions
 
-### On MacBook:
-1. Connect wallet (MetaMask configured to local network)
-2. Upload a movie file (sample is pre-loaded)
-3. Set license and token structure
-4. Mint ERC-1155 token set 
-5. Browse movie store
-6. Buy token
-7. Play content in web browser
+This demonstration showcases the complete decentralized content flow:
+1. Creator uploads and tokenizes content
+2. Content is stored securely on IPFS
+3. Tokens represent ownership/access rights
+4. Consumer purchases token for access rights
+5. System authenticates ownership before enabling playback
+6. Content streams securely from IPFS
 
-### *Switch to Seed One*
+### A. Content Creation & Tokenization (Creator Experience)
 
-### On Seed One:
-8. Access Wylloh Player via Chromium in kiosk mode
-9. Connect Wallet on Seed One
-10. *Token is automatically detected in wallet*
-11. *Movie automatically appears in library*
-12. Play movie
+1. **Start in Creator Dashboard**
+   - Navigate to the Creator Dashboard in the application
+   - This is where creators manage their content
+
+2. **Upload Content** 
+   - Click "Upload New Content"
+   - Select the Big Buck Bunny demo video file
+   - Fill out metadata (title, description, etc.)
+   - Upload thumbnail if available
+   - Click "Next" to proceed to tokenization
+
+3. **Tokenize Content**
+   - Set token parameters:
+     - Price: 0.01 ETH
+     - Supply: 1000 tokens
+   - Review and submit
+   - Confirm the transaction in your wallet
+   - Wait for transaction to complete
+
+4. **Verify Content Published**
+   - Confirm the content appears in your Creator Dashboard
+   - Content is now available on the marketplace
+
+### B. Content Purchase & Playback (Consumer Experience)
+
+5. **Browse Marketplace**
+   - Navigate to the "Marketplace" section
+   - Verify that Big Buck Bunny appears in the listing
+   - Click on the content to view details
+
+6. **Purchase Content**
+   - On the content details page, click "Purchase"
+   - Confirm the purchase transaction in your wallet
+   - Wait for transaction to complete
+   - You should see a success confirmation
+
+7. **Check "My Collection"**
+   - Navigate to "My Collection" section
+   - Big Buck Bunny should now appear in your owned content
+   - This confirms the token purchase was successful
+
+8. **Play Content**
+   - Click the "Play" button on the Big Buck Bunny card
+   - This navigates to the player page
+   - The player should load and stream the content from your local IPFS node
+   - Content should play without errors
+
+### C. Seed One Experience (optional)
+
+9. **Access Wylloh Player** via Chromium in kiosk mode on Seed One
+10. **Connect Wallet** on Seed One
+11. **Verify Token** is automatically detected in wallet
+12. **Verify Content** automatically appears in library
+13. **Play Movie** on the Seed One device
+
+### D. Troubleshooting Common Issues
+
+- **IPFS Content Not Found**: Ensure the IPFS daemon is running and content was properly uploaded
+- **Wallet Connection**: Make sure your wallet is connected to the local Ganache chain
+- **Failed Transactions**: Check that your wallet has sufficient ETH on the local chain
+- **Playback Issues**: Verify network connectivity to the local IPFS node
 
 ## Configure Seed One with Wylloh Player
 

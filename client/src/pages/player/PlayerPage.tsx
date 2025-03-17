@@ -25,7 +25,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { usePlatform } from '../../contexts/PlatformContext';
 import PlayerContainer from '../../components/player/PlayerContainer';
 import { contentService, Content, PurchasedContent } from '../../services/content.service';
-import { getProjectIpfsUrl } from '../../utils/ipfs';
+import { getProjectIpfsUrl, getStreamUrl } from '../../utils/ipfs';
 import { generatePlaceholderImage } from '../../utils/placeholders';
 
 const PlayerPage: React.FC = () => {
@@ -122,15 +122,22 @@ const PlayerPage: React.FC = () => {
   const getVideoUrl = () => {
     if (!content) return '';
     
+    console.log('Getting video URL for content:', content);
+    
     if (!isPreview && content.mainFileCid) {
-      // Full content
-      return getProjectIpfsUrl(content.mainFileCid);
+      // Full content - use streaming URL for better performance
+      const url = getStreamUrl(content.mainFileCid);
+      console.log('Using mainFileCid streaming URL:', url);
+      return url;
     } else if (content.previewCid) {
-      // Preview content
-      return getProjectIpfsUrl(content.previewCid);
+      // Preview content - use streaming URL
+      const url = getStreamUrl(content.previewCid);
+      console.log('Using previewCid streaming URL:', url);
+      return url;
     } else {
-      // Fallback to mock URL
-      return 'https://sample-videos.com/video123/mp4/720/big_buck_bunny_720p_2mb.mp4';
+      // Fallback to mock URL - use direct URL rather than IPFS
+      console.log('Using fallback mock URL for Big Buck Bunny');
+      return 'https://storage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4';
     }
   };
   

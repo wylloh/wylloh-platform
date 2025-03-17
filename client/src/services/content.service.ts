@@ -47,6 +47,7 @@ const mockContent: Content[] = [
     contentType: 'short film',
     creator: 'Pro Creator',
     creatorAddress: '0x90F8bf6A479f320ead074411a4B0e7944Ea8c9C1',
+    // Using a public CID for the official Big Buck Bunny video
     mainFileCid: 'QmVLEz2SxoNiFnuyLpbXsH6SvjPTrHNMU88vCQZyhgBzgw',
     image: 'https://peach.blender.org/wp-content/uploads/bbb-splash.png',
     metadata: { isDemo: true, demoVersion: '1.0' },

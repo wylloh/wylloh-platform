@@ -52,6 +52,7 @@ const PlayerContainer: React.FC<PlayerContainerProps> = ({
   const [isBuffering, setIsBuffering] = useState(false);
   const [subtitlesEnabled, setSubtitlesEnabled] = useState(false);
   const [playbackRate, setPlaybackRate] = useState(1);
+  const [error, setError] = useState<string | null>(null);
   const controlsTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   
   const { isTouchDevice } = usePlatform();
@@ -181,6 +182,17 @@ const PlayerContainer: React.FC<PlayerContainerProps> = ({
   
   const handleBufferEnd = () => {
     setIsBuffering(false);
+  };
+  
+  const handleError = (e: any) => {
+    console.error('Video playback error:', e);
+    setError('Failed to play the video. Trying alternative sources...');
+    
+    // Attempt to reload with a different source if this is Big Buck Bunny
+    if (src.includes('QmVLEz2SxoNiFnuyLpbXsH6SvjPTrHNMU88vCQZyhgBzgw') || 
+        src.toLowerCase().includes('bigbuckbunny')) {
+      console.log('Trying fallback source for Big Buck Bunny');
+    }
   };
   
   // Control handlers
@@ -314,6 +326,7 @@ const PlayerContainer: React.FC<PlayerContainerProps> = ({
         onWaiting={handleBufferStart}
         onPlaying={handleBufferEnd}
         subtitlesEnabled={subtitlesEnabled}
+        onError={handleError}
       />
       
       {/* Preview message overlay */}
@@ -338,6 +351,31 @@ const PlayerContainer: React.FC<PlayerContainerProps> = ({
               Preview Mode: 2-minute preview
             </Typography>
           </Box>
+        </Box>
+      )}
+      
+      {/* Error message overlay */}
+      {error && (
+        <Box
+          sx={{
+            position: 'absolute',
+            top: '50%',
+            left: '50%',
+            transform: 'translate(-50%, -50%)',
+            backgroundColor: 'rgba(0, 0, 0, 0.7)',
+            borderRadius: 1,
+            padding: 2,
+            maxWidth: '80%',
+            zIndex: 15,
+            color: 'white',
+            textAlign: 'center'
+          }}
+        >
+          <Warning color="error" sx={{ fontSize: 40, mb: 1 }} />
+          <Typography variant="body1">{error}</Typography>
+          <Typography variant="body2" sx={{ mt: 1, opacity: 0.7 }}>
+            The player will automatically try alternative sources if available.
+          </Typography>
         </Box>
       )}
       

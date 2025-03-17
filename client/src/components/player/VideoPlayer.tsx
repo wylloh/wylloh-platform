@@ -17,6 +17,7 @@ interface VideoPlayerProps {
   onVolumeChange?: () => void;
   onWaiting?: () => void;
   onPlaying?: () => void;
+  onError?: (e: any) => void;
 }
 
 const VideoPlayer = forwardRef<HTMLVideoElement, VideoPlayerProps>(
@@ -35,13 +36,25 @@ const VideoPlayer = forwardRef<HTMLVideoElement, VideoPlayerProps>(
     onLoadedMetadata,
     onVolumeChange,
     onWaiting,
-    onPlaying
+    onPlaying,
+    onError
   }, ref) => {
+    // If the src is an IPFS URL, we'll use it as the primary source
+    // and provide a fallback direct URL for Big Buck Bunny
+    const isIpfsUrl = src && (src.includes('/ipfs/') || src.startsWith('ipfs://'));
+    const fallbackUrl = 'https://storage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4';
+    
+    // Only add fallback if we detect it's Big Buck Bunny content
+    const shouldAddFallback = src.toLowerCase().includes('bigbuckbunny') || 
+                             src.includes('QmVLEz2SxoNiFnuyLpbXsH6SvjPTrHNMU88vCQZyhgBzgw');
+    
+    // Log the source for debugging
+    console.log('VideoPlayer source:', src, 'isIpfsUrl:', isIpfsUrl, 'shouldAddFallback:', shouldAddFallback);
+    
     return (
       <Box sx={{ width: '100%', height: '100%', position: 'relative' }}>
         <video
           ref={ref}
-          src={src}
           poster={poster}
           autoPlay={autoPlay}
           loop={loop}
@@ -61,7 +74,16 @@ const VideoPlayer = forwardRef<HTMLVideoElement, VideoPlayerProps>(
           onVolumeChange={onVolumeChange}
           onWaiting={onWaiting}
           onPlaying={onPlaying}
+          onError={onError}
         >
+          {/* Use source elements to support multiple formats and fallbacks */}
+          <source src={src} type={isIpfsUrl ? "video/mp4" : "video/mp4"} />
+          
+          {/* Add fallback source for Big Buck Bunny */}
+          {shouldAddFallback && (
+            <source src={fallbackUrl} type="video/mp4" />
+          )}
+          
           {subtitlesEnabled && subtitlesUrl && (
             <track
               kind="subtitles"

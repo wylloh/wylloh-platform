@@ -40,7 +40,7 @@
     "test": "react-scripts test",
     "eject": "react-scripts eject",
     "lint": "eslint src",
-    "cleanup-demo-content": "ts-node scripts/cleanup-demo-content.ts"
+    "cleanup-demo-content": "echo 'Demo content cleanup is disabled for better demo reliability'"
   },
   "eslintConfig": {
     "extends": [
