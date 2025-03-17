@@ -1,6 +1,8 @@
 import axios from 'axios';
 import { API_BASE_URL } from '../config';
 import { ethers } from 'ethers';
+import { blockchainService } from './blockchain.service';
+import { useWallet } from '../hooks/useWallet';
 
 // Add custom type declarations for window.ethereum
 declare global {
@@ -518,6 +520,108 @@ class ContentService {
     } catch (error) {
       console.error('Error retrieving local purchased content:', error);
       return [];
+    }
+  }
+
+  /**
+   * Check if user owns content by checking token balance
+   * This will check the blockchain if a wallet is connected,
+   * otherwise fall back to local storage
+   * 
+   * @param contentId Content ID to check
+   * @returns An object containing ownership status and quantity
+   */
+  async checkContentOwnership(contentId: string): Promise<{ owned: boolean, quantity: number }> {
+    try {
+      // Get wallet info
+      const walletAddress = this.getConnectedWalletAddress();
+      
+      // If connected to a blockchain wallet, check token ownership directly
+      if (walletAddress && blockchainService.isInitialized()) {
+        console.log('Checking token ownership on blockchain for', contentId);
+        const tokenBalance = await blockchainService.getTokenBalance(
+          walletAddress,
+          contentId
+        );
+        
+        console.log('Token balance from blockchain:', tokenBalance);
+        return {
+          owned: tokenBalance > 0,
+          quantity: tokenBalance
+        };
+      }
+      
+      // Fallback to local storage
+      console.log('Falling back to local storage for ownership check');
+      const purchasedContent = this.getLocalPurchasedContent();
+      const content = purchasedContent.find(item => item.id === contentId);
+      
+      return {
+        owned: !!content,
+        quantity: content?.purchaseQuantity || 0
+      };
+    } catch (error) {
+      console.error('Error checking content ownership:', error);
+      
+      // Fallback to local storage on error
+      const purchasedContent = this.getLocalPurchasedContent();
+      const content = purchasedContent.find(item => item.id === contentId);
+      
+      return {
+        owned: !!content,
+        quantity: content?.purchaseQuantity || 0
+      };
+    }
+  }
+  
+  /**
+   * Get connected wallet address from local storage
+   * This is a temporary solution until proper wallet integration
+   */
+  private getConnectedWalletAddress(): string | null {
+    try {
+      // Check if we have a connected wallet via window.ethereum
+      if (window.ethereum && window.ethereum.selectedAddress) {
+        return window.ethereum.selectedAddress;
+      }
+      
+      return null;
+    } catch (error) {
+      console.error('Error getting wallet address:', error);
+      return null;
+    }
+  }
+  
+  /**
+   * Get rights thresholds for content from blockchain
+   * Falls back to local data if blockchain is not available
+   * 
+   * @param contentId Content ID to get rights thresholds for
+   * @returns Array of rights thresholds
+   */
+  async getRightsThresholds(contentId: string): Promise<{quantity: number, type: string}[]> {
+    try {
+      // Try to get from blockchain first
+      if (blockchainService.isInitialized()) {
+        const thresholds = await blockchainService.getRightsThresholds(contentId);
+        if (thresholds && thresholds.length > 0) {
+          return thresholds;
+        }
+      }
+      
+      // Fallback to local data
+      const content = this.getContentById(contentId);
+      if (content?.metadata.rightsThresholds) {
+        return content.metadata.rightsThresholds;
+      }
+      
+      return [];
+    } catch (error) {
+      console.error('Error getting rights thresholds:', error);
+      
+      // Fallback to local data
+      const content = this.getContentById(contentId);
+      return content?.metadata.rightsThresholds || [];
     }
   }
 }

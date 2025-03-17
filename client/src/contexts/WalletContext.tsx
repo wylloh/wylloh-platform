@@ -3,6 +3,7 @@ import { useWeb3React } from '@web3-react/core';
 import { InjectedConnector } from '@web3-react/injected-connector';
 import { WalletConnectConnector } from '@web3-react/walletconnect-connector';
 import { ethers } from 'ethers';
+import { blockchainService } from '../services/blockchain.service';
 
 // Add Snackbar for notifications
 import { 
@@ -23,8 +24,9 @@ const POLYGON_MUMBAI_ID = 80001;
 // For local development with Ganache
 const GANACHE_ID = 1337;
 
-// Get chain ID from environment, defaulting to Ganache for local development
-const CHAIN_ID = parseInt(process.env.REACT_APP_CHAIN_ID || '1337', 10);
+// Define chain ID for the app
+// For local development, use Ganache
+const CHAIN_ID = GANACHE_ID;
 
 console.log('WalletContext initialized with CHAIN_ID:', CHAIN_ID);
 
@@ -101,6 +103,9 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     account: null
   });
 
+  // After successful connection
+  const [connectionError, setConnectionError] = useState<string | null>(null);
+
   // Debug log for Web3React state
   console.log('Web3React state:', { active, account, chainId, library: library ? 'exists' : 'null' });
 
@@ -111,6 +116,19 @@ export function WalletProvider({ children }: { children: ReactNode }) {
   // Get provider
   const provider = library ? library as ethers.providers.Web3Provider : null;
 
+  // Initialize blockchain service when provider becomes available
+  useEffect(() => {
+    if (active && provider && account) {
+      try {
+        blockchainService.initialize(provider);
+        console.log('Blockchain service initialized with provider');
+      } catch (error) {
+        console.error('Failed to initialize blockchain service:', error);
+        setConnectionError('Failed to connect to blockchain contracts. Please try again.');
+      }
+    }
+  }, [active, provider, account]);
+
   // Connect wallet
   const connect = async () => {
     console.log('Connecting wallet...');
@@ -119,8 +137,10 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       await activate(injected, undefined, true);
       console.log('Wallet connected successfully');
       setWalletModalOpen(false);
+      setConnectionError(null);
     } catch (error) {
       console.error('Error connecting wallet:', error);
+      setConnectionError('Failed to connect wallet. Please make sure MetaMask is installed and unlocked.');
     } finally {
       setConnecting(false);
     }

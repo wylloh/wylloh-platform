@@ -200,106 +200,44 @@ const ContentDetailsPage: React.FC = () => {
   const [userOwnsContent, setUserOwnsContent] = useState(false);
   const [ownedTokens, setOwnedTokens] = useState(0);
 
+  // Ownership check state
+  const [ownership, setOwnership] = useState<{ owned: boolean, quantity: number }>({
+    owned: false,
+    quantity: 0
+  });
+
+  // Extract ownership values for readability
+  const userOwnsContent = ownership.owned;
+  const ownedTokens = ownership.quantity;
+
   useEffect(() => {
     const fetchContent = async () => {
-      if (!id) {
-        setError("Content ID not found");
-        setLoading(false);
-        return;
-      }
-
-      setLoading(true);
+      if (!id) return;
+      
       try {
         const contentData = await contentService.getContentById(id);
-        
-        // Check if user owns this content
-        try {
-          const purchasedContent = await contentService.getPurchasedContent();
-          const ownedContent = purchasedContent.find(item => item.id === id);
-          
-          if (ownedContent) {
-            setUserOwnsContent(true);
-            setOwnedTokens(ownedContent.purchaseQuantity || 0);
-            console.log('User already owns this content', ownedContent);
-          } else {
-            setUserOwnsContent(false);
-            setOwnedTokens(0);
-          }
-        } catch (e) {
-          console.error('Error checking ownership:', e);
-        }
-        
         if (contentData) {
-          // Convert content data to detailed display format
-          const detailedContent: DetailedContent = {
-            id: contentData.id,
-            title: contentData.title,
-            description: contentData.description,
-            longDescription: contentData.description, // Use description as longDescription
-            image: contentData.image || '',
-            contentType: contentData.contentType,
-            creator: contentData.creator,
-            creatorAddress: contentData.creatorAddress,
-            creatorAvatar: generatePlaceholderImage(contentData.creator), // Generate placeholder avatar
-            price: contentData.price || 0.01,
-            available: contentData.available || 0,
-            totalSupply: contentData.totalSupply || 0,
-            releaseDate: new Date(contentData.createdAt).toLocaleDateString(),
-            duration: contentData.metadata?.duration || '10 minutes',
-            genre: contentData.metadata?.genre ? [contentData.metadata.genre] : ['Demo'],
-            cast: Array.isArray(contentData.metadata?.cast) 
-              ? contentData.metadata.cast 
-              : typeof contentData.metadata?.cast === 'string'
-                ? contentData.metadata.cast.split(',')
-                : ['Demo Cast'],
-            director: contentData.metadata?.director || 'Demo Director',
-            producer: contentData.metadata?.producer || 'Demo Producer',
-            ratings: { 
-              imdb: contentData.metadata?.imdbRating || 8.5, 
-              metacritic: contentData.metadata?.metacriticRating || 85 
-            },
-            trailerUrl: contentData.metadata?.trailerUrl || '',
-            tokenized: contentData.tokenized,
-            tokenId: contentData.tokenId || '',
-            rightsThresholds: contentData.metadata?.rightsThresholds || [
-              { quantity: 1, type: 'Personal Viewing' },
-              { quantity: 100, type: 'Small Venue (50 seats)' },
-              { quantity: 5000, type: 'Streaming Platform' },
-              { quantity: 10000, type: 'Theatrical Exhibition' }
-            ],
-            transactionHistory: [
-              { 
-                date: new Date(contentData.createdAt).toLocaleDateString(), 
-                type: 'Mint', 
-                quantity: contentData.totalSupply || 1000, 
-                price: contentData.price || 0.01
-              }
-            ],
-            secondaryMarket: [],
-            mainFileCid: contentData.mainFileCid,
-            thumbnailCid: contentData.thumbnailCid,
-            previewCid: contentData.previewCid,
-            metadata: contentData.metadata,
-            createdAt: contentData.createdAt,
-            status: contentData.status,
-            visibility: contentData.visibility,
-            views: contentData.views || 0,
-            sales: contentData.sales || 0
-          };
+          setContent(contentData);
           
-          setContent(detailedContent);
-          setError(null);
+          // Check ownership
+          try {
+            const ownershipStatus = await contentService.checkContentOwnership(id);
+            setOwnership(ownershipStatus);
+            console.log('Ownership status:', ownershipStatus);
+          } catch (error) {
+            console.error('Error checking content ownership:', error);
+          }
         } else {
-          setError("Content not found");
+          setError('Content not found');
         }
-      } catch (error: any) {
+      } catch (error) {
         console.error('Error fetching content:', error);
-        setError(error.message || "Failed to load content details");
+        setError('Failed to load content details');
       } finally {
         setLoading(false);
       }
     };
-
+    
     fetchContent();
   }, [id]);
 
