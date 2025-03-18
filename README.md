@@ -35,6 +35,19 @@ These features enhance content availability and reliability for users while esta
 - Token-based access control
 - Support for NFT-based licenses
 
+### Content Security
+
+Wylloh employs a robust content security system to protect digital assets:
+
+- **End-to-End Encryption**: AES-256 encryption for all content stored on IPFS
+- **Blockchain-Based Access Control**: Content keys are only accessible to token owners
+- **Key Management Service**: Secure storage and retrieval of encryption keys
+- **Wallet-Key Association**: Encryption keys are associated with user wallet addresses
+- **Protected Content Components**: UI components that enforce access control
+- **Download Security**: Content remains encrypted during download and is only decrypted for authorized playback
+
+This security architecture ensures that only legitimate token owners can access content, maintaining the integrity of the licensing model even in a decentralized storage environment.
+
 ## Getting Started
 
 ### Prerequisites
@@ -163,13 +176,15 @@ The Wylloh Player is now fully integrated into the client application as a set o
 
 The player is built with these key components:
 
-- `VideoPlayer`: Core video playback component
+- `VideoPlayer`: Core video playback component with integrated decryption
 - `PlayerContainer`: Manages the overall player UI and controls
 - `PlaybackControls`: Play/pause and related controls
 - `VolumeControls`: Volume and mute functionality
 - `DisplayControls`: Fullscreen, subtitles, and playback speed
 - `TimeDisplay`: Progress bar and time display
 - `PlatformContext`: Detects and provides platform information (web browser vs Seed One)
+- `ProtectedContent`: Access control wrapper for token-gated content
+- `KeyManagementService`: Handles secure content key storage and retrieval
 
 #### Running the Player
 

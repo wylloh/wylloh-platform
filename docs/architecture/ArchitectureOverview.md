@@ -37,7 +37,7 @@ The Wylloh platform is a distributed system with multiple components working tog
 ### 1. Web UI (Frontend)
 - **Technology**: React, TypeScript, Material UI
 - **Purpose**: User interface for browsing, purchasing, and managing content
-- **Key Features**: Content marketplace, creator dashboard, player interface
+- **Key Features**: Content marketplace, creator dashboard, player interface, token-gated content access
 
 ### 2. API Service
 - **Technology**: Express, TypeScript, JWT
@@ -88,6 +88,58 @@ The Wylloh platform is a distributed system with multiple components working tog
 4. User accesses content via Web Player, Seed One, or Kodi
 5. Player verifies license through blockchain integration
 6. Content is streamed from IPFS through Storage Service
+
+## Security Architecture
+
+The Wylloh platform implements a comprehensive security architecture to protect content while maintaining the benefits of decentralized storage.
+
+### Content Encryption Flow
+
+```
+┌───────────┐     ┌───────────┐     ┌───────────┐     ┌───────────┐
+│   User    │────►│ Encryption │────►│   IPFS    │────►│Content CID│
+│  Upload   │     │  Service   │     │  Storage  │     │           │
+└───────────┘     └───────────┘     └───────────┘     └───────────┘
+                        │                                   │
+                        ▼                                   │
+                  ┌───────────┐                             │
+                  │ Encryption │                             │
+                  │    Key    │                             │
+                  └───────────┘                             │
+                        │                                   │
+                        ▼                                   ▼
+┌───────────┐     ┌───────────┐     ┌───────────┐     ┌───────────┐
+│  Wallet   │◄────│    Key    │◄────│ Blockchain │◄────│  Content  │
+│ Signature │     │ Management│     │  Contract  │     │ Metadata  │
+└───────────┘     └───────────┘     └───────────┘     └───────────┘
+```
+
+1. **Upload Process**:
+   - Content is encrypted client-side before uploading to IPFS
+   - Encryption keys are generated uniquely for each content
+   - Content metadata and CID are stored separately from encryption keys
+
+2. **Key Management**:
+   - Encryption keys are associated with blockchain token ownership
+   - Keys are stored securely and only accessible to authorized token holders
+   - Key retrieval requires blockchain verification of token ownership
+
+3. **Access Control**:
+   - Content access is gated by token ownership verification
+   - The system verifies on-chain that the user possesses the required tokens
+   - Decryption occurs client-side only after verification succeeds
+
+### Key Management Service
+
+The Key Management Service is responsible for securely handling content encryption keys:
+
+- **Key Storage**: Securely stores encryption keys, associating them with content IDs
+- **Token Verification**: Verifies token ownership before granting access to keys
+- **Key Retrieval**: Provides encryption keys only to authorized users
+- **Wallet Association**: Links encryption keys to wallet addresses for verification
+- **Cache Management**: Maintains a temporary cache of decryption keys for performance
+
+This security architecture ensures that even though content is stored on decentralized IPFS networks, only authorized token holders can access and decrypt the content, maintaining the integrity of the licensing model.
 
 ## Security Model
 

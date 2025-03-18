@@ -44,6 +44,54 @@ The Encryption Service handles content security:
 - **Decryption**: Authorized content decryption for playback
 - **Access Control**: Management of content access credentials
 
+#### Encryption Implementation
+
+The encryption system is implemented with the following components:
+
+1. **EncryptionUtils** (`encryption.ts`):
+   - Provides utility functions for encrypting and decrypting content
+   - Uses AES-256 encryption with secure key handling
+   - Supports both content encryption and key encryption
+
+2. **KeyManagementService** (`keyManagement.service.ts`):
+   - Manages secure storage and retrieval of content keys
+   - Associates keys with specific content IDs
+   - Verifies token ownership before providing access to keys
+   - Implements a caching system for improved performance
+
+3. **UploadService** (`upload.service.ts`):
+   - Handles the secure upload process
+   - Encrypts files before uploading to IPFS
+   - Manages encryption keys during the upload process
+   - Stores encryption metadata securely
+
+4. **DownloadService** (`download.service.ts`):
+   - Manages secure content retrieval
+   - Verifies user authorization before allowing content access
+   - Handles decryption of content for authorized users
+   - Provides streaming and download capabilities with on-the-fly decryption
+
+#### Encryption Workflow
+
+The encryption process follows these steps:
+
+1. **Content Upload**:
+   - Content is encrypted client-side using a unique encryption key
+   - The encryption key is itself encrypted with a key derived from the content contract
+   - Encrypted content is uploaded to IPFS, receiving a content CID
+   - The encrypted key is stored securely, associated with the content ID
+
+2. **Content Access**:
+   - User requests access to content
+   - System verifies token ownership through blockchain integration
+   - If authorized, the encrypted key is retrieved and decrypted
+   - Content is streamed or downloaded and decrypted client-side
+
+3. **Key Security**:
+   - Keys are never stored in plaintext
+   - Key access requires blockchain verification
+   - Keys are associated with wallet addresses for additional security
+
 ### Content Storage Controller
 
 The Content Storage Controller coordinates the storage workflow:
