@@ -311,23 +311,41 @@ const PlayerContainer: React.FC<PlayerContainerProps> = ({
       )}
       
       {/* Video Player */}
-      <VideoPlayer
-        ref={videoRef}
-        src={src}
-        poster={poster}
-        autoPlay={autoPlay}
-        loop={loop}
-        muted={muted}
-        onPlay={handlePlay}
-        onPause={handlePause}
-        onEnded={handleEnded}
-        onLoadedMetadata={handleLoadedMetadata}
-        onVolumeChange={handleVolumeChange}
-        onWaiting={handleBufferStart}
-        onPlaying={handleBufferEnd}
-        subtitlesEnabled={subtitlesEnabled}
-        onError={handleError}
-      />
+      <Box position="relative" width="100%" height="100%">
+        {previewMode && (
+          <Chip
+            label="PREVIEW"
+            color="primary"
+            size="small"
+            sx={{
+              position: 'absolute',
+              top: 16,
+              right: 16,
+              zIndex: 20,
+              bgcolor: 'rgba(25, 118, 210, 0.8)',
+            }}
+          />
+        )}
+        
+        {/* Use HTML video element directly for now */}
+        <video
+          ref={videoRef}
+          src={src}
+          poster={poster}
+          autoPlay={autoPlay}
+          loop={loop}
+          muted={muted}
+          style={{ width: '100%', height: '100%', objectFit: 'contain' }}
+          onPlay={handlePlay}
+          onPause={handlePause}
+          onEnded={handleEnded}
+          onLoadedMetadata={handleLoadedMetadata}
+          onVolumeChange={handleVolumeChange}
+          onWaiting={handleBufferStart}
+          onPlaying={handleBufferEnd}
+          onError={handleError}
+        />
+      </Box>
       
       {/* Preview message overlay */}
       {previewMode && showControls && (

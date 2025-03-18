@@ -1,364 +1,182 @@
-import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate, Link } from 'react-router-dom';
-import {
-  Box,
-  Container,
-  Typography,
-  Paper,
-  Button,
-  Chip,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogContentText,
-  DialogActions,
-  CircularProgress,
-  Card,
-  CardContent,
-  Grid,
-  Divider,
-  Alert
-} from '@mui/material';
-import { VerifiedUser, ShoppingCart, Warning } from '@mui/icons-material';
-import { useWallet } from '../../contexts/WalletContext';
-import { useAuth } from '../../contexts/AuthContext';
-import { usePlatform } from '../../contexts/PlatformContext';
-import PlayerContainer from '../../components/player/PlayerContainer';
-import { contentService, Content, PurchasedContent } from '../../services/content.service';
-import { getProjectIpfsUrl, getStreamUrl } from '../../utils/ipfs';
-import { generatePlaceholderImage } from '../../utils/placeholders';
+import React, { useEffect, useState } from 'react';
+import { useParams, Navigate, Link } from 'react-router-dom';
+import { Box, Container, Typography, Paper, Button, Alert, ButtonGroup } from '@mui/material';
+import { Download, PlayArrow } from '@mui/icons-material';
+import VideoPlayer from '../../components/player/VideoPlayer';
+import { contentService } from '../../services/content.service';
+import ProtectedContent from '../../components/content/ProtectedContent';
+import { useWallet } from '../../hooks/useWallet';
+import { downloadService } from '../../services/download.service';
 
 const PlayerPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
-  const [content, setContent] = useState<Content | null>(null);
+  const [content, setContent] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const [purchaseDialogOpen, setPurchaseDialogOpen] = useState(false);
-  const [previewEndDialogOpen, setPreviewEndDialogOpen] = useState(false);
-  const [isPreview, setIsPreview] = useState(true);
-  const [isPurchased, setIsPurchased] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  
-  const navigate = useNavigate();
-  const { active, isCorrectNetwork } = useWallet();
-  const { isAuthenticated } = useAuth();
-  const { isSeedOne, isTouchDevice } = usePlatform();
-  
-  // Check if a user owns this content
-  const checkOwnership = async (contentId: string) => {
-    try {
-      const purchasedContent = await contentService.getPurchasedContent();
-      console.log('Checking if user owns content:', contentId, 'in', purchasedContent);
-      const isOwned = purchasedContent.some(item => item.id === contentId);
-      setIsPreview(!isOwned);
-      setIsPurchased(isOwned);
-      return isOwned;
-    } catch (err) {
-      console.error('Error checking ownership:', err);
-      return false;
-    }
-  };
-  
-  // Load content data
+  const { account, active } = useWallet();
+
   useEffect(() => {
     const fetchContent = async () => {
       if (!id) {
-        setError('No content ID provided');
+        setError('Invalid content ID');
         setLoading(false);
         return;
       }
 
-      setLoading(true);
       try {
         const contentData = await contentService.getContentById(id);
-        console.log('Fetched content:', contentData);
-        
         if (contentData) {
+          console.log('Content data loaded:', contentData);
           setContent(contentData);
-          await checkOwnership(id);
         } else {
           setError('Content not found');
         }
-      } catch (error) {
-        console.error('Error fetching content:', error);
+      } catch (err) {
+        console.error('Error fetching content:', err);
         setError('Failed to load content');
       } finally {
         setLoading(false);
       }
     };
-    
+
     fetchContent();
   }, [id]);
-  
-  const handlePreviewEnded = () => {
-    setPreviewEndDialogOpen(true);
-  };
-  
-  const handlePurchase = () => {
-    setPurchaseDialogOpen(true);
-  };
-  
-  const handleConfirmPurchase = async () => {
-    if (!content) return;
-    
-    try {
-      // Purchase the token
-      await contentService.purchaseToken(content.id, 1);
-      
-      // Close dialog and update state
-      setPurchaseDialogOpen(false);
-      setIsPreview(false);
-      setIsPurchased(true);
-    } catch (error) {
-      console.error('Error purchasing content:', error);
-      // Show error to user
-    }
-  };
-  
-  const handleBack = () => {
-    navigate(-1);
-  };
-  
-  // Get appropriate video URL
-  const getVideoUrl = () => {
-    if (!content) return '';
-    
-    console.log('Getting video URL for content:', content);
-    
-    if (!isPreview && content.mainFileCid) {
-      // Full content - use streaming URL for better performance
-      const url = getStreamUrl(content.mainFileCid);
-      console.log('Using mainFileCid streaming URL:', url);
-      return url;
-    } else if (content.previewCid) {
-      // Preview content - use streaming URL
-      const url = getStreamUrl(content.previewCid);
-      console.log('Using previewCid streaming URL:', url);
-      return url;
-    } else {
-      // Fallback to mock URL - use direct URL rather than IPFS
-      console.log('Using fallback mock URL for Big Buck Bunny');
-      return 'https://storage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4';
-    }
-  };
-  
-  // Get thumbnail URL
-  const getThumbnailUrl = () => {
-    if (!content) return '';
-    
-    if (content.thumbnailCid) {
-      return getProjectIpfsUrl(content.thumbnailCid);
-    } else if (content.image) {
-      return content.image;
-    } else {
-      return generatePlaceholderImage(content?.title || 'Video');
-    }
-  };
-  
+
+  // Redirect if no account or wallet not connected
+  if (!loading && (!active || !account)) {
+    return <Navigate to={`/marketplace/details/${id}`} replace />;
+  }
+
   if (loading) {
     return (
-      <Container maxWidth="lg" sx={{ mt: 4, textAlign: 'center' }}>
-        <CircularProgress size={60} />
-        <Typography variant="h6" sx={{ mt: 2 }}>
-          Loading content...
-        </Typography>
+      <Container maxWidth="lg" sx={{ py: 4 }}>
+        <Box display="flex" justifyContent="center" alignItems="center" height="70vh">
+          <Typography>Loading content...</Typography>
+        </Box>
       </Container>
     );
   }
-  
+
   if (error || !content) {
     return (
-      <Container maxWidth="lg" sx={{ mt: 4 }}>
-        <Alert severity="error" sx={{ mb: 3 }}>
-          {error || 'Content not found'}
-        </Alert>
-        <Box sx={{ textAlign: 'center' }}>
-          <Typography variant="body1" sx={{ mt: 2 }}>
-            The content you're looking for could not be found.
-          </Typography>
-          <Button 
-            variant="contained" 
-            color="primary" 
-            sx={{ mt: 3, mr: 2 }}
-            component={Link}
-            to="/marketplace"
-          >
-            Browse Marketplace
-          </Button>
-          <Button 
-            variant="outlined"
-            sx={{ mt: 3 }}
-            onClick={() => navigate(-1)}
-          >
-            Go Back
+      <Container maxWidth="lg" sx={{ py: 4 }}>
+        <Box display="flex" justifyContent="center" alignItems="center" height="70vh" flexDirection="column">
+          <Typography color="error" gutterBottom>{error || 'Content not available'}</Typography>
+          <Button component={Link} to="/marketplace" variant="contained" sx={{ mt: 2 }}>
+            Return to Marketplace
           </Button>
         </Box>
       </Container>
     );
   }
-  
-  return (
-    <Box sx={{ 
-      pb: 4,
-      pt: isSeedOne ? 0 : 2,
-      px: isSeedOne ? 0 : 2,
-      minHeight: '100vh',
-      backgroundColor: '#121212' 
-    }}>
-      <Container maxWidth="xl" disableGutters={isSeedOne}>
-        {/* Player Section */}
-        <PlayerContainer
-          src={getVideoUrl()}
-          poster={getThumbnailUrl()}
-          contentMetadata={{
-            title: content.title,
-            creator: content.creator,
-            description: content.description,
-            duration: content.metadata?.duration || '10 minutes'
-          }}
-          previewMode={isPreview}
-          isPlatformSeedOne={isSeedOne}
-          onPreviewEnded={handlePreviewEnded}
-          onBack={!isSeedOne ? handleBack : undefined}
-        />
-        
-        {/* Content Info Section - Hide in kiosk mode */}
-        {!isSeedOne && (
-          <Box sx={{ mt: 3 }}>
-            <Grid container spacing={3}>
-              <Grid item xs={12} md={8}>
-                <Paper sx={{ p: 3, bgcolor: '#1e1e1e' }}>
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
-                    <Box>
-                      <Typography variant="h4" gutterBottom>
-                        {content.title}
-                      </Typography>
-                      <Typography variant="subtitle1" color="text.secondary">
-                        {content.creator} • {content.metadata?.duration || '10 minutes'}
-                      </Typography>
-                    </Box>
-                    
-                    {isPreview ? (
-                      <Button
-                        variant="contained"
-                        color="primary"
-                        startIcon={<ShoppingCart />}
-                        onClick={handlePurchase}
-                        disabled={!active || !isCorrectNetwork || !isAuthenticated}
-                      >
-                        Purchase ({content.price || 0.01} ETH)
-                      </Button>
-                    ) : (
-                      <Chip 
-                        icon={<VerifiedUser />}
-                        label="Owned"
-                        color="success"
-                        variant="outlined"
-                      />
-                    )}
-                  </Box>
-                  
-                  <Divider sx={{ my: 2 }} />
-                  
-                  <Typography variant="body1" paragraph>
-                    {content.description}
-                  </Typography>
-                  
-                  {isPreview && (
-                    <Paper
-                      elevation={0}
-                      sx={{
-                        p: 2,
-                        mt: 2,
-                        bgcolor: 'rgba(255, 196, 0, 0.1)',
-                        border: '1px solid rgba(255, 196, 0, 0.3)',
-                        borderRadius: 1,
-                      }}
-                    >
-                      <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                        <Warning color="warning" sx={{ mr: 1 }} />
-                        <Typography variant="body2" color="warning.main">
-                          You are viewing a preview. Purchase to unlock the full content.
-                        </Typography>
-                      </Box>
-                    </Paper>
-                  )}
-                </Paper>
-              </Grid>
-              
-              <Grid item xs={12} md={4}>
-                <Paper sx={{ p: 3, bgcolor: '#1e1e1e' }}>
-                  <Typography variant="h6" gutterBottom>
-                    Content Details
-                  </Typography>
-                  <Typography variant="body2" paragraph>
-                    <strong>Type:</strong> {content.contentType}
-                  </Typography>
-                  <Typography variant="body2" paragraph>
-                    <strong>Duration:</strong> {content.metadata?.duration || 'Not specified'}
-                  </Typography>
-                  <Typography variant="body2" paragraph>
-                    <strong>Creator:</strong> {content.creator}
-                  </Typography>
-                  <Typography variant="body2" paragraph>
-                    <strong>Token ID:</strong> #{content.tokenId || content.id}
-                  </Typography>
-                </Paper>
-              </Grid>
-            </Grid>
-          </Box>
-        )}
+
+  // Check if we have the CID property
+  if (!content.mainFileCid) {
+    return (
+      <Container maxWidth="lg" sx={{ py: 4 }}>
+        <Alert severity="warning" sx={{ mb: 3 }}>
+          This content is missing its CID and cannot be played. This may be because it's using mock data.
+        </Alert>
+        <Box mb={4}>
+          <Typography variant="h4" gutterBottom>
+            {content.title}
+          </Typography>
+          <Typography variant="subtitle1" color="text.secondary">
+            By {content.creator}
+          </Typography>
+        </Box>
+        <Button component={Link} to={`/marketplace/details/${id}`} variant="contained">
+          Back to Content Details
+        </Button>
       </Container>
+    );
+  }
+
+  console.log('Rendering player with content:', {
+    id: id,
+    contentCid: content.mainFileCid,
+    wallet: account
+  });
+
+  return (
+    <Container maxWidth="lg" sx={{ py: 4 }}>
+      <Box mb={4}>
+        <Typography variant="h4" gutterBottom>
+          {content.title}
+        </Typography>
+        <Typography variant="subtitle1" color="text.secondary">
+          By {content.creator}
+        </Typography>
+      </Box>
       
-      {/* Preview ended dialog */}
-      <Dialog open={previewEndDialogOpen} onClose={() => setPreviewEndDialogOpen(false)}>
-        <DialogTitle>Preview Ended</DialogTitle>
-        <DialogContent>
-          <DialogContentText>
-            You have reached the end of the preview for "{content.title}". 
-            Would you like to purchase the full content?
-          </DialogContentText>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setPreviewEndDialogOpen(false)}>
-            Close
-          </Button>
-          <Button 
-            variant="contained" 
-            color="primary"
-            onClick={() => {
-              setPreviewEndDialogOpen(false);
-              handlePurchase();
-            }}
-            disabled={!active || !isCorrectNetwork || !isAuthenticated}
-          >
-            Purchase Now
-          </Button>
-        </DialogActions>
-      </Dialog>
+      <Paper elevation={3} sx={{ mb: 4, overflow: 'hidden', borderRadius: 2 }}>
+        <ProtectedContent 
+          contentId={id || ''} 
+          contentCid={content.mainFileCid || ''}
+        >
+          <Box sx={{ position: 'relative', width: '100%', aspectRatio: '16/9' }}>
+            <VideoPlayer 
+              contentId={id || ''}
+              contentCid={content.mainFileCid || ''}
+              autoPlay={true}
+              controls={true}
+              width="100%"
+              height="100%"
+            />
+          </Box>
+        </ProtectedContent>
+      </Paper>
       
-      {/* Purchase dialog */}
-      <Dialog open={purchaseDialogOpen} onClose={() => setPurchaseDialogOpen(false)}>
-        <DialogTitle>Confirm Purchase</DialogTitle>
-        <DialogContent>
-          <DialogContentText>
-            You are about to purchase "{content.title}" for {content.price || 0.01} ETH. 
-            This will give you full access to the content.
-          </DialogContentText>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setPurchaseDialogOpen(false)}>
-            Cancel
-          </Button>
-          <Button 
-            variant="contained" 
-            color="primary"
-            onClick={handleConfirmPurchase}
-          >
-            Confirm Purchase
-          </Button>
-        </DialogActions>
-      </Dialog>
-    </Box>
+      <Box mt={4}>
+        <Typography variant="h5" gutterBottom>
+          About this content
+        </Typography>
+        <Typography variant="body1" paragraph>
+          {content.description}
+        </Typography>
+        
+        <Typography variant="h6" gutterBottom>
+          License Details
+        </Typography>
+        <Typography variant="body2" paragraph>
+          You own {content.purchaseQuantity || 0} token(s) of this content, 
+          which grants you {content.purchaseQuantity > 500 ? 'commercial' : 'personal'} usage rights.
+        </Typography>
+
+        <ProtectedContent 
+          contentId={id || ''} 
+          contentCid={content.mainFileCid || ''}
+          fallback={null}
+        >
+          <Box mt={3}>
+            <ButtonGroup variant="outlined">
+              <Button
+                startIcon={<Download />}
+                onClick={() => {
+                  if (account) {
+                    downloadService.downloadContentToDevice(
+                      content.mainFileCid,
+                      account,
+                      `${content.title}.mp4`
+                    );
+                  }
+                }}
+              >
+                Download to Device
+              </Button>
+              <Button
+                component={Link}
+                to={`/stream/${id}/${account}`}
+                startIcon={<PlayArrow />}
+                color="primary"
+              >
+                Open in Full Screen Player
+              </Button>
+            </ButtonGroup>
+          </Box>
+        </ProtectedContent>
+      </Box>
+    </Container>
   );
 };
 

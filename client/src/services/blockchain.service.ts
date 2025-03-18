@@ -1,5 +1,6 @@
 import { ethers } from 'ethers';
 import { GANACHE_ID } from '../constants/blockchain';
+import { contentService } from './content.service';
 
 // ABI for the WyllohToken contract (simplified version with only the functions we need)
 const wyllohTokenAbi = [
@@ -122,12 +123,15 @@ class BlockchainService {
         quantity,
         price
       });
+
+      // Update local storage through contentService
+      await contentService.purchaseToken(tokenId, quantity);
       
       // Mock success for demo
       return true;
     } catch (error) {
       console.error('Error purchasing tokens:', error);
-      return false;
+      throw error; // Re-throw to allow proper error handling
     }
   }
 }

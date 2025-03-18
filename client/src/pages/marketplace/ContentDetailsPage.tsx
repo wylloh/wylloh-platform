@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, Link, useNavigate } from 'react-router-dom';
+import { useParams, Link, useNavigate, Navigate } from 'react-router-dom';
 import Table from '@mui/material/Table';
 import TableBody from '@mui/material/TableBody';
 import TableCell from '@mui/material/TableCell';
@@ -37,6 +37,8 @@ import {
   IconButton,
   Tooltip,
   CircularProgress,
+  Snackbar,
+  InputAdornment,
 } from '@mui/material';
 import {
   Download,
@@ -56,13 +58,17 @@ import {
   ListAlt,
   PlaylistAdd,
   ShoppingCart,
+  Check,
+  Close,
 } from '@mui/icons-material';
-import { useWallet } from '../../contexts/WalletContext';
+import { useWallet } from '../../hooks/useWallet';
 import { useAuth } from '../../contexts/AuthContext';
 import { contentService } from '../../services/content.service';
 import { getProjectIpfsUrl } from '../../utils/ipfs';
 import { generatePlaceholderImage } from '../../utils/placeholders';
 import { Content } from '../../services/content.service';
+import { blockchainService } from '../../services/blockchain.service';
+import { keyManagementService } from '../../services/keyManagement.service';
 
 // Add interfaces for content types
 interface SecondaryMarketListing {
@@ -94,6 +100,7 @@ interface DetailedContent extends Content {
   visibility: 'public' | 'private' | 'unlisted';
   views: number;
   sales: number;
+  encryptionKey?: string;
 }
 
 // Mock content data - in a real app, this would come from an API
@@ -193,20 +200,16 @@ const ContentDetailsPage: React.FC = () => {
   const { isAuthenticated } = useAuth();
   const navigate = useNavigate();
   const [purchaseInProgress, setPurchaseInProgress] = useState(false);
-  const [successMessage, setSuccessMessage] = useState<string | null>(null);
-  const [purchaseErrorDialogOpen, setPurchaseErrorDialogOpen] = useState(false);
-  const [purchaseSuccessDialogOpen, setPurchaseSuccessDialogOpen] = useState(false);
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [isPurchasing, setIsPurchasing] = useState(false);
+  const [snackbarOpen, setSnackbarOpen] = useState(false);
+  const [snackbarMessage, setSnackbarMessage] = useState('');
+  const [snackbarSeverity, setSnackbarSeverity] = useState<'success' | 'error' | 'info' | 'warning'>('info');
+  const [isPurchased, setIsPurchased] = useState(false);
+  const [redirectToCollection, setRedirectToCollection] = useState(false);
   
   // Ownership check state
-  const [ownership, setOwnership] = useState<{ owned: boolean, quantity: number }>({
-    owned: false,
-    quantity: 0
-  });
-
-  // Extract ownership values for readability
-  const userOwnsContent = ownership.owned;
-  const ownedTokens = ownership.quantity;
+  const [userOwnsContent, setUserOwnsContent] = useState(false);
+  const [ownedTokens, setOwnedTokens] = useState(0);
 
   useEffect(() => {
     const fetchContent = async () => {
@@ -220,7 +223,8 @@ const ContentDetailsPage: React.FC = () => {
           // Check ownership
           try {
             const ownershipStatus = await contentService.checkContentOwnership(id);
-            setOwnership(ownershipStatus);
+            setUserOwnsContent(ownershipStatus.owned);
+            setOwnedTokens(ownershipStatus.quantity);
             console.log('Ownership status:', ownershipStatus);
           } catch (error) {
             console.error('Error checking content ownership:', error);
@@ -238,6 +242,32 @@ const ContentDetailsPage: React.FC = () => {
     
     fetchContent();
   }, [id]);
+
+  // Check if user owns content
+  useEffect(() => {
+    const checkOwnership = async () => {
+      if (content && active && account) {
+        try {
+          // Check if this content is in the user's purchased content
+          const purchased = await contentService.getPurchasedContent();
+          const ownedContent = purchased.find(item => item.id === content.id);
+          
+          // If found in purchased content or isPurchased is already true
+          const isOwned = !!ownedContent || isPurchased;
+          setUserOwnsContent(isOwned);
+          
+          if (ownedContent) {
+            setOwnedTokens(ownedContent.purchaseQuantity || 0);
+          }
+        } catch (error) {
+          console.error('Error checking ownership:', error);
+          setUserOwnsContent(false);
+        }
+      }
+    };
+    
+    checkOwnership();
+  }, [content, active, account, isPurchased]);
 
   const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
     setTabValue(newValue);
@@ -262,31 +292,85 @@ const ContentDetailsPage: React.FC = () => {
     setPurchaseDialogOpen(false);
   };
 
-  const handlePurchase = async () => {
-    if (!content) return;
+  const handlePurchaseContent = async () => {
+    if (!content || !active || !account) return;
     
     try {
-      // Set a loading state
-      setPurchaseInProgress(true);
+      setIsPurchasing(true);
       
-      // Purchase token using content service
-      await contentService.purchaseToken(content.id, Number(quantity));
+      // Purchase the content token using blockchain service
+      await blockchainService.purchaseTokens(
+        content.id,
+        Number(quantity),
+        (content.price || 0.01) * Number(quantity)
+      );
       
-      // Close the dialog
-      handlePurchaseDialogClose();
+      // After successful purchase, store the content key
+      if (content.encryptionKey) {
+        await keyManagementService.storeContentKey(
+          content.id,
+          content.encryptionKey,
+          account
+        );
+      }
+      
+      // Refresh purchased content status with direct creation of purchase record
+      // This ensures the content appears in the collection immediately
+      const purchased = await contentService.getPurchasedContent();
+      let updatedContent;
+      
+      // Find if this content is already purchased
+      const existingPurchase = purchased.find(item => item.id === content.id);
+      
+      if (existingPurchase) {
+        // Update existing purchase
+        existingPurchase.purchaseQuantity += Number(quantity);
+        updatedContent = existingPurchase;
+        
+        // Update local storage
+        localStorage.setItem('purchased_content', JSON.stringify(purchased));
+      } else {
+        // Create new purchase record
+        const newPurchase = {
+          ...content,
+          purchaseDate: new Date().toISOString(),
+          purchasePrice: content.price || 0.01,
+          purchaseQuantity: Number(quantity)
+        };
+        
+        purchased.push(newPurchase);
+        updatedContent = newPurchase;
+        
+        // Update local storage
+        localStorage.setItem('purchased_content', JSON.stringify(purchased));
+      }
+      
+      if (updatedContent) {
+        setContent({...content, ...updatedContent});
+        setIsPurchased(true);
+        setUserOwnsContent(true);
+        setOwnedTokens(Number(quantity));
+      }
       
       // Show success message
-      setSuccessMessage(`Successfully purchased ${quantity} token${Number(quantity) > 1 ? 's' : ''} for "${content.title}".`);
+      setSnackbarMessage('Content purchased successfully! You now have access.');
+      setSnackbarSeverity('success');
+      setSnackbarOpen(true);
       
-      // Show success dialog
-      setPurchaseSuccessDialogOpen(true);
-      setPurchaseErrorDialogOpen(false);
-    } catch (error: any) {
-      console.error('Error purchasing token:', error);
-      setErrorMessage(error.message || 'Failed to complete purchase');
-      setPurchaseErrorDialogOpen(true);
+      // Close dialog
+      handlePurchaseDialogClose();
+      
+      // Redirect to collection after a short delay to show the success message
+      setTimeout(() => {
+        setRedirectToCollection(true);
+      }, 1500);
+    } catch (error) {
+      console.error('Error purchasing content:', error);
+      setSnackbarMessage('Failed to purchase content. Please try again.');
+      setSnackbarSeverity('error');
+      setSnackbarOpen(true);
     } finally {
-      setPurchaseInProgress(false);
+      setIsPurchasing(false);
     }
   };
 
@@ -472,6 +556,11 @@ const ContentDetailsPage: React.FC = () => {
     
     return generatePlaceholderImage(content.title);
   };
+
+  // Redirect to collection after successful purchase
+  if (redirectToCollection) {
+    return <Navigate to="/collection" />;
+  }
 
   if (loading) {
     return (
@@ -741,7 +830,11 @@ const ContentDetailsPage: React.FC = () => {
                   {content.rightsThresholds?.map((threshold: any) => (
                     <ListItem key={threshold.type} divider>
                       <ListItemIcon>
-                        {threshold.quantity === 1 ? <VerifiedUser color="primary" /> : <Theaters />}
+                        {Number(quantity) >= threshold.quantity ? (
+                          <Check color="success" />
+                        ) : (
+                          <Close color="disabled" />
+                        )}
                       </ListItemIcon>
                       <ListItemText 
                         primary={threshold.type} 
@@ -856,180 +949,82 @@ const ContentDetailsPage: React.FC = () => {
       <Dialog
         open={purchaseDialogOpen}
         onClose={handlePurchaseDialogClose}
+        maxWidth="sm"
+        fullWidth
       >
-        <DialogTitle>Confirm Purchase</DialogTitle>
+        <DialogTitle>Purchase Content</DialogTitle>
         <DialogContent>
           <DialogContentText>
-            You are about to purchase {quantity} license token{Number(quantity) !== 1 ? 's' : ''} for "{content.title}" at {content.price} ETH each.
+            You are about to purchase {quantity} token(s) of "{content?.title}" for a total of {content?.price ? (content.price * Number(quantity)).toFixed(4) : '0.01'} ETH.
           </DialogContentText>
-          <Box sx={{ mt: 2, mb: 2 }}>
-            <Typography variant="subtitle1">
-              Transaction Summary:
+          
+          <Box sx={{ mt: 2, mb: 1 }}>
+            <Typography variant="subtitle2" gutterBottom>
+              Quantity:
             </Typography>
-            <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-              <Typography variant="body1">Unit Price:</Typography>
-              <Typography variant="body1">{content.price} ETH</Typography>
-            </Box>
-            <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-              <Typography variant="body1">Quantity:</Typography>
-              <Typography variant="body1">{quantity}</Typography>
-            </Box>
-            <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-              <Typography variant="body1">Network Fee (est.):</Typography>
-              <Typography variant="body1">~0.001 ETH</Typography>
-            </Box>
-            <Divider sx={{ my: 1 }} />
-            <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-              <Typography variant="h6">Total:</Typography>
-              <Typography variant="h6">{totalPrice.toFixed(4)} ETH</Typography>
-            </Box>
+            <TextField
+              value={quantity}
+              onChange={handleQuantityChange}
+              type="text"
+              fullWidth
+              size="small"
+              InputProps={{
+                endAdornment: <InputAdornment position="end">Tokens</InputAdornment>,
+                inputProps: { min: 1, max: content?.available || 1000 }
+              }}
+            />
           </Box>
           
-          {/* License rights information */}
-          {content.rightsThresholds && Array.isArray(content.rightsThresholds) && (
-            <Box sx={{ mt: 2, mb: 2, bgcolor: 'rgba(25, 118, 210, 0.05)', p: 1.5, borderRadius: 1 }}>
-              <Typography variant="subtitle1" gutterBottom>
-                License Rights You Will Receive:
-              </Typography>
-              
-              {/* Current rights if user already owns some tokens */}
-              {userOwnsContent && ownedTokens > 0 && (
-                <>
-                  <Typography variant="body2" sx={{ mt: 1, mb: 0.5 }}>
-                    Current rights with {ownedTokens} token{ownedTokens !== 1 ? 's' : ''}:
-                  </Typography>
-                  <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, mb: 1.5 }}>
-                    {content.rightsThresholds
-                      .filter(tier => tier.quantity <= ownedTokens)
-                      .map((tier, i) => (
-                        <Chip
-                          key={i}
-                          size="small"
-                          label={tier.type}
-                          sx={{ mr: 0.5, mb: 0.5 }}
-                          color="success"
-                        />
-                      ))}
-                  </Box>
-                </>
-              )}
-              
-              {/* New rights after purchase */}
-              <Typography variant="body2" sx={{ mt: 1, mb: 0.5 }}>
-                After purchase ({Number(ownedTokens) + Number(quantity)} token{Number(ownedTokens) + Number(quantity) !== 1 ? 's' : ''} total):
-              </Typography>
-              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
-                {content.rightsThresholds
-                  .filter(tier => tier.quantity <= (Number(ownedTokens) + Number(quantity)))
-                  .map((tier, i) => {
-                    // Check if this is a newly unlocked tier
-                    const isNewTier = tier.quantity > ownedTokens;
-                    
-                    return (
-                      <Chip
-                        key={i}
-                        size="small"
-                        label={tier.type}
-                        sx={{ mr: 0.5, mb: 0.5 }}
-                        color={isNewTier ? "primary" : "success"}
-                        icon={isNewTier ? <Info /> : undefined}
-                      />
-                    );
-                  })}
-              </Box>
-              
-              {/* Display newly unlocked tiers */}
-              {content.rightsThresholds.some(tier => 
-                tier.quantity > ownedTokens && tier.quantity <= (Number(ownedTokens) + Number(quantity))
-              ) && (
-                <Alert severity="info" sx={{ mt: 1.5 }}>
-                  <Typography variant="body2">
-                    <strong>New rights unlocked!</strong> This purchase will grant you additional usage rights.
-                  </Typography>
-                </Alert>
-              )}
-            </Box>
-          )}
+          <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+            By purchasing this token, you will receive the following rights:
+          </Typography>
           
-          <Alert severity="info" sx={{ mt: 2 }}>
-            After purchase, the license token(s) will be transferred to your wallet and will appear in your collection.
-          </Alert>
+          <List dense>
+            {content?.rightsThresholds?.map((right, index) => (
+              <ListItem key={index} sx={{ pl: 0 }}>
+                <ListItemIcon sx={{ minWidth: '36px' }}>
+                  {Number(quantity) >= right.quantity ? (
+                    <Check color="success" />
+                  ) : (
+                    <Close color="disabled" />
+                  )}
+                </ListItemIcon>
+                <ListItemText 
+                  primary={right.type} 
+                  secondary={`Required tokens: ${right.quantity}`}
+                />
+              </ListItem>
+            ))}
+          </List>
         </DialogContent>
         <DialogActions>
           <Button onClick={handlePurchaseDialogClose}>Cancel</Button>
-          <Button onClick={handlePurchase} variant="contained" color="primary">
-            Confirm Purchase
-          </Button>
-        </DialogActions>
-      </Dialog>
-
-      {/* Success Dialog */}
-      <Dialog
-        open={purchaseSuccessDialogOpen}
-        onClose={() => {
-          setPurchaseSuccessDialogOpen(false);
-          setSuccessMessage(null);
-        }}
-      >
-        <DialogTitle>Purchase Successful</DialogTitle>
-        <DialogContent>
-          <DialogContentText>
-            {successMessage}
-          </DialogContentText>
-          <Box sx={{ mt: 2 }}>
-            <Alert severity="success">
-              You can now view your purchased content in your collection.
-            </Alert>
-          </Box>
-        </DialogContent>
-        <DialogActions>
           <Button 
-            onClick={() => {
-              setPurchaseSuccessDialogOpen(false);
-              setSuccessMessage(null);
-            }}
-          >
-            Close
-          </Button>
-          <Button 
+            onClick={handlePurchaseContent} 
             variant="contained" 
             color="primary"
-            component={Link}
-            to="/collection"
+            disabled={isPurchasing}
           >
-            View My Collection
+            {isPurchasing ? 'Processing...' : 'Confirm Purchase'}
           </Button>
         </DialogActions>
       </Dialog>
 
-      {/* Error Dialog */}
-      <Dialog
-        open={purchaseErrorDialogOpen}
-        onClose={() => {
-          setPurchaseErrorDialogOpen(false);
-          setErrorMessage(null);
-        }}
+      {/* Snackbar for notifications */}
+      <Snackbar
+        open={snackbarOpen}
+        autoHideDuration={6000}
+        onClose={() => setSnackbarOpen(false)}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
       >
-        <DialogTitle>Purchase Failed</DialogTitle>
-        <DialogContent>
-          <Alert severity="error" sx={{ mb: 2 }}>
-            {errorMessage || 'There was an error processing your purchase.'}
-          </Alert>
-          <Typography variant="body2">
-            Please try again or contact support if the issue persists.
-          </Typography>
-        </DialogContent>
-        <DialogActions>
-          <Button 
-            onClick={() => {
-              setPurchaseErrorDialogOpen(false);
-              setErrorMessage(null);
-            }}
-          >
-            Close
-          </Button>
-        </DialogActions>
-      </Dialog>
+        <Alert 
+          onClose={() => setSnackbarOpen(false)} 
+          severity={snackbarSeverity}
+          sx={{ width: '100%' }}
+        >
+          {snackbarMessage}
+        </Alert>
+      </Snackbar>
     </Container>
   );
 };

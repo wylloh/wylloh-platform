@@ -1,105 +1,128 @@
-import React, { forwardRef } from 'react';
-import { Box } from '@mui/material';
+import React, { useState, useEffect } from 'react';
+import { Box, CircularProgress, Typography } from '@mui/material';
+import { useWallet } from '../../hooks/useWallet';
+import { downloadService } from '../../services/download.service';
 
 interface VideoPlayerProps {
-  src: string;
-  poster?: string;
+  contentId: string;
+  contentCid: string;
   autoPlay?: boolean;
   loop?: boolean;
-  muted?: boolean;
-  subtitlesEnabled?: boolean;
-  subtitlesUrl?: string;
-  onPlay?: () => void;
-  onPause?: () => void;
-  onEnded?: () => void;
-  onTimeUpdate?: () => void;
-  onLoadedMetadata?: () => void;
-  onVolumeChange?: () => void;
-  onWaiting?: () => void;
-  onPlaying?: () => void;
-  onError?: (e: any) => void;
+  controls?: boolean;
+  width?: string;
+  height?: string;
 }
 
-const VideoPlayer = forwardRef<HTMLVideoElement, VideoPlayerProps>(
-  ({
-    src,
-    poster,
-    autoPlay = false,
-    loop = false,
-    muted = false,
-    subtitlesEnabled = false,
-    subtitlesUrl = '',
-    onPlay,
-    onPause,
-    onEnded,
-    onTimeUpdate,
-    onLoadedMetadata,
-    onVolumeChange,
-    onWaiting,
-    onPlaying,
-    onError
-  }, ref) => {
-    // If the src is an IPFS URL, we'll use it as the primary source
-    // and provide a fallback direct URL for Big Buck Bunny
-    const isIpfsUrl = src && (src.includes('/ipfs/') || src.startsWith('ipfs://'));
-    const fallbackUrl = 'https://storage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4';
-    
-    // Only add fallback if we detect it's Big Buck Bunny content
-    const shouldAddFallback = src.toLowerCase().includes('bigbuckbunny') || 
-                             src.includes('QmVLEz2SxoNiFnuyLpbXsH6SvjPTrHNMU88vCQZyhgBzgw');
-    
-    // Log the source for debugging
-    console.log('VideoPlayer source:', src, 'isIpfsUrl:', isIpfsUrl, 'shouldAddFallback:', shouldAddFallback);
-    
+const VideoPlayer: React.FC<VideoPlayerProps> = ({
+  contentId,
+  contentCid,
+  autoPlay = false,
+  loop = false,
+  controls = true,
+  width = '100%',
+  height = '100%'
+}) => {
+  const [videoUrl, setVideoUrl] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const { account } = useWallet();
+
+  useEffect(() => {
+    // Load video when component mounts or when contentCid/account changes
+    async function loadVideo() {
+      if (!contentCid || !contentId) {
+        setError('No content provided');
+        setLoading(false);
+        return;
+      }
+
+      if (!account) {
+        setError('Wallet not connected');
+        setLoading(false);
+        return;
+      }
+
+      try {
+        // Check if user can access this content
+        const canAccess = await downloadService.canAccessContent(contentCid, account);
+        if (!canAccess) {
+          setError('You do not have permission to view this content');
+          setLoading(false);
+          return;
+        }
+
+        // Get the stream URL with decryption
+        const url = await downloadService.getContentStreamUrl(contentCid, account);
+        if (!url) {
+          setError('Failed to load video');
+          setLoading(false);
+          return;
+        }
+
+        setVideoUrl(url);
+        setLoading(false);
+      } catch (err) {
+        console.error('Error loading video:', err);
+        setError('Error loading video');
+        setLoading(false);
+      }
+    }
+
+    setLoading(true);
+    loadVideo();
+
+    // Cleanup when component unmounts
+    return () => {
+      if (videoUrl && videoUrl.startsWith('blob:')) {
+        URL.revokeObjectURL(videoUrl);
+      }
+    };
+  }, [contentCid, contentId, account]);
+
+  if (loading) {
     return (
-      <Box sx={{ width: '100%', height: '100%', position: 'relative' }}>
-        <video
-          ref={ref}
-          poster={poster}
-          autoPlay={autoPlay}
-          loop={loop}
-          muted={muted}
-          playsInline
-          style={{
-            width: '100%',
-            height: '100%',
-            objectFit: 'contain',
-            backgroundColor: '#000'
-          }}
-          onPlay={onPlay}
-          onPause={onPause}
-          onEnded={onEnded}
-          onTimeUpdate={onTimeUpdate}
-          onLoadedMetadata={onLoadedMetadata}
-          onVolumeChange={onVolumeChange}
-          onWaiting={onWaiting}
-          onPlaying={onPlaying}
-          onError={onError}
-        >
-          {/* Use source elements to support multiple formats and fallbacks */}
-          <source src={src} type={isIpfsUrl ? "video/mp4" : "video/mp4"} />
-          
-          {/* Add fallback source for Big Buck Bunny */}
-          {shouldAddFallback && (
-            <source src={fallbackUrl} type="video/mp4" />
-          )}
-          
-          {subtitlesEnabled && subtitlesUrl && (
-            <track
-              kind="subtitles"
-              src={subtitlesUrl}
-              srcLang="en"
-              label="English"
-              default
-            />
-          )}
-          Your browser does not support the video tag.
-        </video>
+      <Box 
+        display="flex" 
+        justifyContent="center" 
+        alignItems="center" 
+        width={width} 
+        height={height}
+        bgcolor="rgba(0, 0, 0, 0.1)"
+      >
+        <CircularProgress size={40} />
       </Box>
     );
   }
-);
 
-VideoPlayer.displayName = 'VideoPlayer';
+  if (error) {
+    return (
+      <Box 
+        display="flex" 
+        justifyContent="center" 
+        alignItems="center" 
+        width={width} 
+        height={height}
+        bgcolor="rgba(0, 0, 0, 0.05)"
+        p={2}
+      >
+        <Typography color="error">{error}</Typography>
+      </Box>
+    );
+  }
+
+  return (
+    <video
+      src={videoUrl || undefined}
+      autoPlay={autoPlay}
+      loop={loop}
+      controls={controls}
+      width={width}
+      height={height}
+      style={{ maxWidth: '100%', maxHeight: '100%' }}
+    >
+      Your browser does not support the video tag.
+    </video>
+  );
+};
 
 export default VideoPlayer; 

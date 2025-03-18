@@ -1,7 +1,6 @@
 import React, { useRef, useState } from 'react';
 import { Box, Typography, Paper, Container, Grid, Button, Stack, Slider } from '@mui/material';
 import { PlayArrow, Pause, VolumeUp, VolumeOff, Fullscreen } from '@mui/icons-material';
-import VideoPlayer from '../../components/player/VideoPlayer';
 
 const SAMPLE_VIDEO_URL = 'https://sample-videos.com/video123/mp4/720/big_buck_bunny_720p_1mb.mp4';
 
@@ -110,17 +109,22 @@ const PlayerTestPage: React.FC = () => {
               overflow: 'hidden'
             }}
           >
-            <VideoPlayer
-              ref={videoRef}
-              src={SAMPLE_VIDEO_URL}
-              autoPlay={false}
-              loop={false}
-              muted={muted}
-              onPlay={handlePlay}
-              onPause={handlePause}
-              onTimeUpdate={handleTimeUpdate}
-              onLoadedMetadata={handleLoadedMetadata}
-            />
+            <Box sx={{ maxWidth: '100%', mb: 3 }}>
+              <Typography variant="h6" gutterBottom>Video Player Test</Typography>
+              <video
+                ref={videoRef}
+                src={SAMPLE_VIDEO_URL}
+                autoPlay={false}
+                loop={false}
+                muted={muted}
+                controls
+                style={{ width: '100%', maxHeight: '400px' }}
+                onPlay={() => setPlaying(true)}
+                onPause={() => setPlaying(false)}
+                onTimeUpdate={() => setCurrentTime(videoRef.current?.currentTime || 0)}
+                onLoadedMetadata={() => setDuration(videoRef.current?.duration || 0)}
+              />
+            </Box>
             
             {/* Simple playback controls */}
             <Box 

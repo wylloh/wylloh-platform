@@ -493,3 +493,5 @@ export function useWallet() {
   
   return context;
 }
+
+export { WalletContext };
