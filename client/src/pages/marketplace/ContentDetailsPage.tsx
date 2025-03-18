@@ -77,7 +77,13 @@ interface SecondaryMarketListing {
   price: number;
 }
 
-// Interface for detailed content display
+// First, let's fix the interface definition with rights thresholds explicitly typed
+interface RightsThreshold {
+  quantity: number;
+  type: string;
+}
+
+// Add rights thresholds to the DetailedContent interface
 interface DetailedContent extends Content {
   longDescription?: string;
   releaseDate?: string;
@@ -89,7 +95,7 @@ interface DetailedContent extends Content {
   cast?: string[];
   director?: string;
   producer?: string;
-  rightsThresholds?: any[];
+  rightsThresholds?: RightsThreshold[];
   transactionHistory?: any[];
   secondaryMarket?: SecondaryMarketListing[];
   genre?: string[];
@@ -258,6 +264,23 @@ const ContentDetailsPage: React.FC = () => {
           
           if (ownedContent) {
             setOwnedTokens(ownedContent.purchaseQuantity || 0);
+            
+            // Get rights thresholds and determine unlocked tiers
+            try {
+              const thresholds = await contentService.getRightsThresholds(content.id);
+              console.log('Rights thresholds:', thresholds);
+              console.log('Owned tokens:', ownedContent.purchaseQuantity);
+              
+              // Update content with rights thresholds if not already set
+              if (!content.rightsThresholds && thresholds.length > 0) {
+                setContent({
+                  ...content,
+                  rightsThresholds: thresholds
+                });
+              }
+            } catch (e) {
+              console.error('Error fetching rights thresholds:', e);
+            }
           }
         } catch (error) {
           console.error('Error checking ownership:', error);
@@ -268,6 +291,51 @@ const ContentDetailsPage: React.FC = () => {
     
     checkOwnership();
   }, [content, active, account, isPurchased]);
+
+  // Update the function to generate default license tiers to return properly typed objects
+  const generateDefaultLicenseTiers = (): RightsThreshold[] => {
+    return [
+      { quantity: 1, type: "Personal Use" },
+      { quantity: 10, type: "Small Venue" },
+      { quantity: 50, type: "Commercial Use" },
+      { quantity: 100, type: "Broadcast Rights" }
+    ];
+  };
+
+  // When the content is loaded, ensure it has rights thresholds only if none exist
+  useEffect(() => {
+    if (content && 
+        !content.rightsThresholds && 
+        (!content.metadata?.rightsThresholds || 
+         content.metadata.rightsThresholds.length === 0)) {
+      console.log('No rights thresholds found, adding defaults');
+      // Create a deep copy to avoid direct state mutation
+      const updatedContent = { 
+        ...content,
+        metadata: {
+          ...content.metadata,
+          rightsThresholds: generateDefaultLicenseTiers()
+        }
+      };
+      setContent(updatedContent);
+    }
+  }, [content]);
+
+  // Fix the getUserLicenseTiers function with proper typing
+  const getUserLicenseTiers = (): string[] => {
+    if (!content || !userOwnsContent) {
+      return [];
+    }
+    
+    // First try to use rights thresholds from content itself (set during tokenization)
+    const thresholds: RightsThreshold[] = 
+      content.rightsThresholds || 
+      (content.metadata?.rightsThresholds as RightsThreshold[] || []);
+    
+    return thresholds
+      .filter((tier: RightsThreshold) => tier.quantity <= ownedTokens)
+      .map((tier: RightsThreshold) => tier.type);
+  };
 
   const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
     setTabValue(newValue);
@@ -402,18 +470,14 @@ const ContentDetailsPage: React.FC = () => {
                   Your License Rights:
                 </Typography>
                 <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
-                  {content.rightsThresholds && 
-                   Array.isArray(content.rightsThresholds) && 
-                   content.rightsThresholds
-                    .filter((tier: {quantity: number, type: string}) => tier.quantity <= ownedTokens)
-                    .map((tier: {quantity: number, type: string}, i: number) => (
-                      <Chip
-                        key={i}
-                        size="small"
-                        label={tier.type}
-                        sx={{ mr: 0.5, mb: 0.5, bgcolor: 'white', color: 'success.dark' }}
-                      />
-                    ))}
+                  {getUserLicenseTiers().map((tier: string, i: number) => (
+                    <Chip
+                      key={i}
+                      size="small"
+                      label={tier}
+                      sx={{ mr: 0.5, mb: 0.5, bgcolor: 'white', color: 'success.dark' }}
+                    />
+                  ))}
                 </Box>
               </Box>
                 
@@ -826,41 +890,54 @@ const ContentDetailsPage: React.FC = () => {
                 <Typography variant="body1" paragraph>
                   Wylloh licenses use a unique modular rights system. By accumulating more tokens, you can unlock additional rights for this content:
                 </Typography>
-                <List>
-                  {content.rightsThresholds?.map((threshold: any) => (
-                    <ListItem key={threshold.type} divider>
-                      <ListItemIcon>
-                        {Number(quantity) >= threshold.quantity ? (
-                          <Check color="success" />
-                        ) : (
-                          <Close color="disabled" />
-                        )}
+                <List dense>
+                  {content?.rightsThresholds ? 
+                    content.rightsThresholds.map((right, index: number) => (
+                      <ListItem key={index} sx={{ pl: 0 }}>
+                        <ListItemIcon sx={{ minWidth: '36px' }}>
+                          {Number(quantity) >= right.quantity ? (
+                            <Check color="success" />
+                          ) : (
+                            <Close color="disabled" />
+                          )}
+                        </ListItemIcon>
+                        <ListItemText 
+                          primary={right.type} 
+                          secondary={`Required tokens: ${right.quantity}`}
+                        />
+                      </ListItem>
+                    ))
+                  : content?.metadata?.rightsThresholds ?
+                    content.metadata.rightsThresholds.map((right: RightsThreshold, index: number) => (
+                      <ListItem key={index} sx={{ pl: 0 }}>
+                        <ListItemIcon sx={{ minWidth: '36px' }}>
+                          {Number(quantity) >= right.quantity ? (
+                            <Check color="success" />
+                          ) : (
+                            <Close color="disabled" />
+                          )}
+                        </ListItemIcon>
+                        <ListItemText 
+                          primary={right.type} 
+                          secondary={`Required tokens: ${right.quantity}`}
+                        />
+                      </ListItem>
+                    ))
+                  : 
+                    <ListItem sx={{ pl: 0 }}>
+                      <ListItemIcon sx={{ minWidth: '36px' }}>
+                        <Check color="success" />
                       </ListItemIcon>
                       <ListItemText 
-                        primary={threshold.type} 
-                        secondary={`Required Tokens: ${threshold.quantity}`} 
+                        primary="Personal Viewing" 
+                        secondary="Basic access to content"
                       />
-                      {threshold.quantity === 1 ? (
-                        <Chip color="primary" size="small" label="Basic" />
-                      ) : (
-                        <Chip 
-                          color="secondary" 
-                          size="small" 
-                          label={`Tier ${
-                            content.rightsThresholds && 
-                            Array.isArray(content.rightsThresholds) && 
-                            threshold ? 
-                              content.rightsThresholds.indexOf(threshold) + 1 : 
-                              1
-                          }`} 
-                        />
-                      )}
                     </ListItem>
-                  ))}
+                  }
                 </List>
                 <Box sx={{ mt: 2 }}>
                   <Typography variant="body2" color="text.secondary">
-                    Tokens can be accumulated and stacked to unlock these rights. For example, if you want to stream this content on your platform, you would need to acquire 5,000 tokens.
+                    Tokens can be accumulated and stacked to unlock these rights. For example, if you want to stream this content on your platform, you would need to acquire the necessary number of tokens that give you that right.
                   </Typography>
                 </Box>
               </TabPanel>
@@ -980,21 +1057,49 @@ const ContentDetailsPage: React.FC = () => {
           </Typography>
           
           <List dense>
-            {content?.rightsThresholds?.map((right, index) => (
-              <ListItem key={index} sx={{ pl: 0 }}>
+            {content?.rightsThresholds ? 
+              content.rightsThresholds.map((right, index: number) => (
+                <ListItem key={index} sx={{ pl: 0 }}>
+                  <ListItemIcon sx={{ minWidth: '36px' }}>
+                    {Number(quantity) >= right.quantity ? (
+                      <Check color="success" />
+                    ) : (
+                      <Close color="disabled" />
+                    )}
+                  </ListItemIcon>
+                  <ListItemText 
+                    primary={right.type} 
+                    secondary={`Required tokens: ${right.quantity}`}
+                  />
+                </ListItem>
+              ))
+            : content?.metadata?.rightsThresholds ?
+              content.metadata.rightsThresholds.map((right: RightsThreshold, index: number) => (
+                <ListItem key={index} sx={{ pl: 0 }}>
+                  <ListItemIcon sx={{ minWidth: '36px' }}>
+                    {Number(quantity) >= right.quantity ? (
+                      <Check color="success" />
+                    ) : (
+                      <Close color="disabled" />
+                    )}
+                  </ListItemIcon>
+                  <ListItemText 
+                    primary={right.type} 
+                    secondary={`Required tokens: ${right.quantity}`}
+                  />
+                </ListItem>
+              ))
+            : 
+              <ListItem sx={{ pl: 0 }}>
                 <ListItemIcon sx={{ minWidth: '36px' }}>
-                  {Number(quantity) >= right.quantity ? (
-                    <Check color="success" />
-                  ) : (
-                    <Close color="disabled" />
-                  )}
+                  <Check color="success" />
                 </ListItemIcon>
                 <ListItemText 
-                  primary={right.type} 
-                  secondary={`Required tokens: ${right.quantity}`}
+                  primary="Personal Viewing" 
+                  secondary="Basic access to content"
                 />
               </ListItem>
-            ))}
+            }
           </List>
         </DialogContent>
         <DialogActions>

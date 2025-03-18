@@ -20,7 +20,12 @@ import {
   FormControlLabel,
   Switch,
   Chip,
-  CircularProgress
+  CircularProgress,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogContentText,
+  DialogActions
 } from '@mui/material';
 import { 
   ArrowBack as ArrowBackIcon,
@@ -91,6 +96,9 @@ const TokenizePublishPage: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
   
+  // State for skip confirmation dialog
+  const [skipDialogOpen, setSkipDialogOpen] = useState(false);
+  
   // Check if user has verified Pro status
   const isProVerified = user?.proStatus === 'verified';
   
@@ -153,6 +161,22 @@ const TokenizePublishPage: React.FC = () => {
     } finally {
       setSubmitting(false);
     }
+  };
+  
+  // Handle skip confirmation
+  const handleSkipConfirm = () => {
+    setSkipDialogOpen(false);
+    navigate('/creator/dashboard');
+  };
+  
+  // Handle opening skip dialog
+  const handleOpenSkipDialog = () => {
+    setSkipDialogOpen(true);
+  };
+  
+  // Handle closing skip dialog
+  const handleCloseSkipDialog = () => {
+    setSkipDialogOpen(false);
   };
   
   // Render license terms step
@@ -451,6 +475,28 @@ const TokenizePublishPage: React.FC = () => {
   return (
     <Container maxWidth="lg">
       <Box sx={{ pt: 4, pb: 8 }}>
+        {/* Skip confirmation dialog */}
+        <Dialog
+          open={skipDialogOpen}
+          onClose={handleCloseSkipDialog}
+        >
+          <DialogTitle>Skip Tokenization?</DialogTitle>
+          <DialogContent>
+            <DialogContentText>
+              Your content has been uploaded but will not be tokenized or published to the marketplace yet. 
+              You can tokenize it later from your Creator Dashboard.
+            </DialogContentText>
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={handleCloseSkipDialog} color="primary">
+              Cancel
+            </Button>
+            <Button onClick={handleSkipConfirm} color="secondary" variant="contained">
+              Skip Tokenization
+            </Button>
+          </DialogActions>
+        </Dialog>
+        
         {/* Breadcrumbs */}
         <Breadcrumbs aria-label="breadcrumb" sx={{ mb: 2 }}>
           <MuiLink component={Link} to="/" underline="hover" color="inherit">
@@ -511,25 +557,36 @@ const TokenizePublishPage: React.FC = () => {
             Back
           </Button>
           
-          {activeStep === TOKENIZE_STEPS.length - 1 ? (
+          <Box>
             <Button
-              variant="contained"
-              color="primary"
-              onClick={handleSubmit}
-              startIcon={submitting ? <CircularProgress size={20} /> : <PublicIcon />}
-              disabled={submitting}
+              variant="outlined"
+              color="secondary"
+              onClick={handleOpenSkipDialog}
+              sx={{ mr: 2 }}
             >
-              {submitting ? 'Publishing...' : 'Publish to Marketplace'}
+              Skip for Now
             </Button>
-          ) : (
-            <Button
-              variant="contained"
-              color="primary"
-              onClick={handleNext}
-            >
-              Next
-            </Button>
-          )}
+            
+            {activeStep === TOKENIZE_STEPS.length - 1 ? (
+              <Button
+                variant="contained"
+                color="primary"
+                onClick={handleSubmit}
+                startIcon={submitting ? <CircularProgress size={20} /> : <PublicIcon />}
+                disabled={submitting}
+              >
+                {submitting ? 'Publishing...' : 'Publish to Marketplace'}
+              </Button>
+            ) : (
+              <Button
+                variant="contained"
+                color="primary"
+                onClick={handleNext}
+              >
+                Next
+              </Button>
+            )}
+          </Box>
         </Box>
       </Box>
     </Container>

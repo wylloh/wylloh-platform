@@ -25,7 +25,8 @@ import {
   Stack,
   Chip,
   FormControlLabel,
-  Switch
+  Switch,
+  InputAdornment
 } from '@mui/material';
 import {
   CloudUpload,
@@ -38,7 +39,9 @@ import {
   ArrowForward,
   Check,
   AddCircleOutline,
-  DeleteOutline
+  DeleteOutline,
+  Delete,
+  Add
 } from '@mui/icons-material';
 import { useAuth } from '../../contexts/AuthContext';
 import { useWallet } from '../../contexts/WalletContext';
@@ -159,15 +162,14 @@ const UploadForm: React.FC = () => {
       demoVersion: ''
     },
     tokenization: {
-      enabled: true,
-      initialSupply: 1000,
-      price: 0.01,
-      royalty: 10,
+      enabled: false,
+      initialSupply: 100,
+      price: 0.0025,
+      royalty: 15,
       rightsThresholds: [
         { quantity: 1, type: 'Personal Viewing' },
-        { quantity: 100, type: 'Small Venue (50 seats)' },
-        { quantity: 5000, type: 'Streaming Platform' },
-        { quantity: 10000, type: 'Theatrical Exhibition' }
+        { quantity: 5, type: 'Family Viewing' },
+        { quantity: 10, type: 'Public Display Rights' }
       ]
     }
   });
@@ -529,7 +531,7 @@ const UploadForm: React.FC = () => {
       }
       
       // Create content in the service
-      const contentData = {
+      const contentData: any = {
         title: formData.title,
         description: formData.description,
         contentType: formData.contentType,
@@ -548,29 +550,46 @@ const UploadForm: React.FC = () => {
         creatorAddress: account || '0x0',
       };
       
+      // Add tokenization data if enabled
+      if (formData.tokenization.enabled) {
+        contentData.metadata.tokenization = formData.tokenization;
+        contentData.rightsThresholds = formData.tokenization.rightsThresholds;
+      }
+      
       // Create the content with our service
       const createdContent = await contentService.createContent(contentData);
       
       // Success!
       setSubmitSuccess(true);
       
-      // Navigate to TokenizePublishPage after short delay
+      // Navigate to TokenizePublishPage after short delay if tokenization is not enabled
+      // Otherwise navigate directly to the dashboard
       setTimeout(() => {
-        navigate('/creator/tokenize-publish', { 
-          state: { 
-            contentInfo: {
-              id: createdContent.id,
-              title: createdContent.title,
-              description: createdContent.description,
-              contentType: createdContent.contentType,
-              mainFileCid,
-              previewCid,
-              thumbnailCid,
-              metadata: createdContent.metadata,
-              tokenization: formData.tokenization
+        if (formData.tokenization.enabled) {
+          // If tokenization is enabled, we'll handle it directly during upload
+          navigate('/creator/dashboard', { 
+            state: { 
+              message: 'Content uploaded successfully with tokenization settings!' 
             }
-          }
-        });
+          });
+        } else {
+          // Navigate to TokenizePublishPage if tokenization was not enabled
+          navigate('/creator/tokenize-publish', { 
+            state: { 
+              contentInfo: {
+                id: createdContent.id,
+                title: createdContent.title,
+                description: createdContent.description,
+                contentType: createdContent.contentType,
+                mainFileCid,
+                previewCid,
+                thumbnailCid,
+                metadata: createdContent.metadata,
+                tokenization: formData.tokenization
+              }
+            }
+          });
+        }
       }, 2000);
     } catch (error: any) {
       console.error('Error submitting content:', error);
@@ -1084,181 +1103,202 @@ const UploadForm: React.FC = () => {
   );
   
   // Render tokenization step
-  const renderTokenization = () => (
-    <Box sx={{ mt: 2 }}>
-      <Typography variant="h6" gutterBottom>
-        Tokenization Settings
-      </Typography>
-
-      <Alert severity="info" sx={{ mb: 3 }}>
-        <AlertTitle>Preliminary Settings</AlertTitle>
-        <Typography variant="body2">
-          These settings are initial values that you can adjust in the final tokenization step before publishing to the marketplace. Once tokenized, these settings cannot be changed.
-        </Typography>
-      </Alert>
-
-      <Grid container spacing={3}>
-        <Grid item xs={12}>
-          <FormControl fullWidth>
-            <FormControlLabel
-              control={
-                <Switch
-                  checked={formData.tokenization.enabled}
-                  onChange={(e) => setFormData(prev => ({
-                    ...prev,
+  const renderTokenization = () => {
+    return (
+      <Box sx={{ mt: 3, p: 2, border: '1px solid', borderColor: 'divider', borderRadius: 1 }}>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+          <Typography variant="h6" gutterBottom>
+            Tokenization Settings
+          </Typography>
+          <FormControlLabel
+            control={
+              <Switch
+                checked={formData.tokenization.enabled}
+                onChange={(e) => {
+                  setFormData({
+                    ...formData,
                     tokenization: {
-                      ...prev.tokenization,
+                      ...formData.tokenization,
                       enabled: e.target.checked
                     }
-                  }))}
-                />
-              }
-              label="Enable Tokenization"
-            />
-          </FormControl>
-        </Grid>
+                  });
+                }}
+              />
+            }
+            label="Enable Tokenization"
+          />
+        </Box>
         
         {formData.tokenization.enabled && (
           <>
-            <Grid item xs={12} md={6}>
-              <TextField
-                fullWidth
-                label="Initial Token Supply"
-                type="number"
-                value={formData.tokenization.initialSupply}
-                onChange={(e) => setFormData(prev => ({
-                  ...prev,
-                  tokenization: {
-                    ...prev.tokenization,
-                    initialSupply: Number(e.target.value)
-                  }
-                }))}
-                InputProps={{
-                  inputProps: { min: 1 }
-                }}
-              />
+            <Typography variant="body2" color="text.secondary" paragraph>
+              These settings will determine how your content is tokenized on the blockchain. 
+              Once published, these settings cannot be changed. Adjust carefully.
+            </Typography>
+            
+            <Grid container spacing={2}>
+              <Grid item xs={12} sm={6} md={4}>
+                <TextField
+                  fullWidth
+                  label="Initial Token Supply"
+                  type="number"
+                  value={formData.tokenization.initialSupply}
+                  onChange={(e) => {
+                    setFormData({
+                      ...formData,
+                      tokenization: {
+                        ...formData.tokenization,
+                        initialSupply: Number(e.target.value)
+                      }
+                    });
+                  }}
+                  InputProps={{
+                    endAdornment: <InputAdornment position="end">tokens</InputAdornment>
+                  }}
+                  helperText="Total number of tokens to create"
+                />
+              </Grid>
+              
+              <Grid item xs={12} sm={6} md={4}>
+                <TextField
+                  fullWidth
+                  label="Token Price"
+                  type="number"
+                  value={formData.tokenization.price}
+                  onChange={(e) => {
+                    setFormData({
+                      ...formData,
+                      tokenization: {
+                        ...formData.tokenization,
+                        price: Number(e.target.value)
+                      }
+                    });
+                  }}
+                  InputProps={{
+                    startAdornment: <InputAdornment position="start">ETH</InputAdornment>
+                  }}
+                  helperText="Price per token in ETH"
+                />
+              </Grid>
+              
+              <Grid item xs={12} sm={6} md={4}>
+                <TextField
+                  fullWidth
+                  label="Creator Royalty"
+                  type="number"
+                  value={formData.tokenization.royalty}
+                  onChange={(e) => {
+                    setFormData({
+                      ...formData,
+                      tokenization: {
+                        ...formData.tokenization,
+                        royalty: Number(e.target.value)
+                      }
+                    });
+                  }}
+                  InputProps={{
+                    endAdornment: <InputAdornment position="end">%</InputAdornment>
+                  }}
+                  helperText="Secondary sales royalty percentage"
+                />
+              </Grid>
             </Grid>
-            <Grid item xs={12} md={6}>
-              <TextField
-                fullWidth
-                label="Token Price (MATIC)"
-                type="number"
-                value={formData.tokenization.price}
-                onChange={(e) => setFormData(prev => ({
-                  ...prev,
-                  tokenization: {
-                    ...prev.tokenization,
-                    price: Number(e.target.value)
-                  }
-                }))}
-                InputProps={{
-                  inputProps: { min: 0, step: 0.001 }
-                }}
-              />
-            </Grid>
-            <Grid item xs={12} md={6}>
-              <TextField
-                fullWidth
-                label="Royalty Percentage"
-                type="number"
-                value={formData.tokenization.royalty}
-                onChange={(e) => setFormData(prev => ({
-                  ...prev,
-                  tokenization: {
-                    ...prev.tokenization,
-                    royalty: Number(e.target.value)
-                  }
-                }))}
-                InputProps={{
-                  inputProps: { min: 0, max: 100 }
-                }}
-              />
-            </Grid>
-            <Grid item xs={12}>
-              <Typography variant="subtitle1" gutterBottom>
-                Rights Thresholds
-              </Typography>
-              {formData.tokenization.rightsThresholds.map((threshold, index) => (
-                <Box key={index} sx={{ display: 'flex', gap: 2, mb: 2 }}>
-                  <TextField
-                    label="Quantity"
-                    type="number"
-                    value={threshold.quantity}
-                    onChange={(e) => {
-                      const newThresholds = [...formData.tokenization.rightsThresholds];
-                      newThresholds[index] = {
-                        ...newThresholds[index],
-                        quantity: Number(e.target.value)
-                      };
-                      setFormData(prev => ({
-                        ...prev,
-                        tokenization: {
-                          ...prev.tokenization,
-                          rightsThresholds: newThresholds
-                        }
-                      }));
-                    }}
-                    InputProps={{
-                      inputProps: { min: 1 }
-                    }}
-                  />
-                  <TextField
-                    label="Rights Type"
-                    value={threshold.type}
-                    onChange={(e) => {
-                      const newThresholds = [...formData.tokenization.rightsThresholds];
-                      newThresholds[index] = {
-                        ...newThresholds[index],
-                        type: e.target.value
-                      };
-                      setFormData(prev => ({
-                        ...prev,
-                        tokenization: {
-                          ...prev.tokenization,
-                          rightsThresholds: newThresholds
-                        }
-                      }));
-                    }}
-                  />
-                  <IconButton
+            
+            <Typography variant="subtitle1" sx={{ mt: 3, mb: 2 }}>
+              License Rights Tiers
+            </Typography>
+            
+            <Typography variant="body2" color="text.secondary" paragraph>
+              Define the rights users get at different token ownership levels. Each tier requires a certain number of tokens.
+            </Typography>
+            
+            {formData.tokenization.rightsThresholds.map((threshold, index) => (
+              <Box key={index} sx={{ display: 'flex', mb: 2, gap: 2 }}>
+                <TextField
+                  label="Required Tokens"
+                  type="number"
+                  value={threshold.quantity}
+                  onChange={(e) => {
+                    const updatedThresholds = [...formData.tokenization.rightsThresholds];
+                    updatedThresholds[index] = {
+                      ...updatedThresholds[index],
+                      quantity: Number(e.target.value)
+                    };
+                    setFormData({
+                      ...formData,
+                      tokenization: {
+                        ...formData.tokenization,
+                        rightsThresholds: updatedThresholds
+                      }
+                    });
+                  }}
+                  sx={{ width: '150px' }}
+                />
+                
+                <TextField
+                  fullWidth
+                  label="Rights Description"
+                  value={threshold.type}
+                  onChange={(e) => {
+                    const updatedThresholds = [...formData.tokenization.rightsThresholds];
+                    updatedThresholds[index] = {
+                      ...updatedThresholds[index],
+                      type: e.target.value
+                    };
+                    setFormData({
+                      ...formData,
+                      tokenization: {
+                        ...formData.tokenization,
+                        rightsThresholds: updatedThresholds
+                      }
+                    });
+                  }}
+                />
+                
+                {index > 0 && (
+                  <IconButton 
+                    color="error"
                     onClick={() => {
-                      const newThresholds = formData.tokenization.rightsThresholds.filter((_, i) => i !== index);
-                      setFormData(prev => ({
-                        ...prev,
+                      const updatedThresholds = [...formData.tokenization.rightsThresholds];
+                      updatedThresholds.splice(index, 1);
+                      setFormData({
+                        ...formData,
                         tokenization: {
-                          ...prev.tokenization,
-                          rightsThresholds: newThresholds
+                          ...formData.tokenization,
+                          rightsThresholds: updatedThresholds
                         }
-                      }));
+                      });
                     }}
                   >
-                    <DeleteOutline />
+                    <Delete />
                   </IconButton>
-                </Box>
-              ))}
-              <Button
-                startIcon={<AddCircleOutline />}
-                onClick={() => {
-                  setFormData(prev => ({
-                    ...prev,
-                    tokenization: {
-                      ...prev.tokenization,
-                      rightsThresholds: [
-                        ...prev.tokenization.rightsThresholds,
-                        { quantity: 1, type: 'New Right' }
-                      ]
-                    }
-                  }));
-                }}
-              >
-                Add Threshold
-              </Button>
-            </Grid>
+                )}
+              </Box>
+            ))}
+            
+            <Button
+              startIcon={<Add />}
+              onClick={() => {
+                setFormData({
+                  ...formData,
+                  tokenization: {
+                    ...formData.tokenization,
+                    rightsThresholds: [
+                      ...formData.tokenization.rightsThresholds,
+                      { quantity: 25, type: 'New Rights Tier' }
+                    ]
+                  }
+                });
+              }}
+              sx={{ mt: 1 }}
+            >
+              Add Rights Tier
+            </Button>
           </>
         )}
-      </Grid>
-    </Box>
-  );
+      </Box>
+    );
+  };
   
   // Render review and submit step
   const renderReviewAndSubmit = () => (
@@ -1268,9 +1308,13 @@ const UploadForm: React.FC = () => {
       </Typography>
       
       <Alert severity="info" sx={{ mb: 3 }}>
-        <AlertTitle>Almost Done!</AlertTitle>
+        <AlertTitle>Final Review</AlertTitle>
         <Typography variant="body2">
-          Please review your content details before submitting. After submission, your content will be uploaded to IPFS and stored securely.
+          Please review all details before submitting. After submission, your content will be uploaded
+          {formData.tokenization.enabled 
+            ? ' and tokenized according to your settings.' 
+            : ' and you will be redirected to the tokenization page.'
+          }
         </Typography>
       </Alert>
       

@@ -2,6 +2,7 @@ import axios from 'axios';
 import { API_BASE_URL } from '../config';
 import * as encryptionUtils from '../utils/encryption';
 import { keyManagementService } from './keyManagement.service';
+import { contentService } from './content.service';
 
 /**
  * Service for handling content uploads with encryption
@@ -156,6 +157,95 @@ class UploadService {
       };
     } catch (error) {
       console.error('Error uploading media content:', error);
+      throw error;
+    }
+  }
+
+  async uploadContent(file: File, metadata: any): Promise<{
+    contentId: string;
+    encryptedContentCid: string;
+    encryptionKey: string;
+  }> {
+    try {
+      console.log('Starting upload process...');
+      
+      // Generate a symmetric encryption key
+      const encryptionKey = encryptionUtils.generateContentKey();
+      console.log('Encryption key generated');
+      
+      // Encrypt the file
+      const encryptResult = await encryptionUtils.encryptFile(file, encryptionKey);
+      const encryptedFile = encryptResult.encryptedFile;
+      console.log('File encrypted successfully');
+      
+      // Upload the encrypted file to IPFS through our API
+      const formData = new FormData();
+      formData.append('file', encryptedFile);
+      
+      const uploadResponse = await axios.post<{cid: string}>(
+        `${API_BASE_URL}/api/ipfs/upload`,
+        formData,
+        {
+          headers: {
+            'Content-Type': 'multipart/form-data',
+          },
+        }
+      );
+      
+      const encryptedContentCid = uploadResponse.data.cid;
+      console.log('Encrypted file uploaded to IPFS:', encryptedContentCid);
+      
+      // Set default rights thresholds if not provided
+      const rightsThresholds = metadata.rightsThresholds || [
+        { quantity: 1, type: "Personal Use" },
+        { quantity: 10, type: "Small Venue" },
+        { quantity: 50, type: "Commercial Use" },
+        { quantity: 100, type: "Broadcast Rights" }
+      ];
+      
+      // Create content metadata
+      const contentMetadata = {
+        ...metadata,
+        encryptedContentCid,
+        contentType: file.type,
+        fileSize: file.size,
+        originalFilename: file.name,
+        uploadDate: new Date().toISOString(),
+        status: 'active', // Ensure content is active by default
+        visibility: 'public', // Ensure content is public by default
+        rightsThresholds: rightsThresholds, // Ensure rights thresholds are included
+        encryptionKey: encryptionKey // Save encryption key for secure access
+      };
+      
+      // Check if we have tokenization data in the metadata
+      const shouldTokenize = metadata.tokenization?.enabled;
+      const tokenizationSettings = metadata.tokenization;
+      
+      // Upload metadata to content service
+      const contentResponse = await contentService.createContent({
+        title: metadata.title || file.name,
+        description: metadata.description || '',
+        contentType: file.type.split('/')[0] || 'video',
+        mainFileCid: encryptedContentCid,
+        metadata: {
+          ...contentMetadata,
+          shouldTokenize: shouldTokenize,
+          tokenizationSettings: shouldTokenize ? tokenizationSettings : undefined
+        },
+        status: 'active', // Ensure content is active by default
+        visibility: 'public', // Ensure content is public by default
+        rightsThresholds: rightsThresholds // Include rights thresholds at top level too
+      });
+      
+      console.log('Content created in service:', contentResponse);
+      
+      return {
+        contentId: contentResponse.id,
+        encryptedContentCid,
+        encryptionKey: encryptionKey
+      };
+    } catch (error) {
+      console.error('Error uploading content:', error);
       throw error;
     }
   }
