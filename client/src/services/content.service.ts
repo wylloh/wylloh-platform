@@ -2,6 +2,7 @@ import axios from 'axios';
 import { API_BASE_URL } from '../config';
 import { ethers } from 'ethers';
 import { blockchainService } from './blockchain.service';
+import { keyManagementService } from './keyManagement.service';
 
 // Add custom type declarations for window.ethereum
 declare global {
@@ -37,6 +38,7 @@ export interface Content {
   visibility: 'public' | 'private' | 'unlisted';
   views: number;
   sales: number;
+  rightsThresholds?: Array<{quantity: number, type: string}>;
 }
 
 // Add interface for purchased content
@@ -268,13 +270,18 @@ class ContentService {
       
       // For marketplace, filter local content to only public/active items
       const localContent = this.getLocalContent().filter(
-        item => item.status === 'active' && item.visibility === 'public'
+        item => item.visibility === 'public' && item.status === 'active'
       );
       
       // Include marketplace-appropriate mock content (public/active)
       const filteredMock = mockContent.filter(
-        item => item.status === 'active' && item.visibility === 'public'
+        item => item.visibility === 'public' && item.status === 'active'
       );
+      
+      // Debug output
+      console.log('API Content for marketplace:', apiContent.length);
+      console.log('Local Content for marketplace:', localContent.length);
+      console.log('Mock Content for marketplace:', filteredMock.length);
       
       return this.deduplicateContent([...apiContent, ...localContent, ...filteredMock]);
     } catch (error) {
@@ -282,13 +289,17 @@ class ContentService {
       
       // For marketplace, filter local content to only public/active items
       const localContent = this.getLocalContent().filter(
-        item => item.status === 'active' && item.visibility === 'public'
+        item => item.visibility === 'public' && item.status === 'active'
       );
       
       // Include marketplace-appropriate mock content (public/active)
       const filteredMock = mockContent.filter(
-        item => item.status === 'active' && item.visibility === 'public'
+        item => item.visibility === 'public' && item.status === 'active'
       );
+      
+      // Debug output
+      console.log('Local Content for marketplace (fallback):', localContent.length);
+      console.log('Mock Content for marketplace (fallback):', filteredMock.length);
       
       return this.deduplicateContent([...localContent, ...filteredMock]);
     }
@@ -456,6 +467,17 @@ class ContentService {
               timestamp: new Date().toISOString()
             })
           );
+          
+          // Store content encryption key if available
+          if (contentData.mainFileCid && contentData.metadata?.encryptionKey) {
+            // Store encryption key for the content
+            await keyManagementService.storeContentKey(
+              contentData.mainFileCid,
+              contentData.metadata.encryptionKey,
+              buyerAddress
+            );
+            console.log('Stored content key for purchased content');
+          }
         } catch (error) {
           console.error('Error with wallet transaction:', error);
           // Continue with local storage fallback

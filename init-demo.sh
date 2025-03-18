@@ -383,9 +383,17 @@ echo -e "To start the demo, run:${BOLD}"
 echo "  cd client && BROWSER=open yarn start"
 echo -e "${NC}"
 echo "The above command will automatically open your browser to localhost:3000"
-echo
+echo ""
+echo "Our transaction monitoring script will now start running in the background."
+echo "You can view blockchain transactions in real-time while testing."
+echo ""
+node scripts/monitor-transactions.js &
+echo "Transaction monitoring started. Press Ctrl+C to exit when done."
+echo ""
 echo "To stop the demo services when you're done:"
 echo "  ./stop-demo.sh"
+echo ""
+echo "Demo Setup Complete"
 
 # Create stop script
 cat > stop-demo.sh << 'EOF'
@@ -531,5 +539,3 @@ echo "All ports have been released and temporary files cleaned up."
 EOF
 
 chmod +x stop-demo.sh
-
-echo -e "\n${BOLD}Demo Setup Complete${NC}"

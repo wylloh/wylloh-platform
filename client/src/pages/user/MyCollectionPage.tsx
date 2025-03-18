@@ -189,7 +189,7 @@ const MyCollectionPage: React.FC = () => {
                       size="small" 
                       startIcon={<Info />}
                       component={Link}
-                      to={`/marketplace/content/${content.id}`}
+                      to={`/marketplace/details/${content.id}`}
                     >
                       Details
                     </Button>
