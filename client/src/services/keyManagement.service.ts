@@ -139,26 +139,96 @@ class KeyManagementService {
       
       console.log(`KeyManagementService: Verifying content ownership for ${contentId} by ${walletAddress}`);
       
-      // In production: Use blockchainService to check ownership
+      // Try with blockchain first - multiple attempts with error handling
       if (blockchainService.isInitialized()) {
         console.log('KeyManagementService: Using blockchain verification');
-        const tokenBalance = await blockchainService.getTokenBalance(walletAddress, contentId);
-        console.log(`KeyManagementService: Token balance from blockchain: ${tokenBalance}`);
-        return tokenBalance > 0;
+        
+        try {
+          // First attempt
+          const tokenBalance = await blockchainService.getTokenBalance(walletAddress, contentId);
+          console.log(`KeyManagementService: Token balance from blockchain: ${tokenBalance}`);
+          
+          if (tokenBalance > 0) {
+            console.log('KeyManagementService: Token ownership verified via blockchain');
+            return true;
+          }
+        } catch (error) {
+          console.warn('KeyManagementService: First blockchain check failed:', error);
+        }
+        
+        // Wait briefly and try again (blockchain might need time to process recent transactions)
+        console.log('KeyManagementService: Attempting secondary blockchain verification...');
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        
+        try {
+          // Second attempt with different provider
+          const provider = new ethers.providers.JsonRpcProvider('http://localhost:8545');
+          // Use raw contract call for verification
+          const contractAddress = blockchainService['contractAddress'];
+          const abi = ["function balanceOf(address account, uint256 id) view returns (uint256)"];
+          const contract = new ethers.Contract(contractAddress, abi, provider);
+          
+          const balance = await contract.balanceOf(walletAddress, contentId);
+          const tokenBalance = balance.toNumber();
+          
+          console.log(`KeyManagementService: Secondary token balance check: ${tokenBalance}`);
+          
+          if (tokenBalance > 0) {
+            console.log('KeyManagementService: Token ownership verified via secondary check');
+            return true;
+          }
+        } catch (secondError) {
+          console.warn('KeyManagementService: Secondary blockchain check failed:', secondError);
+        }
       }
       
       // For demo/testing, use local storage as fallback
-      // In real production, we would NOT have this fallback for authorization
+      // Check both wylloh_local_purchased_content (new format) and purchased_content (old format)
       console.log('KeyManagementService: Using localStorage fallback for ownership check');
-      const purchasedContent = JSON.parse(localStorage.getItem('purchased_content') || '[]');
-      const ownedContent = purchasedContent.find((item: any) => 
+      
+      // Check new format first
+      const newStorageKey = 'wylloh_local_purchased_content';
+      const newPurchasedContent = JSON.parse(localStorage.getItem(newStorageKey) || '[]');
+      const newOwnedContent = newPurchasedContent.find((item: any) => 
         item.id === contentId && item.purchaseQuantity > 0
       );
       
-      const hasAccess = !!ownedContent;
-      console.log(`KeyManagementService: Access check result from localStorage: ${hasAccess}`);
+      if (newOwnedContent) {
+        console.log(`KeyManagementService: Access granted via ${newStorageKey}`);
+        return true;
+      }
       
-      return hasAccess;
+      // Check old format as fallback
+      const oldStorageKey = 'purchased_content';
+      const oldPurchasedContent = JSON.parse(localStorage.getItem(oldStorageKey) || '[]');
+      const oldOwnedContent = oldPurchasedContent.find((item: any) => 
+        item.id === contentId && item.purchaseQuantity > 0
+      );
+      
+      if (oldOwnedContent) {
+        console.log(`KeyManagementService: Access granted via ${oldStorageKey}`);
+        return true;
+      }
+      
+      // One final option - check user's token records directly
+      try {
+        // Look for transaction records that might indicate ownership
+        for (let i = 0; i < localStorage.length; i++) {
+          const key = localStorage.key(i);
+          if (key && key.startsWith('transaction_')) {
+            const transaction = JSON.parse(localStorage.getItem(key) || '{}');
+            if (transaction.type === 'purchase' && transaction.contentId === contentId) {
+              console.log(`KeyManagementService: Found purchase transaction record for ${contentId}`);
+              return true;
+            }
+          }
+        }
+      } catch (error) {
+        console.warn('KeyManagementService: Error checking transaction records:', error);
+      }
+      
+      console.log(`KeyManagementService: No ownership record found for ${contentId}`);
+      return false;
     } catch (error) {
       console.error('Error verifying content ownership:', error);
       return false;

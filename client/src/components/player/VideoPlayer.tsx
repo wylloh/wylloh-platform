@@ -3,6 +3,7 @@ import { Box, CircularProgress, Typography, Button } from '@mui/material';
 import { useWallet } from '../../hooks/useWallet';
 import { downloadService } from '../../services/download.service';
 import { keyManagementService } from '../../services/keyManagement.service';
+import { blockchainService } from '../../services/blockchain.service';
 
 interface VideoPlayerProps {
   contentId: string;
@@ -26,9 +27,60 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
   const [videoUrl, setVideoUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [verificationStatus, setVerificationStatus] = useState<string | null>(null);
   const { account } = useWallet();
   const videoRef = useRef<HTMLVideoElement>(null);
   const [retries, setRetries] = useState(0);
+
+  // Add direct verification function
+  const verifyTokenOwnership = async () => {
+    try {
+      setVerificationStatus('Checking token ownership...');
+      
+      if (!account) {
+        setVerificationStatus('Error: No wallet connected');
+        return;
+      }
+      
+      console.log(`Manual verification - Content ID: ${contentId}, Wallet: ${account}`);
+      
+      // Direct blockchain check
+      let chainBalance = 0;
+      if (blockchainService.isInitialized()) {
+        try {
+          chainBalance = await blockchainService.getTokenBalance(account, contentId);
+          console.log(`Blockchain token balance: ${chainBalance}`);
+        } catch (err) {
+          console.error('Error checking blockchain balance:', err);
+        }
+      }
+      
+      // KMS check
+      const kmsVerified = await keyManagementService.verifyContentOwnership(contentId, account);
+      console.log(`KMS verification result: ${kmsVerified}`);
+      
+      setVerificationStatus(
+        `Token Verification Results:
+        Blockchain Balance: ${chainBalance} tokens
+        KMS Verification: ${kmsVerified ? 'Passed' : 'Failed'}
+        
+        ${kmsVerified ? '✅ You should be able to play the content now.' : '❌ Token ownership could not be verified.'}
+        
+        ${!kmsVerified && chainBalance > 0 ? 'Your tokens were found on the blockchain but verification failed. Please try again.' : ''}
+        ${!kmsVerified && chainBalance === 0 ? 'No tokens found on the blockchain. If you just purchased tokens, they may not be registered yet.' : ''}`
+      );
+      
+      // If verification passed and we had an error before, retry loading
+      if (kmsVerified && error) {
+        setTimeout(() => {
+          handleRetry();
+        }, 2000);
+      }
+    } catch (err) {
+      console.error('Error during manual verification:', err);
+      setVerificationStatus(`Verification error: ${err instanceof Error ? err.message : String(err)}`);
+    }
+  };
 
   const loadVideo = async () => {
     setLoading(true);
@@ -156,6 +208,7 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
     setRetries(retries + 1);
     setLoading(true);
     setError(null);
+    setVerificationStatus(null);
     loadVideo();
   };
 
@@ -190,15 +243,33 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
         bgcolor="rgba(0, 0, 0, 0.05)"
         p={2}
       >
-        <Typography color="error" gutterBottom>{error}</Typography>
-        <Button 
-          variant="contained" 
-          color="primary" 
-          onClick={handleRetry}
-          sx={{ mt: 2 }}
-        >
-          Retry
-        </Button>
+        <Typography color="error" gutterBottom align="center">{error}</Typography>
+        
+        {verificationStatus && (
+          <Box sx={{ mt: 2, p: 2, bgcolor: 'background.paper', borderRadius: 1, maxWidth: '80%', whiteSpace: 'pre-line' }}>
+            <Typography variant="body2" component="pre" sx={{ fontFamily: 'monospace' }}>
+              {verificationStatus}
+            </Typography>
+          </Box>
+        )}
+        
+        <Box sx={{ mt: 2, display: 'flex', gap: 2 }}>
+          <Button 
+            variant="contained" 
+            color="primary" 
+            onClick={handleRetry}
+          >
+            Retry Playback
+          </Button>
+          
+          <Button 
+            variant="outlined" 
+            color="secondary" 
+            onClick={verifyTokenOwnership}
+          >
+            Verify Token Ownership
+          </Button>
+        </Box>
       </Box>
     );
   }
