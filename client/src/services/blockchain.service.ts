@@ -255,30 +255,54 @@ class BlockchainService {
           const signer = this.provider.getSigner();
           const signerAddress = await signer.getAddress();
           
-          console.log(`Using signer address: ${signerAddress}`);
+          console.log(`Using buyer address: ${signerAddress}`);
           
-          // Calculate total price in ETH
+          // Calculate total price in ETH - THIS IS PER TOKEN PRICE * QUANTITY
           const totalPrice = price * quantity;
           const totalPriceWei = ethers.utils.parseEther(totalPrice.toString());
           
           console.log(`Total price: ${totalPrice} ETH (${totalPriceWei.toString()} wei)`);
           
-          // Get all available accounts for demo
-          const accounts = await this.provider.listAccounts();
+          // Get content details to find the creator's address
+          const content = await contentService.getContentById(tokenId);
+          if (!content) {
+            throw new Error(`Content with ID ${tokenId} not found`);
+          }
           
-          // For demo purposes, we'll use the first account as the creator/seller
-          // In a real application, this would come from the content metadata
-          const creatorAddress = accounts[0];
-          console.log(`Using creator address: ${creatorAddress}`);
+          // Get the creator address from content
+          const creatorAddress = content.creatorAddress;
           
-          // Skip the marketplace contract for demo and do a direct transfer instead
-          // This simplifies the flow and ensures the transaction works correctly
-          console.log('Using direct token transfer for demo');
+          // If creatorAddress is empty or invalid, fall back to the first Ganache account
+          const isValidAddress = creatorAddress && ethers.utils.isAddress(creatorAddress);
+          let sellerAddress = isValidAddress ? creatorAddress : null;
+          
+          if (!sellerAddress) {
+            // Fall back to first account as creator for demo
+            const accounts = await this.provider.listAccounts();
+            sellerAddress = accounts[0];
+          }
+          
+          console.log(`Using creator/seller address: ${sellerAddress}`);
+          
+          // Verify that buyer is not the same as seller (important!)
+          if (signerAddress.toLowerCase() === sellerAddress.toLowerCase()) {
+            console.error('Buyer and seller addresses are the same, aborting purchase');
+            throw new Error('Cannot purchase from yourself');
+          }
+          
+          // Check if user has enough balance before proceeding
+          const buyerBalance = await this.provider.getBalance(signerAddress);
+          console.log(`Buyer balance: ${ethers.utils.formatEther(buyerBalance)} ETH`);
+          
+          if (buyerBalance.lt(totalPriceWei)) {
+            console.error(`Insufficient funds: ${ethers.utils.formatEther(buyerBalance)} ETH available, ${totalPrice} ETH required`);
+            throw new Error(`Insufficient funds: ${ethers.utils.formatEther(buyerBalance)} ETH available, ${totalPrice} ETH required`);
+          }
           
           // 1. First, send payment to creator
-          console.log(`Sending payment of ${totalPrice} ETH to creator ${creatorAddress}`);
+          console.log(`Sending payment of ${totalPrice} ETH from ${signerAddress} to creator ${sellerAddress}`);
           const paymentTx = await signer.sendTransaction({
-            to: creatorAddress,
+            to: sellerAddress,
             value: totalPriceWei
           });
           
@@ -288,19 +312,18 @@ class BlockchainService {
           
           // 2. Connect to token contract with creator's signer
           // For demo, we'll impersonate the creator by using their account directly
-          // In a real application, this would be done via the marketplace contract
           const creatorProvider = new ethers.providers.JsonRpcProvider('http://localhost:8545');
-          const creatorSigner = creatorProvider.getSigner(creatorAddress);
+          const creatorSigner = creatorProvider.getSigner(sellerAddress);
           
           // Connect token contract with creator's signer
           const tokenWithCreatorSigner = this.tokenContract!.connect(creatorSigner);
           
           // 3. Transfer tokens from creator to buyer
-          console.log(`Transferring ${quantity} tokens of ID ${tokenId} from ${creatorAddress} to ${signerAddress}`);
+          console.log(`Transferring ${quantity} tokens of ID ${tokenId} from ${sellerAddress} to ${signerAddress}`);
           
           // Use safeTransferFrom to send tokens
           const transferTx = await tokenWithCreatorSigner.safeTransferFrom(
-            creatorAddress,
+            sellerAddress,
             signerAddress,
             tokenId,
             quantity,
@@ -317,6 +340,13 @@ class BlockchainService {
           return true;
         } catch (error: any) {
           console.error('Blockchain transaction error:', error);
+          
+          // Check for specific errors
+          if (error.message && error.message.includes('insufficient funds')) {
+            // Don't record purchase if there are insufficient funds
+            console.error('Purchase failed due to insufficient funds');
+            throw new Error('Insufficient funds to complete purchase');
+          }
           
           if (error.message && error.message.includes('cannot estimate gas')) {
             console.log('Gas estimation failed, falling back to mint operation');
@@ -353,14 +383,13 @@ class BlockchainService {
               return true;
             } catch (mintError) {
               console.error('Mint operation failed:', mintError);
+              // Propagate error to prevent local storage update
+              throw mintError;
             }
           }
           
-          // For demo purposes, still update local storage to allow demo flow to continue
-          console.log('All blockchain operations failed, falling back to local storage update for demo');
-          await contentService.purchaseToken(tokenId, quantity);
-          
-          return true;
+          // Re-throw the error to prevent local storage update for failed transactions
+          throw error;
         }
       } else {
         // No ethereum provider available, simulate the transaction

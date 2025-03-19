@@ -498,6 +498,9 @@ const UploadForm: React.FC = () => {
     setSubmitError(null);
     
     try {
+      // Generate a unique content ID for this upload
+      const uploadId = `local-${Date.now()}`;
+      
       // Upload main file
       let mainFileCid = '';
       try {
@@ -532,8 +535,9 @@ const UploadForm: React.FC = () => {
       
       // Create content in the service
       const contentData: any = {
-        title: formData.title,
-        description: formData.description,
+        id: uploadId, // Ensure a consistent ID is used
+        title: formData.title.trim(),
+        description: formData.description.trim(),
         contentType: formData.contentType,
         status: formData.status,
         visibility: formData.visibility,
@@ -556,7 +560,8 @@ const UploadForm: React.FC = () => {
         contentData.rightsThresholds = formData.tokenization.rightsThresholds;
       }
       
-      // Create the content with our service
+      // Create the content with our service - IMPORTANT: Use a consistent ID
+      console.log('Creating content with ID:', uploadId);
       const createdContent = await contentService.createContent(contentData);
       
       // Success!
