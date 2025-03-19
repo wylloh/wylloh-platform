@@ -31,65 +31,111 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
   const [retries, setRetries] = useState(0);
 
   const loadVideo = async () => {
-    console.log('VideoPlayer - Loading video:', { contentId, contentCid, account });
+    setLoading(true);
+    setError(null);
     
-    if (!contentCid || !contentId) {
-      console.error('VideoPlayer - Missing contentCid or contentId');
-      setError('No content provided');
+    // Basic validation
+    if (!contentId || !contentCid) {
+      console.error('VideoPlayer - Missing content ID or CID');
+      setError('Missing content information');
       setLoading(false);
       return;
     }
-
+    
+    // Check wallet connection
     if (!account) {
-      console.error('VideoPlayer - No wallet account connected');
-      setError('Wallet not connected');
+      console.error('VideoPlayer - No wallet connected');
+      setError('Please connect your wallet to play this content');
       setLoading(false);
       return;
     }
 
-    try {
-      // Double check ownership in keyManagementService for extra security
-      console.log('VideoPlayer - Verifying ownership through keyManagementService');
-      const ownershipVerified = await keyManagementService.verifyContentOwnership(contentId, account);
-      console.log('VideoPlayer - Ownership verification result:', ownershipVerified);
-      
-      if (!ownershipVerified) {
-        console.error('VideoPlayer - Ownership verification failed');
-        setError('Ownership verification failed - You do not own this content');
-        setLoading(false);
-        return;
-      }
+    // Try with retries for token verification and content loading
+    let retryCount = 3;
+    
+    while (retryCount > 0) {
+      try {
+        console.log(`VideoPlayer - Loading attempt ${4-retryCount} for content ID: ${contentId}, CID: ${contentCid}`);
+        
+        // Double check ownership in keyManagementService for extra security
+        console.log('VideoPlayer - Verifying ownership through keyManagementService');
+        const ownershipVerified = await keyManagementService.verifyContentOwnership(contentId, account);
+        console.log('VideoPlayer - Ownership verification result:', ownershipVerified);
+        
+        if (!ownershipVerified) {
+          console.error('VideoPlayer - Ownership verification failed');
+          // Only set error on last retry
+          if (retryCount === 1) {
+            setError('You do not own this content. If you just purchased it, please wait a moment and try again.');
+            setLoading(false);
+            return;
+          }
+          
+          console.log(`VideoPlayer - Retrying ownership check in 2 seconds (${retryCount-1} attempts left)`);
+          await new Promise(resolve => setTimeout(resolve, 2000));
+          retryCount--;
+          continue;
+        }
 
-      // Check if we can access the content
-      console.log('VideoPlayer - Checking content access through downloadService');
-      const canAccess = await downloadService.canAccessContent(contentCid, account);
-      console.log('VideoPlayer - Content access check result:', canAccess);
-      
-      if (!canAccess) {
-        console.error('VideoPlayer - Access denied to content');
-        setError('You do not have permission to view this content');
-        setLoading(false);
-        return;
-      }
+        // Check if we can access the content
+        console.log('VideoPlayer - Checking content access through downloadService');
+        const canAccess = await downloadService.canAccessContent(contentCid, account);
+        console.log('VideoPlayer - Content access check result:', canAccess);
+        
+        if (!canAccess) {
+          console.error('VideoPlayer - Access denied to content');
+          // Only set error on last retry
+          if (retryCount === 1) {
+            setError('You do not have permission to view this content. If you just purchased it, please wait a moment and try again.');
+            setLoading(false);
+            return;
+          }
+          
+          console.log(`VideoPlayer - Retrying access check in 2 seconds (${retryCount-1} attempts left)`);
+          await new Promise(resolve => setTimeout(resolve, 2000));
+          retryCount--;
+          continue;
+        }
 
-      // Get the stream URL with decryption
-      console.log('VideoPlayer - Getting content stream URL');
-      const url = await downloadService.getContentStreamUrl(contentCid, account);
-      
-      if (!url) {
-        console.error('VideoPlayer - Failed to get content stream URL');
-        setError('Failed to load video');
-        setLoading(false);
-        return;
-      }
+        // Get the stream URL with decryption
+        console.log('VideoPlayer - Getting content stream URL');
+        const url = await downloadService.getContentStreamUrl(contentCid, account);
+        
+        if (!url) {
+          console.error('VideoPlayer - Failed to get content stream URL');
+          // Only set error on last retry
+          if (retryCount === 1) {
+            setError('Failed to load video. Please try again later.');
+            setLoading(false);
+            return;
+          }
+          
+          console.log(`VideoPlayer - Retrying stream URL fetch in 2 seconds (${retryCount-1} attempts left)`);
+          await new Promise(resolve => setTimeout(resolve, 2000));
+          retryCount--;
+          continue;
+        }
 
-      console.log('VideoPlayer - Stream URL obtained successfully');
-      setVideoUrl(url);
-      setLoading(false);
-    } catch (err) {
-      console.error('Error loading video:', err);
-      setError('Error loading video: ' + (err instanceof Error ? err.message : String(err)));
-      setLoading(false);
+        console.log('VideoPlayer - Stream URL obtained successfully');
+        setVideoUrl(url);
+        setLoading(false);
+        // Success, break out of retry loop
+        break;
+        
+      } catch (err) {
+        console.error('Error in VideoPlayer.loadVideo attempt:', err);
+        retryCount--;
+        
+        // On last retry, show error to user
+        if (retryCount === 0) {
+          console.error('VideoPlayer - All retry attempts failed');
+          setError('Error loading video: ' + (err instanceof Error ? err.message : String(err)));
+          setLoading(false);
+        } else {
+          console.log(`VideoPlayer - Retrying after error (${retryCount} attempts left)`);
+          await new Promise(resolve => setTimeout(resolve, 2000));
+        }
+      }
     }
   };
 

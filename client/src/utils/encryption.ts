@@ -139,26 +139,102 @@ export async function decryptFile(
   encryptedFile: File | Blob,
   contentKey: string
 ): Promise<File> {
-  // Read the encrypted file as text
-  const encryptedContent = await readFileAsText(encryptedFile);
+  try {
+    console.log(`EncryptionUtils: Decrypting file ${encryptedFile instanceof File ? encryptedFile.name : 'blob'}`);
+    
+    // Read the encrypted file as text
+    let encryptedContent: string;
+    
+    try {
+      encryptedContent = await readFileAsText(encryptedFile);
+    } catch (readError) {
+      console.error('EncryptionUtils: Error reading encrypted file as text:', readError);
+      throw new Error('Failed to read encrypted file');
+    }
+    
+    if (!encryptedContent || encryptedContent.length === 0) {
+      console.error('EncryptionUtils: Empty encrypted content');
+      throw new Error('Encrypted file is empty or corrupted');
+    }
+    
+    // Decrypt the content
+    let decryptedContent: string;
+    
+    try {
+      decryptedContent = decryptContent(encryptedContent, contentKey);
+    } catch (decryptError) {
+      console.error('EncryptionUtils: Error decrypting content:', decryptError);
+      throw new Error('Failed to decrypt file - the encryption key may be invalid');
+    }
+    
+    if (!decryptedContent || decryptedContent.length === 0) {
+      console.error('EncryptionUtils: Empty decrypted content');
+      throw new Error('Decryption produced empty content - the file may be corrupted');
+    }
+    
+    // Determine original filename by removing .encrypted extension
+    const fileName = encryptedFile instanceof File 
+      ? encryptedFile.name.replace('.encrypted', '') 
+      : 'decrypted-file';
+    
+    // Create a new file with decrypted content
+    // For binary files, we need to convert base64 back to ArrayBuffer
+    try {
+      const binaryContent = base64ToArrayBuffer(decryptedContent);
+      
+      return new File(
+        [binaryContent], 
+        fileName, 
+        { type: determineMimeType(fileName) }
+      );
+    } catch (fileCreationError) {
+      console.error('EncryptionUtils: Error creating decrypted file:', fileCreationError);
+      throw new Error('Failed to create decrypted file');
+    }
+  } catch (error) {
+    console.error('EncryptionUtils: Decryption failed:', error);
+    throw error;
+  }
+}
+
+/**
+ * Determine MIME type from filename
+ * @param fileName Name of the file
+ * @returns Appropriate MIME type
+ */
+function determineMimeType(fileName: string): string {
+  const extension = fileName.split('.').pop()?.toLowerCase();
   
-  // Decrypt the content
-  const decryptedContent = decryptContent(encryptedContent, contentKey);
-  
-  // Determine original filename by removing .encrypted extension
-  const fileName = encryptedFile instanceof File 
-    ? encryptedFile.name.replace('.encrypted', '') 
-    : 'decrypted-file';
-  
-  // Create a new file with decrypted content
-  // For binary files, we need to convert base64 back to ArrayBuffer
-  const binaryContent = base64ToArrayBuffer(decryptedContent);
-  
-  return new File(
-    [binaryContent], 
-    fileName, 
-    { type: 'application/octet-stream' }
-  );
+  switch (extension) {
+    case 'mp4':
+    case 'mov':
+    case 'm4v':
+      return 'video/mp4';
+    case 'webm':
+      return 'video/webm';
+    case 'avi':
+      return 'video/x-msvideo';
+    case 'wmv':
+      return 'video/x-ms-wmv';
+    case 'mpg':
+    case 'mpeg':
+      return 'video/mpeg';
+    case 'jpg':
+    case 'jpeg':
+      return 'image/jpeg';
+    case 'png':
+      return 'image/png';
+    case 'gif':
+      return 'image/gif';
+    case 'mp3':
+      return 'audio/mpeg';
+    case 'wav':
+      return 'audio/wav';
+    case 'pdf':
+      return 'application/pdf';
+    default:
+      return 'application/octet-stream';
+  }
 }
 
 /**

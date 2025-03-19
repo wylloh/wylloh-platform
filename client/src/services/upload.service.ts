@@ -203,6 +203,25 @@ class UploadService {
         { quantity: 100, type: "Broadcast Rights" }
       ];
       
+      // Check if we have tokenization data in the metadata
+      const shouldTokenize = metadata.tokenization?.enabled;
+      const tokenizationSettings = metadata.tokenization;
+      
+      // Set tokenization data
+      let tokenized = false;
+      let price = undefined;
+      let available = undefined;
+      let totalSupply = undefined;
+      
+      // If tokenization is enabled during upload, set the appropriate fields
+      if (shouldTokenize && tokenizationSettings) {
+        console.log('Tokenization enabled during upload:', tokenizationSettings);
+        tokenized = true;
+        price = parseFloat(tokenizationSettings.price || 0.01);
+        available = parseInt(tokenizationSettings.initialSupply || 1000);
+        totalSupply = parseInt(tokenizationSettings.initialSupply || 1000);
+      }
+      
       // Create content metadata
       const contentMetadata = {
         ...metadata,
@@ -217,10 +236,6 @@ class UploadService {
         encryptionKey: encryptionKey // Save encryption key for secure access
       };
       
-      // Check if we have tokenization data in the metadata
-      const shouldTokenize = metadata.tokenization?.enabled;
-      const tokenizationSettings = metadata.tokenization;
-      
       // Upload metadata to content service
       const contentResponse = await contentService.createContent({
         title: metadata.title || file.name,
@@ -234,10 +249,39 @@ class UploadService {
         },
         status: 'active', // Ensure content is active by default
         visibility: 'public', // Ensure content is public by default
-        rightsThresholds: rightsThresholds // Include rights thresholds at top level too
+        rightsThresholds: rightsThresholds, // Include rights thresholds at top level too
+        tokenized: tokenized, // Set if content is tokenized
+        price: price, // Set token price if tokenized
+        available: available, // Set available supply if tokenized
+        totalSupply: totalSupply, // Set total supply if tokenized
+        tokenId: tokenized ? `token-${new Date().getTime()}` : undefined // Generate a mock token ID for demo
       });
       
       console.log('Content created in service:', contentResponse);
+      
+      // If tokenization was enabled during upload, record it in blockchain service or similar
+      if (tokenized && metadata.walletAddress) {
+        try {
+          console.log('Recording tokenization in blockchain/storage service');
+          // In a production app, we would call blockchain service to record the tokenization
+          // For demo purposes, just log it
+          localStorage.setItem(
+            `tokenized_content_${contentResponse.id}`, 
+            JSON.stringify({
+              contentId: contentResponse.id,
+              tokenized: true,
+              price: price,
+              supply: totalSupply,
+              available: available,
+              rightsThresholds: rightsThresholds,
+              timestamp: new Date().toISOString()
+            })
+          );
+        } catch (tokenizationError) {
+          console.error('Error recording tokenization:', tokenizationError);
+          // Continue despite tokenization recording error
+        }
+      }
       
       return {
         contentId: contentResponse.id,

@@ -397,34 +397,31 @@ class ContentService {
   // Purchase content token
   async purchaseToken(contentId: string, quantity: number): Promise<boolean> {
     try {
-      // In a real implementation, this would call the blockchain
-      // For demo, we'll simulate the purchase with local storage and wallet interaction
-      const contentData = await this.getContentById(contentId);
+      console.log(`ContentService: Purchasing token for content ID ${contentId}, quantity: ${quantity}`);
       
+      // Get the content
+      const contentData = await this.getContentById(contentId);
       if (!contentData) {
+        console.error('ContentService: Failed to find content');
         throw new Error('Content not found');
       }
       
-      // Check if content is available for purchase
-      if (!contentData.tokenized) {
-        throw new Error('Content is not tokenized');
+      console.log(`ContentService: Content data for purchase:`, contentData);
+      
+      // Get current user's wallet address
+      const walletAddress = this.getConnectedWalletAddress();
+      if (!walletAddress) {
+        console.error('ContentService: No wallet connected for purchase');
+        throw new Error('No wallet connected');
       }
       
-      if ((contentData.available || 0) < quantity) {
-        throw new Error('Not enough tokens available');
-      }
-      
-      // Get current purchased content
-      const purchasedContent = this.getLocalPurchasedContent();
-      
-      // Check if already purchased
-      const existingPurchase = purchasedContent.find(item => item.id === contentId);
+      console.log(`ContentService: Using wallet address for purchase: ${walletAddress}`);
 
       // Simulate blockchain transaction with window.ethereum if available
       // This would actually be using the wallet in the real implementation
       if (window.ethereum) {
         try {
-          console.log('Simulating blockchain transaction via wallet...');
+          console.log('ContentService: Simulating blockchain transaction via wallet...');
           
           // Get seller's address
           const sellerAddress = contentData.creatorAddress;
@@ -468,58 +465,55 @@ class ContentService {
             })
           );
           
-          // Store content encryption key if available
-          if (contentData.mainFileCid && contentData.metadata?.encryptionKey) {
-            // Store encryption key for the content
-            await keyManagementService.storeContentKey(
-              contentData.mainFileCid,
-              contentData.metadata.encryptionKey,
-              buyerAddress
-            );
-            console.log('Stored content key for purchased content');
-          }
+          // Record purchase in local storage
+          this.recordContentPurchase(contentData, quantity);
+          
+          // Make sure to clear key cache to force fresh verification
+          console.log('ContentService: Clearing key cache for purchased content');
+          const { keyManagementService } = await import('./keyManagement.service');
+          keyManagementService.clearKeyCache(contentId);
+          
+          // Initialize a timer to verify token ownership after purchase
+          // This helps ensure immediate verification works by giving the blockchain transaction time
+          setTimeout(async () => {
+            try {
+              console.log('ContentService: Post-purchase verification check');
+              
+              // Try to verify ownership
+              const ownership = await this.checkContentOwnership(contentId);
+              console.log(`ContentService: Post-purchase ownership check: ${ownership.owned ? 'Success' : 'Failed'}`);
+              
+              // If ownership verification succeeded, ensure key is available
+              if (ownership.owned) {
+                const { keyManagementService } = await import('./keyManagement.service');
+                const contentCid = contentData.mainFileCid;
+                
+                if (contentCid) {
+                  console.log(`ContentService: Pre-caching content key for ${contentCid}`);
+                  const contentKey = await keyManagementService.getContentKey(contentId, walletAddress);
+                  console.log(`ContentService: Content key retrieval ${contentKey ? 'successful' : 'failed'}`);
+                }
+              }
+            } catch (error) {
+              console.error('ContentService: Error in post-purchase verification:', error);
+            }
+          }, 2000);
+          
+          return true;
         } catch (error) {
-          console.error('Error with wallet transaction:', error);
-          // Continue with local storage fallback
+          console.error('ContentService: Error processing transaction:', error);
+          throw error;
         }
-      }
-      
-      if (existingPurchase) {
-        // Update existing purchase
-        existingPurchase.purchaseQuantity += quantity;
-        existingPurchase.purchaseDate = new Date().toISOString();
       } else {
-        // Add new purchase
-        const purchase: PurchasedContent = {
-          ...contentData,
-          purchaseDate: new Date().toISOString(),
-          purchasePrice: contentData.price || 0.01,
-          purchaseQuantity: quantity
-        };
+        console.log('ContentService: Window.ethereum not available, using fallback');
         
-        purchasedContent.push(purchase);
+        // Fallback to simple purchase recording for demo without MetaMask
+        this.recordContentPurchase(contentData, quantity);
+        
+        return true;
       }
-      
-      // Update available supply
-      const updatedContent = {...contentData};
-      updatedContent.available = (updatedContent.available || 0) - quantity;
-      updatedContent.sales = (updatedContent.sales || 0) + quantity;
-      
-      // Update local content storage
-      const localContent = this.getLocalContent();
-      const contentIndex = localContent.findIndex(item => item.id === contentId);
-      
-      if (contentIndex >= 0) {
-        localContent[contentIndex] = updatedContent;
-        localStorage.setItem(LOCAL_CONTENT_KEY, JSON.stringify(localContent));
-      }
-      
-      // Save purchased content
-      localStorage.setItem(LOCAL_PURCHASED_CONTENT_KEY, JSON.stringify(purchasedContent));
-      
-      return true;
     } catch (error) {
-      console.error('Error purchasing token:', error);
+      console.error('ContentService: Error in purchaseToken:', error);
       throw error;
     }
   }
@@ -644,6 +638,63 @@ class ContentService {
       // Fallback to local data
       const content = await this.getContentById(contentId);
       return content?.metadata?.rightsThresholds || [];
+    }
+  }
+
+  /**
+   * Record content purchase in local storage
+   * 
+   * @param contentData Content that was purchased
+   * @param quantity Quantity purchased
+   * @private
+   */
+  private recordContentPurchase(contentData: Content, quantity: number): void {
+    try {
+      console.log('ContentService: Recording content purchase in local storage');
+      
+      // Get current purchased content
+      const purchasedContent = this.getLocalPurchasedContent();
+      
+      // Check if already purchased
+      const existingPurchase = purchasedContent.find(item => item.id === contentData.id);
+      
+      if (existingPurchase) {
+        // Update existing purchase
+        console.log('ContentService: Updating existing purchase');
+        existingPurchase.purchaseQuantity += quantity;
+        existingPurchase.purchaseDate = new Date().toISOString();
+      } else {
+        // Add new purchase
+        console.log('ContentService: Adding new purchase');
+        const purchase: PurchasedContent = {
+          ...contentData,
+          purchaseDate: new Date().toISOString(),
+          purchasePrice: contentData.price || 0.01,
+          purchaseQuantity: quantity
+        };
+        
+        purchasedContent.push(purchase);
+      }
+      
+      // Update available supply
+      const updatedContent = {...contentData};
+      updatedContent.available = (updatedContent.available || 0) - quantity;
+      updatedContent.sales = (updatedContent.sales || 0) + quantity;
+      
+      // Update local content storage
+      const localContent = this.getLocalContent();
+      const contentIndex = localContent.findIndex(item => item.id === contentData.id);
+      
+      if (contentIndex >= 0) {
+        localContent[contentIndex] = updatedContent;
+        localStorage.setItem(LOCAL_CONTENT_KEY, JSON.stringify(localContent));
+      }
+      
+      // Save purchased content
+      localStorage.setItem(LOCAL_PURCHASED_CONTENT_KEY, JSON.stringify(purchasedContent));
+      console.log('ContentService: Purchase recorded successfully');
+    } catch (error) {
+      console.error('ContentService: Error recording purchase:', error);
     }
   }
 }

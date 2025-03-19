@@ -134,20 +134,31 @@ class KeyManagementService {
    */
   async verifyContentOwnership(contentId: string, walletAddress: string): Promise<boolean> {
     try {
+      // Clear key cache for this content to force fresh verification
+      this.clearKeyCache(contentId);
+      
+      console.log(`KeyManagementService: Verifying content ownership for ${contentId} by ${walletAddress}`);
+      
       // In production: Use blockchainService to check ownership
       if (blockchainService.isInitialized()) {
+        console.log('KeyManagementService: Using blockchain verification');
         const tokenBalance = await blockchainService.getTokenBalance(walletAddress, contentId);
+        console.log(`KeyManagementService: Token balance from blockchain: ${tokenBalance}`);
         return tokenBalance > 0;
       }
       
       // For demo/testing, use local storage as fallback
       // In real production, we would NOT have this fallback for authorization
+      console.log('KeyManagementService: Using localStorage fallback for ownership check');
       const purchasedContent = JSON.parse(localStorage.getItem('purchased_content') || '[]');
       const ownedContent = purchasedContent.find((item: any) => 
         item.id === contentId && item.purchaseQuantity > 0
       );
       
-      return !!ownedContent;
+      const hasAccess = !!ownedContent;
+      console.log(`KeyManagementService: Access check result from localStorage: ${hasAccess}`);
+      
+      return hasAccess;
     } catch (error) {
       console.error('Error verifying content ownership:', error);
       return false;

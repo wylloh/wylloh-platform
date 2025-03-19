@@ -36,22 +36,39 @@ class DownloadService {
    */
   async getDecryptedContent(cid: string, walletAddress: string): Promise<File | null> {
     try {
-      console.log(`Attempting to download and decrypt content: ${cid}`);
+      console.log(`DownloadService: Attempting to download and decrypt content: ${cid} for wallet ${walletAddress}`);
       
       // Step 1: Get the decryption key (this includes ownership verification)
-      const contentKey = await keyManagementService.getContentKey(cid, walletAddress);
+      let contentKey = null;
+      let retries = 3;
+      
+      while (retries > 0 && !contentKey) {
+        console.log(`DownloadService: Attempting to get content key (attempts left: ${retries})`);
+        contentKey = await keyManagementService.getContentKey(cid, walletAddress);
+        
+        if (!contentKey && retries > 1) {
+          console.log(`DownloadService: Key retrieval failed, retrying in 1s...`);
+          await new Promise(resolve => setTimeout(resolve, 1000));
+        }
+        retries--;
+      }
+      
       if (!contentKey) {
-        console.warn('Failed to get content key - user likely not authorized');
+        console.warn('DownloadService: Failed to get content key - user likely not authorized');
         return null;
       }
       
+      console.log('DownloadService: Successfully retrieved content key');
+      
       // Step 2: Download the encrypted file
+      console.log(`DownloadService: Downloading encrypted content from IPFS: ${cid}`);
       const encryptedBlob = await this.downloadFile(cid);
       
       // Step 3: Decrypt the file
+      console.log('DownloadService: Decrypting content...');
       const decryptedFile = await encryptionUtils.decryptFile(encryptedBlob, contentKey);
       
-      console.log(`Successfully decrypted content: ${decryptedFile.name}`);
+      console.log(`DownloadService: Successfully decrypted content: ${decryptedFile.name}`);
       return decryptedFile;
     } catch (error) {
       console.error('Error getting decrypted content:', error);
@@ -69,13 +86,25 @@ class DownloadService {
    */
   async getContentStreamUrl(cid: string, walletAddress: string): Promise<string | null> {
     try {
+      console.log(`DownloadService: Creating stream URL for content ${cid} and wallet ${walletAddress}`);
+      
+      // Verify ownership before proceeding
+      const ownershipVerified = await keyManagementService.verifyContentOwnership(cid, walletAddress);
+      
+      if (!ownershipVerified) {
+        console.error('DownloadService: Ownership verification failed');
+        return null;
+      }
+      
       const decryptedFile = await this.getDecryptedContent(cid, walletAddress);
       if (!decryptedFile) {
+        console.error('DownloadService: Failed to decrypt content');
         return null;
       }
       
       // Create object URL for streaming
       const objectUrl = URL.createObjectURL(decryptedFile);
+      console.log(`DownloadService: Created stream URL: ${objectUrl}`);
       return objectUrl;
     } catch (error) {
       console.error('Error creating content stream URL:', error);
@@ -93,9 +122,14 @@ class DownloadService {
    */
   async canAccessContent(cid: string, walletAddress: string): Promise<boolean> {
     try {
-      // Just check if we can get the content key
+      console.log(`DownloadService: Checking content access for ${cid} and wallet ${walletAddress}`);
+      
+      // Verify through key management service
       const contentKey = await keyManagementService.getContentKey(cid, walletAddress);
-      return !!contentKey;
+      const hasAccess = !!contentKey;
+      
+      console.log(`DownloadService: Access check result: ${hasAccess}`);
+      return hasAccess;
     } catch (error) {
       console.error('Error checking content access:', error);
       return false;
@@ -106,37 +140,45 @@ class DownloadService {
    * Download content to user's device
    * 
    * @param cid IPFS Content Identifier
-   * @param walletAddress User's wallet address
-   * @param filename Optional filename to use for download
-   * @returns Promise indicating download success
+   * @param walletAddress User's wallet address 
+   * @param filename Optional filename for the download
+   * @returns Promise with boolean indicating if download was successful
    */
-  async downloadContentToDevice(
-    cid: string, 
-    walletAddress: string,
-    filename?: string
-  ): Promise<boolean> {
+  async downloadContentToDevice(cid: string, walletAddress: string, filename?: string): Promise<boolean> {
     try {
+      console.log(`DownloadService: Downloading content to device: ${cid}`);
+      
+      // First check if user can access content
+      const canAccess = await this.canAccessContent(cid, walletAddress);
+      
+      if (!canAccess) {
+        console.error('DownloadService: User does not have access to this content');
+        return false;
+      }
+      
+      // Get decrypted content
       const decryptedFile = await this.getDecryptedContent(cid, walletAddress);
+      
       if (!decryptedFile) {
+        console.error('DownloadService: Failed to get decrypted content');
         return false;
       }
       
       // Create download link
-      const url = URL.createObjectURL(decryptedFile);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = filename || decryptedFile.name;
+      const downloadUrl = URL.createObjectURL(decryptedFile);
+      const downloadLink = document.createElement('a');
+      downloadLink.href = downloadUrl;
+      downloadLink.download = filename || decryptedFile.name;
       
       // Trigger download
-      document.body.appendChild(a);
-      a.click();
+      document.body.appendChild(downloadLink);
+      downloadLink.click();
       
       // Cleanup
-      setTimeout(() => {
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
-      }, 100);
+      document.body.removeChild(downloadLink);
+      URL.revokeObjectURL(downloadUrl);
       
+      console.log('DownloadService: Download initiated successfully');
       return true;
     } catch (error) {
       console.error('Error downloading content to device:', error);

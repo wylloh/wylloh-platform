@@ -1,10 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, Navigate, Link } from 'react-router-dom';
-import { Box, Container, Typography, Paper, Button, Alert, ButtonGroup } from '@mui/material';
-import { Download, PlayArrow } from '@mui/icons-material';
+import { Box, Container, Typography, Paper, Button, Alert, ButtonGroup, CircularProgress } from '@mui/material';
+import { Download, PlayArrow, Refresh } from '@mui/icons-material';
 import VideoPlayer from '../../components/player/VideoPlayer';
 import { contentService } from '../../services/content.service';
-import ProtectedContent from '../../components/content/ProtectedContent';
 import { useWallet } from '../../hooks/useWallet';
 import { downloadService } from '../../services/download.service';
 
@@ -14,6 +13,9 @@ const PlayerPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const { account, active } = useWallet();
+  const [accessChecked, setAccessChecked] = useState(false);
+  const [hasAccess, setHasAccess] = useState(false);
+  const [verifying, setVerifying] = useState(false);
 
   useEffect(() => {
     const fetchContent = async () => {
@@ -41,6 +43,55 @@ const PlayerPage: React.FC = () => {
 
     fetchContent();
   }, [id]);
+
+  // Check access when content and account are available
+  useEffect(() => {
+    const checkAccess = async () => {
+      if (!content || !content.mainFileCid || !account) {
+        return;
+      }
+
+      try {
+        setVerifying(true);
+        console.log('Checking access for content:', content.id);
+        const ownership = await contentService.checkContentOwnership(content.id);
+        console.log('Ownership check result:', ownership);
+        setHasAccess(ownership.owned);
+      } catch (err) {
+        console.error('Error checking access:', err);
+        setHasAccess(false);
+      } finally {
+        setVerifying(false);
+        setAccessChecked(true);
+      }
+    };
+
+    checkAccess();
+  }, [content, account]);
+
+  // Handler to force refresh token ownership
+  const handleForceVerification = async () => {
+    if (!content || !account) return;
+    
+    try {
+      setVerifying(true);
+      console.log('Force verifying token ownership for content:', content.id);
+      
+      // Clear any cached data that might be causing issues
+      localStorage.removeItem(`ownership_${content.id}_${account}`);
+      
+      // Perform a fresh ownership check
+      const ownership = await contentService.checkContentOwnership(content.id, true);
+      console.log('Force verification result:', ownership);
+      
+      setHasAccess(ownership.owned);
+      setAccessChecked(true);
+    } catch (err) {
+      console.error('Error during force verification:', err);
+    } finally {
+      setVerifying(false);
+    }
+  };
 
   // Redirect if no account or wallet not connected
   if (!loading && (!active || !account)) {
@@ -95,9 +146,83 @@ const PlayerPage: React.FC = () => {
   console.log('Rendering player with content:', {
     id: id,
     contentCid: content.mainFileCid,
-    wallet: account
+    wallet: account,
+    hasAccess
   });
 
+  // Access Denied View
+  if (accessChecked && !hasAccess) {
+    return (
+      <Container maxWidth="lg" sx={{ py: 4 }}>
+        <Box mb={4}>
+          <Typography variant="h4" gutterBottom>
+            {content.title}
+          </Typography>
+          <Typography variant="subtitle1" color="text.secondary">
+            By {content.creator}
+          </Typography>
+        </Box>
+        
+        <Box
+          sx={{
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            p: 6,
+            bgcolor: 'background.paper',
+            borderRadius: 2,
+            boxShadow: 3,
+            textAlign: 'center',
+            my: 4
+          }}
+        >
+          <Typography variant="h5" gutterBottom>
+            Access Restricted
+          </Typography>
+          <Typography variant="body1" paragraph>
+            You do not own the required token to access this content
+          </Typography>
+          <Button 
+            variant="contained" 
+            color="primary" 
+            component={Link} 
+            to={`/marketplace/details/${id}`}
+            sx={{ mt: 2, mb: 2 }}
+          >
+            PURCHASE ACCESS
+          </Button>
+          
+          {verifying ? (
+            <Box display="flex" alignItems="center" mt={2}>
+              <CircularProgress size={20} sx={{ mr: 1 }} />
+              <Typography variant="body2">Verifying token ownership...</Typography>
+            </Box>
+          ) : (
+            <Button
+              variant="outlined"
+              startIcon={<Refresh />}
+              onClick={handleForceVerification}
+              sx={{ mt: 1 }}
+            >
+              Verify Token Ownership
+            </Button>
+          )}
+        </Box>
+        
+        <Box mt={4}>
+          <Typography variant="h5" gutterBottom>
+            About this content
+          </Typography>
+          <Typography variant="body1" paragraph>
+            {content.description}
+          </Typography>
+        </Box>
+      </Container>
+    );
+  }
+
+  // Content Access View
   return (
     <Container maxWidth="lg" sx={{ py: 4 }}>
       <Box mb={4}>
@@ -110,21 +235,16 @@ const PlayerPage: React.FC = () => {
       </Box>
       
       <Paper elevation={3} sx={{ mb: 4, overflow: 'hidden', borderRadius: 2 }}>
-        <ProtectedContent 
-          contentId={id || ''} 
-          contentCid={content.mainFileCid || ''}
-        >
-          <Box sx={{ position: 'relative', width: '100%', aspectRatio: '16/9' }}>
-            <VideoPlayer 
-              contentId={id || ''}
-              contentCid={content.mainFileCid || ''}
-              autoPlay={true}
-              controls={true}
-              width="100%"
-              height="100%"
-            />
-          </Box>
-        </ProtectedContent>
+        <Box sx={{ position: 'relative', width: '100%', aspectRatio: '16/9' }}>
+          <VideoPlayer 
+            contentId={id || ''}
+            contentCid={content.mainFileCid || ''}
+            autoPlay={true}
+            controls={true}
+            width="100%"
+            height="100%"
+          />
+        </Box>
       </Paper>
       
       <Box mt={4}>
@@ -143,38 +263,32 @@ const PlayerPage: React.FC = () => {
           which grants you {content.purchaseQuantity > 500 ? 'commercial' : 'personal'} usage rights.
         </Typography>
 
-        <ProtectedContent 
-          contentId={id || ''} 
-          contentCid={content.mainFileCid || ''}
-          fallback={null}
-        >
-          <Box mt={3}>
-            <ButtonGroup variant="outlined">
-              <Button
-                startIcon={<Download />}
-                onClick={() => {
-                  if (account) {
-                    downloadService.downloadContentToDevice(
-                      content.mainFileCid,
-                      account,
-                      `${content.title}.mp4`
-                    );
-                  }
-                }}
-              >
-                Download to Device
-              </Button>
-              <Button
-                component={Link}
-                to={`/stream/${id}/${account}`}
-                startIcon={<PlayArrow />}
-                color="primary"
-              >
-                Open in Full Screen Player
-              </Button>
-            </ButtonGroup>
-          </Box>
-        </ProtectedContent>
+        <Box mt={3}>
+          <ButtonGroup variant="outlined">
+            <Button
+              startIcon={<Download />}
+              onClick={() => {
+                if (account) {
+                  downloadService.downloadContentToDevice(
+                    content.mainFileCid,
+                    account,
+                    `${content.title}.mp4`
+                  );
+                }
+              }}
+            >
+              Download to Device
+            </Button>
+            <Button
+              component={Link}
+              to={`/stream/${id}/${account}`}
+              startIcon={<PlayArrow />}
+              color="primary"
+            >
+              Open in Full Screen Player
+            </Button>
+          </ButtonGroup>
+        </Box>
       </Box>
     </Container>
   );

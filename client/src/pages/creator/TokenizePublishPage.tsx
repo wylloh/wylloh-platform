@@ -74,6 +74,44 @@ const TokenizePublishPage: React.FC = () => {
   // State for active step
   const [activeStep, setActiveStep] = useState(0);
   
+  // Check if content is already tokenized
+  const [isAlreadyTokenized, setIsAlreadyTokenized] = useState(false);
+
+  // Load content details on mount
+  useEffect(() => {
+    async function loadContentDetails() {
+      if (contentInfo.id) {
+        try {
+          const content = await contentService.getContentById(contentInfo.id);
+          
+          // Check if content is already tokenized
+          if (content?.tokenized) {
+            console.log('Content already tokenized during upload:', content);
+            setIsAlreadyTokenized(true);
+          }
+          
+          // Update form data with content's rights thresholds if available
+          if (content?.rightsThresholds && Array.isArray(content.rightsThresholds) && content.rightsThresholds.length > 0) {
+            setFormData(prevData => ({
+              ...prevData,
+              initialSupply: content.totalSupply || prevData.initialSupply,
+              initialPrice: String(content.price || prevData.initialPrice),
+              rightsThresholds: content.rightsThresholds.map(threshold => ({
+                quantity: threshold.quantity,
+                type: threshold.type,
+                description: threshold.type
+              }))
+            }));
+          }
+        } catch (error) {
+          console.error('Error loading content details:', error);
+        }
+      }
+    }
+    
+    loadContentDetails();
+  }, [contentInfo.id]);
+  
   // State for form data
   const [formData, setFormData] = useState<TokenizationFormData>({
     initialSupply: contentInfo.tokenization?.initialSupply || 1000,
@@ -133,31 +171,56 @@ const TokenizePublishPage: React.FC = () => {
     }));
   };
   
-  // Handle form submission
+  // Handle submit
   const handleSubmit = async () => {
     setSubmitting(true);
     setError(null);
     
     try {
-      // In a real implementation, this would interact with blockchain
-      // For demo, we'll simulate the tokenization process
+      // If already tokenized during upload, skip actual tokenization
+      if (isAlreadyTokenized) {
+        navigate('/creator/dashboard', {
+          state: {
+            success: true,
+            message: `${contentInfo.title} is already tokenized. No changes were needed.`
+          }
+        });
+        return;
+      }
+
+      // Convert price from string to float
+      const priceAsFloat = parseFloat(formData.initialPrice);
       
-      // Prepare tokenization data
-      const tokenizationData = {
-        initialSupply: formData.initialSupply,
-        royaltyPercentage: formData.royaltyPercentage,
-        initialPrice: formData.initialPrice,
-        rightsThresholds: formData.rightsThresholds
-      };
+      if (isNaN(priceAsFloat)) {
+        setError('Invalid price value');
+        setSubmitting(false);
+        return;
+      }
       
-      // Tokenize content with the content service
-      const tokenizedContent = await contentService.tokenizeContent(contentInfo.id, tokenizationData);
+      // Tokenize content
+      const tokenizedContent = await contentService.tokenizeContent(
+        contentInfo.id,
+        {
+          initialSupply: formData.initialSupply,
+          royaltyPercentage: formData.royaltyPercentage,
+          price: priceAsFloat,
+          rightsThresholds: formData.rightsThresholds.map(rt => ({
+            quantity: rt.quantity,
+            type: rt.type
+          }))
+        }
+      );
       
-      // Success! Navigate to marketplace
-      navigate('/marketplace');
-    } catch (error: any) {
-      console.error('Tokenization failed:', error);
-      setError(error.message || 'Failed to tokenize content. Please try again.');
+      // Navigate to creator dashboard with success message
+      navigate('/creator/dashboard', {
+        state: {
+          success: true,
+          message: `${contentInfo.title} has been tokenized and published to the marketplace.`
+        }
+      });
+    } catch (err: any) {
+      console.error('Error tokenizing content:', err);
+      setError(err.message || 'Failed to tokenize content');
     } finally {
       setSubmitting(false);
     }
@@ -424,6 +487,40 @@ const TokenizePublishPage: React.FC = () => {
         return 'Unknown step';
     }
   };
+  
+  // Render header with title and breadcrumbs
+  const renderHeader = () => (
+    <Box sx={{ mb: 4 }}>
+      <Breadcrumbs aria-label="breadcrumb" sx={{ mb: 2 }}>
+        <MuiLink component={Link} to="/creator/dashboard" color="inherit">
+          Creator Dashboard
+        </MuiLink>
+        <Typography color="text.primary">Tokenize</Typography>
+      </Breadcrumbs>
+      
+      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <Typography variant="h4" component="h1">
+          <TokenIcon sx={{ mr: 1, verticalAlign: 'middle' }} />
+          Tokenize Content
+        </Typography>
+        <Button
+          component={Link}
+          to="/creator/dashboard"
+          startIcon={<ArrowBackIcon />}
+          variant="outlined"
+        >
+          Back to Dashboard
+        </Button>
+      </Box>
+      
+      {isAlreadyTokenized && (
+        <Alert severity="info" sx={{ mt: 2 }}>
+          <AlertTitle>Content Already Tokenized</AlertTitle>
+          This content was tokenized during the upload process. You can review the settings below.
+        </Alert>
+      )}
+    </Box>
+  );
   
   // If user is not authenticated or not a verified pro, show error message
   if (!isAuthenticated || !isProVerified) {
