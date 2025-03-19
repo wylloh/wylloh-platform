@@ -17,8 +17,6 @@ import {
   InputAdornment,
   Slider,
   Divider,
-  FormControlLabel,
-  Switch,
   Chip,
   CircularProgress,
   Dialog,
@@ -30,7 +28,6 @@ import {
 import { 
   ArrowBack as ArrowBackIcon,
   TokenOutlined as TokenIcon,
-  ShoppingCart as ShoppingCartIcon,
   Public as PublicIcon,
   Check as CheckIcon
 } from '@mui/icons-material';
@@ -77,6 +74,17 @@ const TokenizePublishPage: React.FC = () => {
   // Check if content is already tokenized
   const [isAlreadyTokenized, setIsAlreadyTokenized] = useState(false);
 
+  // State for submission
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState(false);
+  
+  // State for skip confirmation dialog
+  const [skipDialogOpen, setSkipDialogOpen] = useState(false);
+  
+  // Check if user has verified Pro status
+  const isProVerified = user?.proStatus === 'verified';
+  
   // Load content details on mount
   useEffect(() => {
     async function loadContentDetails() {
@@ -91,16 +99,19 @@ const TokenizePublishPage: React.FC = () => {
           }
           
           // Update form data with content's rights thresholds if available
-          if (content?.rightsThresholds && Array.isArray(content.rightsThresholds) && content.rightsThresholds.length > 0) {
+          if (content && 'rightsThresholds' in content && 
+              Array.isArray(content.rightsThresholds) && 
+              content.rightsThresholds.length > 0) {
+                
             setFormData(prevData => ({
               ...prevData,
               initialSupply: content.totalSupply || prevData.initialSupply,
               initialPrice: String(content.price || prevData.initialPrice),
-              rightsThresholds: content.rightsThresholds.map(threshold => ({
+              rightsThresholds: content.rightsThresholds?.map(threshold => ({
                 quantity: threshold.quantity,
                 type: threshold.type,
                 description: threshold.type
-              }))
+              })) || prevData.rightsThresholds
             }));
           }
         } catch (error) {
@@ -128,17 +139,6 @@ const TokenizePublishPage: React.FC = () => {
       { quantity: 10000, type: 'theatrical', description: 'Theatrical Exhibition' }
     ]
   });
-  
-  // State for submission
-  const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState(false);
-  
-  // State for skip confirmation dialog
-  const [skipDialogOpen, setSkipDialogOpen] = useState(false);
-  
-  // Check if user has verified Pro status
-  const isProVerified = user?.proStatus === 'verified';
   
   // Handle going to next step
   const handleNext = () => {
@@ -198,7 +198,7 @@ const TokenizePublishPage: React.FC = () => {
       }
       
       // Tokenize content
-      const tokenizedContent = await contentService.tokenizeContent(
+      await contentService.tokenizeContent(
         contentInfo.id,
         {
           initialSupply: formData.initialSupply,
