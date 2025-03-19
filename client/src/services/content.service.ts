@@ -339,37 +339,137 @@ class ContentService {
     }
   }
   
+  /**
+   * Tokenize content
+   * @param id Content ID to tokenize
+   * @param tokenizationData Tokenization parameters
+   */
   async tokenizeContent(id: string, tokenizationData: any): Promise<Content | undefined> {
+    console.log(`Tokenizing content ${id} with data:`, tokenizationData);
+    
     try {
-      const response = await axios.post<ApiResponse<Content>>(`${this.baseUrl}/${id}/tokenize`, tokenizationData);
-      return response.data.data;
-    } catch (error) {
-      console.warn('API unavailable, tokenizing local content:', error);
-      
-      // Update tokenization info in local content
-      const localContent = this.getLocalContent();
-      const contentIndex = localContent.findIndex(item => item.id === id);
-      
-      if (contentIndex >= 0) {
-        // Mock tokenization process
-        const tokenId = `0x${Math.random().toString(16).substring(2, 10)}`;
+      // Try to tokenize on the blockchain if service is available
+      if (blockchainService.isInitialized()) {
+        console.log('Blockchain service available, creating token on chain');
         
-        localContent[contentIndex] = {
-          ...localContent[contentIndex],
-          tokenized: true,
-          tokenId,
-          price: parseFloat(tokenizationData.initialPrice),
-          available: tokenizationData.initialSupply,
-          totalSupply: tokenizationData.initialSupply,
-          status: 'active',
-          visibility: 'public'
-        };
+        // Get the content
+        const content = await this.getContentById(id);
+        if (!content) {
+          throw new Error('Content not found');
+        }
         
-        localStorage.setItem(LOCAL_CONTENT_KEY, JSON.stringify(localContent));
-        return localContent[contentIndex];
+        // Format rights thresholds for blockchain 
+        const rightsThresholds = tokenizationData.rightsThresholds || [];
+
+        // Create token on blockchain
+        try {
+          const txHash = await blockchainService.createToken(
+            id,
+            tokenizationData.initialSupply,
+            {
+              contentId: id,
+              title: content.title,
+              description: content.description,
+              rightsThresholds: rightsThresholds
+            },
+            tokenizationData.royaltyPercentage
+          );
+          
+          console.log('Token created on blockchain, transaction hash:', txHash);
+          
+          // Update content metadata
+          const updatedContent = {
+            ...content,
+            tokenized: true,
+            tokenId: id, // In a real implementation, this would be the token ID from the blockchain
+            price: tokenizationData.price,
+            available: tokenizationData.initialSupply,
+            totalSupply: tokenizationData.initialSupply,
+            rightsThresholds: rightsThresholds,
+            status: 'active',
+            visibility: 'public'
+          };
+          
+          // Update content in API or local storage
+          const response = await axios.put<ApiResponse<Content>>(
+            `${this.baseUrl}/${id}`, 
+            updatedContent
+          );
+          
+          // If API call succeeded, return updated content
+          console.log('Content updated with tokenization info:', response.data.data);
+          return response.data.data;
+        } catch (blockchainError) {
+          console.error('Error creating token on blockchain:', blockchainError);
+          // Continue with local tokenization as fallback
+        }
       }
       
-      return undefined;
+      // Fallback to local tokenization if blockchain not available or failed
+      console.log('Using local tokenization');
+      
+      // Check for API availability
+      try {
+        const response = await axios.post<ApiResponse<Content>>(
+          `${this.baseUrl}/${id}/tokenize`, 
+          tokenizationData
+        );
+        
+        return response.data.data;
+      } catch (error) {
+        console.warn('API unavailable, performing local tokenization');
+        
+        // Get local content
+        const localContent = this.getLocalContent();
+        const contentIndex = localContent.findIndex(item => item.id === id);
+        
+        if (contentIndex >= 0) {
+          // Mock tokenization process
+          const tokenId = `token-${new Date().getTime()}`;
+          
+          // Update content
+          localContent[contentIndex] = {
+            ...localContent[contentIndex],
+            tokenized: true,
+            tokenId,
+            price: tokenizationData.price,
+            available: tokenizationData.initialSupply,
+            totalSupply: tokenizationData.initialSupply,
+            status: 'active',
+            visibility: 'public',
+            rightsThresholds: tokenizationData.rightsThresholds?.map((rt: any) => ({
+              quantity: rt.quantity,
+              type: rt.type
+            }))
+          };
+          
+          // Save to local storage
+          localStorage.setItem(LOCAL_CONTENT_KEY, JSON.stringify(localContent));
+          
+          // Save token creation record
+          localStorage.setItem(
+            `tokenized_content_${id}`, 
+            JSON.stringify({
+              contentId: id,
+              tokenId: tokenId,
+              tokenized: true,
+              initialSupply: tokenizationData.initialSupply,
+              price: tokenizationData.price,
+              royalty: tokenizationData.royaltyPercentage,
+              rightsThresholds: tokenizationData.rightsThresholds,
+              timestamp: new Date().toISOString()
+            })
+          );
+          
+          console.log('Content tokenized locally:', localContent[contentIndex]);
+          return localContent[contentIndex];
+        }
+        
+        return undefined;
+      }
+    } catch (error) {
+      console.error('Error tokenizing content:', error);
+      throw error;
     }
   }
   

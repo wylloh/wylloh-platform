@@ -2,7 +2,7 @@ import { ethers } from 'ethers';
 import { GANACHE_ID } from '../constants/blockchain';
 import { contentService } from './content.service';
 
-// ABI for the WyllohToken contract (simplified version with only the functions we need)
+// Complete ABI for the WyllohToken contract (with all necessary functions for tokenization & transfers)
 const wyllohTokenAbi = [
   // Read functions
   "function balanceOf(address account, uint256 id) view returns (uint256)",
@@ -12,22 +12,29 @@ const wyllohTokenAbi = [
   // Write functions
   "function safeTransferFrom(address from, address to, uint256 id, uint256 amount, bytes data)",
   "function setApprovalForAll(address operator, bool approved)",
+  "function mint(address to, uint256 id, uint256 amount, bytes data)",
+  "function createToken(address initialOwner, uint256 initialSupply, string memory contentURI, uint96 royaltyPercentage)",
+  "function setRightsThresholds(uint256 tokenId, tuple(uint256 quantity, string rightsType)[] thresholds)",
   
   // Events
   "event TransferSingle(address indexed operator, address indexed from, address indexed to, uint256 id, uint256 value)",
-  "event ApprovalForAll(address indexed account, address indexed operator, bool approved)"
+  "event ApprovalForAll(address indexed account, address indexed operator, bool approved)",
+  "event TokenCreated(uint256 indexed tokenId, address indexed creator, uint256 initialSupply)"
 ];
 
-// Simple marketplace ABI for direct token purchases
+// Marketplace ABI for direct token purchases
 const marketplaceAbi = [
   // Write functions
   "function buyTokens(uint256 tokenId, uint256 quantity) payable",
+  "function listTokens(uint256 tokenId, uint256 quantity, uint256 price)",
+  "function setTokenPrice(uint256 tokenId, uint256 newPrice)",
   
   // Events
-  "event TokensPurchased(address indexed buyer, uint256 indexed tokenId, uint256 quantity, uint256 totalPrice)"
+  "event TokensPurchased(address indexed buyer, address indexed seller, uint256 indexed tokenId, uint256 quantity, uint256 totalPrice)",
+  "event TokensListed(address indexed seller, uint256 indexed tokenId, uint256 quantity, uint256 price)"
 ];
 
-// Default contract address - should be configured at app startup
+// Default contract addresses - should be configured at app startup
 const DEFAULT_CONTRACT_ADDRESS = '0x5FbDB2315678afecb367f032d93F642f64180aa3';
 const DEFAULT_MARKETPLACE_ADDRESS = '0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512';
 
@@ -89,6 +96,87 @@ class BlockchainService {
     const initialized = !!this.provider && !!this.tokenContract;
     console.log(`BlockchainService initialization status: ${initialized}`);
     return initialized;
+  }
+  
+  /**
+   * Create a new token for content
+   * @param contentId Content ID to create token for
+   * @param initialSupply Initial token supply
+   * @param tokenMetadata Metadata for the token
+   * @param royaltyPercentage Royalty percentage for secondary sales
+   * @returns Transaction hash
+   */
+  async createToken(
+    contentId: string, 
+    initialSupply: number, 
+    tokenMetadata: any,
+    royaltyPercentage: number
+  ): Promise<string> {
+    if (!this.isInitialized()) {
+      console.warn('BlockchainService not initialized for createToken');
+      throw new Error('Blockchain service not initialized');
+    }
+    
+    try {
+      console.log('Creating token on blockchain:', {
+        contentId,
+        initialSupply,
+        metadata: tokenMetadata,
+        royaltyPercentage
+      });
+      
+      // Get signer
+      const signer = this.provider!.getSigner();
+      const signerAddress = await signer.getAddress();
+      console.log(`Creating token as ${signerAddress}`);
+      
+      // Connect with signer
+      const tokenContractWithSigner = this.tokenContract!.connect(signer);
+      
+      // Create content URI (simplified version for demo)
+      const contentURI = `ipfs://${contentId}`;
+      
+      // Create token
+      const tx = await tokenContractWithSigner.createToken(
+        signerAddress,
+        initialSupply,
+        contentURI,
+        royaltyPercentage * 100 // Convert percentage to basis points (100 = 1%)
+      );
+      
+      console.log('Token creation transaction submitted:', tx.hash);
+      const receipt = await tx.wait();
+      console.log('Token creation confirmed in block:', receipt.blockNumber);
+      
+      // Set rights thresholds if provided
+      if (tokenMetadata.rightsThresholds && tokenMetadata.rightsThresholds.length > 0) {
+        // Format thresholds for contract
+        const formattedThresholds = tokenMetadata.rightsThresholds.map((t: any) => [
+          t.quantity,
+          t.type
+        ]);
+        
+        console.log('Setting rights thresholds:', formattedThresholds);
+        
+        // In a real implementation, we would get the tokenId from the TokenCreated event
+        // For demo, use the contentId as tokenId (this is simplified)
+        const tokenId = contentId;
+        
+        const thresholdsTx = await tokenContractWithSigner.setRightsThresholds(
+          tokenId,
+          formattedThresholds
+        );
+        
+        console.log('Rights thresholds transaction submitted:', thresholdsTx.hash);
+        const thresholdsReceipt = await thresholdsTx.wait();
+        console.log('Rights thresholds confirmed in block:', thresholdsReceipt.blockNumber);
+      }
+      
+      return tx.hash;
+    } catch (error) {
+      console.error('Error creating token:', error);
+      throw error;
+    }
   }
   
   /**
@@ -181,28 +269,59 @@ class BlockchainService {
           // Execute the purchase transaction
           console.log('Executing blockchain transaction...');
           
-          // For demo mode, we'll simulate the marketplace purchase
-          // In production, this would call the actual marketplace contract
-          
-          // Simulate ERC-1155 transfer instead - directly transfer tokens
-          // from content creator to buyer
-          const tx = await marketplaceWithSigner.buyTokens(
-            tokenId,
-            quantity,
-            { value: totalPriceWei }
-          );
-          
-          console.log('Transaction submitted:', tx.hash);
-          
-          // Wait for transaction to be mined
-          console.log('Waiting for transaction confirmation...');
-          const receipt = await tx.wait();
-          
-          console.log('Transaction confirmed:', {
-            blockNumber: receipt.blockNumber,
-            gasUsed: receipt.gasUsed.toString(),
-            status: receipt.status
-          });
+          // For demo, we'll use a direct transfer if marketplace isn't fully set up
+          try {
+            // Try marketplace purchase first
+            const tx = await marketplaceWithSigner.buyTokens(
+              tokenId,
+              quantity,
+              { value: totalPriceWei }
+            );
+            
+            console.log('Purchase transaction submitted:', tx.hash);
+            const receipt = await tx.wait();
+            console.log('Purchase confirmed in block:', receipt.blockNumber);
+          } catch (marketplaceError) {
+            console.warn('Marketplace transaction failed, falling back to direct transfer:', marketplaceError);
+            
+            // Fallback to direct token transfer - this is just for demo
+            // Get token contract with signer
+            const tokenWithSigner = this.tokenContract!.connect(signer);
+            
+            // We need the creator's address - in a real scenario this would come from the marketplace
+            // For demo, we'll use the first account as the creator
+            const accounts = await this.provider.listAccounts();
+            const creatorAddress = accounts[0]; // Creator is usually the first account in Ganache
+            
+            // First set approval if needed
+            const isApproved = await this.tokenContract!.isApprovedForAll(creatorAddress, this.marketplaceAddress);
+            if (!isApproved) {
+              console.log('Setting approval for marketplace...');
+              const approveTx = await tokenWithSigner.setApprovalForAll(this.marketplaceAddress, true);
+              await approveTx.wait();
+            }
+            
+            // Send payment to creator
+            console.log(`Sending payment of ${totalPrice} ETH to creator ${creatorAddress}`);
+            const paymentTx = await signer.sendTransaction({
+              to: creatorAddress,
+              value: totalPriceWei
+            });
+            await paymentTx.wait();
+            
+            // Transfer tokens
+            console.log(`Transferring ${quantity} tokens of ID ${tokenId} from ${creatorAddress} to ${signerAddress}`);
+            const transferTx = await tokenWithSigner.safeTransferFrom(
+              creatorAddress,
+              signerAddress,
+              tokenId,
+              quantity,
+              "0x" // No data
+            );
+            
+            const transferReceipt = await transferTx.wait();
+            console.log('Transfer confirmed in block:', transferReceipt.blockNumber);
+          }
           
           // Update local storage through contentService
           await contentService.purchaseToken(tokenId, quantity);
