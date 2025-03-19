@@ -545,39 +545,81 @@ class ContentService {
    * otherwise fall back to local storage
    * 
    * @param contentId Content ID to check
+   * @param forceRefresh Force a fresh check without using cached data
    * @returns An object containing ownership status and quantity
    */
-  async checkContentOwnership(contentId: string): Promise<{ owned: boolean, quantity: number }> {
+  async checkContentOwnership(contentId: string, forceRefresh: boolean = false): Promise<{ owned: boolean, quantity: number }> {
     try {
       // Get wallet info
       const walletAddress = this.getConnectedWalletAddress();
       
+      console.log(`ContentService: Checking ownership for content ${contentId}, wallet: ${walletAddress}, forceRefresh: ${forceRefresh}`);
+      
+      // Look for cached result - use only if not forcing refresh
+      const cacheKey = `ownership_${contentId}_${walletAddress}`;
+      if (!forceRefresh && walletAddress) {
+        const cachedResult = localStorage.getItem(cacheKey);
+        if (cachedResult) {
+          const parsed = JSON.parse(cachedResult);
+          const cacheAge = Date.now() - parsed.timestamp;
+          
+          // Use cache if it's less than 1 minute old
+          if (cacheAge < 60000) {
+            console.log(`ContentService: Using cached ownership result (${cacheAge}ms old):`, parsed.result);
+            return parsed.result;
+          }
+        }
+      }
+      
       // If connected to a blockchain wallet, check token ownership directly
       if (walletAddress && blockchainService.isInitialized()) {
-        console.log('Checking token ownership on blockchain for', contentId);
+        console.log('ContentService: Checking token ownership on blockchain for', contentId);
         const tokenBalance = await blockchainService.getTokenBalance(
           walletAddress,
           contentId
         );
         
-        console.log('Token balance from blockchain:', tokenBalance);
-        return {
+        console.log('ContentService: Token balance from blockchain:', tokenBalance);
+        
+        const result = {
           owned: tokenBalance > 0,
           quantity: tokenBalance
         };
+        
+        // Cache the result
+        if (walletAddress) {
+          localStorage.setItem(cacheKey, JSON.stringify({
+            result,
+            timestamp: Date.now()
+          }));
+        }
+        
+        return result;
       }
       
       // Fallback to local storage
-      console.log('Falling back to local storage for ownership check');
+      console.log('ContentService: Falling back to local storage for ownership check');
       const purchasedContent = this.getLocalPurchasedContent();
       const content = purchasedContent.find(item => item.id === contentId);
       
-      return {
+      const result = {
         owned: !!content,
         quantity: content?.purchaseQuantity || 0
       };
+      
+      console.log('ContentService: Local storage ownership result:', result);
+      
+      // Cache the result
+      if (walletAddress) {
+        localStorage.setItem(cacheKey, JSON.stringify({
+          result,
+          timestamp: Date.now()
+        }));
+      }
+      
+      return result;
     } catch (error) {
-      console.error('Error checking content ownership:', error);
+      console.error('ContentService: Error checking content ownership:', error);
       
       // Fallback to local storage on error
       const purchasedContent = this.getLocalPurchasedContent();
