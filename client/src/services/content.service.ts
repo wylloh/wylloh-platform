@@ -379,15 +379,17 @@ class ContentService {
    */
   async tokenizeContent(id: string, tokenizationData: any): Promise<Content | undefined> {
     try {
-      // If environment is development, allow forced re-tokenization
-      const forceTokenization = process.env.NODE_ENV === 'development' && 
+      // Check for demo/development mode to allow forced re-tokenization
+      const isDemoMode = process.env.REACT_APP_DEMO_MODE === 'true';
+      const forceTokenization = (process.env.NODE_ENV === 'development' || isDemoMode) && 
                                tokenizationData.forceRetokenize === true;
       
       console.log('Environment:', process.env.NODE_ENV);
+      console.log('Demo Mode:', isDemoMode);
       console.log('Force tokenization:', forceTokenization);
       
       if (forceTokenization) {
-        console.log('Development mode: Bypassing tokenization check');
+        console.log('Development/Demo mode: Bypassing tokenization check');
       }
       
       // Try to get the content from both local storage and API

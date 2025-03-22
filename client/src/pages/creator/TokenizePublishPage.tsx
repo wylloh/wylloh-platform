@@ -93,6 +93,8 @@ const TokenizePublishPage: React.FC = () => {
   // Add forceRetokenize state for development mode
   const [forceRetokenize, setForceRetokenize] = useState(false);
   const isDevelopment = process.env.NODE_ENV === 'development';
+  const isDemoMode = process.env.REACT_APP_DEMO_MODE === 'true';
+  const showDevOptions = isDevelopment || isDemoMode;
   
   // Load content details on mount
   useEffect(() => {
@@ -218,7 +220,7 @@ const TokenizePublishPage: React.FC = () => {
       const content = await contentService.getContentById(contentInfo.id);
       
       // If content is already tokenized and not forcing retokenization, redirect to dashboard
-      if ((content?.tokenized || isAlreadyTokenized) && !(isDevelopment && forceRetokenize)) {
+      if ((content?.tokenized || isAlreadyTokenized) && !(showDevOptions && forceRetokenize)) {
         console.log('Content is already tokenized, skipping tokenization');
         navigate('/creator/dashboard', {
           state: {
@@ -244,7 +246,7 @@ const TokenizePublishPage: React.FC = () => {
         royaltyPercentage: formData.royaltyPercentage,
         price: priceAsFloat,
         rightsThresholds: formData.rightsThresholds,
-        forceRetokenize: isDevelopment && forceRetokenize
+        forceRetokenize: showDevOptions && forceRetokenize
       });
       
       // Tokenize content
@@ -258,7 +260,7 @@ const TokenizePublishPage: React.FC = () => {
             quantity: rt.quantity,
             type: rt.type
           })),
-          forceRetokenize: isDevelopment && forceRetokenize
+          forceRetokenize: showDevOptions && forceRetokenize
         }
       );
       
@@ -553,30 +555,33 @@ const TokenizePublishPage: React.FC = () => {
             )}
           </Grid>
           
-          {/* Development mode tools */}
-          {isDevelopment && (
+          {/* Development/Demo mode tools */}
+          {showDevOptions && (
             <>
               <Grid item xs={12}>
                 <Divider />
               </Grid>
               
               <Grid item xs={12}>
-                <Typography variant="subtitle1" color="secondary" gutterBottom>
-                  Development Options
-                </Typography>
-                <FormControlLabel
-                  control={
-                    <Checkbox
-                      checked={forceRetokenize}
-                      onChange={(e) => setForceRetokenize(e.target.checked)}
-                    />
-                  }
-                  label="Force Re-tokenization (Bypass 'already tokenized' check)"
-                />
-                <Typography variant="caption" color="textSecondary">
-                  This option is only available in development mode and will allow you to re-tokenize content
-                  that has already been tokenized.
-                </Typography>
+                <Paper sx={{ p: 2, bgcolor: 'info.light', color: 'info.contrastText', mb: 2 }}>
+                  <Typography variant="subtitle1" color="inherit" gutterBottom>
+                    Development Options
+                  </Typography>
+                  <FormControlLabel
+                    control={
+                      <Checkbox
+                        checked={forceRetokenize}
+                        onChange={(e) => setForceRetokenize(e.target.checked)}
+                        sx={{ color: 'inherit' }}
+                      />
+                    }
+                    label="Force Re-tokenization (Bypass 'already tokenized' check)"
+                  />
+                  <Typography variant="caption">
+                    This option is only available in development/demo mode and will allow you to re-tokenize content
+                    that has already been tokenized.
+                  </Typography>
+                </Paper>
               </Grid>
             </>
           )}
@@ -608,10 +613,10 @@ const TokenizePublishPage: React.FC = () => {
         <Button
           variant="contained"
           onClick={handleSubmit}
-          disabled={submitting || (isAlreadyTokenized && !(isDevelopment && forceRetokenize))}
+          disabled={submitting || (isAlreadyTokenized && !(showDevOptions && forceRetokenize))}
           startIcon={submitting ? <CircularProgress size={16} /> : null}
         >
-          {submitting ? 'Processing...' : (isAlreadyTokenized && !(isDevelopment && forceRetokenize) ? 'Already Tokenized' : 'Tokenize & Publish')}
+          {submitting ? 'Processing...' : (isAlreadyTokenized && !(showDevOptions && forceRetokenize) ? 'Already Tokenized' : 'Tokenize & Publish')}
         </Button>
       </Box>
     </Box>
