@@ -578,20 +578,10 @@ const UploadForm: React.FC = () => {
             }
           });
         } else {
-          // Navigate to TokenizePublishPage if tokenization was not enabled
-          navigate('/creator/tokenize-publish', { 
-            state: { 
-              contentInfo: {
-                id: createdContent.id,
-                title: createdContent.title,
-                description: createdContent.description,
-                contentType: createdContent.contentType,
-                mainFileCid,
-                previewCid,
-                thumbnailCid,
-                metadata: createdContent.metadata,
-                tokenization: formData.tokenization
-              }
+          // If tokenization was explicitly disabled, go straight to dashboard
+          navigate('/creator/dashboard', {
+            state: {
+              message: 'Content uploaded successfully! You can tokenize it later from your dashboard.'
             }
           });
         }

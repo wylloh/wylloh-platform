@@ -162,10 +162,9 @@ const TokenizePublishPage: React.FC = () => {
       type: threshold.type,
       description: threshold.type // Use type as description since it's more descriptive in the upload form
     })) || [
-      { quantity: 1, type: 'personal', description: 'Personal Viewing' },
-      { quantity: 100, type: 'small_venue', description: 'Small Venue (50 seats)' },
-      { quantity: 5000, type: 'streaming', description: 'Streaming Platform' },
-      { quantity: 10000, type: 'theatrical', description: 'Theatrical Exhibition' }
+      { quantity: 1, type: 'Personal Viewing', description: 'Personal Viewing' },
+      { quantity: 5, type: 'Family Viewing', description: 'Family Viewing' },
+      { quantity: 10, type: 'Public Display Rights', description: 'Public Display Rights' }
     ]
   });
   
@@ -452,7 +451,7 @@ const TokenizePublishPage: React.FC = () => {
             value={formData.initialPrice}
             onChange={(e) => handleChange('initialPrice', e.target.value)}
             InputProps={{
-              startAdornment: <InputAdornment position="start">MATIC</InputAdornment>,
+              startAdornment: <InputAdornment position="start">ETH</InputAdornment>,
             }}
             inputProps={{
               min: 0.001,
@@ -502,7 +501,7 @@ const TokenizePublishPage: React.FC = () => {
           </Grid>
           <Grid item xs={12} sm={4}>
             <Typography variant="body2">
-              <strong>Initial Price:</strong> {formData.initialPrice} MATIC
+              <strong>Initial Price:</strong> {formData.initialPrice} ETH
             </Typography>
           </Grid>
           <Grid item xs={12} sm={4}>

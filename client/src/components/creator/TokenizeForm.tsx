@@ -245,7 +245,7 @@ const TokenizeForm: React.FC<TokenizeFormProps> = ({
             value={initialPrice}
             onChange={(e) => setInitialPrice(e.target.value)}
             InputProps={{
-              startAdornment: <InputAdornment position="start">MATIC</InputAdornment>,
+              startAdornment: <InputAdornment position="start">ETH</InputAdornment>,
             }}
             inputProps={{
               min: 0.001,

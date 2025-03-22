@@ -391,11 +391,27 @@ class ContentService {
           throw new Error('Content not found');
         }
         
+        // Check if already tokenized
+        if (content.tokenized) {
+          console.log('Content is already tokenized:', content);
+          throw new Error('Content is already tokenized');
+        }
+        
         // Format rights thresholds for blockchain 
         const rightsThresholds = tokenizationData.rightsThresholds || [];
 
         // Create token on blockchain
         try {
+          // Log every step of the process for better debugging
+          console.log('Starting token creation process with parameters:', {
+            contentId: id,
+            initialSupply: tokenizationData.initialSupply,
+            title: content.title,
+            description: content.description,
+            rightsThresholds: rightsThresholds,
+            royaltyPercentage: tokenizationData.royaltyPercentage
+          });
+          
           const txHash = await blockchainService.createToken(
             id,
             tokenizationData.initialSupply,
@@ -409,6 +425,23 @@ class ContentService {
           );
           
           console.log('Token created on blockchain, transaction hash:', txHash);
+          
+          // Verify token creation by checking creator's balance
+          const wallet = this.getConnectedWalletAddress();
+          if (wallet) {
+            console.log(`Verifying token balance for creator wallet: ${wallet}`);
+            const balance = await blockchainService.getTokenBalance(wallet, id);
+            console.log(`Creator's token balance after creation: ${balance}`);
+            
+            if (balance === 0) {
+              console.error('Token creation transaction succeeded but balance is 0');
+              throw new Error('Token creation failed: Creator received 0 tokens. Please try again.');
+            }
+            
+            if (balance < tokenizationData.initialSupply) {
+              console.warn(`Creator only received ${balance} tokens out of ${tokenizationData.initialSupply} requested`);
+            }
+          }
           
           // Update content metadata
           const updatedContent = {
@@ -434,7 +467,14 @@ class ContentService {
           return response.data.data;
         } catch (blockchainError) {
           console.error('Error creating token on blockchain:', blockchainError);
-          // Continue with local tokenization as fallback
+          
+          // Add more detailed error information
+          if (blockchainError instanceof Error && blockchainError.message && blockchainError.message.includes('0 tokens')) {
+            throw new Error('Token creation failed: Creator received 0 tokens. This may be due to a blockchain issue or contract configuration problem. Please try again.');
+          }
+          
+          // Re-throw the error to be handled by the caller
+          throw blockchainError;
         }
       }
       
@@ -457,6 +497,12 @@ class ContentService {
         const contentIndex = localContent.findIndex(item => item.id === id);
         
         if (contentIndex >= 0) {
+          // Check if already tokenized
+          if (localContent[contentIndex].tokenized) {
+            console.log('Content is already tokenized locally');
+            throw new Error('Content is already tokenized');
+          }
+          
           // Mock tokenization process
           const tokenId = `token-${new Date().getTime()}`;
           
