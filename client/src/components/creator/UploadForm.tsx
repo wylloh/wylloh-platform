@@ -191,6 +191,7 @@ const UploadForm: React.FC = () => {
   const [submitting, setSubmitting] = useState<boolean>(false);
   const [submitSuccess, setSubmitSuccess] = useState<boolean>(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [submitMessage, setSubmitMessage] = useState<string | null>(null);
   
   // Refs for file inputs
   const mainFileInputRef = useRef<HTMLInputElement>(null);
@@ -574,6 +575,9 @@ const UploadForm: React.FC = () => {
       if (formData.tokenization.enabled) {
         console.log('Tokenizing content after creation...');
         try {
+          // Show notification about pending tokenization
+          setSubmitMessage('Tokenizing content... Please check MetaMask for a transaction confirmation popup.');
+          
           await contentService.tokenizeContent(
             createdContent.id,
             {
@@ -587,8 +591,11 @@ const UploadForm: React.FC = () => {
             }
           );
           console.log('Content tokenized successfully during upload');
-        } catch (tokenizeError) {
+          setSubmitMessage('Content tokenized successfully!');
+        } catch (tokenizeError: any) {
           console.error('Error tokenizing content during upload:', tokenizeError);
+          // Set error message but don't prevent continuing
+          setSubmitMessage(`Note: ${tokenizeError.message || 'Error tokenizing content'}`);
           // Continue despite tokenization error
         }
       }
@@ -1336,11 +1343,21 @@ const UploadForm: React.FC = () => {
         <Typography variant="body2">
           Please review all details before submitting. After submission, your content will be uploaded
           {formData.tokenization.enabled 
-            ? ' and tokenized according to your settings.' 
+            ? ' and tokenized according to your settings. You will need to confirm the transaction in MetaMask when prompted.' 
             : ' and you will be redirected to the tokenization page.'
           }
         </Typography>
       </Alert>
+      
+      {formData.tokenization && formData.tokenization.enabled && (
+        <Alert severity="warning" sx={{ mb: 3 }}>
+          <AlertTitle>MetaMask Confirmation Required</AlertTitle>
+          <Typography variant="body2">
+            After you click Submit, please watch for a MetaMask popup to confirm the token creation transaction. 
+            You may need to check your browser extensions if the popup doesn't appear.
+          </Typography>
+        </Alert>
+      )}
       
       <Paper sx={{ p: 3, mb: 3 }}>
         <Grid container spacing={2}>
@@ -1531,6 +1548,13 @@ const UploadForm: React.FC = () => {
         <Alert severity="error" sx={{ mb: 3 }}>
           <AlertTitle>Error</AlertTitle>
           {submitError}
+        </Alert>
+      )}
+      
+      {submitMessage && (
+        <Alert severity="info" sx={{ mb: 3 }}>
+          <AlertTitle>Note</AlertTitle>
+          {submitMessage}
         </Alert>
       )}
     </Box>

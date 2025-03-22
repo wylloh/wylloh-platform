@@ -42,96 +42,177 @@ const DEFAULT_MARKETPLACE_ADDRESS = '0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512'
  * Service for interacting with the blockchain contracts
  */
 class BlockchainService {
-  private provider: ethers.providers.Web3Provider | null = null;
+  private provider: ethers.providers.Web3Provider | ethers.providers.JsonRpcProvider | null = null;
   private tokenContract: ethers.Contract | null = null;
   private marketplaceContract: ethers.Contract | null = null;
   private contractAddress: string = DEFAULT_CONTRACT_ADDRESS;
   private marketplaceAddress: string = DEFAULT_MARKETPLACE_ADDRESS;
+  private _initialized: boolean = false;
   
   /**
-   * Initialize the blockchain service with the web3 provider
-   * @param provider Web3Provider instance
-   * @param contractAddress Optional contract address override
-   * @param marketplaceAddress Optional marketplace address override
+   * Initialize blockchain service with a provider
    */
-  initialize(
-    provider: ethers.providers.Web3Provider, 
-    contractAddress?: string,
-    marketplaceAddress?: string
-  ) {
-    this.provider = provider;
-    
-    // Use provided contract address if given with proper validation
-    let contractFound = false;
-    
-    // Try to get contract address with clear fallback hierarchy
-    if (contractAddress && ethers.utils.isAddress(contractAddress)) {
-      console.log(`BlockchainService: Using provided contract address: ${contractAddress}`);
-      this.contractAddress = contractAddress;
-    } else {
-      // Environment variables with clear logging
-      const envContractAddress = process.env.REACT_APP_CONTRACT_ADDRESS || 
-                               (window as any).env?.REACT_APP_CONTRACT_ADDRESS;
-      if (envContractAddress && ethers.utils.isAddress(envContractAddress)) {
-        console.log(`BlockchainService: Using environment contract address: ${envContractAddress}`);
-        this.contractAddress = envContractAddress;
+  initialize(): void {
+    try {
+      console.log('Initializing blockchain service...');
+
+      // Check if window.ethereum exists
+      if (window.ethereum) {
+        console.log('MetaMask detected, connecting to provider...');
+        this.provider = new ethers.providers.Web3Provider(window.ethereum as any);
+        
+        // Get contract address from environment variables or fallback to default
+        const contractAddress = process.env.REACT_APP_CONTRACT_ADDRESS || DEFAULT_CONTRACT_ADDRESS;
+        const marketplaceAddress = process.env.REACT_APP_MARKETPLACE_ADDRESS;
+        
+        console.log(`Using token contract address: ${contractAddress}`);
+        console.log(`Using marketplace address: ${marketplaceAddress || 'Not configured'}`);
+        
+        this.contractAddress = contractAddress;
+        this.marketplaceAddress = marketplaceAddress || '';
+        
+        // Connect to token contract
+        if (this.contractAddress) {
+          console.log('Connecting to token contract...');
+          this.tokenContract = new ethers.Contract(
+            this.contractAddress,
+            wyllohTokenAbi,
+            this.provider
+          );
+          console.log('Token contract connected successfully');
+        } else {
+          console.error('Token contract address not configured');
+        }
+        
+        // Connect to marketplace contract if address is provided
+        if (this.marketplaceAddress) {
+          console.log('Connecting to marketplace contract...');
+          this.marketplaceContract = new ethers.Contract(
+            this.marketplaceAddress,
+            marketplaceAbi,
+            this.provider
+          );
+          console.log('Marketplace contract connected successfully');
+        } else {
+          console.log('Marketplace contract not configured');
+        }
+        
+        // Check if contracts exist on the blockchain
+        this.checkContractExistence();
+        
+        // Listen for chain and account changes
+        this.listenForAccountChanges();
+        
+        this._initialized = true;
+        console.log('Blockchain service initialized successfully');
       } else {
-        console.log(`BlockchainService: Using default contract address: ${DEFAULT_CONTRACT_ADDRESS}`);
-        this.contractAddress = DEFAULT_CONTRACT_ADDRESS;
+        console.log('No Ethereum provider detected, running in demo mode');
+        
+        // Initialize provider with fallback RPC URL
+        const rpcUrl = process.env.REACT_APP_WEB3_PROVIDER || 'http://localhost:8545';
+        console.log(`Using fallback RPC URL: ${rpcUrl}`);
+        
+        this.provider = new ethers.providers.JsonRpcProvider(rpcUrl);
+        
+        // Get contract address from environment variables or fallback to default
+        const contractAddress = process.env.REACT_APP_CONTRACT_ADDRESS || DEFAULT_CONTRACT_ADDRESS;
+        const marketplaceAddress = process.env.REACT_APP_MARKETPLACE_ADDRESS;
+        
+        console.log(`Using token contract address: ${contractAddress}`);
+        console.log(`Using marketplace address: ${marketplaceAddress || 'Not configured'}`);
+        
+        this.contractAddress = contractAddress;
+        this.marketplaceAddress = marketplaceAddress || '';
+        
+        // Connect to token contract
+        if (this.contractAddress && this.provider) {
+          console.log('Connecting to token contract...');
+          this.tokenContract = new ethers.Contract(
+            this.contractAddress,
+            wyllohTokenAbi,
+            this.provider
+          );
+          console.log('Token contract connected successfully');
+        } else {
+          console.error('Token contract address not configured');
+        }
+        
+        // Connect to marketplace contract if address is provided
+        if (this.marketplaceAddress && this.provider) {
+          console.log('Connecting to marketplace contract...');
+          this.marketplaceContract = new ethers.Contract(
+            this.marketplaceAddress,
+            marketplaceAbi,
+            this.provider
+          );
+          console.log('Marketplace contract connected successfully');
+        } else {
+          console.log('Marketplace contract not configured');
+        }
+        
+        // Check if contracts exist on the blockchain
+        this.checkContractExistence();
+        
+        this._initialized = true;
+        console.log('Blockchain service initialized in demo mode');
       }
+    } catch (error) {
+      console.error('Error initializing blockchain service:', error);
+      this._initialized = false;
     }
-    
-    // Use provided marketplace address if given with proper validation
-    if (marketplaceAddress && ethers.utils.isAddress(marketplaceAddress)) {
-      console.log(`BlockchainService: Using provided marketplace address: ${marketplaceAddress}`);
-      this.marketplaceAddress = marketplaceAddress;
-    } else {
-      // Try to get marketplace address from environment variables with clear logging
-      const envMarketplaceAddress = process.env.REACT_APP_MARKETPLACE_ADDRESS || 
-                                  (window as any).env?.REACT_APP_MARKETPLACE_ADDRESS;
-      if (envMarketplaceAddress && ethers.utils.isAddress(envMarketplaceAddress)) {
-        console.log(`BlockchainService: Using environment marketplace address: ${envMarketplaceAddress}`);
-        this.marketplaceAddress = envMarketplaceAddress;
-      } else {
-        console.log(`BlockchainService: Using default marketplace address: ${DEFAULT_MARKETPLACE_ADDRESS}`);
-        this.marketplaceAddress = DEFAULT_MARKETPLACE_ADDRESS;
-      }
+  }
+
+  /**
+   * Listen for account changes in MetaMask
+   */
+  private listenForAccountChanges(): void {
+    if (window.ethereum) {
+      window.ethereum.on('accountsChanged', (accounts: string[]) => {
+        console.log('Account changed:', accounts[0]);
+        // Refresh provider with new account
+        this.provider = new ethers.providers.Web3Provider(window.ethereum as any);
+      });
+
+      window.ethereum.on('chainChanged', (_chainId: string) => {
+        console.log('Network changed, reloading...');
+        window.location.reload();
+      });
+    }
+  }
+
+  /**
+   * Check if contracts exist on the blockchain
+   */
+  async checkContractExistence(): Promise<void> {
+    if (!this.provider) {
+      console.error('Provider not initialized');
+      return;
     }
     
     try {
-      // Create contract instances
-      this.tokenContract = new ethers.Contract(
-        this.contractAddress,
-        wyllohTokenAbi,
-        this.provider
-      );
-      
-      this.marketplaceContract = new ethers.Contract(
-        this.marketplaceAddress,
-        marketplaceAbi,
-        this.provider
-      );
-      
-      console.log('BlockchainService initialized with:', {
-        provider: !!this.provider,
-        tokenContract: this.contractAddress,
-        marketplaceContract: this.marketplaceAddress
-      });
-      
-      // Verify contracts exist at specified addresses
-      this.verifyContracts().then(verified => {
-        if (verified) {
-          console.log('Contracts verified successfully');
+      // Check token contract
+      if (this.contractAddress) {
+        console.log(`Checking if token contract exists at ${this.contractAddress}...`);
+        const tokenCode = await this.provider.getCode(this.contractAddress);
+        if (tokenCode === '0x') {
+          console.error(`⚠️ No contract found at token address: ${this.contractAddress}`);
         } else {
-          console.error('Contract verification failed - check contract addresses and network');
+          console.log(`✅ Token contract verified at ${this.contractAddress}`);
         }
-      }).catch(error => {
-        console.error('Error during contract verification:', error);
-      });
+      }
       
+      // Check marketplace contract
+      if (this.marketplaceAddress) {
+        console.log(`Checking if marketplace contract exists at ${this.marketplaceAddress}...`);
+        const marketplaceCode = await this.provider.getCode(this.marketplaceAddress);
+        if (marketplaceCode === '0x') {
+          console.error(`⚠️ No contract found at marketplace address: ${this.marketplaceAddress}`);
+        } else {
+          console.log(`✅ Marketplace contract verified at ${this.marketplaceAddress}`);
+        }
+      }
     } catch (error) {
-      console.error('Error initializing blockchain service:', error);
-      throw new Error(`Failed to initialize blockchain service: ${error}`);
+      console.error('Error checking contract existence:', error);
     }
   }
   
@@ -228,13 +309,34 @@ class BlockchainService {
         throw new Error(`No contract found at address ${this.contractAddress}. Make sure the contract is deployed.`);
       }
       
-      // Get signer
-      const signer = this.provider!.getSigner();
+      // Ensure we're using Web3Provider for MetaMask interaction
+      let web3Provider: ethers.providers.Web3Provider;
+      
+      // Force the use of MetaMask provider if available to ensure popup appears
+      if (window.ethereum) {
+        console.log('Using MetaMask provider for token creation to ensure popup appears');
+        web3Provider = new ethers.providers.Web3Provider(window.ethereum);
+        
+        // Request account access if needed
+        await window.ethereum.request({ method: 'eth_requestAccounts' });
+      } else if (this.provider instanceof ethers.providers.Web3Provider) {
+        web3Provider = this.provider as ethers.providers.Web3Provider;
+      } else {
+        console.error('MetaMask provider not available for token creation');
+        throw new Error('MetaMask not available. Please install MetaMask to create tokens.');
+      }
+      
+      // Get signer from Web3Provider
+      const signer = web3Provider.getSigner();
       const signerAddress = await signer.getAddress();
       console.log(`Creating token as ${signerAddress}`);
       
       // Connect with signer
-      const tokenContractWithSigner = this.tokenContract!.connect(signer);
+      const tokenContractWithSigner = new ethers.Contract(
+        this.contractAddress,
+        wyllohTokenAbi,
+        signer
+      );
       
       // Create content URI (simplified version for demo)
       const contentURI = `ipfs://${contentId}`;
@@ -246,7 +348,7 @@ class BlockchainService {
         royaltyBasisPoints: royaltyPercentage * 100
       });
       
-      // Create token
+      // Create token - this should trigger MetaMask popup
       const tx = await tokenContractWithSigner.createToken(
         signerAddress,
         initialSupply,
@@ -434,7 +536,7 @@ class BlockchainService {
           console.log(`Using creator/seller address: ${sellerAddress}`);
           
           // Check if seller has enough tokens to transfer
-          const sellerBalance = await this.getTokenBalance(sellerAddress, tokenId);
+          const sellerBalance = await this.getTokenBalance(sellerAddress!, tokenId);
           console.log(`Seller token balance: ${sellerBalance} tokens`);
           
           if (sellerBalance < quantity) {
@@ -442,42 +544,42 @@ class BlockchainService {
             
             // In demo mode, we can try to mint more tokens to the seller before failing
             if (process.env.REACT_APP_DEMO_MODE === 'true' || process.env.NODE_ENV === 'development') {
-              console.log('Demo mode: attempting to mint more tokens to seller before failing');
+              console.log('Demo mode: attempting to mint additional tokens to seller');
+              
               try {
-                const localProvider = new ethers.providers.JsonRpcProvider('http://localhost:8545');
-                const accounts = await localProvider.listAccounts();
-                const adminAddress = accounts[0];
-                const adminSigner = localProvider.getSigner(adminAddress);
+                // Connect to provider with first account (admin)
+                const adminProvider = new ethers.providers.JsonRpcProvider('http://localhost:8545');
+                const accounts = await adminProvider.listAccounts();
+                const adminSigner = adminProvider.getSigner(accounts[0]);
                 
-                const tokenContractWithAdmin = new ethers.Contract(
-                  this.contractAddress,
-                  wyllohTokenAbi,
-                  adminSigner
-                );
+                // Connect token contract with admin signer
+                const tokenWithAdminSigner = this.tokenContract!.connect(adminSigner);
                 
-                // Mint more tokens to the seller
-                const additionalSupply = Math.max(quantity * 2, 100); // Mint extra to avoid future issues
-                console.log(`Minting ${additionalSupply} additional tokens to seller ${sellerAddress}`);
+                // Mint additional tokens to seller
+                const mintAmount = quantity - sellerBalance + 5; // Add some buffer
+                console.log(`Minting ${mintAmount} additional tokens to seller ${sellerAddress}`);
                 
-                const mintTx = await tokenContractWithAdmin.mint(
-                  sellerAddress,
+                const mintTx = await tokenWithAdminSigner.mint(
+                  sellerAddress!,
                   tokenId,
-                  additionalSupply,
-                  '0x' // No data
+                  mintAmount,
+                  "0x" // No data
                 );
                 
-                await mintTx.wait();
-                console.log(`Successfully minted more tokens to seller`);
+                console.log('Mint transaction submitted:', mintTx.hash);
+                const mintReceipt = await mintTx.wait();
+                console.log('Mint confirmed in block:', mintReceipt.blockNumber);
                 
                 // Check updated balance
-                const updatedBalance = await this.getTokenBalance(sellerAddress, tokenId);
+                const updatedBalance = await this.getTokenBalance(sellerAddress!, tokenId);
                 console.log(`Updated seller balance: ${updatedBalance} tokens`);
                 
                 if (updatedBalance < quantity) {
-                  throw new Error(`Creator doesn't have enough tokens available for this purchase (has ${updatedBalance}, needs ${quantity})`);
+                  console.error(`Failed to mint enough tokens for seller: has ${updatedBalance}, needs ${quantity}`);
+                  throw new Error(`Failed to mint enough tokens for seller: has ${updatedBalance}, needs ${quantity}`);
                 }
               } catch (mintError) {
-                console.error('Failed to mint additional tokens in demo mode:', mintError);
+                console.error('Error minting additional tokens to seller:', mintError);
                 throw new Error(`Creator doesn't have enough tokens available for this purchase (has ${sellerBalance}, needs ${quantity})`);
               }
             } else {
@@ -486,7 +588,7 @@ class BlockchainService {
           }
           
           // Verify that buyer is not the same as seller (important!)
-          if (signerAddress.toLowerCase() === sellerAddress.toLowerCase()) {
+          if (signerAddress.toLowerCase() === sellerAddress!.toLowerCase()) {
             console.error('Buyer and seller addresses are the same, aborting purchase');
             throw new Error('Cannot purchase from yourself');
           }
@@ -529,7 +631,7 @@ class BlockchainService {
           }
           
           try {
-            const creatorSigner = creatorProvider.getSigner(sellerAddress);
+            const creatorSigner = creatorProvider.getSigner(sellerAddress!);
             
             // Connect token contract with creator's signer
             const tokenWithCreatorSigner = this.tokenContract!.connect(creatorSigner);

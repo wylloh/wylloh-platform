@@ -120,8 +120,8 @@ export function WalletProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (active && provider && account) {
       try {
-        blockchainService.initialize(provider);
-        console.log('Blockchain service initialized with provider');
+        blockchainService.initialize();
+        console.log('Blockchain service initialized');
       } catch (error) {
         console.error('Failed to initialize blockchain service:', error);
         setConnectionError('Failed to connect to blockchain contracts. Please try again.');

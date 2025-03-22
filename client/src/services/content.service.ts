@@ -378,173 +378,128 @@ class ContentService {
    * @param tokenizationData Tokenization parameters
    */
   async tokenizeContent(id: string, tokenizationData: any): Promise<Content | undefined> {
-    console.log(`Tokenizing content ${id} with data:`, tokenizationData);
-    
     try {
-      // Try to tokenize on the blockchain if service is available
-      if (blockchainService.isInitialized()) {
-        console.log('Blockchain service available, creating token on chain');
-        
-        // Get the content
-        const content = await this.getContentById(id);
-        if (!content) {
-          throw new Error('Content not found');
-        }
-        
-        // Check if already tokenized
-        if (content.tokenized) {
-          console.log('Content is already tokenized:', content);
-          throw new Error('Content is already tokenized');
-        }
-        
-        // Format rights thresholds for blockchain 
-        const rightsThresholds = tokenizationData.rightsThresholds || [];
-
-        // Create token on blockchain
-        try {
-          // Log every step of the process for better debugging
-          console.log('Starting token creation process with parameters:', {
-            contentId: id,
-            initialSupply: tokenizationData.initialSupply,
-            title: content.title,
-            description: content.description,
-            rightsThresholds: rightsThresholds,
-            royaltyPercentage: tokenizationData.royaltyPercentage
-          });
-          
-          const txHash = await blockchainService.createToken(
-            id,
-            tokenizationData.initialSupply,
-            {
-              contentId: id,
-              title: content.title,
-              description: content.description,
-              rightsThresholds: rightsThresholds
-            },
-            tokenizationData.royaltyPercentage
-          );
-          
-          console.log('Token created on blockchain, transaction hash:', txHash);
-          
-          // Verify token creation by checking creator's balance
-          const wallet = this.getConnectedWalletAddress();
-          if (wallet) {
-            console.log(`Verifying token balance for creator wallet: ${wallet}`);
-            const balance = await blockchainService.getTokenBalance(wallet, id);
-            console.log(`Creator's token balance after creation: ${balance}`);
-            
-            if (balance === 0) {
-              console.error('Token creation transaction succeeded but balance is 0');
-              throw new Error('Token creation failed: Creator received 0 tokens. Please try again.');
-            }
-            
-            if (balance < tokenizationData.initialSupply) {
-              console.warn(`Creator only received ${balance} tokens out of ${tokenizationData.initialSupply} requested`);
-            }
-          }
-          
-          // Update content metadata
-          const updatedContent = {
-            ...content,
-            tokenized: true,
-            tokenId: id, // In a real implementation, this would be the token ID from the blockchain
-            price: tokenizationData.price,
-            available: tokenizationData.initialSupply,
-            totalSupply: tokenizationData.initialSupply,
-            rightsThresholds: rightsThresholds,
-            status: 'active',
-            visibility: 'public'
-          };
-          
-          // Update content in API or local storage
-          const response = await axios.put<ApiResponse<Content>>(
-            `${this.baseUrl}/${id}`, 
-            updatedContent
-          );
-          
-          // If API call succeeded, return updated content
-          console.log('Content updated with tokenization info:', response.data.data);
-          return response.data.data;
-        } catch (blockchainError) {
-          console.error('Error creating token on blockchain:', blockchainError);
-          
-          // Add more detailed error information
-          if (blockchainError instanceof Error && blockchainError.message && blockchainError.message.includes('0 tokens')) {
-            throw new Error('Token creation failed: Creator received 0 tokens. This may be due to a blockchain issue or contract configuration problem. Please try again.');
-          }
-          
-          // Re-throw the error to be handled by the caller
-          throw blockchainError;
-        }
+      // If environment is development, allow forced re-tokenization
+      const forceTokenization = process.env.NODE_ENV === 'development' && 
+                               tokenizationData.forceRetokenize === true;
+      
+      console.log('Environment:', process.env.NODE_ENV);
+      console.log('Force tokenization:', forceTokenization);
+      
+      if (forceTokenization) {
+        console.log('Development mode: Bypassing tokenization check');
       }
       
-      // Fallback to local tokenization if blockchain not available or failed
-      console.log('Using local tokenization');
+      // Try to get the content from both local storage and API
+      const localContent = this.getLocalContent();
+      const content = localContent.find(c => c.id === id);
       
-      // Check for API availability
+      if (!content) {
+        throw new Error('Content not found');
+      }
+      
+      // Check if already tokenized (skip check if force tokenization is enabled)
+      if (content.tokenized && !forceTokenization) {
+        console.log('Content is already tokenized:', content);
+        throw new Error('Content is already tokenized');
+      }
+      
+      // Format rights thresholds for blockchain 
+      const rightsThresholds = tokenizationData.rightsThresholds || [];
+
+      // Create token on blockchain
       try {
-        const response = await axios.post<ApiResponse<Content>>(
-          `${this.baseUrl}/${id}/tokenize`, 
-          tokenizationData
-        );
-        
-        return response.data.data;
-      } catch (error) {
-        console.warn('API unavailable, performing local tokenization');
-        
-        // Get local content
-        const localContent = this.getLocalContent();
-        const contentIndex = localContent.findIndex(item => item.id === id);
-        
-        if (contentIndex >= 0) {
-          // Check if already tokenized
-          if (localContent[contentIndex].tokenized) {
-            console.log('Content is already tokenized locally');
-            throw new Error('Content is already tokenized');
-          }
-          
-          // Mock tokenization process
-          const tokenId = `token-${new Date().getTime()}`;
-          
-          // Update content
-          localContent[contentIndex] = {
-            ...localContent[contentIndex],
-            tokenized: true,
-            tokenId,
-            price: tokenizationData.price,
-            available: tokenizationData.initialSupply,
-            totalSupply: tokenizationData.initialSupply,
-            status: 'active',
-            visibility: 'public',
-            rightsThresholds: tokenizationData.rightsThresholds?.map((rt: any) => ({
-              quantity: rt.quantity,
-              type: rt.type
-            }))
-          };
-          
-          // Save to local storage
-          localStorage.setItem(LOCAL_CONTENT_KEY, JSON.stringify(localContent));
-          
-          // Save token creation record
-          localStorage.setItem(
-            `tokenized_content_${id}`, 
-            JSON.stringify({
-              contentId: id,
-              tokenId: tokenId,
-              tokenized: true,
-              initialSupply: tokenizationData.initialSupply,
-              price: tokenizationData.price,
-              royalty: tokenizationData.royaltyPercentage,
-              rightsThresholds: tokenizationData.rightsThresholds,
-              timestamp: new Date().toISOString()
-            })
-          );
-          
-          console.log('Content tokenized locally:', localContent[contentIndex]);
-          return localContent[contentIndex];
+        // Check if MetaMask is available
+        if (!(window as any).ethereum) {
+          console.error('MetaMask not detected. Cannot create token.');
+          throw new Error('MetaMask not detected. Please install MetaMask to create tokens.');
         }
         
-        return undefined;
+        // Log every step of the process for better debugging
+        console.log('Starting token creation process with parameters:', {
+          contentId: id,
+          initialSupply: tokenizationData.initialSupply,
+          title: content.title,
+          description: content.description,
+          rightsThresholds: rightsThresholds,
+          royaltyPercentage: tokenizationData.royaltyPercentage
+        });
+        
+        // Inform user to check MetaMask
+        console.log('Please check MetaMask for a transaction confirmation popup');
+        
+        const txHash = await blockchainService.createToken(
+          id,
+          tokenizationData.initialSupply,
+          {
+            contentId: id,
+            title: content.title,
+            description: content.description,
+            rightsThresholds: rightsThresholds
+          },
+          tokenizationData.royaltyPercentage
+        );
+        
+        console.log('Token created on blockchain, transaction hash:', txHash);
+        
+        // Verify token creation by checking creator's balance
+        const wallet = this.getConnectedWalletAddress();
+        if (wallet) {
+          console.log(`Verifying token balance for creator wallet: ${wallet}`);
+          const balance = await blockchainService.getTokenBalance(wallet, id);
+          console.log(`Creator's token balance after creation: ${balance}`);
+          
+          if (balance === 0) {
+            console.error('Token creation transaction succeeded but balance is 0');
+            throw new Error('Token creation failed: Creator received 0 tokens. Please try again.');
+          }
+          
+          if (balance < tokenizationData.initialSupply) {
+            console.warn(`Creator only received ${balance} tokens out of ${tokenizationData.initialSupply} requested`);
+          }
+        }
+        
+        // Update content metadata
+        const updatedContent = {
+          ...content,
+          tokenized: true,
+          tokenId: id, // In a real implementation, this would be the token ID from the blockchain
+          price: tokenizationData.price,
+          available: tokenizationData.initialSupply,
+          totalSupply: tokenizationData.initialSupply,
+          rightsThresholds: rightsThresholds,
+          status: 'active',
+          visibility: 'public'
+        };
+        
+        // Update content in API or local storage
+        const response = await axios.put<ApiResponse<Content>>(
+          `${this.baseUrl}/${id}`, 
+          updatedContent
+        );
+        
+        // If API call succeeded, return updated content
+        console.log('Content updated with tokenization info:', response.data.data);
+        return response.data.data;
+      } catch (blockchainError) {
+        console.error('Error creating token on blockchain:', blockchainError);
+        
+        // Add more specific error details
+        if (blockchainError instanceof Error) {
+          // Check for MetaMask errors
+          if (blockchainError.message.includes('user denied transaction') || 
+              blockchainError.message.includes('User denied')) {
+            console.warn('User rejected the MetaMask transaction');
+            throw new Error('Token creation cancelled: You rejected the transaction in MetaMask. Please try again if this was unintended.');
+          } else if (blockchainError.message.includes('0 tokens')) {
+            throw new Error('Token creation failed: Creator received 0 tokens. This may be due to a blockchain issue or contract configuration problem. Please try again.');
+          } else if (blockchainError.message.includes('MetaMask not available')) {
+            throw new Error('MetaMask not available. Please install MetaMask to create tokens.');
+          }
+        }
+        
+        // Re-throw the error to be handled by the caller
+        throw blockchainError;
       }
     } catch (error) {
       console.error('Error tokenizing content:', error);

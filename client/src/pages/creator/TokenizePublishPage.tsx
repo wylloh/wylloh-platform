@@ -23,7 +23,12 @@ import {
   DialogTitle,
   DialogContent,
   DialogContentText,
-  DialogActions
+  DialogActions,
+  List,
+  ListItem,
+  ListItemText,
+  FormControlLabel,
+  Checkbox
 } from '@mui/material';
 import { 
   ArrowBack as ArrowBackIcon,
@@ -84,6 +89,10 @@ const TokenizePublishPage: React.FC = () => {
   
   // Check if user has verified Pro status
   const isProVerified = user?.proStatus === 'verified';
+  
+  // Add forceRetokenize state for development mode
+  const [forceRetokenize, setForceRetokenize] = useState(false);
+  const isDevelopment = process.env.NODE_ENV === 'development';
   
   // Load content details on mount
   useEffect(() => {
@@ -208,8 +217,8 @@ const TokenizePublishPage: React.FC = () => {
       // Double-check if content is already tokenized to avoid duplicate tokenization
       const content = await contentService.getContentById(contentInfo.id);
       
-      // If content is already tokenized, redirect to dashboard
-      if (content?.tokenized || isAlreadyTokenized) {
+      // If content is already tokenized and not forcing retokenization, redirect to dashboard
+      if ((content?.tokenized || isAlreadyTokenized) && !(isDevelopment && forceRetokenize)) {
         console.log('Content is already tokenized, skipping tokenization');
         navigate('/creator/dashboard', {
           state: {
@@ -234,7 +243,8 @@ const TokenizePublishPage: React.FC = () => {
         initialSupply: formData.initialSupply,
         royaltyPercentage: formData.royaltyPercentage,
         price: priceAsFloat,
-        rightsThresholds: formData.rightsThresholds
+        rightsThresholds: formData.rightsThresholds,
+        forceRetokenize: isDevelopment && forceRetokenize
       });
       
       // Tokenize content
@@ -247,7 +257,8 @@ const TokenizePublishPage: React.FC = () => {
           rightsThresholds: formData.rightsThresholds.map(rt => ({
             quantity: rt.quantity,
             type: rt.type
-          }))
+          })),
+          forceRetokenize: isDevelopment && forceRetokenize
         }
       );
       
@@ -468,64 +479,141 @@ const TokenizePublishPage: React.FC = () => {
   const renderReviewPublishStep = () => (
     <Box>
       <Typography variant="h6" gutterBottom>
-        Review & Publish
+        Review & Submit
       </Typography>
       
-      <Alert severity="warning" sx={{ mb: 3 }}>
-        <AlertTitle>Important</AlertTitle>
-        Once published, your content will be tokenized on the blockchain and listed in the marketplace.
-        This action cannot be undone.
-      </Alert>
-      
       <Paper sx={{ p: 3, mb: 3 }}>
-        <Typography variant="subtitle1" gutterBottom>
-          Content Details
-        </Typography>
-        <Typography variant="body1">
-          <strong>Title:</strong> {contentInfo.title}
-        </Typography>
-        <Typography variant="body2" sx={{ mb: 2 }}>
-          <strong>Description:</strong> {contentInfo.description}
-        </Typography>
-        
-        <Divider sx={{ my: 2 }} />
-        
-        <Typography variant="subtitle1" gutterBottom>
-          Token Configuration
-        </Typography>
         <Grid container spacing={2}>
+          <Grid item xs={12}>
+            <Typography variant="subtitle1" color="primary" gutterBottom>
+              Content Information
+            </Typography>
+            <Typography>
+              <strong>Title:</strong> {contentInfo.title}
+            </Typography>
+            <Typography>
+              <strong>Creator:</strong> {contentInfo.creator}
+            </Typography>
+          </Grid>
+          
+          <Grid item xs={12}>
+            <Divider />
+          </Grid>
+          
           <Grid item xs={12} sm={4}>
-            <Typography variant="body2">
+            <Typography variant="subtitle1" color="primary" gutterBottom>
+              Token Supply
+            </Typography>
+            <Typography>
               <strong>Initial Supply:</strong> {formData.initialSupply} tokens
             </Typography>
           </Grid>
+          
           <Grid item xs={12} sm={4}>
-            <Typography variant="body2">
-              <strong>Initial Price:</strong> {formData.initialPrice} ETH
+            <Typography variant="subtitle1" color="primary" gutterBottom>
+              Royalty Percentage
             </Typography>
-          </Grid>
-          <Grid item xs={12} sm={4}>
-            <Typography variant="body2">
+            <Typography>
               <strong>Royalty:</strong> {formData.royaltyPercentage}%
             </Typography>
           </Grid>
+          
+          <Grid item xs={12} sm={4}>
+            <Typography variant="subtitle1" color="primary" gutterBottom>
+              Initial Price
+            </Typography>
+            <Typography>
+              <strong>Price:</strong> ${formData.initialPrice} per token
+            </Typography>
+          </Grid>
+          
+          <Grid item xs={12}>
+            <Divider />
+          </Grid>
+          
+          <Grid item xs={12}>
+            <Typography variant="subtitle1" color="primary" gutterBottom>
+              Rights Thresholds
+            </Typography>
+            {formData.rightsThresholds.length > 0 ? (
+              <List>
+                {formData.rightsThresholds.map((threshold, index) => (
+                  <ListItem key={index}>
+                    <ListItemText
+                      primary={`${threshold.type} (${threshold.quantity} tokens)`}
+                      secondary={threshold.description}
+                    />
+                  </ListItem>
+                ))}
+              </List>
+            ) : (
+              <Typography variant="body2" color="textSecondary">
+                No rights thresholds defined
+              </Typography>
+            )}
+          </Grid>
+          
+          {/* Development mode tools */}
+          {isDevelopment && (
+            <>
+              <Grid item xs={12}>
+                <Divider />
+              </Grid>
+              
+              <Grid item xs={12}>
+                <Typography variant="subtitle1" color="secondary" gutterBottom>
+                  Development Options
+                </Typography>
+                <FormControlLabel
+                  control={
+                    <Checkbox
+                      checked={forceRetokenize}
+                      onChange={(e) => setForceRetokenize(e.target.checked)}
+                    />
+                  }
+                  label="Force Re-tokenization (Bypass 'already tokenized' check)"
+                />
+                <Typography variant="caption" color="textSecondary">
+                  This option is only available in development mode and will allow you to re-tokenize content
+                  that has already been tokenized.
+                </Typography>
+              </Grid>
+            </>
+          )}
         </Grid>
-        
-        <Divider sx={{ my: 2 }} />
-        
-        <Typography variant="subtitle1" gutterBottom>
-          Rights Thresholds
-        </Typography>
-        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
-          {formData.rightsThresholds.map((threshold, index) => (
-            <Chip 
-              key={index}
-              label={`${threshold.type}: ${threshold.quantity} tokens`}
-              color={index === 0 ? "primary" : "default"}
-            />
-          ))}
-        </Box>
       </Paper>
+      
+      <Alert severity="info" sx={{ mb: 3 }}>
+        <AlertTitle>Important</AlertTitle>
+        <Typography variant="body2">
+          After submission, you'll need to confirm the transaction in MetaMask to create your token.
+          This process can take up to a minute to complete.
+        </Typography>
+      </Alert>
+      
+      {error && (
+        <Alert severity="error" sx={{ mb: 3 }}>
+          {error}
+        </Alert>
+      )}
+      
+      <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+        <Button
+          variant="outlined"
+          onClick={handleBack}
+          disabled={submitting}
+        >
+          Back
+        </Button>
+        <Button
+          variant="contained"
+          onClick={handleSubmit}
+          disabled={submitting || (isAlreadyTokenized && !(isDevelopment && forceRetokenize))}
+          startIcon={submitting ? <CircularProgress size={16} /> : null}
+        >
+          {submitting ? 'Processing...' : (isAlreadyTokenized && !(isDevelopment && forceRetokenize) ? 'Already Tokenized' : 'Tokenize & Publish')}
+        </Button>
+      </Box>
     </Box>
   );
   
