@@ -96,6 +96,35 @@ const TokenizePublishPage: React.FC = () => {
           if (content?.tokenized) {
             console.log('Content already tokenized during upload:', content);
             setIsAlreadyTokenized(true);
+            
+            // Log additional details for debugging
+            console.log('Tokenization status details:', {
+              tokenId: content.tokenId,
+              price: content.price,
+              totalSupply: content.totalSupply,
+              available: content.available
+            });
+            
+            // Check blockchain token balance if possible
+            try {
+              if (window.ethereum && content.tokenId) {
+                // Import dynamically to avoid circular dependencies
+                const { blockchainService } = await import('../../services/blockchain.service');
+                if (blockchainService.isInitialized()) {
+                  // Get the creator's address
+                  const creatorAddress = content.creatorAddress;
+                  if (creatorAddress) {
+                    const balance = await blockchainService.getTokenBalance(creatorAddress, content.tokenId);
+                    console.log(`Creator's token balance for ${content.tokenId}: ${balance}`);
+                    if (balance === 0) {
+                      console.warn('Creator has 0 tokens despite content being marked as tokenized');
+                    }
+                  }
+                }
+              }
+            } catch (balanceError) {
+              console.error('Error checking token balance:', balanceError);
+            }
           }
           
           // Update form data with content's rights thresholds if available
@@ -177,8 +206,12 @@ const TokenizePublishPage: React.FC = () => {
     setError(null);
     
     try {
-      // If already tokenized during upload, skip actual tokenization
-      if (isAlreadyTokenized) {
+      // Double-check if content is already tokenized to avoid duplicate tokenization
+      const content = await contentService.getContentById(contentInfo.id);
+      
+      // If content is already tokenized, redirect to dashboard
+      if (content?.tokenized || isAlreadyTokenized) {
+        console.log('Content is already tokenized, skipping tokenization');
         navigate('/creator/dashboard', {
           state: {
             success: true,
@@ -196,6 +229,14 @@ const TokenizePublishPage: React.FC = () => {
         setSubmitting(false);
         return;
       }
+      
+      console.log('Tokenizing content with the following parameters:', {
+        contentId: contentInfo.id,
+        initialSupply: formData.initialSupply,
+        royaltyPercentage: formData.royaltyPercentage,
+        price: priceAsFloat,
+        rightsThresholds: formData.rightsThresholds
+      });
       
       // Tokenize content
       await contentService.tokenizeContent(
@@ -220,7 +261,22 @@ const TokenizePublishPage: React.FC = () => {
       });
     } catch (err: any) {
       console.error('Error tokenizing content:', err);
-      setError(err.message || 'Failed to tokenize content');
+      
+      // Provide more detailed error message
+      let errorMessage = err.message || 'Failed to tokenize content';
+      
+      // Check for specific error messages
+      if (err.message && err.message.includes('already tokenized')) {
+        errorMessage = `${contentInfo.title} is already tokenized. Please refresh the dashboard.`;
+        // Redirect to dashboard after showing error
+        setTimeout(() => {
+          navigate('/creator/dashboard');
+        }, 3000);
+      } else if (err.message && err.message.includes('0 balance')) {
+        errorMessage = 'Token creation failed: The creator received 0 tokens. Please try again or contact support.';
+      }
+      
+      setError(errorMessage);
     } finally {
       setSubmitting(false);
     }

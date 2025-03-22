@@ -202,6 +202,19 @@ class BlockchainService {
       const receipt = await tx.wait();
       console.log('Token creation confirmed in block:', receipt.blockNumber);
       
+      // Verify that creator received the tokens
+      const creatorBalance = await this.getTokenBalance(signerAddress, contentId);
+      console.log(`Creator's token balance after creation: ${creatorBalance}`);
+      
+      if (creatorBalance === 0) {
+        console.error('Token creation succeeded but creator has 0 balance');
+        throw new Error('Token creation succeeded but creator has 0 balance. This may cause issues with token transfers.');
+      }
+      
+      if (creatorBalance < initialSupply) {
+        console.warn(`Creator only received ${creatorBalance} tokens out of ${initialSupply} requested`);
+      }
+      
       // Set rights thresholds if provided
       if (tokenMetadata.rightsThresholds && tokenMetadata.rightsThresholds.length > 0) {
         console.log('Setting rights thresholds...');
@@ -340,6 +353,15 @@ class BlockchainService {
           }
           
           console.log(`Using creator/seller address: ${sellerAddress}`);
+          
+          // Check if seller has enough tokens to transfer
+          const sellerBalance = await this.getTokenBalance(sellerAddress, tokenId);
+          console.log(`Seller token balance: ${sellerBalance} tokens`);
+          
+          if (sellerBalance < quantity) {
+            console.error(`Seller doesn't have enough tokens: has ${sellerBalance}, needs ${quantity}`);
+            throw new Error(`Creator doesn't have enough tokens available for this purchase (has ${sellerBalance}, needs ${quantity})`);
+          }
           
           // Verify that buyer is not the same as seller (important!)
           if (signerAddress.toLowerCase() === sellerAddress.toLowerCase()) {
