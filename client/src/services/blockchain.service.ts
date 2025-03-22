@@ -67,7 +67,8 @@ class BlockchainService {
       this.contractAddress = contractAddress;
     } else {
       // Try to get contract address from environment variables
-      const envContractAddress = process.env.REACT_APP_CONTRACT_ADDRESS;
+      const envContractAddress = process.env.REACT_APP_CONTRACT_ADDRESS || 
+                                (window as any).env?.REACT_APP_CONTRACT_ADDRESS;
       if (envContractAddress) {
         console.log(`BlockchainService: Using environment contract address: ${envContractAddress}`);
         this.contractAddress = envContractAddress;
@@ -82,7 +83,8 @@ class BlockchainService {
       this.marketplaceAddress = marketplaceAddress;
     } else {
       // Try to get marketplace address from environment variables
-      const envMarketplaceAddress = process.env.REACT_APP_MARKETPLACE_ADDRESS;
+      const envMarketplaceAddress = process.env.REACT_APP_MARKETPLACE_ADDRESS || 
+                                   (window as any).env?.REACT_APP_MARKETPLACE_ADDRESS;
       if (envMarketplaceAddress) {
         console.log(`BlockchainService: Using environment marketplace address: ${envMarketplaceAddress}`);
         this.marketplaceAddress = envMarketplaceAddress;
@@ -116,6 +118,18 @@ class BlockchainService {
         tokenContract: this.contractAddress,
         marketplaceContract: this.marketplaceAddress
       });
+      
+      // Try to verify the contract exists at this address
+      this.provider!.getCode(this.contractAddress).then(code => {
+        if (code === '0x') {
+          console.warn(`No contract found at address ${this.contractAddress}. Contract calls will fail.`);
+        } else {
+          console.log(`Contract verified at address ${this.contractAddress}`);
+        }
+      }).catch(error => {
+        console.error('Error checking contract code:', error);
+      });
+      
     } catch (error) {
       console.error('Error initializing blockchain service:', error);
       throw new Error(`Failed to initialize blockchain service: ${error}`);

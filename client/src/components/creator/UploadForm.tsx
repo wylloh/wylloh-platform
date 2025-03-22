@@ -558,11 +558,40 @@ const UploadForm: React.FC = () => {
       if (formData.tokenization.enabled) {
         contentData.metadata.tokenization = formData.tokenization;
         contentData.rightsThresholds = formData.tokenization.rightsThresholds;
+        contentData.tokenized = true;
+        contentData.status = 'active';
+        contentData.visibility = 'public';
+        contentData.price = formData.tokenization.price;
+        contentData.totalSupply = formData.tokenization.initialSupply;
+        contentData.available = formData.tokenization.initialSupply;
       }
       
       // Create the content with our service - IMPORTANT: Use a consistent ID
       console.log('Creating content with ID:', uploadId);
       const createdContent = await contentService.createContent(contentData);
+      
+      // If tokenization is enabled, actually tokenize the content
+      if (formData.tokenization.enabled) {
+        console.log('Tokenizing content after creation...');
+        try {
+          await contentService.tokenizeContent(
+            createdContent.id,
+            {
+              initialSupply: formData.tokenization.initialSupply,
+              royaltyPercentage: formData.tokenization.royalty,
+              price: formData.tokenization.price,
+              rightsThresholds: formData.tokenization.rightsThresholds.map(rt => ({
+                quantity: rt.quantity,
+                type: rt.type
+              }))
+            }
+          );
+          console.log('Content tokenized successfully during upload');
+        } catch (tokenizeError) {
+          console.error('Error tokenizing content during upload:', tokenizeError);
+          // Continue despite tokenization error
+        }
+      }
       
       // Success!
       setSubmitSuccess(true);
