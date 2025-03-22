@@ -366,11 +366,15 @@ const ContentDetailsPage: React.FC = () => {
     try {
       setIsPurchasing(true);
       
-      // Purchase the content token using blockchain service
+      // Get the token price 
+      const tokenPrice = content.price || 0.01;
+      console.log(`Purchasing ${quantity} tokens at ${tokenPrice} ETH each`);
+      
+      // Purchase the content token using blockchain service - pass per-token price, not total
       await blockchainService.purchaseTokens(
         content.id,
         Number(quantity),
-        (content.price || 0.01) * Number(quantity)
+        tokenPrice  // Now passing the per-token price, not the total price
       );
       
       // After successful purchase, store the content key
@@ -402,7 +406,7 @@ const ContentDetailsPage: React.FC = () => {
         const newPurchase = {
           ...content,
           purchaseDate: new Date().toISOString(),
-          purchasePrice: content.price || 0.01,
+          purchasePrice: tokenPrice,
           purchaseQuantity: Number(quantity)
         };
         

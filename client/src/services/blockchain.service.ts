@@ -61,32 +61,65 @@ class BlockchainService {
   ) {
     this.provider = provider;
     
+    // Use provided contract address if given
     if (contractAddress) {
+      console.log(`BlockchainService: Using provided contract address: ${contractAddress}`);
       this.contractAddress = contractAddress;
+    } else {
+      // Try to get contract address from environment variables
+      const envContractAddress = process.env.REACT_APP_CONTRACT_ADDRESS;
+      if (envContractAddress) {
+        console.log(`BlockchainService: Using environment contract address: ${envContractAddress}`);
+        this.contractAddress = envContractAddress;
+      } else {
+        console.log(`BlockchainService: Using default contract address: ${DEFAULT_CONTRACT_ADDRESS}`);
+      }
     }
     
+    // Use provided marketplace address if given
     if (marketplaceAddress) {
+      console.log(`BlockchainService: Using provided marketplace address: ${marketplaceAddress}`);
       this.marketplaceAddress = marketplaceAddress;
+    } else {
+      // Try to get marketplace address from environment variables
+      const envMarketplaceAddress = process.env.REACT_APP_MARKETPLACE_ADDRESS;
+      if (envMarketplaceAddress) {
+        console.log(`BlockchainService: Using environment marketplace address: ${envMarketplaceAddress}`);
+        this.marketplaceAddress = envMarketplaceAddress;
+      } else {
+        console.log(`BlockchainService: Using default marketplace address: ${DEFAULT_MARKETPLACE_ADDRESS}`);
+      }
     }
     
-    // Create contract instances
-    this.tokenContract = new ethers.Contract(
-      this.contractAddress,
-      wyllohTokenAbi,
-      this.provider
-    );
-    
-    this.marketplaceContract = new ethers.Contract(
-      this.marketplaceAddress,
-      marketplaceAbi,
-      this.provider
-    );
-    
-    console.log('BlockchainService initialized with:', {
-      provider: !!this.provider,
-      tokenContract: this.contractAddress,
-      marketplaceContract: this.marketplaceAddress
-    });
+    try {
+      // Verify that the contract address is valid
+      if (!ethers.utils.isAddress(this.contractAddress)) {
+        console.error(`BlockchainService: Invalid contract address: ${this.contractAddress}`);
+        throw new Error(`Invalid contract address: ${this.contractAddress}`);
+      }
+      
+      // Create contract instances
+      this.tokenContract = new ethers.Contract(
+        this.contractAddress,
+        wyllohTokenAbi,
+        this.provider
+      );
+      
+      this.marketplaceContract = new ethers.Contract(
+        this.marketplaceAddress,
+        marketplaceAbi,
+        this.provider
+      );
+      
+      console.log('BlockchainService initialized with:', {
+        provider: !!this.provider,
+        tokenContract: this.contractAddress,
+        marketplaceContract: this.marketplaceAddress
+      });
+    } catch (error) {
+      console.error('Error initializing blockchain service:', error);
+      throw new Error(`Failed to initialize blockchain service: ${error}`);
+    }
   }
   
   /**
@@ -122,8 +155,22 @@ class BlockchainService {
         contentId,
         initialSupply,
         metadata: tokenMetadata,
-        royaltyPercentage
+        royaltyPercentage,
+        contractAddress: this.contractAddress
       });
+      
+      // Validate contract address
+      if (!ethers.utils.isAddress(this.contractAddress)) {
+        console.error(`Invalid contract address: ${this.contractAddress}`);
+        throw new Error(`Invalid contract address: ${this.contractAddress}`);
+      }
+      
+      // Check if contract exists
+      const code = await this.provider!.getCode(this.contractAddress);
+      if (code === '0x') {
+        console.error(`No contract found at address ${this.contractAddress}`);
+        throw new Error(`No contract found at address ${this.contractAddress}. Make sure the contract is deployed.`);
+      }
       
       // Get signer
       const signer = this.provider!.getSigner();
@@ -135,6 +182,13 @@ class BlockchainService {
       
       // Create content URI (simplified version for demo)
       const contentURI = `ipfs://${contentId}`;
+      
+      console.log(`Calling createToken with parameters:`, {
+        signerAddress,
+        initialSupply,
+        contentURI,
+        royaltyBasisPoints: royaltyPercentage * 100
+      });
       
       // Create token
       const tx = await tokenContractWithSigner.createToken(
@@ -150,26 +204,28 @@ class BlockchainService {
       
       // Set rights thresholds if provided
       if (tokenMetadata.rightsThresholds && tokenMetadata.rightsThresholds.length > 0) {
-        // Format thresholds for contract
-        const formattedThresholds = tokenMetadata.rightsThresholds.map((t: any) => [
-          t.quantity,
-          t.type
-        ]);
+        console.log('Setting rights thresholds...');
         
-        console.log('Setting rights thresholds:', formattedThresholds);
-        
-        // In a real implementation, we would get the tokenId from the TokenCreated event
-        // For demo, use the contentId as tokenId (this is simplified)
+        // TokenId is content ID for demo simplicity
         const tokenId = contentId;
         
+        // Format rights thresholds for contract
+        const thresholds = tokenMetadata.rightsThresholds.map((t: any) => {
+          return {
+            quantity: t.quantity,
+            rightsType: t.type
+          };
+        });
+        
+        // Call setRightsThresholds function
         const thresholdsTx = await tokenContractWithSigner.setRightsThresholds(
           tokenId,
-          formattedThresholds
+          thresholds
         );
         
         console.log('Rights thresholds transaction submitted:', thresholdsTx.hash);
-        const thresholdsReceipt = await thresholdsTx.wait();
-        console.log('Rights thresholds confirmed in block:', thresholdsReceipt.blockNumber);
+        await thresholdsTx.wait();
+        console.log('Rights thresholds set successfully');
       }
       
       return tx.hash;
@@ -233,7 +289,7 @@ class BlockchainService {
    * Purchase tokens by calling the marketplace contract
    * @param tokenId ID of the token to purchase
    * @param quantity Number of tokens to purchase
-   * @param price Price per token in ETH
+   * @param price Price per token in ETH (NOT total price)
    */
   async purchaseTokens(tokenId: string, quantity: number, price: number): Promise<boolean> {
     if (!this.isInitialized()) {
@@ -245,7 +301,7 @@ class BlockchainService {
       console.log('Purchasing tokens on blockchain:', {
         tokenId,
         quantity,
-        price
+        pricePerToken: price
       });
 
       // For demo mode, either use direct blockchain transactions if available or simulate
@@ -259,6 +315,7 @@ class BlockchainService {
           
           // Calculate total price in ETH - THIS IS PER TOKEN PRICE * QUANTITY
           const totalPrice = price * quantity;
+          console.log(`Calculating total price: ${price} ETH per token × ${quantity} tokens = ${totalPrice} ETH total`);
           const totalPriceWei = ethers.utils.parseEther(totalPrice.toString());
           
           console.log(`Total price: ${totalPrice} ETH (${totalPriceWei.toString()} wei)`);
@@ -313,6 +370,17 @@ class BlockchainService {
           // 2. Connect to token contract with creator's signer
           // For demo, we'll impersonate the creator by using their account directly
           const creatorProvider = new ethers.providers.JsonRpcProvider('http://localhost:8545');
+          
+          // Print details about the contract we're connecting to
+          console.log(`Token contract address: ${this.contractAddress}`);
+          
+          // Check if contract exists at this address
+          const code = await creatorProvider.getCode(this.contractAddress);
+          if (code === '0x') {
+            console.error(`No contract found at address ${this.contractAddress}`);
+            throw new Error(`No contract found at address ${this.contractAddress}`);
+          }
+          
           const creatorSigner = creatorProvider.getSigner(sellerAddress);
           
           // Connect token contract with creator's signer
