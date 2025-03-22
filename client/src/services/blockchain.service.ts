@@ -378,29 +378,41 @@ class BlockchainService {
           const code = await creatorProvider.getCode(this.contractAddress);
           if (code === '0x') {
             console.error(`No contract found at address ${this.contractAddress}`);
-            throw new Error(`No contract found at address ${this.contractAddress}`);
+            // Mark that payment was sent but token transfer failed
+            const paymentSentError = new Error(`No contract found at address ${this.contractAddress}`);
+            (paymentSentError as any).paymentSent = true;
+            throw paymentSentError;
           }
           
-          const creatorSigner = creatorProvider.getSigner(sellerAddress);
-          
-          // Connect token contract with creator's signer
-          const tokenWithCreatorSigner = this.tokenContract!.connect(creatorSigner);
-          
-          // 3. Transfer tokens from creator to buyer
-          console.log(`Transferring ${quantity} tokens of ID ${tokenId} from ${sellerAddress} to ${signerAddress}`);
-          
-          // Use safeTransferFrom to send tokens
-          const transferTx = await tokenWithCreatorSigner.safeTransferFrom(
-            sellerAddress,
-            signerAddress,
-            tokenId,
-            quantity,
-            "0x" // No data
-          );
-          
-          console.log('Transfer transaction submitted:', transferTx.hash);
-          const transferReceipt = await transferTx.wait();
-          console.log('Transfer confirmed in block:', transferReceipt.blockNumber);
+          try {
+            const creatorSigner = creatorProvider.getSigner(sellerAddress);
+            
+            // Connect token contract with creator's signer
+            const tokenWithCreatorSigner = this.tokenContract!.connect(creatorSigner);
+            
+            // 3. Transfer tokens from creator to buyer
+            console.log(`Transferring ${quantity} tokens of ID ${tokenId} from ${sellerAddress} to ${signerAddress}`);
+            
+            // Use safeTransferFrom to send tokens
+            const transferTx = await tokenWithCreatorSigner.safeTransferFrom(
+              sellerAddress,
+              signerAddress,
+              tokenId,
+              quantity,
+              "0x" // No data
+            );
+            
+            console.log('Transfer transaction submitted:', transferTx.hash);
+            const transferReceipt = await transferTx.wait();
+            console.log('Transfer confirmed in block:', transferReceipt.blockNumber);
+          } catch (transferError) {
+            console.error('Error transferring tokens after payment was sent:', transferError);
+            // Mark that payment was sent but token transfer failed
+            const paymentSentError = new Error('Payment was sent but token transfer failed');
+            (paymentSentError as any).paymentSent = true;
+            (paymentSentError as any).originalError = transferError;
+            throw paymentSentError;
+          }
           
           // 4. Update local storage through contentService
           await contentService.purchaseToken(tokenId, quantity);
@@ -408,6 +420,12 @@ class BlockchainService {
           return true;
         } catch (error: any) {
           console.error('Blockchain transaction error:', error);
+          
+          // Check if payment was sent but token transfer failed
+          if (error.paymentSent) {
+            console.error('Payment was sent but token transfer failed');
+            throw new Error('Payment was sent but token transfer failed');
+          }
           
           // Check for specific errors
           if (error.message && error.message.includes('insufficient funds')) {

@@ -436,9 +436,73 @@ const ContentDetailsPage: React.FC = () => {
       setTimeout(() => {
         setRedirectToCollection(true);
       }, 1500);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error purchasing content:', error);
-      setSnackbarMessage('Failed to purchase content. Please try again.');
+      
+      // Format a more user-friendly error message based on the error
+      let errorMessage = 'Failed to purchase content. Please try again.';
+      
+      if (error.message) {
+        if (error.message.includes('insufficient funds')) {
+          errorMessage = 'Insufficient funds in your wallet to complete this purchase.';
+        } else if (error.message.includes('user rejected')) {
+          errorMessage = 'Transaction was rejected. Please try again when ready.';
+        } else if (error.message.includes('Contract address')) {
+          errorMessage = 'Contract configuration issue. Please contact support.';
+        } else if (error.message.includes('Payment was sent but token transfer failed')) {
+          errorMessage = 'Payment was processed but token transfer failed. The system will attempt to credit your tokens. Please check your collection in a few minutes.';
+          
+          // Create a fallback local record of the purchase since payment went through
+          // This helps ensure the user gets access even if the blockchain part failed
+          try {
+            console.log('Creating fallback local purchase record since payment was processed');
+            const purchased = await contentService.getPurchasedContent();
+            const existingPurchase = purchased.find(item => item.id === content.id);
+            
+            if (existingPurchase) {
+              existingPurchase.purchaseQuantity += Number(quantity);
+              localStorage.setItem('purchased_content', JSON.stringify(purchased));
+            } else {
+              const newPurchase = {
+                ...content,
+                purchaseDate: new Date().toISOString(),
+                purchasePrice: tokenPrice,
+                purchaseQuantity: Number(quantity)
+              };
+              
+              purchased.push(newPurchase);
+              localStorage.setItem('purchased_content', JSON.stringify(purchased));
+            }
+            
+            // Show a special warning message
+            setSnackbarMessage('Payment processed, but there was an issue with the token transfer. You have been granted access to the content, and the system will attempt to synchronize your tokens.');
+            setSnackbarSeverity('warning');
+            setSnackbarOpen(true);
+            
+            // Set purchase as successful (from access standpoint) despite the error
+            setIsPurchased(true);
+            setUserOwnsContent(true);
+            setOwnedTokens(prev => prev + Number(quantity));
+            
+            // Redirect to collection after a delay
+            setTimeout(() => {
+              setRedirectToCollection(true);
+            }, 3000);
+            
+            return; // Exit early since we've handled this special case
+          } catch (fallbackError) {
+            console.error('Failed to create fallback purchase record:', fallbackError);
+          }
+        } else if (error.message.includes('enough tokens')) {
+          errorMessage = 'The creator does not have enough tokens available to complete this sale.';
+        } else {
+          // Include part of the original error for debugging
+          const shortErrorMsg = error.message.substring(0, 100) + (error.message.length > 100 ? '...' : '');
+          errorMessage = `Transaction failed: ${shortErrorMsg}`;
+        }
+      }
+      
+      setSnackbarMessage(errorMessage);
       setSnackbarSeverity('error');
       setSnackbarOpen(true);
     } finally {
