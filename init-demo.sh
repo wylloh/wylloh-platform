@@ -11,6 +11,7 @@ NC='\033[0m' # No Color
 # Configuration
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 LOG_DIR="$SCRIPT_DIR/logs"
+SAMPLE_CONTENT_DIR="$SCRIPT_DIR/sample_content"
 PORT_GANACHE=8545
 PORT_IPFS=5001
 PORT_IPFS_GATEWAY=8080
@@ -21,9 +22,16 @@ GANACHE_LOG="$LOG_DIR/ganache.log"
 IPFS_LOG="$LOG_DIR/ipfs.log"
 API_LOG="$LOG_DIR/api.log"
 CLIENT_LOG="$LOG_DIR/client.log"
-ETH_NETWORK="development"
+ETH_NETWORK="localhost"
 DRY_RUN=false
 REDEPLOY_CONTRACTS=false
+# Environment files
+DEMO_ENV_FILE="$SCRIPT_DIR/.env.demo"
+CLIENT_ENV_FILE="$SCRIPT_DIR/client/.env.local"
+API_ENV_FILE="$SCRIPT_DIR/api/.env.local"
+STORAGE_ENV_FILE="$SCRIPT_DIR/storage/.env.local"
+# Default token factory address - this will be updated during contract deployment
+TOKEN_FACTORY_ADDRESS="0x0000000000000000000000000000000000000000"
 
 # Parse command-line arguments
 while [[ $# -gt 0 ]]; do
@@ -158,6 +166,16 @@ stop_services() {
   if [ "$DRY_RUN" = false ]; then
     pkill -f "ganache" || true
     pkill -f "ipfs daemon" || true
+    pkill -f "node api/server.js" || true
+    pkill -f "npm run start" || true
+    
+    # Explicitly check and kill any process using port 3000
+    PORT_3000_PID=$(lsof -ti:3000 2>/dev/null)
+    if [ ! -z "$PORT_3000_PID" ]; then
+      echo "Killing process using port 3000 (PID: $PORT_3000_PID)..."
+      kill $PORT_3000_PID 2>/dev/null || true
+    fi
+    
     sleep 2
   else
     echo -e "${YELLOW}In dry-run mode - would stop existing services${NC}"
@@ -272,10 +290,10 @@ function deploy_contracts() {
     
     # Run deployment script
     if [[ "$DRY_RUN" == "true" ]]; then
-      echo "[DRY RUN] Would run: cd $SCRIPT_DIR && npx hardhat run scripts/deploy/deploy.js --network development"
+      echo "[DRY RUN] Would run: cd $SCRIPT_DIR && npx hardhat run scripts/deploy/deploy.cjs --network localhost"
     else
       cd "$SCRIPT_DIR"
-      output=$(npx hardhat run scripts/deploy/deploy.js --network development 2>&1)
+      output=$(npx hardhat run scripts/deploy/deploy.cjs --network localhost 2>&1)
       
       if [[ $? -ne 0 ]]; then
         echo "❌ Contract deployment failed!"
@@ -289,6 +307,10 @@ function deploy_contracts() {
       
       marketplace_address=$(echo "$output" | grep -o "WyllohMarketplace: 0x[0-9a-fA-F]\{40\}")
       marketplace_address=${marketplace_address#"WyllohMarketplace: "}
+      
+      # Export the addresses as global variables
+      export contract_address
+      export marketplace_address
       
       # Validate addresses
       if [[ ! "$contract_address" =~ ^0x[0-9a-fA-F]{40}$ ]]; then
@@ -331,20 +353,41 @@ function deploy_contracts() {
 function verify_contracts() {
   section "Verifying Deployed Contracts"
   
-  # Check if contract addresses are set
+  # Check if contract addresses are set in the current environment
   if [[ -z "$contract_address" || -z "$marketplace_address" ]]; then
-    echo "⚠️ Contract addresses not set, cannot verify"
+    echo "⚠️ Contract addresses not set in variables, looking in environment files"
     
-    # Try to get from environment file
-    contract_address=$(grep "REACT_APP_CONTRACT_ADDRESS" "$SCRIPT_DIR/.env.demo" | cut -d'=' -f2)
-    marketplace_address=$(grep "REACT_APP_MARKETPLACE_ADDRESS" "$SCRIPT_DIR/.env.demo" | cut -d'=' -f2)
+    # Get the contract addresses from artifacts if they exist
+    if [[ -f "$SCRIPT_DIR/artifacts/contracts/addresses.json" ]]; then
+      echo "📄 Reading contract addresses from artifacts file"
+      contract_address=$(grep -o '"token": "[^"]*"' "$SCRIPT_DIR/artifacts/contracts/addresses.json" | cut -d'"' -f4)
+      marketplace_address=$(grep -o '"marketplace": "[^"]*"' "$SCRIPT_DIR/artifacts/contracts/addresses.json" | cut -d'"' -f4)
+    fi
+    
+    # If still not found, try env files
+    if [[ -z "$contract_address" || -z "$marketplace_address" ]]; then
+      echo "📄 Reading contract addresses from environment files"
+      # Try client env file first since it was just updated
+      if [[ -f "$SCRIPT_DIR/client/.env.local" ]]; then
+        contract_address=$(grep "REACT_APP_CONTRACT_ADDRESS" "$SCRIPT_DIR/client/.env.local" | cut -d'=' -f2 | tr -d '"')
+        marketplace_address=$(grep "REACT_APP_MARKETPLACE_ADDRESS" "$SCRIPT_DIR/client/.env.local" | cut -d'=' -f2 | tr -d '"')
+      fi
+      
+      # If still not found, try demo env
+      if [[ -z "$contract_address" || -z "$marketplace_address" ]]; then
+        if [[ -f "$SCRIPT_DIR/.env.demo" ]]; then
+          contract_address=$(grep "REACT_APP_CONTRACT_ADDRESS" "$SCRIPT_DIR/.env.demo" | cut -d'=' -f2 | tr -d '"')
+          marketplace_address=$(grep "REACT_APP_MARKETPLACE_ADDRESS" "$SCRIPT_DIR/.env.demo" | cut -d'=' -f2 | tr -d '"')
+        fi
+      fi
+    fi
     
     if [[ -z "$contract_address" || -z "$marketplace_address" ]]; then
       echo "❌ Could not find contract addresses in environment files"
       return 1
     fi
     
-    echo "🔍 Found contract addresses in environment files:"
+    echo "🔍 Found contract addresses:"
     echo "    Token: $contract_address"
     echo "    Marketplace: $marketplace_address"
   fi
@@ -359,9 +402,11 @@ function verify_contracts() {
   echo "🔍 Verifying contracts on local blockchain..."
   
   # Create temporary verification script
-  local verify_script="$SCRIPT_DIR/temp-verify.js"
+  local verify_script="$SCRIPT_DIR/temp-verify.cjs"
   cat > "$verify_script" << EOF
 const { ethers } = require('hardhat');
+const fs = require('fs');
+const path = require('path');
 
 async function main() {
   try {
@@ -407,7 +452,7 @@ EOF
   
   # Run verification script
   cd "$SCRIPT_DIR"
-  if npx hardhat run "$verify_script" --network development; then
+  if npx hardhat run "$verify_script" --network localhost; then
     echo "✅ All contracts verified successfully!"
     rm "$verify_script"
     return 0
@@ -592,6 +637,173 @@ EOF
   echo
   echo "3. Restart the Wylloh service on your Seed One:"
   echo "   sudo systemctl restart wylloh"
+}
+
+# Function to display section headers
+function section() {
+  echo -e "\n${BOLD}$1${NC}"
+  echo "-------------------------------"
+}
+
+# Function to create a stop script
+function create_stop_script() {
+  echo "Creating stop script..."
+  
+  STOP_SCRIPT="$SCRIPT_DIR/stop-demo.sh"
+  
+  if [ "$DRY_RUN" = false ]; then
+    cat > "$STOP_SCRIPT" << EOF
+#!/bin/bash
+# Script to stop Wylloh demo environment
+
+echo "Stopping Wylloh demo environment..."
+
+# Stop services
+pkill -f "ganache" || true
+pkill -f "ipfs daemon" || true
+pkill -f "node api/server.js" || true
+pkill -f "npm run start" || true
+
+echo "All services stopped."
+EOF
+    
+    chmod +x "$STOP_SCRIPT"
+    echo "✓ Stop script created: $STOP_SCRIPT"
+  else
+    echo -e "${YELLOW}In dry-run mode - would create stop script${NC}"
+  fi
+}
+
+# Function to create necessary directories
+function create_directories() {
+  echo "Creating necessary directories..."
+  
+  if [ "$DRY_RUN" = false ]; then
+    # Create logs directory
+    mkdir -p "$LOG_DIR"
+    echo "✓ Created logs directory: $LOG_DIR"
+    
+    # Create other required directories
+    mkdir -p "$SCRIPT_DIR/client"
+    mkdir -p "$SCRIPT_DIR/api"
+    mkdir -p "$SCRIPT_DIR/storage"
+    mkdir -p "$SCRIPT_DIR/artifacts/contracts"
+    
+    # Sample content directory
+    SAMPLE_CONTENT_DIR="$SCRIPT_DIR/sample_content"
+    mkdir -p "$SAMPLE_CONTENT_DIR"
+    
+    echo "✓ All required directories created"
+  else
+    echo -e "${YELLOW}In dry-run mode - would create necessary directories${NC}"
+  fi
+}
+
+# Start API server
+function start_api() {
+  section "Starting API Server"
+  
+  if [ "$DRY_RUN" = true ]; then
+    echo "[DRY RUN] Would start API server on port $PORT_API"
+    return 0
+  fi
+  
+  echo "Starting API server on port $PORT_API..."
+  
+  # Check if API server is already running
+  if pgrep -f "node api/server.js" > /dev/null; then
+    echo "⚠️ API server is already running"
+    return 0
+  fi
+  
+  # Install API dependencies if needed
+  cd "$SCRIPT_DIR/api"
+  echo "Installing API dependencies..."
+  npm install > /dev/null 2>&1
+  
+  # Run in background
+  echo "Starting API server..."
+  npm run dev > "$API_LOG" 2>&1 &
+  
+  API_PID=$!
+  echo $API_PID > /tmp/wylloh-api.pid
+  
+  # Wait for API to start
+  sleep 3
+  
+  # Check if API is running
+  if ps -p $API_PID > /dev/null; then
+    echo "✅ API server started successfully (PID: $API_PID)"
+    return 0
+  else
+    echo "❌ Failed to start API server"
+    return 1
+  fi
+}
+
+# Start client
+function start_client() {
+  section "Starting Client Application"
+  
+  if [ "$DRY_RUN" = true ]; then
+    echo "[DRY RUN] Would start client on port $PORT_CLIENT"
+    return 0
+  fi
+  
+  echo "Starting client on port $PORT_CLIENT..."
+  
+  # Check if client is already running
+  if pgrep -f "npm run start" > /dev/null; then
+    echo "⚠️ Client is already running"
+    return 0
+  fi
+  
+  # Check if port 3000 is in use by another process
+  PORT_3000_PID=$(lsof -ti:3000 2>/dev/null)
+  if [ ! -z "$PORT_3000_PID" ]; then
+    echo "⚠️ Port 3000 is already in use by process $PORT_3000_PID. Attempting to terminate..."
+    kill $PORT_3000_PID 2>/dev/null || true
+    sleep 2
+    
+    # Check again after kill attempt
+    if lsof -ti:3000 > /dev/null; then
+      echo "❌ Failed to free port 3000. Please manually stop the process and try again."
+      return 1
+    else
+      echo "✅ Successfully freed port 3000"
+    fi
+  fi
+  
+  # Install client dependencies if needed
+  cd "$SCRIPT_DIR/client"
+  echo "Installing client dependencies..."
+  npm install > /dev/null 2>&1
+  
+  # Run in background
+  echo "Starting client application..."
+  npm run start > "$CLIENT_LOG" 2>&1 &
+  
+  CLIENT_PID=$!
+  echo $CLIENT_PID > /tmp/wylloh-client.pid
+  
+  # Wait for client to start
+  sleep 5
+  
+  # Check if client is running
+  if ps -p $CLIENT_PID > /dev/null; then
+    echo "✅ Client started successfully (PID: $CLIENT_PID)"
+    echo "🌐 Client available at: http://localhost:$PORT_CLIENT"
+    return 0
+  else
+    # Check if there was a port conflict in the log
+    if grep -q "Something is already running on port 3000" "$CLIENT_LOG"; then
+      echo "❌ Failed to start client due to port conflict. Check logs for details."
+      return 1
+    else
+      echo "❌ Failed to start client. Check logs for details."
+      return 1
+    fi
+  fi
 }
 
 # Main execution flow

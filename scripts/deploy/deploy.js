@@ -1,8 +1,13 @@
 // Scripts for deploying the Wylloh smart contracts
-const hre = require("hardhat");
-const { ethers } = require("hardhat");
-const fs = require('fs');
-const path = require('path');
+import pkg from 'hardhat';
+const { ethers } = pkg;
+import * as fs from 'fs';
+import * as path from 'path';
+import { fileURLToPath } from 'url';
+
+// Get current file path (equivalent to __dirname in CommonJS)
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 // Function to deploy contracts
 async function deployContracts(network, signer) {
