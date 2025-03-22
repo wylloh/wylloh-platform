@@ -9,30 +9,89 @@ RED='\033[0;31m'
 NC='\033[0m' # No Color
 
 # Configuration
-GANACHE_PORT=8545
-IPFS_API_PORT=5001
-IPFS_GATEWAY_PORT=8080
-DEMO_ENV_FILE=".env.demo"
-CLIENT_ENV_FILE="client/.env.demo.local"
-API_ENV_FILE="api/.env.demo.local"
-STORAGE_ENV_FILE="storage/.env.demo.local"
-SAMPLE_CONTENT_DIR="./demo-assets"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+LOG_DIR="$SCRIPT_DIR/logs"
+PORT_GANACHE=8545
+PORT_IPFS=5001
+PORT_IPFS_GATEWAY=8080
+PORT_API=8001
+PORT_CLIENT=3000
+PORT_REDIS=6379
+GANACHE_LOG="$LOG_DIR/ganache.log"
+IPFS_LOG="$LOG_DIR/ipfs.log"
+API_LOG="$LOG_DIR/api.log"
+CLIENT_LOG="$LOG_DIR/client.log"
+ETH_NETWORK="development"
 DRY_RUN=false
+REDEPLOY_CONTRACTS=false
 
-# Parse command line arguments
-for arg in "$@"; do
-  case $arg in
-    --dry-run)
-      DRY_RUN=true
+# Parse command-line arguments
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --skip-contracts)
+      SKIP_CONTRACTS=true
       shift
       ;;
-    --help)
-      echo "Usage: ./init-demo.sh [OPTIONS]"
-      echo ""
+    --skip-ipfs)
+      SKIP_IPFS=true
+      shift
+      ;;
+    --skip-load)
+      SKIP_LOAD=true
+      shift
+      ;;
+    --skip-api)
+      SKIP_API=true
+      shift
+      ;;
+    --skip-client)
+      SKIP_CLIENT=true
+      shift
+      ;;
+    --skip-player)
+      SKIP_PLAYER=true
+      shift
+      ;;
+    --only-deploy)
+      SKIP_API=true
+      SKIP_CLIENT=true
+      SKIP_PLAYER=true
+      shift
+      ;;
+    --only-local)
+      SKIP_PLAYER=true
+      shift
+      ;;
+    --dry-run)
+      DRY_RUN=true
+      echo "🧪 Dry run mode - commands will be printed but not executed"
+      shift
+      ;;
+    --redeploy-contracts)
+      REDEPLOY_CONTRACTS=true
+      echo "🔄 Force contract redeployment enabled"
+      shift
+      ;;
+    --help|-h)
+      echo "Usage: $0 [options]"
       echo "Options:"
-      echo "  --dry-run     Show what would be done without actually starting services"
-      echo "  --help        Display this help message"
+      echo "  --skip-contracts   Skip deploying contracts"
+      echo "  --skip-ipfs        Skip starting IPFS"
+      echo "  --skip-load        Skip loading sample content"
+      echo "  --skip-api         Skip starting API server"
+      echo "  --skip-client      Skip starting client"
+      echo "  --skip-player      Skip setting up Seed One player"
+      echo "  --only-deploy      Only deploy contracts and load content"
+      echo "  --only-local       Skip Seed One player setup"
+      echo "  --dry-run          Print commands without executing them"
+      echo "  --redeploy-contracts Force redeployment of contracts even if they exist"
+      echo "  --help, -h         Show this help message"
       exit 0
+      ;;
+    *)
+      echo "⚠️ Unknown option: $1"
+      echo "Run '$0 --help' for usage information"
+      exit 1
       ;;
   esac
 done
@@ -42,6 +101,10 @@ echo "===============================\n"
 
 if [ "$DRY_RUN" = true ]; then
   echo -e "${YELLOW}Running in dry-run mode. No services will be started.${NC}\n"
+fi
+
+if [ "$REDEPLOY_CONTRACTS" = true ]; then
+  echo -e "${YELLOW}Contracts will be redeployed regardless of previous deployment.${NC}\n"
 fi
 
 # Check for required tools
@@ -104,11 +167,11 @@ stop_services() {
 # 1. Start local blockchain
 start_ganache() {
   echo -e "\n${BOLD}1. Starting local blockchain (Ganache)${NC}"
-  echo "Starting Ganache on port $GANACHE_PORT..."
+  echo "Starting Ganache on port $PORT_GANACHE..."
   
   if [ "$DRY_RUN" = false ]; then
     # Start Ganache with deterministic addresses and specific chain ID
-    ganache --deterministic --chain.chainId 1337 --wallet.defaultBalance 1000 --port $GANACHE_PORT > /tmp/ganache.log 2>&1 &
+    ganache --deterministic --chain.chainId 1337 --wallet.defaultBalance 1000 --port $PORT_GANACHE > $GANACHE_LOG 2>&1 &
     
     GANACHE_PID=$!
     echo $GANACHE_PID > /tmp/ganache.pid
@@ -117,7 +180,7 @@ start_ganache() {
     if ps -p $GANACHE_PID > /dev/null; then
       echo -e "${GREEN}✓ Ganache started successfully (PID: $GANACHE_PID)${NC}"
       # Extract account information
-      TEST_ACCOUNT=$(curl -s -X POST --data '{"jsonrpc":"2.0","method":"eth_accounts","params":[],"id":1}' http://localhost:$GANACHE_PORT | jq -r '.result[2]')
+      TEST_ACCOUNT=$(curl -s -X POST --data '{"jsonrpc":"2.0","method":"eth_accounts","params":[],"id":1}' http://localhost:$PORT_GANACHE | jq -r '.result[2]')
       TEST_PRIVATE_KEY="0x4f3edf983ac636a65a842ce7c78d9aa706d3b113bce9c46f30d7d21715b23b1d"  # Third deterministic private key from Ganache
       echo "Test account: $TEST_ACCOUNT"
     else
@@ -125,7 +188,7 @@ start_ganache() {
       exit 1
     fi
   else
-    echo -e "${YELLOW}In dry-run mode - would start Ganache on port $GANACHE_PORT${NC}"
+    echo -e "${YELLOW}In dry-run mode - would start Ganache on port $PORT_GANACHE${NC}"
     TEST_ACCOUNT="0x22d491bde2303f2f43325b2108d26f1eaba1e32b"  # Deterministic address from Ganache
     TEST_PRIVATE_KEY="0x4f3edf983ac636a65a842ce7c78d9aa706d3b113bce9c46f30d7d21715b23b1d"  # Corresponding private key
     echo "Test account would be: $TEST_ACCOUNT"
@@ -145,7 +208,7 @@ start_ipfs() {
     
     # Start IPFS daemon in offline mode
     echo "Starting IPFS daemon in offline mode..."
-    ipfs daemon --offline > /tmp/ipfs.log 2>&1 &
+    ipfs daemon --offline > $IPFS_LOG 2>&1 &
     
     IPFS_PID=$!
     echo $IPFS_PID > /tmp/ipfs.pid
@@ -162,47 +225,209 @@ start_ipfs() {
   fi
 }
 
-# 3. Deploy contracts
-deploy_contracts() {
-  echo -e "\n${BOLD}3. Deploying smart contracts${NC}"
+# Deploy smart contracts to the blockchain
+function deploy_contracts() {
+  local output=""
+  local contract_address=""
+  local marketplace_address=""
+  local deploy_success=false
   
-  # Check if hardhat.config.js exists and offer fix for ESM projects
-  if [ -f "hardhat.config.js" ] && grep -q "\"type\": \"module\"" package.json; then
-    echo -e "${YELLOW}Warning: Your project is an ESM project (has \"type\": \"module\" in package.json) but Hardhat config uses .js extension.${NC}"
+  section "Deploying Smart Contracts"
+  
+  # Check if contracts are already deployed
+  if [[ -f "$SCRIPT_DIR/artifacts/contracts/addresses.json" && "$REDEPLOY_CONTRACTS" != "true" ]]; then
+    echo "📄 Found existing contract deployment at:"
+    echo "    $(cat "$SCRIPT_DIR/artifacts/contracts/addresses.json" | grep -E 'token|marketplace')"
     
-    if [ "$DRY_RUN" = false ]; then
-      echo "Would you like to rename hardhat.config.js to hardhat.config.cjs to fix this? (y/n)"
-      read -n 1 -r
-      echo ""
-      if [[ $REPLY =~ ^[Yy]$ ]]; then
-        mv hardhat.config.js hardhat.config.cjs
-        echo "Renamed hardhat.config.js to hardhat.config.cjs"
+    # Extract addresses from the file
+    contract_address=$(cat "$SCRIPT_DIR/artifacts/contracts/addresses.json" | grep -o '"token": "[^"]*"' | cut -d'"' -f4)
+    marketplace_address=$(cat "$SCRIPT_DIR/artifacts/contracts/addresses.json" | grep -o '"marketplace": "[^"]*"' | cut -d'"' -f4)
+    
+    if [[ -n "$contract_address" && -n "$marketplace_address" ]]; then
+      echo "🔍 Using existing contract addresses:"
+      echo "    Token: $contract_address"
+      echo "    Marketplace: $marketplace_address"
+      
+      # Prompt for redeployment
+      read -p "❓ Do you want to use these existing contracts? (Y/n): " use_existing
+      use_existing=${use_existing:-Y}
+      
+      if [[ "$use_existing" =~ ^[Yy]$ ]]; then
+        echo "✅ Using existing contract deployment"
+        deploy_success=true
       else
-        echo "Continuing without renaming the file. Contract deployment may fail."
+        echo "🔄 Redeploying contracts as requested"
+        REDEPLOY_CONTRACTS=true
       fi
     else
-      echo -e "${YELLOW}In dry-run mode - would prompt to rename hardhat.config.js to hardhat.config.cjs${NC}"
+      echo "⚠️ Could not extract contract addresses from existing deployment"
+      echo "🔄 Redeploying contracts"
+      REDEPLOY_CONTRACTS=true
     fi
   fi
   
-  # Run deployment script
-  echo "Running contract deployment..."
-  
-  if [ "$DRY_RUN" = false ]; then
-    # This assumes you have a deployment script. Modify as needed for your project
-    npx hardhat run scripts/deploy/deploy.js --network localhost
-  else
-    echo -e "${YELLOW}In dry-run mode - would deploy contracts to local blockchain${NC}"
+  # Deploy contracts if needed
+  if [[ "$deploy_success" != "true" ]]; then
+    echo "📄 Deploying smart contracts to the local blockchain..."
+    
+    # Run deployment script
+    if [[ "$DRY_RUN" == "true" ]]; then
+      echo "[DRY RUN] Would run: cd $SCRIPT_DIR && npx hardhat run scripts/deploy/deploy.js --network development"
+    else
+      cd "$SCRIPT_DIR"
+      output=$(npx hardhat run scripts/deploy/deploy.js --network development 2>&1)
+      
+      if [[ $? -ne 0 ]]; then
+        echo "❌ Contract deployment failed!"
+        echo "$output"
+        return 1
+      fi
+      
+      # Parse contract addresses from output
+      contract_address=$(echo "$output" | grep -o "WyllohToken: 0x[0-9a-fA-F]\{40\}")
+      contract_address=${contract_address#"WyllohToken: "}
+      
+      marketplace_address=$(echo "$output" | grep -o "WyllohMarketplace: 0x[0-9a-fA-F]\{40\}")
+      marketplace_address=${marketplace_address#"WyllohMarketplace: "}
+      
+      # Validate addresses
+      if [[ ! "$contract_address" =~ ^0x[0-9a-fA-F]{40}$ ]]; then
+        echo "❌ Invalid token contract address: $contract_address"
+        return 1
+      fi
+      
+      if [[ ! "$marketplace_address" =~ ^0x[0-9a-fA-F]{40}$ ]]; then
+        echo "❌ Invalid marketplace contract address: $marketplace_address"
+        return 1
+      fi
+      
+      echo "✅ Smart contracts deployed successfully!"
+      echo "📄 Token contract: $contract_address"
+      echo "📄 Marketplace contract: $marketplace_address"
+      deploy_success=true
+    fi
   fi
   
-  # For demo purposes, we're using a placeholder contract address
-  # In a real scenario, you'd extract this from the deployment output
-  CONTRACT_ADDRESS="0x5FbDB2315678afecb367f032d93F642f64180aa3"  # Common first deployment address on Hardhat/Ganache
-  TOKEN_FACTORY_ADDRESS="0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512"  # Common second deployment address
+  # Update contract addresses in environment files
+  if [[ "$deploy_success" == "true" && "$DRY_RUN" != "true" ]]; then
+    echo "📝 Updating contract addresses in environment files..."
+    
+    # Update .env.local files
+    sed -i.bak "s/REACT_APP_CONTRACT_ADDRESS=.*/REACT_APP_CONTRACT_ADDRESS=$contract_address/" "$SCRIPT_DIR/client/.env.local"
+    sed -i.bak "s/REACT_APP_MARKETPLACE_ADDRESS=.*/REACT_APP_MARKETPLACE_ADDRESS=$marketplace_address/" "$SCRIPT_DIR/client/.env.local"
+    
+    # Update .env.demo file
+    sed -i.bak "s/REACT_APP_CONTRACT_ADDRESS=.*/REACT_APP_CONTRACT_ADDRESS=$contract_address/" "$SCRIPT_DIR/.env.demo"
+    sed -i.bak "s/REACT_APP_MARKETPLACE_ADDRESS=.*/REACT_APP_MARKETPLACE_ADDRESS=$marketplace_address/" "$SCRIPT_DIR/.env.demo"
+    
+    echo "✅ Environment files updated with contract addresses"
+  fi
   
-  echo -e "${GREEN}✓ Contracts deployed${NC}"
-  echo "Main contract: $CONTRACT_ADDRESS"
-  echo "Token factory: $TOKEN_FACTORY_ADDRESS"
+  # Return success
+  return 0
+}
+
+# Verify deployed contracts
+function verify_contracts() {
+  section "Verifying Deployed Contracts"
+  
+  # Check if contract addresses are set
+  if [[ -z "$contract_address" || -z "$marketplace_address" ]]; then
+    echo "⚠️ Contract addresses not set, cannot verify"
+    
+    # Try to get from environment file
+    contract_address=$(grep "REACT_APP_CONTRACT_ADDRESS" "$SCRIPT_DIR/.env.demo" | cut -d'=' -f2)
+    marketplace_address=$(grep "REACT_APP_MARKETPLACE_ADDRESS" "$SCRIPT_DIR/.env.demo" | cut -d'=' -f2)
+    
+    if [[ -z "$contract_address" || -z "$marketplace_address" ]]; then
+      echo "❌ Could not find contract addresses in environment files"
+      return 1
+    fi
+    
+    echo "🔍 Found contract addresses in environment files:"
+    echo "    Token: $contract_address"
+    echo "    Marketplace: $marketplace_address"
+  fi
+  
+  if [[ "$DRY_RUN" == "true" ]]; then
+    echo "[DRY RUN] Would verify contracts at addresses:"
+    echo "    Token: $contract_address"
+    echo "    Marketplace: $marketplace_address"
+    return 0
+  fi
+  
+  echo "🔍 Verifying contracts on local blockchain..."
+  
+  # Create temporary verification script
+  local verify_script="$SCRIPT_DIR/temp-verify.js"
+  cat > "$verify_script" << EOF
+const { ethers } = require('hardhat');
+
+async function main() {
+  try {
+    // Connect to local blockchain
+    const provider = new ethers.providers.JsonRpcProvider('http://localhost:8545');
+    
+    // Check if token contract exists
+    const tokenAddress = '$contract_address';
+    const tokenCode = await provider.getCode(tokenAddress);
+    if (tokenCode === '0x') {
+      console.error('⚠️ No contract found at token address:', tokenAddress);
+      process.exit(1);
+    }
+    console.log('✅ Token contract verified at', tokenAddress);
+    
+    // Check if marketplace contract exists
+    const marketplaceAddress = '$marketplace_address';
+    const marketplaceCode = await provider.getCode(marketplaceAddress);
+    if (marketplaceCode === '0x') {
+      console.error('⚠️ No contract found at marketplace address:', marketplaceAddress);
+      process.exit(1);
+    }
+    console.log('✅ Marketplace contract verified at', marketplaceAddress);
+    
+    // Try to connect to token contract
+    const tokenAbi = require('./artifacts/contracts/token/WyllohToken.sol/WyllohToken.json').abi;
+    const tokenContract = new ethers.Contract(tokenAddress, tokenAbi, provider);
+    
+    // Call a function to verify interface
+    const adminRole = await tokenContract.ADMIN_ROLE();
+    console.log('✅ Token contract interface verified, ADMIN_ROLE:', adminRole);
+    
+    console.log('✅ All contracts verified successfully!');
+    process.exit(0);
+  } catch (error) {
+    console.error('❌ Contract verification failed:', error.message);
+    process.exit(1);
+  }
+}
+
+main();
+EOF
+  
+  # Run verification script
+  cd "$SCRIPT_DIR"
+  if npx hardhat run "$verify_script" --network development; then
+    echo "✅ All contracts verified successfully!"
+    rm "$verify_script"
+    return 0
+  else
+    echo "❌ Contract verification failed!"
+    
+    # Prompt to continue
+    read -p "❓ Do you want to continue with the demo setup? (Y/n): " continue_demo
+    continue_demo=${continue_demo:-Y}
+    
+    if [[ "$continue_demo" =~ ^[Yy]$ ]]; then
+      echo "⚠️ Continuing with demo setup despite contract verification failure"
+      rm "$verify_script"
+      return 0
+    else
+      echo "❌ Aborting demo setup due to contract verification failure"
+      rm "$verify_script"
+      return 1
+    fi
+  fi
 }
 
 # 4. Pre-load sample content to IPFS
@@ -294,7 +519,7 @@ update_configuration() {
     cp "$DEMO_ENV_FILE" "$STORAGE_ENV_FILE"
     
     # Update client environment values
-    sed -i '' "s|REACT_APP_CONTRACT_ADDRESS=.*|REACT_APP_CONTRACT_ADDRESS=\"$CONTRACT_ADDRESS\"|g" "$CLIENT_ENV_FILE"
+    sed -i '' "s|REACT_APP_CONTRACT_ADDRESS=.*|REACT_APP_CONTRACT_ADDRESS=\"$contract_address\"|g" "$CLIENT_ENV_FILE"
     sed -i '' "s|REACT_APP_TOKEN_FACTORY_ADDRESS=.*|REACT_APP_TOKEN_FACTORY_ADDRESS=\"$TOKEN_FACTORY_ADDRESS\"|g" "$CLIENT_ENV_FILE"
     sed -i '' "s|REACT_APP_TEST_ACCOUNT_ADDRESS=.*|REACT_APP_TEST_ACCOUNT_ADDRESS=\"$TEST_ACCOUNT\"|g" "$CLIENT_ENV_FILE"
     sed -i '' "s|REACT_APP_TEST_PRIVATE_KEY=.*|REACT_APP_TEST_PRIVATE_KEY=\"$TEST_PRIVATE_KEY\"|g" "$CLIENT_ENV_FILE"
@@ -305,11 +530,11 @@ update_configuration() {
     sed -i '' "s|JWT_SECRET=.*|JWT_SECRET=\"wylloh-demo-secret\"|g" "$API_ENV_FILE"
     sed -i '' "s|MONGODB_URI=.*|MONGODB_URI=\"mongodb://localhost:27017/wylloh-demo\"|g" "$API_ENV_FILE"
     sed -i '' "s|API_PORT=.*|API_PORT=4000|g" "$API_ENV_FILE"
-    sed -i '' "s|TOKEN_CONTRACT_ADDRESS=.*|TOKEN_CONTRACT_ADDRESS=\"$CONTRACT_ADDRESS\"|g" "$API_ENV_FILE"
+    sed -i '' "s|TOKEN_CONTRACT_ADDRESS=.*|TOKEN_CONTRACT_ADDRESS=\"$contract_address\"|g" "$API_ENV_FILE"
     
     # Update storage environment values
-    sed -i '' "s|IPFS_API_URL=.*|IPFS_API_URL=\"http://localhost:$IPFS_API_PORT\"|g" "$STORAGE_ENV_FILE"
-    sed -i '' "s|IPFS_GATEWAY_URL=.*|IPFS_GATEWAY_URL=\"http://localhost:$IPFS_GATEWAY_PORT\"|g" "$STORAGE_ENV_FILE"
+    sed -i '' "s|IPFS_API_URL=.*|IPFS_API_URL=\"http://localhost:$PORT_IPFS\"|g" "$STORAGE_ENV_FILE"
+    sed -i '' "s|IPFS_GATEWAY_URL=.*|IPFS_GATEWAY_URL=\"http://localhost:$PORT_IPFS_GATEWAY\"|g" "$STORAGE_ENV_FILE"
     sed -i '' "s|STORAGE_PORT=.*|STORAGE_PORT=4001|g" "$STORAGE_ENV_FILE"
   else
     echo -e "${YELLOW}In dry-run mode - would create and update environment files for client, API, and storage services${NC}"
@@ -345,8 +570,8 @@ setup_seed_one() {
   echo "6. The Wylloh Player will automatically start and connect to your demo environment"
   echo
   echo "7. Alternatively, you can use the automatic configuration script:"
-  echo "   ./setup/configure-demo.sh --local-ip=$LOCAL_IP --ganache-port=$GANACHE_PORT --ipfs-port=$IPFS_GATEWAY_PORT"
-  echo "   --contract=$CONTRACT_ADDRESS --token-factory=$TOKEN_FACTORY_ADDRESS"
+  echo "   ./setup/configure-demo.sh --local-ip=$LOCAL_IP --ganache-port=$PORT_GANACHE --ipfs-port=$PORT_IPFS_GATEWAY"
+  echo "   --contract=$contract_address --token-factory=$TOKEN_FACTORY_ADDRESS"
   
   echo -e "\n${YELLOW}OPTION B: Legacy Kodi Add-on (Deprecated)${NC}"
   echo -e "If you need to use the legacy Kodi add-on implementation on your Seed One:"
@@ -356,9 +581,9 @@ setup_seed_one() {
   echo "2. Use this configuration:"
   cat << EOF
 {
-  "providerUrl": "http://$LOCAL_IP:$GANACHE_PORT",
-  "ipfsGateway": "http://$LOCAL_IP:$IPFS_GATEWAY_PORT",
-  "contractAddress": "$CONTRACT_ADDRESS",
+  "providerUrl": "http://$LOCAL_IP:$PORT_GANACHE",
+  "ipfsGateway": "http://$LOCAL_IP:$PORT_IPFS_GATEWAY",
+  "contractAddress": "$contract_address",
   "tokenFactoryAddress": "$TOKEN_FACTORY_ADDRESS",
   "demoMode": true,
   "playerUrl": "http://$LOCAL_IP:3000/player"
@@ -369,173 +594,73 @@ EOF
   echo "   sudo systemctl restart wylloh"
 }
 
+# Main execution flow
+function main() {
+  start_time=$(date +%s)
+  
+  # Create directories
+  create_directories
+  
+  # Stop running services
+  stop_services
+  
+  # Start Ganache
+  if [[ "$SKIP_CONTRACTS" != "true" ]]; then
+    start_ganache || exit 1
+  fi
+  
+  # Start IPFS
+  if [[ "$SKIP_IPFS" != "true" ]]; then
+    start_ipfs || exit 1
+  fi
+  
+  # Deploy contracts
+  if [[ "$SKIP_CONTRACTS" != "true" ]]; then
+    deploy_contracts || exit 1
+    verify_contracts || exit 1
+  fi
+  
+  # Load sample content
+  if [[ "$SKIP_LOAD" != "true" ]]; then
+    load_sample_content || exit 1
+  fi
+  
+  # Update configurations
+  update_configuration
+  
+  # Start API server
+  if [[ "$SKIP_API" != "true" ]]; then
+    start_api || exit 1
+  fi
+  
+  # Start client
+  if [[ "$SKIP_CLIENT" != "true" ]]; then
+    start_client || exit 1
+  fi
+  
+  # Set up Seed One
+  if [[ "$SKIP_PLAYER" != "true" ]]; then
+    setup_seed_one || exit 1
+  fi
+  
+  # Create stop script
+  create_stop_script
+  
+  # Print summary
+  end_time=$(date +%s)
+  duration=$((end_time - start_time))
+  
+  section "Demo Environment Setup Complete"
+  echo "✅ Setup completed in $duration seconds"
+  echo "📱 Demo environment is ready!"
+  echo ""
+  echo "🌐 Access the client at: http://localhost:$PORT_CLIENT"
+  echo "🚀 API server running at: http://localhost:$PORT_API"
+  echo "💰 Local blockchain at: http://localhost:$PORT_GANACHE"
+  echo "📦 IPFS gateway at: http://localhost:$PORT_IPFS_GATEWAY"
+  echo ""
+  echo "📋 To stop the demo environment, run: ./stop-demo.sh"
+}
+
 # Main execution
-stop_services
-start_ganache
-start_ipfs
-deploy_contracts
-load_sample_content
-update_configuration
-setup_seed_one
-
-echo -e "\n${GREEN}${BOLD}Demo environment successfully initialized!${NC}"
-echo -e "To start the demo, run:${BOLD}"
-echo "  cd client && BROWSER=open yarn start"
-echo -e "${NC}"
-echo "The above command will automatically open your browser to localhost:3000"
-echo ""
-echo "Our transaction monitoring script will now start running in the background."
-echo "You can view blockchain transactions in real-time while testing."
-echo ""
-node scripts/monitor-transactions.js &
-echo "Transaction monitoring started. Press Ctrl+C to exit when done."
-echo ""
-echo "To stop the demo services when you're done:"
-echo "  ./stop-demo.sh"
-echo ""
-echo "Demo Setup Complete"
-
-# Create stop script
-cat > stop-demo.sh << 'EOF'
-#!/bin/bash
-
-# stop-demo.sh
-# Script to properly shut down all demo-related processes and free up ports
-
-echo "Stopping Wylloh Demo Environment..."
-
-# Kill client process (React app on port 3000)
-echo "Stopping client application..."
-CLIENT_PID=$(lsof -ti:3000)
-if [ -n "$CLIENT_PID" ]; then
-  kill -9 $CLIENT_PID
-  echo "✓ Client application stopped (PID: $CLIENT_PID)"
-else
-  echo "- No client application running on port 3000"
-fi
-
-# Kill API process (port 4000)
-echo "Stopping API service..."
-API_PID=$(lsof -ti:4000)
-if [ -n "$API_PID" ]; then
-  kill -9 $API_PID
-  echo "✓ API service stopped (PID: $API_PID)"
-else
-  echo "- No API service running on port 4000"
-fi
-
-# Kill storage process (port 4001)
-echo "Stopping storage service..."
-STORAGE_PID=$(lsof -ti:4001)
-if [ -n "$STORAGE_PID" ]; then
-  kill -9 $STORAGE_PID
-  echo "✓ Storage service stopped (PID: $STORAGE_PID)"
-else
-  echo "- No storage service running on port 4001"
-fi
-
-# Kill Ganache process (port 8545)
-echo "Stopping Ganache blockchain..."
-GANACHE_PID=$(lsof -ti:8545)
-if [ -n "$GANACHE_PID" ]; then
-  kill -9 $GANACHE_PID
-  echo "✓ Ganache blockchain stopped (PID: $GANACHE_PID)"
-else
-  echo "- No Ganache blockchain running on port 8545"
-fi
-
-# Use PID files if they exist (backward compatibility)
-if [ -f "/tmp/ganache.pid" ]; then
-  GANACHE_PID_FILE=$(cat /tmp/ganache.pid 2>/dev/null)
-  if [ -n "$GANACHE_PID_FILE" ]; then
-    kill -9 $GANACHE_PID_FILE 2>/dev/null || true
-    echo "✓ Ganache blockchain stopped (PID file: $GANACHE_PID_FILE)"
-  fi
-  rm /tmp/ganache.pid 2>/dev/null || true
-fi
-
-# Check for and stop IPFS daemon processes
-echo "Stopping IPFS daemon..."
-IPFS_PID=$(pgrep -f "ipfs daemon")
-if [ -n "$IPFS_PID" ]; then
-  kill -9 $IPFS_PID
-  echo "✓ IPFS daemon stopped (PID: $IPFS_PID)"
-else
-  echo "- No IPFS daemon running"
-fi
-
-# Use PID files if they exist (backward compatibility)
-if [ -f "/tmp/ipfs.pid" ]; then
-  IPFS_PID_FILE=$(cat /tmp/ipfs.pid 2>/dev/null)
-  if [ -n "$IPFS_PID_FILE" ]; then
-    kill -9 $IPFS_PID_FILE 2>/dev/null || true
-    echo "✓ IPFS daemon stopped (PID file: $IPFS_PID_FILE)"
-  fi
-  rm /tmp/ipfs.pid 2>/dev/null || true
-fi
-
-# Additional port checks for commonly used ports
-for PORT in 5001 8080; do
-  PORT_PID=$(lsof -ti:$PORT)
-  if [ -n "$PORT_PID" ]; then
-    echo "Stopping process on port $PORT (PID: $PORT_PID)..."
-    kill -9 $PORT_PID
-    echo "✓ Process stopped"
-  fi
-done
-
-# Clean up temporary files
-echo "Cleaning up temporary files..."
-if [ -f "/tmp/ganache.log" ]; then
-  rm /tmp/ganache.log
-  echo "✓ Removed /tmp/ganache.log"
-fi
-
-if [ -f "/tmp/ipfs.log" ]; then
-  rm /tmp/ipfs.log
-  echo "✓ Removed /tmp/ipfs.log"
-fi
-
-# Clean up environment files
-echo "Cleaning up environment files..."
-ENV_FILES=(
-  "api/.env.demo.local"
-  "client/.env.demo.local"
-  "storage/.env.demo.local"
-  "api/env.demo.local"
-  "client/env.demo.local"
-  "storage/env.demo.local"
-)
-
-for ENV_FILE in "${ENV_FILES[@]}"; do
-  if [ -f "$ENV_FILE" ]; then
-    rm "$ENV_FILE"
-    echo "✓ Removed $ENV_FILE"
-  fi
-done
-
-# Clean up demo assets
-echo "Cleaning up demo content..."
-DEMO_FILES=(
-  "demo-assets/metadata.json"
-  "demo-assets/sample_movie.mp4"
-)
-
-for DEMO_FILE in "${DEMO_FILES[@]}"; do
-  if [ -f "$DEMO_FILE" ]; then
-    rm "$DEMO_FILE"
-    echo "✓ Removed $DEMO_FILE"
-  fi
-done
-
-# Option to remove demo-assets directory if empty
-if [ -d "demo-assets" ] && [ -z "$(ls -A demo-assets)" ]; then
-  rmdir "demo-assets"
-  echo "✓ Removed empty demo-assets directory"
-fi
-
-echo "✅ Wylloh Demo Environment has been stopped successfully!"
-echo "All ports have been released and temporary files cleaned up."
-EOF
-
-chmod +x stop-demo.sh
+main

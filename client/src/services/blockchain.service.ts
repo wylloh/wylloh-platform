@@ -61,45 +61,44 @@ class BlockchainService {
   ) {
     this.provider = provider;
     
-    // Use provided contract address if given
-    if (contractAddress) {
+    // Use provided contract address if given with proper validation
+    let contractFound = false;
+    
+    // Try to get contract address with clear fallback hierarchy
+    if (contractAddress && ethers.utils.isAddress(contractAddress)) {
       console.log(`BlockchainService: Using provided contract address: ${contractAddress}`);
       this.contractAddress = contractAddress;
     } else {
-      // Try to get contract address from environment variables
+      // Environment variables with clear logging
       const envContractAddress = process.env.REACT_APP_CONTRACT_ADDRESS || 
-                                (window as any).env?.REACT_APP_CONTRACT_ADDRESS;
-      if (envContractAddress) {
+                               (window as any).env?.REACT_APP_CONTRACT_ADDRESS;
+      if (envContractAddress && ethers.utils.isAddress(envContractAddress)) {
         console.log(`BlockchainService: Using environment contract address: ${envContractAddress}`);
         this.contractAddress = envContractAddress;
       } else {
         console.log(`BlockchainService: Using default contract address: ${DEFAULT_CONTRACT_ADDRESS}`);
+        this.contractAddress = DEFAULT_CONTRACT_ADDRESS;
       }
     }
     
-    // Use provided marketplace address if given
-    if (marketplaceAddress) {
+    // Use provided marketplace address if given with proper validation
+    if (marketplaceAddress && ethers.utils.isAddress(marketplaceAddress)) {
       console.log(`BlockchainService: Using provided marketplace address: ${marketplaceAddress}`);
       this.marketplaceAddress = marketplaceAddress;
     } else {
-      // Try to get marketplace address from environment variables
+      // Try to get marketplace address from environment variables with clear logging
       const envMarketplaceAddress = process.env.REACT_APP_MARKETPLACE_ADDRESS || 
-                                   (window as any).env?.REACT_APP_MARKETPLACE_ADDRESS;
-      if (envMarketplaceAddress) {
+                                  (window as any).env?.REACT_APP_MARKETPLACE_ADDRESS;
+      if (envMarketplaceAddress && ethers.utils.isAddress(envMarketplaceAddress)) {
         console.log(`BlockchainService: Using environment marketplace address: ${envMarketplaceAddress}`);
         this.marketplaceAddress = envMarketplaceAddress;
       } else {
         console.log(`BlockchainService: Using default marketplace address: ${DEFAULT_MARKETPLACE_ADDRESS}`);
+        this.marketplaceAddress = DEFAULT_MARKETPLACE_ADDRESS;
       }
     }
     
     try {
-      // Verify that the contract address is valid
-      if (!ethers.utils.isAddress(this.contractAddress)) {
-        console.error(`BlockchainService: Invalid contract address: ${this.contractAddress}`);
-        throw new Error(`Invalid contract address: ${this.contractAddress}`);
-      }
-      
       // Create contract instances
       this.tokenContract = new ethers.Contract(
         this.contractAddress,
@@ -119,20 +118,63 @@ class BlockchainService {
         marketplaceContract: this.marketplaceAddress
       });
       
-      // Try to verify the contract exists at this address
-      this.provider!.getCode(this.contractAddress).then(code => {
-        if (code === '0x') {
-          console.warn(`No contract found at address ${this.contractAddress}. Contract calls will fail.`);
+      // Verify contracts exist at specified addresses
+      this.verifyContracts().then(verified => {
+        if (verified) {
+          console.log('Contracts verified successfully');
         } else {
-          console.log(`Contract verified at address ${this.contractAddress}`);
+          console.error('Contract verification failed - check contract addresses and network');
         }
       }).catch(error => {
-        console.error('Error checking contract code:', error);
+        console.error('Error during contract verification:', error);
       });
       
     } catch (error) {
       console.error('Error initializing blockchain service:', error);
       throw new Error(`Failed to initialize blockchain service: ${error}`);
+    }
+  }
+  
+  /**
+   * Verify contracts exist and have expected interfaces
+   * @returns Promise resolving to true if contracts are verified
+   */
+  async verifyContracts(): Promise<boolean> {
+    if (!this.provider) {
+      console.error('Provider not initialized for contract verification');
+      return false;
+    }
+    
+    try {
+      // Check token contract
+      const tokenCode = await this.provider.getCode(this.contractAddress);
+      if (tokenCode === '0x') {
+        console.error(`No contract found at token address ${this.contractAddress}`);
+        return false;
+      }
+      
+      // Try to call a read function to verify ABI matches
+      try {
+        // Call a simple view function
+        const adminRole = await this.tokenContract!.ADMIN_ROLE();
+        console.log('Token contract verified with ADMIN_ROLE:', adminRole);
+      } catch (err) {
+        console.error('Token contract exists but interface doesn\'t match expected ABI:', err);
+        return false;
+      }
+      
+      // Check marketplace contract
+      const marketplaceCode = await this.provider.getCode(this.marketplaceAddress);
+      if (marketplaceCode === '0x') {
+        console.error(`No contract found at marketplace address ${this.marketplaceAddress}`);
+        return false;
+      }
+      
+      console.log('Contracts verified successfully');
+      return true;
+    } catch (err) {
+      console.error('Error verifying contracts:', err);
+      return false;
     }
   }
   
@@ -204,179 +246,58 @@ class BlockchainService {
         royaltyBasisPoints: royaltyPercentage * 100
       });
       
-      // For the demo, we'll fall back to direct minting if we're in demo mode or local development
-      if (process.env.REACT_APP_DEMO_MODE === 'true' || process.env.NODE_ENV === 'development') {
-        console.log('Using demo mode minting flow');
+      // Create token
+      const tx = await tokenContractWithSigner.createToken(
+        signerAddress,
+        initialSupply,
+        contentURI,
+        royaltyPercentage * 100 // Convert percentage to basis points (100 = 1%)
+      );
+      
+      console.log('Token creation transaction submitted:', tx.hash);
+      const receipt = await tx.wait();
+      console.log('Token creation confirmed in block:', receipt.blockNumber);
+      
+      // Verify that creator received the tokens
+      const creatorBalance = await this.getTokenBalance(signerAddress, contentId);
+      console.log(`Creator's token balance after creation: ${creatorBalance}`);
+      
+      if (creatorBalance < initialSupply) {
+        console.warn(`Creator only received ${creatorBalance} tokens out of ${initialSupply} requested`);
+      }
+      
+      if (creatorBalance === 0) {
+        console.error('Token creation succeeded but creator has 0 balance');
+        throw new Error('Token creation succeeded but creator has 0 balance. Please try again or check contract configuration.');
+      }
+      
+      // Set rights thresholds if provided
+      if (tokenMetadata.rightsThresholds && tokenMetadata.rightsThresholds.length > 0) {
+        console.log('Setting rights thresholds...');
         
-        try {
-          // Use local JSON-RPC provider to make sure transactions work in the demo
-          const localProvider = new ethers.providers.JsonRpcProvider('http://localhost:8545');
-          
-          // For demo, we'll just use the first account as the contract owner
-          const accounts = await localProvider.listAccounts();
-          const adminAddress = accounts[0];
-          
-          console.log(`Using admin address for contract interactions: ${adminAddress}`);
-          
-          // Use admin address to interact with contract
-          const adminSigner = localProvider.getSigner(adminAddress);
-          
-          // Connect with admin signer to ensure we have the right permissions
-          const tokenContractWithAdmin = new ethers.Contract(
-            this.contractAddress,
-            wyllohTokenAbi,
-            adminSigner
-          );
-          
-          // Try to create token
-          console.log('Creating token using admin account');
-          let tx;
-          
-          try {
-            // Try using createToken first
-            tx = await tokenContractWithAdmin.createToken(
-              signerAddress,
-              initialSupply,
-              contentURI,
-              royaltyPercentage * 100
-            );
-          } catch (createError) {
-            console.error('Error with createToken, falling back to direct mint:', createError);
-            
-            // Fall back to direct mint if createToken fails
-            tx = await tokenContractWithAdmin.mint(
-              signerAddress,
-              contentId, // Use contentId as tokenId
-              initialSupply,
-              '0x' // No data
-            );
-          }
-          
-          console.log('Token creation transaction submitted:', tx.hash);
-          const receipt = await tx.wait();
-          console.log('Token creation confirmed in block:', receipt.blockNumber);
-          
-          // Verify that creator received the tokens
-          const creatorBalance = await this.getTokenBalance(signerAddress, contentId);
-          console.log(`Creator's token balance after creation: ${creatorBalance}`);
-          
-          if (creatorBalance < initialSupply) {
-            console.warn(`Creator only received ${creatorBalance} tokens out of ${initialSupply} requested`);
-          }
-          
-          if (creatorBalance === 0) {
-            console.error('Token creation succeeded but creator has 0 balance');
-            
-            // Try one more direct mint if balance is still 0
-            console.log('Attempting fallback direct mint to creator');
-            const mintTx = await tokenContractWithAdmin.mint(
-              signerAddress,
-              contentId,
-              initialSupply,
-              '0x'
-            );
-            await mintTx.wait();
-            
-            // Check balance again
-            const updatedBalance = await this.getTokenBalance(signerAddress, contentId);
-            console.log(`Creator's token balance after fallback mint: ${updatedBalance}`);
-            
-            if (updatedBalance === 0) {
-              throw new Error('Token creation succeeded but creator has 0 balance even after fallback mint. This may cause issues with token transfers.');
-            }
-          }
-          
-          // Set rights thresholds if provided
-          if (tokenMetadata.rightsThresholds && tokenMetadata.rightsThresholds.length > 0) {
-            console.log('Setting rights thresholds...');
-            
-            try {
-              // TokenId is content ID for demo simplicity
-              const tokenId = contentId;
-              
-              // Format rights thresholds for contract
-              const thresholds = tokenMetadata.rightsThresholds.map((t: any) => {
-                return {
-                  quantity: t.quantity,
-                  rightsType: t.type
-                };
-              });
-              
-              // Call setRightsThresholds function
-              const thresholdsTx = await tokenContractWithAdmin.setRightsThresholds(
-                tokenId,
-                thresholds
-              );
-              
-              console.log('Rights thresholds transaction submitted:', thresholdsTx.hash);
-              await thresholdsTx.wait();
-              console.log('Rights thresholds set successfully');
-            } catch (thresholdError) {
-              console.error('Error setting rights thresholds (non-fatal):', thresholdError);
-              // Continue despite threshold error
-            }
-          }
-          
-          return tx.hash;
-        } catch (demoError) {
-          console.error('Error in demo mode token creation:', demoError);
-          throw demoError;
-        }
-      } else {
-        // Standard flow for production
-        // Create token
-        const tx = await tokenContractWithSigner.createToken(
-          signerAddress,
-          initialSupply,
-          contentURI,
-          royaltyPercentage * 100 // Convert percentage to basis points (100 = 1%)
+        // TokenId is content ID for demo simplicity
+        const tokenId = contentId;
+        
+        // Format rights thresholds for contract
+        const thresholds = tokenMetadata.rightsThresholds.map((t: any) => {
+          return {
+            quantity: t.quantity,
+            rightsType: t.type
+          };
+        });
+        
+        // Call setRightsThresholds function
+        const thresholdsTx = await tokenContractWithSigner.setRightsThresholds(
+          tokenId,
+          thresholds
         );
         
-        console.log('Token creation transaction submitted:', tx.hash);
-        const receipt = await tx.wait();
-        console.log('Token creation confirmed in block:', receipt.blockNumber);
-        
-        // Verify that creator received the tokens
-        const creatorBalance = await this.getTokenBalance(signerAddress, contentId);
-        console.log(`Creator's token balance after creation: ${creatorBalance}`);
-        
-        if (creatorBalance < initialSupply) {
-          console.warn(`Creator only received ${creatorBalance} tokens out of ${initialSupply} requested`);
-        }
-        
-        if (creatorBalance === 0) {
-          console.error('Token creation succeeded but creator has 0 balance');
-          throw new Error('Token creation succeeded but creator has 0 balance. This may cause issues with token transfers.');
-        }
-        
-        // Set rights thresholds if provided
-        if (tokenMetadata.rightsThresholds && tokenMetadata.rightsThresholds.length > 0) {
-          console.log('Setting rights thresholds...');
-          
-          // TokenId is content ID for demo simplicity
-          const tokenId = contentId;
-          
-          // Format rights thresholds for contract
-          const thresholds = tokenMetadata.rightsThresholds.map((t: any) => {
-            return {
-              quantity: t.quantity,
-              rightsType: t.type
-            };
-          });
-          
-          // Call setRightsThresholds function
-          const thresholdsTx = await tokenContractWithSigner.setRightsThresholds(
-            tokenId,
-            thresholds
-          );
-          
-          console.log('Rights thresholds transaction submitted:', thresholdsTx.hash);
-          await thresholdsTx.wait();
-          console.log('Rights thresholds set successfully');
-        }
-        
-        return tx.hash;
+        console.log('Rights thresholds transaction submitted:', thresholdsTx.hash);
+        await thresholdsTx.wait();
+        console.log('Rights thresholds set successfully');
       }
+      
+      return tx.hash;
     } catch (error) {
       console.error('Error creating token:', error);
       throw error;
