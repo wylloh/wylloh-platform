@@ -458,6 +458,7 @@ const ContentDetailsPage: React.FC = () => {
             console.log('Creating fallback local purchase record since payment was processed');
             const purchased = await contentService.getPurchasedContent();
             const existingPurchase = purchased.find(item => item.id === content.id);
+            const tokenPriceForFallback = content.price || 0.01; // Get token price again to avoid scope issues
             
             if (existingPurchase) {
               existingPurchase.purchaseQuantity += Number(quantity);
@@ -466,7 +467,7 @@ const ContentDetailsPage: React.FC = () => {
               const newPurchase = {
                 ...content,
                 purchaseDate: new Date().toISOString(),
-                purchasePrice: tokenPrice,
+                purchasePrice: tokenPriceForFallback,
                 purchaseQuantity: Number(quantity)
               };
               
