@@ -672,7 +672,20 @@ class BlockchainService {
           // Calculate total price in ETH - THIS IS PER TOKEN PRICE * QUANTITY
           const totalPrice = price * quantity;
           console.log(`Calculating total price: ${price} ETH per token × ${quantity} tokens = ${totalPrice} ETH total`);
-          const totalPriceWei = ethers.utils.parseEther(totalPrice.toString());
+          
+          // Ensure we have a valid number string before converting to BigNumber
+          // Fix for "Invalid BigNumber string" error
+          let totalPriceString = totalPrice.toString();
+          // Ensure it's a valid decimal string (replace any commas with periods)
+          totalPriceString = totalPriceString.replace(',', '.');
+          // Validate the string is a proper number
+          if (!/^\d*\.?\d*$/.test(totalPriceString)) {
+            console.error(`Invalid price format: ${totalPriceString}`);
+            throw new Error(`Invalid price format: ${totalPriceString}. Price must be a valid number.`);
+          }
+          
+          console.log(`Formatted price string: ${totalPriceString}`);
+          const totalPriceWei = ethers.utils.parseEther(totalPriceString);
           
           console.log(`Total price: ${totalPrice} ETH (${totalPriceWei.toString()} wei)`);
           
@@ -858,18 +871,71 @@ class BlockchainService {
             // 3. Transfer tokens from creator to buyer
             console.log(`Transferring ${quantity} tokens of ID ${tokenId} from ${sellerAddress} to ${signerAddress}`);
             
+            // For debugging, check the balance once more before transfer
+            const preTransferBalance = await tokenContract.balanceOf(sellerAddress!, tokenId);
+            console.log(`Seller balance immediately before transfer: ${preTransferBalance.toString()} tokens`);
+            
+            // Check approvals
+            const isApproved = await tokenContract.isApprovedForAll(sellerAddress!, sellerAddress!);
+            console.log(`Is seller approved for all? ${isApproved}`);
+            
+            // In development mode, ensure approval is set if needed
+            if (!isApproved && (process.env.NODE_ENV === 'development' || process.env.REACT_APP_DEMO_MODE === 'true')) {
+              console.log('Setting approval for all tokens...');
+              const approveTx = await tokenWithCreatorSigner.setApprovalForAll(sellerAddress!, true);
+              console.log('Approval transaction submitted:', approveTx.hash);
+              const approveReceipt = await approveTx.wait();
+              console.log('Approval confirmed in block:', approveReceipt.blockNumber);
+            }
+            
             // Use safeTransferFrom to send tokens
-            const transferTx = await tokenWithCreatorSigner.safeTransferFrom(
-              sellerAddress,
-              signerAddress,
-              tokenId,
-              quantity,
-              "0x" // No data
-            );
+            let transferTx;
+            try {
+              transferTx = await tokenWithCreatorSigner.safeTransferFrom(
+                sellerAddress,
+                signerAddress,
+                tokenId,
+                quantity,
+                { gasLimit: 500000 }
+              );
+            } catch (transferError) {
+              console.error('Initial safeTransferFrom failed:', transferError);
+              
+              // Try alternate method with just "transferFrom" if available
+              console.log('Attempting alternate transfer method...');
+              try {
+                if (tokenWithCreatorSigner.transferFrom) {
+                  console.log('Using transferFrom method...');
+                  transferTx = await tokenWithCreatorSigner.transferFrom(
+                    sellerAddress,
+                    signerAddress,
+                    tokenId,
+                    quantity,
+                    { gasLimit: 500000 }
+                  );
+                } else {
+                  throw new Error('No alternative transfer method available');
+                }
+              } catch (altTransferError) {
+                console.error('Alternative transfer method also failed:', altTransferError);
+                throw altTransferError;
+              }
+            }
             
             console.log('Transfer transaction submitted:', transferTx.hash);
             const transferReceipt = await transferTx.wait();
             console.log('Transfer confirmed in block:', transferReceipt.blockNumber);
+            
+            // Verify the transfer succeeded
+            const sellerBalanceAfter = await tokenContract.balanceOf(sellerAddress!, tokenId);
+            const buyerBalanceAfter = await tokenContract.balanceOf(signerAddress, tokenId);
+            
+            console.log(`Seller balance after transfer: ${sellerBalanceAfter.toString()} tokens`);
+            console.log(`Buyer balance after transfer: ${buyerBalanceAfter.toString()} tokens`);
+            
+            if (buyerBalanceAfter.toNumber() < quantity) {
+              console.warn(`Buyer received fewer tokens than expected: ${buyerBalanceAfter} < ${quantity}`);
+            }
           } catch (transferError) {
             console.error('Error transferring tokens after payment was sent:', transferError);
             // Mark that payment was sent but token transfer failed

@@ -478,6 +478,12 @@ class ContentService {
           visibility: 'public' as const
         };
         
+        // Make sure creator address is stored with the content
+        if (walletAddress && !updatedContent.creatorAddress) {
+          console.log(`Setting creator address to ${walletAddress}`);
+          updatedContent.creatorAddress = walletAddress;
+        }
+        
         // Attempt to update content in API
         let apiUpdated = false;
         try {
@@ -630,13 +636,48 @@ class ContentService {
           console.log('ContentService: Initiating blockchain transaction via wallet...');
           
           // Get price from content data
-          const price = contentData.price || 0.01;
+          let price = contentData.price;
+          console.log(`ContentService: Original price from content: ${price} (type: ${typeof price})`);
+          
+          // Handle potentially invalid price formats
+          if (price === undefined || price === null) {
+            console.log('ContentService: Price is undefined/null, defaulting to 0.01');
+            price = 0.01;
+          } else if (typeof price === 'string') {
+            if (price === '') {
+              console.log('ContentService: Price is an empty string, defaulting to 0.01');
+              price = 0.01;
+            } else {
+              // Try to convert string price to number
+              try {
+                price = parseFloat(price);
+                if (isNaN(price)) {
+                  console.log('ContentService: Price string is not a valid number, defaulting to 0.01');
+                  price = 0.01;
+                }
+              } catch (e) {
+                console.log('ContentService: Error parsing price string, defaulting to 0.01');
+                price = 0.01;
+              }
+            }
+          }
+          
+          console.log(`ContentService: Token price after validation: ${price} (type: ${typeof price})`);
+          console.log(`ContentService: Price is a valid number: ${!isNaN(Number(price))}`);
+          console.log(`ContentService: Quantity: ${quantity} (type: ${typeof quantity})`);
+          
+          // Ensure price is a valid number
+          const validPrice = Number(price);
+          if (isNaN(validPrice) || validPrice <= 0) {
+            console.error(`ContentService: Invalid price: ${price}`);
+            throw new Error(`Invalid price: ${price}. Price must be a positive number.`);
+          }
           
           // Use blockchainService for the actual purchase
           const { blockchainService } = await import('./blockchain.service');
           
           // This will throw an error if the purchase fails
-          const success = await blockchainService.purchaseTokens(contentId, quantity, price);
+          const success = await blockchainService.purchaseTokens(contentId, quantity, validPrice);
           
           if (!success) {
             console.error('ContentService: Blockchain purchase returned failure');
