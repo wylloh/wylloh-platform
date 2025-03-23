@@ -28,7 +28,8 @@ import {
   Switch,
   InputAdornment,
   Checkbox,
-  Paper as MuiPaper
+  Paper as MuiPaper,
+  Container
 } from '@mui/material';
 import {
   CloudUpload,
@@ -52,6 +53,7 @@ import axios from 'axios';
 import { uploadToIPFS, checkIpfsConnection } from '../../utils/ipfs';
 import { Buffer } from 'buffer';
 import { contentService } from '../../services/content.service';
+import TokenVerifier from '../blockchain/TokenVerifier';
 
 // Define content types
 const CONTENT_TYPES = [
@@ -142,6 +144,19 @@ const formatFileSize = (bytes: number): string => {
   return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
 };
 
+interface IUploadFormState {
+  formData: UploadFormData;
+  uploadStatus: UploadStatus;
+  errors: {[key: string]: string};
+  activeStep: number;
+  submitting: boolean;
+  submitSuccess: boolean;
+  submitError: string | null;
+  submitMessage: string | null;
+  submissionSuccessful: boolean;
+  createdContentId: string;
+}
+
 const UploadForm: React.FC = () => {
   // Navigation
   const navigate = useNavigate();
@@ -206,6 +221,13 @@ const UploadForm: React.FC = () => {
   const [newTag, setNewTag] = useState<string>('');
   const [newGenre, setNewGenre] = useState<string>('');
   const [newCastMember, setNewCastMember] = useState<string>('');
+  
+  // Add tokenVerified state property to the component state
+  const [tokenVerified, setTokenVerified] = useState<boolean>(false);
+  const [tokenVerificationResult, setTokenVerificationResult] = useState<{verified: boolean, balance: number, imported: boolean, creatorAddress?: string} | null>(null);
+  
+  // Add a state variable to track the created content ID
+  const [createdContentId, setCreatedContentId] = useState<string>('');
   
   // Handle basic form field changes
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -575,6 +597,9 @@ const UploadForm: React.FC = () => {
       console.log('Creating content with ID:', uploadId);
       const createdContent = await contentService.createContent(contentData);
       
+      // Store the created content ID for verification
+      setCreatedContentId(createdContent.id);
+      
       // If tokenization is enabled, actually tokenize the content
       if (formData.tokenization.enabled) {
         console.log('Tokenizing content after creation...');
@@ -640,6 +665,37 @@ const UploadForm: React.FC = () => {
           message: error.message
         }
       }));
+    } finally {
+      setSubmitting(false);
+    }
+  };
+  
+  // Add a handler function for token verification
+  const handleVerifyToken = async (contentId: string) => {
+    if (!contentId) {
+      setSubmitError('Content ID not available for verification');
+      return;
+    }
+    
+    setSubmitting(true);
+    setSubmitError(null);
+    setSubmitMessage('Verifying token creation and attempting to import to MetaMask...');
+    
+    try {
+      const result = await contentService.verifyAndImportToken(contentId);
+      setTokenVerificationResult(result);
+      
+      if (result.verified) {
+        setTokenVerified(true);
+        setSubmitMessage(`Verification successful! Found ${result.balance} tokens for creator ${result.creatorAddress?.substring(0,8)}...${result.imported ? ' Token imported to MetaMask successfully!' : ''}`);
+      } else {
+        setTokenVerified(false);
+        setSubmitError('Token verification failed. The token may not have been created successfully.');
+      }
+    } catch (error: any) {
+      console.error('Error verifying token:', error);
+      setSubmitError(`Error verifying token: ${error.message || 'Unknown error'}`);
+      setTokenVerified(false);
     } finally {
       setSubmitting(false);
     }
@@ -1608,6 +1664,20 @@ const UploadForm: React.FC = () => {
       </Stepper>
       
       {renderStepContent(activeStep)}
+      
+      {/* Token verification section */}
+      {submitSuccess && formData.tokenization.enabled && createdContentId && (
+        <Box sx={{ mt: 4, mb: 2 }}>
+          <TokenVerifier 
+            contentId={createdContentId}
+            onVerificationComplete={(result) => {
+              console.log('Token verification complete:', result);
+              setTokenVerificationResult(result);
+              setTokenVerified(result.verified);
+            }}
+          />
+        </Box>
+      )}
       
       <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 3 }}>
         <Button

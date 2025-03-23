@@ -993,6 +993,83 @@ class ContentService {
       console.error('ContentService: Error recording purchase:', error);
     }
   }
+
+  /**
+   * Verify token creation and provide option to import to MetaMask
+   * @param contentId Content ID to verify and import
+   * @returns Promise resolving to verification result
+   */
+  async verifyAndImportToken(contentId: string): Promise<any> {
+    console.log(`Verifying token for content ID: ${contentId}`);
+    
+    try {
+      // Get the content details to find the token ID
+      const content = await this.getContentById(contentId);
+      if (!content) {
+        throw new Error('Content not found');
+      }
+      
+      console.log(`Found content with title "${content.title}"`);
+      
+      if (!content.tokenId) {
+        console.error('Content has no token ID - tokenization may have failed');
+        return { verified: false, reason: 'No token ID found for content' };
+      }
+      
+      // Make sure the blockchain service is initialized
+      if (!blockchainService.isInitialized()) {
+        await blockchainService.initialize();
+      }
+      
+      // Get current wallet address
+      let walletAddress = '';
+      if (window.ethereum) {
+        try {
+          const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+          walletAddress = accounts[0];
+        } catch (error) {
+          console.error('Error getting wallet address:', error);
+          throw new Error('No MetaMask account available. Please connect MetaMask first.');
+        }
+      }
+      
+      if (!walletAddress) {
+        throw new Error('No MetaMask account available');
+      }
+      
+      // Get token balance for the current address
+      const tokenId = content.tokenId;
+      
+      // Use verifyTokenCreation method as it's more robust
+      const verificationResult = await blockchainService.verifyTokenCreation(tokenId, walletAddress);
+      
+      console.log(`Token verification result:`, verificationResult);
+      
+      let imported = false;
+      if (verificationResult.success) {
+        try {
+          // Try to import the token to MetaMask
+          imported = await blockchainService.addTokenToMetaMask(tokenId);
+          console.log(`Token import result: ${imported ? 'success' : 'failed'}`);
+        } catch (importError) {
+          console.error('Failed to import token to MetaMask:', importError);
+        }
+      }
+      
+      // Return verification result
+      return {
+        verified: verificationResult.success,
+        balance: verificationResult.balance,
+        tokenId: tokenId,
+        creatorAddress: walletAddress,
+        contractAddress: verificationResult.tokenAddress,
+        imported: imported
+      };
+    } catch (error) {
+      console.error('Error verifying token:', error);
+      throw error;
+    }
+  }
 }
 
 export const contentService = new ContentService(); 
