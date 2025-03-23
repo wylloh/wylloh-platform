@@ -653,13 +653,37 @@ class BlockchainService {
     }
     
     try {
-      console.log('Purchasing tokens on blockchain:', {
-        tokenId,
-        quantity,
-        pricePerToken: price,
+      console.log('BlockchainService: Starting token purchase process with params:', {
+        tokenId, 
+        quantity, 
+        price,
         contractAddress: this.contractAddress
       });
-
+      
+      // Validate inputs
+      if (!tokenId || !quantity || quantity <= 0) {
+        throw new Error('Invalid token ID or quantity');
+      }
+      
+      // Ensure price is a valid number
+      if (typeof price !== 'number' || isNaN(price) || price <= 0) {
+        console.error(`Invalid price: ${price}`);
+        throw new Error('Invalid price format. Please provide a valid positive number.');
+      }
+      
+      console.log(`Purchasing ${quantity} tokens with ID ${tokenId} at price ${price} ETH`);
+      
+      // Calculate total price
+      const totalPrice = quantity * price;
+      
+      // Convert to string with fixed decimal places to avoid floating point issues
+      const totalPriceString = totalPrice.toFixed(18);
+      
+      // Parse to BigNumber
+      const totalPriceWei = ethers.utils.parseEther(totalPriceString);
+      
+      console.log(`Total price: ${totalPrice} ETH (${totalPriceWei.toString()} wei)`);
+      
       // For demo mode, either use direct blockchain transactions if available or simulate
       if (window.ethereum && this.provider) {
         try {
@@ -668,26 +692,6 @@ class BlockchainService {
           const signerAddress = await signer.getAddress();
           
           console.log(`Using buyer address: ${signerAddress}`);
-          
-          // Calculate total price in ETH - THIS IS PER TOKEN PRICE * QUANTITY
-          const totalPrice = price * quantity;
-          console.log(`Calculating total price: ${price} ETH per token × ${quantity} tokens = ${totalPrice} ETH total`);
-          
-          // Ensure we have a valid number string before converting to BigNumber
-          // Fix for "Invalid BigNumber string" error
-          let totalPriceString = totalPrice.toString();
-          // Ensure it's a valid decimal string (replace any commas with periods)
-          totalPriceString = totalPriceString.replace(',', '.');
-          // Validate the string is a proper number
-          if (!/^\d*\.?\d*$/.test(totalPriceString)) {
-            console.error(`Invalid price format: ${totalPriceString}`);
-            throw new Error(`Invalid price format: ${totalPriceString}. Price must be a valid number.`);
-          }
-          
-          console.log(`Formatted price string: ${totalPriceString}`);
-          const totalPriceWei = ethers.utils.parseEther(totalPriceString);
-          
-          console.log(`Total price: ${totalPrice} ETH (${totalPriceWei.toString()} wei)`);
           
           // Get content details to find the creator's address
           const content = await contentService.getContentById(tokenId);
@@ -1020,6 +1024,156 @@ class BlockchainService {
     } catch (error) {
       console.error('Error purchasing tokens:', error);
       throw error; // Re-throw to allow proper error handling
+    }
+  }
+
+  /**
+   * Verify token was properly minted to creator
+   * @param contentId The content ID/token ID to check
+   * @param creatorAddress The creator's wallet address
+   * @returns Object containing success flag and balance
+   */
+  async verifyTokenCreation(contentId: string, creatorAddress?: string): Promise<{success: boolean, balance: number, tokenAddress: string}> {
+    if (!this.isInitialized()) {
+      console.warn('BlockchainService not initialized for verifyTokenCreation');
+      return { success: false, balance: 0, tokenAddress: this.contractAddress };
+    }
+    
+    try {
+      console.log(`Verifying token creation for contentId ${contentId}`);
+      
+      // If no creator address provided, try to get the first account
+      let ownerAddress = creatorAddress;
+      if (!ownerAddress && window.ethereum) {
+        try {
+          const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+          ownerAddress = accounts[0];
+          console.log(`Using connected account as owner: ${ownerAddress}`);
+        } catch (e) {
+          console.error('Failed to get accounts from MetaMask:', e);
+        }
+      }
+      
+      if (!ownerAddress) {
+        console.error('No owner address available for verification');
+        return { success: false, balance: 0, tokenAddress: this.contractAddress };
+      }
+      
+      // Check balance using multiple methods for reliability
+      try {
+        // Method 1: Direct contract balance check
+        const balance = await this.getTokenBalance(ownerAddress, contentId);
+        console.log(`Token balance for ${ownerAddress} is ${balance}`);
+        
+        // Method 2: Try using direct Ganache provider
+        const ganacheProvider = new ethers.providers.JsonRpcProvider('http://localhost:8545');
+        const tokenContract = new ethers.Contract(
+          this.contractAddress,
+          wyllohTokenAbi,
+          ganacheProvider
+        );
+        
+        const ganacheBalance = await tokenContract.balanceOf(ownerAddress, contentId);
+        console.log(`Token balance from Ganache provider: ${ganacheBalance.toString()}`);
+        
+        // Use the maximum balance reported by either method
+        const maxBalance = Math.max(balance, ganacheBalance.toNumber());
+        
+        // Success if the balance is greater than 0
+        const success = maxBalance > 0;
+        
+        return { 
+          success, 
+          balance: maxBalance,
+          tokenAddress: this.contractAddress
+        };
+      } catch (error) {
+        console.error('Error checking token balance:', error);
+        return { success: false, balance: 0, tokenAddress: this.contractAddress };
+      }
+    } catch (error) {
+      console.error('Error verifying token creation:', error);
+      return { success: false, balance: 0, tokenAddress: this.contractAddress };
+    }
+  }
+
+  /**
+   * Add token to MetaMask
+   * @param tokenId The token ID to add
+   * @returns Promise resolving to boolean indicating success
+   */
+  async addTokenToMetaMask(tokenId: string): Promise<boolean> {
+    if (!window.ethereum) {
+      console.error('MetaMask not available');
+      return false;
+    }
+    
+    try {
+      console.log(`Adding token ${tokenId} to MetaMask`);
+      
+      // Note: MetaMask does not fully support adding ERC-1155 tokens through wallet_watchAsset yet
+      // This is best effort and may not work in all versions of MetaMask
+      try {
+        // Try to add as an NFT (ERC-721)
+        const wasAdded = await window.ethereum.request({
+          method: 'wallet_watchAsset',
+          params: [
+            {
+              type: 'ERC721', 
+              options: {
+                address: this.contractAddress,
+                tokenId: tokenId,
+              },
+            }
+          ]
+        });
+        
+        if (wasAdded) {
+          console.log('Token was added to MetaMask as ERC-721');
+          return true;
+        }
+      } catch (nftError) {
+        console.warn('Failed to add as ERC-721:', nftError);
+        
+        // Try to add as a standard token (fallback to ERC-20)
+        try {
+          const wasAdded = await window.ethereum.request({
+            method: 'wallet_watchAsset',
+            params: [
+              {
+                type: 'ERC20', 
+                options: {
+                  address: this.contractAddress,
+                  symbol: 'WYLLOH',
+                  decimals: 0,
+                  image: `https://localhost:3000/assets/token-icon.png`,
+                },
+              }
+            ]
+          });
+          
+          if (wasAdded) {
+            console.log('Token contract was added to MetaMask as ERC-20');
+            console.warn('Note: This adds the contract but not the specific token ID');
+            return true;
+          }
+        } catch (erc20Error) {
+          console.warn('Failed to add as ERC-20:', erc20Error);
+        }
+      }
+      
+      console.log('Token was not added to MetaMask');
+      console.log('To view tokens in MetaMask, go to NFTs tab and click Import NFTs, then enter:');
+      console.log(`Contract Address: ${this.contractAddress}`);
+      console.log(`Token ID: ${tokenId}`);
+      
+      return false;
+    } catch (error) {
+      console.error('Error adding token to MetaMask:', error);
+      console.log('To manually add the token to MetaMask, go to NFTs tab and click Import NFTs, then enter:');
+      console.log(`Contract Address: ${this.contractAddress}`);
+      console.log(`Token ID: ${tokenId}`);
+      return false;
     }
   }
 }

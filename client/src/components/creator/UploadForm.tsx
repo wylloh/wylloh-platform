@@ -621,7 +621,7 @@ const UploadForm: React.FC = () => {
             }
           );
           console.log('Content tokenized successfully during upload');
-          setSubmitMessage('Content tokenized successfully!');
+          setSubmitMessage('Content tokenized successfully! You can verify your token below and then navigate to your dashboard.');
         } catch (tokenizeError: any) {
           console.error('Error tokenizing content during upload:', tokenizeError);
           // Set error message but don't prevent continuing
@@ -633,25 +633,21 @@ const UploadForm: React.FC = () => {
       // Success!
       setSubmitSuccess(true);
       
-      // Navigate to TokenizePublishPage after short delay if tokenization is not enabled
-      // Otherwise navigate directly to the dashboard
-      setTimeout(() => {
-        if (formData.tokenization.enabled) {
-          // If tokenization is enabled, we'll handle it directly during upload
-          navigate('/creator/dashboard', { 
-            state: { 
-              message: 'Content uploaded successfully with tokenization settings!' 
-            }
-          });
-        } else {
-          // If tokenization was explicitly disabled, go straight to dashboard
+      // Only redirect if tokenization is not enabled
+      if (!formData.tokenization.enabled) {
+        // Navigate to dashboard after short delay if tokenization is not enabled
+        setTimeout(() => {
           navigate('/creator/dashboard', {
             state: {
               message: 'Content uploaded successfully! You can tokenize it later from your dashboard.'
             }
           });
-        }
-      }, 2000);
+        }, 2000);
+      } else {
+        // When tokenization is enabled, we now stay on the page
+        // This gives the user time to verify the token using the verification component
+        setSubmitMessage('Content tokenized successfully! You can verify your token below and then navigate to your dashboard.');
+      }
     } catch (error: any) {
       console.error('Error submitting content:', error);
       setSubmitError(error.message || 'Failed to submit content');
