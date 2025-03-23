@@ -315,10 +315,33 @@ class BlockchainService {
       // Force the use of MetaMask provider if available to ensure popup appears
       if (window.ethereum) {
         console.log('Using MetaMask provider for token creation to ensure popup appears');
-        web3Provider = new ethers.providers.Web3Provider(window.ethereum);
         
-        // Request account access if needed
-        await window.ethereum.request({ method: 'eth_requestAccounts' });
+        try {
+          // Request account access explicitly - this should trigger the MetaMask popup
+          console.log('Requesting MetaMask account access...');
+          const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+          console.log('MetaMask accounts:', accounts);
+          
+          if (!accounts || accounts.length === 0) {
+            throw new Error('MetaMask access denied or no accounts available');
+          }
+          
+          // Create fresh Web3Provider
+          web3Provider = new ethers.providers.Web3Provider(window.ethereum);
+          console.log('MetaMask Web3Provider created successfully');
+        } catch (metamaskError) {
+          console.error('Error requesting MetaMask account access:', metamaskError);
+          
+          // Provide more helpful error message
+          if (metamaskError instanceof Error) {
+            if (metamaskError.message.includes('denied') || metamaskError.message.includes('rejected')) {
+              throw new Error('MetaMask access denied. Please approve the connection request in MetaMask.');
+            } else if (metamaskError.message.includes('chain ID')) {
+              throw new Error('Please connect MetaMask to the correct network (Ganache/localhost:8545).');
+            }
+          }
+          throw metamaskError;
+        }
       } else if (this.provider instanceof ethers.providers.Web3Provider) {
         web3Provider = this.provider as ethers.providers.Web3Provider;
       } else {
@@ -328,8 +351,15 @@ class BlockchainService {
       
       // Get signer from Web3Provider
       const signer = web3Provider.getSigner();
-      const signerAddress = await signer.getAddress();
-      console.log(`Creating token as ${signerAddress}`);
+      let signerAddress;
+      
+      try {
+        signerAddress = await signer.getAddress();
+        console.log(`Creating token as ${signerAddress}`);
+      } catch (signerError) {
+        console.error('Error getting signer address:', signerError);
+        throw new Error('Error accessing your wallet. Please make sure MetaMask is unlocked and connected.');
+      }
       
       // Connect with signer
       const tokenContractWithSigner = new ethers.Contract(
@@ -348,17 +378,65 @@ class BlockchainService {
         royaltyBasisPoints: royaltyPercentage * 100
       });
       
-      // Create token - this should trigger MetaMask popup
-      const tx = await tokenContractWithSigner.createToken(
-        signerAddress,
-        initialSupply,
-        contentURI,
-        royaltyPercentage * 100 // Convert percentage to basis points (100 = 1%)
-      );
+      // Check network connection before attempting transaction
+      try {
+        const network = await web3Provider.getNetwork();
+        console.log('Current network:', network);
+        
+        // Check if we're on a supported network (chainId 1337 is typically Ganache)
+        const expectedChainId = parseInt(process.env.REACT_APP_CHAIN_ID || '1337');
+        if (network.chainId !== expectedChainId) {
+          console.warn(`You're on network with chainId ${network.chainId}, but expected ${expectedChainId}`);
+        }
+      } catch (networkError) {
+        console.error('Error checking network:', networkError);
+        throw new Error('Error connecting to blockchain network. Please check your connection.');
+      }
       
-      console.log('Token creation transaction submitted:', tx.hash);
-      const receipt = await tx.wait();
-      console.log('Token creation confirmed in block:', receipt.blockNumber);
+      // Create token - this should trigger MetaMask popup
+      console.log('Calling createToken contract method...');
+      let tx;
+      try {
+        // Set gas limit explicitly to avoid estimation errors
+        tx = await tokenContractWithSigner.createToken(
+          signerAddress,
+          initialSupply,
+          contentURI,
+          royaltyPercentage * 100, // Convert percentage to basis points (100 = 1%)
+          { gasLimit: 3000000 } // Explicit gas limit to avoid estimation issues
+        );
+        
+        console.log('Token creation transaction submitted:', tx.hash);
+      } catch (txError) {
+        console.error('Error submitting token creation transaction:', txError);
+        
+        // Provide more specific error messages
+        if (txError instanceof Error) {
+          if (txError.message.includes('denied') || txError.message.includes('rejected')) {
+            throw new Error('Transaction was rejected in MetaMask. Please approve the transaction to create tokens.');
+          } else if (txError.message.includes('insufficient funds')) {
+            throw new Error('Your wallet has insufficient funds to complete this transaction.');
+          } else if (txError.message.includes('gas required exceeds allowance')) {
+            throw new Error('Transaction would exceed gas limits. Please try with a smaller initial supply.');
+          } else if (txError.message.includes('execution reverted')) {
+            throw new Error('Transaction failed: Contract execution reverted. This may be due to contract restrictions.');
+          } else if (txError.message.includes('JSON-RPC')) {
+            throw new Error('JSON-RPC error: There was a problem communicating with the blockchain. Please check your connection to MetaMask and the local blockchain.');
+          }
+        }
+        throw txError;
+      }
+      
+      // Wait for transaction confirmation
+      console.log('Waiting for transaction confirmation...');
+      let receipt;
+      try {
+        receipt = await tx.wait();
+        console.log('Token creation confirmed in block:', receipt.blockNumber);
+      } catch (confirmError) {
+        console.error('Error confirming token creation transaction:', confirmError);
+        throw new Error('Transaction was submitted but could not be confirmed. Please check your transaction in MetaMask.');
+      }
       
       // Verify that creator received the tokens
       const creatorBalance = await this.getTokenBalance(signerAddress, contentId);

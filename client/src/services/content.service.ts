@@ -386,7 +386,8 @@ class ContentService {
       
       console.log('Environment:', process.env.NODE_ENV);
       console.log('Demo Mode:', isDemoMode);
-      console.log('Force tokenization:', forceTokenization);
+      console.log('Force tokenization enabled:', forceTokenization);
+      console.log('forceRetokenize flag value:', tokenizationData.forceRetokenize);
       
       if (forceTokenization) {
         console.log('Development/Demo mode: Bypassing tokenization check');
@@ -411,6 +412,16 @@ class ContentService {
 
       // Create token on blockchain
       try {
+        // Make sure blockchain service is initialized
+        if (!blockchainService.isInitialized()) {
+          console.error('Blockchain service not initialized. Attempting to initialize...');
+          blockchainService.initialize();
+          
+          if (!blockchainService.isInitialized()) {
+            throw new Error('Failed to initialize blockchain service. Please check your network connection and reload the page.');
+          }
+        }
+        
         // Check if MetaMask is available
         if (!(window as any).ethereum) {
           console.error('MetaMask not detected. Cannot create token.');
@@ -424,7 +435,8 @@ class ContentService {
           title: content.title,
           description: content.description,
           rightsThresholds: rightsThresholds,
-          royaltyPercentage: tokenizationData.royaltyPercentage
+          royaltyPercentage: tokenizationData.royaltyPercentage,
+          forceRetokenize: forceTokenization
         });
         
         // Inform user to check MetaMask
