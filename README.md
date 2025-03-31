@@ -229,3 +229,43 @@ sudo ./setup.sh
    - Set up network connectivity
 
 3. For manual configuration, see the [Seed One Setup Guide](seed-one/README.md)
+
+## Testing Tokenization Process
+
+After the recent fixes to the token creation and verification process, follow these steps to test tokenization:
+
+1. Start the demo environment:
+   ```
+   ./stop-demo.sh && yarn demo
+   ```
+
+2. Open your browser and navigate to http://localhost:3000
+
+3. Log in with the Pro user account:
+   - Email: pro@example.com
+   - Password: password
+
+4. Upload content:
+   - Navigate to Creator Dashboard
+   - Click "Upload New Content"
+   - Complete the form and submit
+
+5. Tokenize the content:
+   - Click "Tokenize" on your content
+   - Fill in token details
+   - Click "Submit" to create the token
+   - Approve the MetaMask transaction when prompted
+
+6. Verify success:
+   - Wait for token verification to complete
+   - You should see a success message
+   - Content should appear in the Marketplace with token badge
+
+If you encounter any issues:
+- Check browser console for detailed error messages (F12 > Console)
+- Ensure MetaMask is connected to localhost:8545 network
+- Verify TOKEN_CONTRACT_ADDRESS matches REACT_APP_CONTRACT_ADDRESS in client/.env.local
+
+Common errors:
+- "Token verification failed: Balance is 0" - Check if MetaMask transaction was approved
+- "No contract found at address" - Ensure contracts are deployed correctly

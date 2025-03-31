@@ -231,6 +231,44 @@ const TokenizePublishPage: React.FC = () => {
         return;
       }
 
+      // First check if MetaMask is installed and connected
+      if (!window.ethereum) {
+        throw new Error('MetaMask is required for tokenization. Please install MetaMask and refresh the page.');
+      }
+      
+      // Try to get the current account
+      let accounts;
+      try {
+        accounts = await window.ethereum.request({ method: 'eth_accounts' });
+        if (!accounts || accounts.length === 0) {
+          console.log('No accounts connected, requesting account access...');
+          accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+        }
+      } catch (err) {
+        console.error('Error connecting to MetaMask:', err);
+        throw new Error('Failed to connect to MetaMask. Please ensure MetaMask is unlocked and try again.');
+      }
+      
+      if (!accounts || accounts.length === 0) {
+        throw new Error('No MetaMask accounts available. Please unlock and connect your MetaMask wallet.');
+      }
+      
+      console.log('Using MetaMask account:', accounts[0]);
+      
+      // Check if on the correct network (Ganache for demo)
+      try {
+        const chainIdHex = await window.ethereum.request({ method: 'eth_chainId' });
+        const chainId = parseInt(chainIdHex, 16);
+        console.log(`Current chain ID: ${chainId}`);
+        
+        // For the demo, we need to be on chainId 1337 (Ganache)
+        if (chainId !== 1337) {
+          console.warn('Not on the expected network (Ganache). This may cause issues with tokenization.');
+        }
+      } catch (err) {
+        console.error('Error checking network:', err);
+      }
+
       // Convert price from string to float
       const priceAsFloat = parseFloat(formData.initialPrice);
       
@@ -249,28 +287,73 @@ const TokenizePublishPage: React.FC = () => {
         forceRetokenize: showDevOptions && forceRetokenize
       });
       
-      // Tokenize content
-      await contentService.tokenizeContent(
-        contentInfo.id,
-        {
-          initialSupply: formData.initialSupply,
-          royaltyPercentage: formData.royaltyPercentage,
-          price: priceAsFloat,
-          rightsThresholds: formData.rightsThresholds.map(rt => ({
-            quantity: rt.quantity,
-            type: rt.type
-          })),
-          forceRetokenize: showDevOptions && forceRetokenize
-        }
-      );
+      // Show message that MetaMask will prompt for transaction approval
+      // This helps the user understand to look for the MetaMask popup
+      setError('Please approve the transaction in your MetaMask wallet to continue. The MetaMask popup should appear shortly.');
       
-      // Navigate to creator dashboard with success message
-      navigate('/creator/dashboard', {
-        state: {
-          success: true,
-          message: `${contentInfo.title} has been tokenized and published to the marketplace.`
+      try {
+        // Tokenize content
+        const tokenizedContent = await contentService.tokenizeContent(
+          contentInfo.id,
+          {
+            initialSupply: formData.initialSupply,
+            royaltyPercentage: formData.royaltyPercentage,
+            price: priceAsFloat,
+            rightsThresholds: formData.rightsThresholds.map(rt => ({
+              quantity: rt.quantity,
+              type: rt.type
+            })),
+            forceRetokenize: showDevOptions && forceRetokenize
+          }
+        );
+        
+        // Clear the error that was showing the MetaMask prompt message
+        setError(null);
+        
+        // Add a verification step to confirm token creation before redirecting
+        setError('Verifying token creation...');
+        
+        // Import blockchain service dynamically
+        const { blockchainService } = await import('../../services/blockchain.service');
+        
+        // Wait a moment to ensure blockchain state is updated
+        await new Promise(resolve => setTimeout(resolve, 3000));
+        
+        // Verify token creation using blockchain service
+        const verificationResult = await blockchainService.verifyTokenCreation(contentInfo.id, accounts[0]);
+        console.log('Token verification result:', verificationResult);
+        
+        if (verificationResult.success && verificationResult.balance > 0) {
+          // Navigate to creator dashboard with success message
+          navigate('/creator/dashboard', {
+            state: {
+              success: true,
+              message: `${contentInfo.title} has been tokenized and published to the marketplace.`
+            }
+          });
+        } else {
+          throw new Error('Token creation transaction submitted, but token verification failed. Your content was not fully tokenized.');
         }
-      });
+      } catch (tokenizationError) {
+        console.error('Error in tokenization or verification:', tokenizationError);
+        
+        // Check if we need to fetch the content again to prevent duplicates
+        const updatedContent = await contentService.getContentById(contentInfo.id);
+        
+        if (updatedContent?.tokenized) {
+          // If marked as tokenized but verification failed, update the content status
+          console.log('Content marked as tokenized but verification failed, attempting cleanup');
+          
+          // Store failure in local storage to prevent duplicate marketplace entries
+          try {
+            localStorage.setItem(`tokenization_failed_${contentInfo.id}`, 'true');
+          } catch (storageError) {
+            console.error('Error updating localStorage:', storageError);
+          }
+        }
+        
+        throw tokenizationError;
+      }
     } catch (err: any) {
       console.error('Error tokenizing content:', err);
       
@@ -284,8 +367,16 @@ const TokenizePublishPage: React.FC = () => {
         setTimeout(() => {
           navigate('/creator/dashboard');
         }, 3000);
-      } else if (err.message && err.message.includes('0 balance')) {
+      } else if (err.message && err.message.includes('MetaMask')) {
+        if (err.message.includes('rejected')) {
+          errorMessage = 'Transaction rejected in MetaMask. Please approve the transaction to tokenize your content.';
+        } else {
+          errorMessage = err.message;
+        }
+      } else if (err.message && err.message.includes('balance')) {
         errorMessage = 'Token creation failed: The creator received 0 tokens. Please try again or contact support.';
+      } else if (err.message && err.message.includes('network') || err.message.includes('chainId')) {
+        errorMessage = 'Network error: Please make sure MetaMask is connected to the local Ganache network (localhost:8545).';
       }
       
       setError(errorMessage);

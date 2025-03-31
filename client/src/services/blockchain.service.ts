@@ -13,7 +13,7 @@ const wyllohTokenAbi = [
   "function safeTransferFrom(address from, address to, uint256 id, uint256 amount, bytes data)",
   "function setApprovalForAll(address operator, bool approved)",
   "function mint(address to, uint256 id, uint256 amount, bytes data)",
-  "function createToken(address initialOwner, uint256 initialSupply, string memory contentURI, uint96 royaltyPercentage)",
+  "function create(address to, uint256 id, uint256 amount, string memory contentId, string memory contentHash, string memory contentType, string memory tokenURI, address royaltyRecipient, uint96 royaltyPercentage)",
   "function setRightsThresholds(uint256 tokenId, tuple(uint256 quantity, string rightsType)[] thresholds)",
   
   // Events
@@ -312,255 +312,236 @@ class BlockchainService {
       // Print contract ABI for debugging
       console.log('Using Token ABI:', wyllohTokenAbi);
       
-      // Ensure we're using Web3Provider for MetaMask interaction
-      let web3Provider: ethers.providers.Web3Provider;
-      
-      // Force the use of MetaMask provider if available to ensure popup appears
-      if (window.ethereum) {
-        console.log('Using MetaMask provider for token creation to ensure popup appears');
-        
-        try {
-          // Request account access explicitly - this should trigger the MetaMask popup
-          console.log('Requesting MetaMask account access...');
-          const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
-          console.log('MetaMask accounts:', accounts);
-          
-          if (!accounts || accounts.length === 0) {
-            throw new Error('MetaMask access denied or no accounts available');
-          }
-          
-          // Create fresh Web3Provider
-          web3Provider = new ethers.providers.Web3Provider(window.ethereum);
-          console.log('MetaMask Web3Provider created successfully');
-        } catch (metamaskError) {
-          console.error('Error requesting MetaMask account access:', metamaskError);
-          
-          // Provide more helpful error message
-          if (metamaskError instanceof Error) {
-            if (metamaskError.message.includes('denied') || metamaskError.message.includes('rejected')) {
-              throw new Error('MetaMask access denied. Please approve the connection request in MetaMask.');
-            } else if (metamaskError.message.includes('chain ID')) {
-              throw new Error('Please connect MetaMask to the correct network (Ganache/localhost:8545).');
-            }
-          }
-          throw metamaskError;
-        }
-      } else if (this.provider instanceof ethers.providers.Web3Provider) {
-        web3Provider = this.provider as ethers.providers.Web3Provider;
-      } else {
-        console.error('MetaMask provider not available for token creation');
+      // Force MetaMask connection before attempting transaction
+      if (!window.ethereum) {
+        console.error('MetaMask not available for token creation');
         throw new Error('MetaMask not available. Please install MetaMask to create tokens.');
       }
       
-      // Get signer from Web3Provider
-      const signer = web3Provider.getSigner();
-      let signerAddress;
+      console.log('Using MetaMask provider for token creation to ensure popup appears');
       
+      // Reset connection to MetaMask to ensure fresh state
       try {
-        signerAddress = await signer.getAddress();
-        console.log(`Creating token as ${signerAddress}`);
-      } catch (signerError) {
-        console.error('Error getting signer address:', signerError);
-        throw new Error('Error accessing your wallet. Please make sure MetaMask is unlocked and connected.');
-      }
-      
-      // Connect with signer
-      const tokenContractWithSigner = new ethers.Contract(
-        this.contractAddress,
-        wyllohTokenAbi,
-        signer
-      );
-      
-      // Create content URI (simplified version for demo)
-      const contentURI = `ipfs://${contentId}`;
-      
-      console.log(`Calling createToken with parameters:`, {
-        signerAddress,
-        initialSupply,
-        contentURI,
-        royaltyBasisPoints: royaltyPercentage * 100
-      });
-      
-      // Check network connection before attempting transaction
-      try {
+        // Try to get current chainId from MetaMask
+        const chainIdHex = await window.ethereum.request({ method: 'eth_chainId' });
+        const chainId = parseInt(chainIdHex, 16);
+        console.log(`Current MetaMask chainId: ${chainId}`);
+        
+        // Explicitly request accounts to trigger MetaMask popup if not connected
+        console.log('Requesting MetaMask account access...');
+        const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+        
+        if (!accounts || accounts.length === 0) {
+          throw new Error('No MetaMask accounts available. Please connect your wallet first.');
+        }
+        
+        // Get the connected account address
+        const signerAddress = accounts[0];
+        console.log(`Using account address for token creation: ${signerAddress}`);
+        
+        // Create fresh Web3Provider after account request
+        const web3Provider = new ethers.providers.Web3Provider(window.ethereum);
+        
+        // Get network info
         const network = await web3Provider.getNetwork();
-        console.log('Current network:', network);
+        console.log('Connected to network:', network);
         
         // Check if we're on a supported network (chainId 1337 is typically Ganache)
         const expectedChainId = parseInt(process.env.REACT_APP_CHAIN_ID || '1337');
         if (network.chainId !== expectedChainId) {
-          console.warn(`You're on network with chainId ${network.chainId}, but expected ${expectedChainId} (Ganache). Please switch networks in MetaMask.`);
-          throw new Error(`Please connect MetaMask to the correct network. Expected chainId: ${expectedChainId} (Ganache/localhost), current: ${network.chainId}`);
-        }
-      } catch (networkError) {
-        console.error('Error checking network:', networkError);
-        throw new Error('Error connecting to blockchain network. Please check your connection.');
-      }
-      
-      // Display debugging info about Ganache accounts
-      if (process.env.NODE_ENV === 'development' || process.env.REACT_APP_DEMO_MODE === 'true') {
-        try {
-          const jsonRpcProvider = new ethers.providers.JsonRpcProvider('http://localhost:8545');
-          const accounts = await jsonRpcProvider.listAccounts();
-          console.log('Available Ganache accounts:', accounts);
+          console.warn(`You're on network with chainId ${network.chainId}, but expected ${expectedChainId} (Ganache). Attempting to switch networks.`);
           
-          // Check balances
-          for (const account of accounts.slice(0, 2)) {
-            const balance = await jsonRpcProvider.getBalance(account);
-            console.log(`Account ${account} has ${ethers.utils.formatEther(balance)} ETH`);
+          try {
+            // Try to switch to the correct network
+            await window.ethereum.request({
+              method: 'wallet_switchEthereumChain',
+              params: [{ chainId: `0x${expectedChainId.toString(16)}` }],
+            });
+            console.log('Successfully switched networks');
+          } catch (switchError) {
+            console.error('Failed to switch networks:', switchError);
+            throw new Error(`Please manually connect MetaMask to the local Ganache network (chainId: ${expectedChainId})`);
           }
-        } catch (e) {
-          console.log('Error fetching Ganache accounts for debugging:', e);
         }
-      }
-      
-      // Create token - this should trigger MetaMask popup
-      console.log('Calling createToken contract method...');
-      let tx;
-      try {
-        // Set gas limit explicitly to avoid estimation errors
-        tx = await tokenContractWithSigner.createToken(
+        
+        // Get signer from Web3Provider
+        const signer = web3Provider.getSigner();
+        
+        // Connect with signer
+        const tokenContractWithSigner = new ethers.Contract(
+          this.contractAddress,
+          wyllohTokenAbi,
+          signer
+        );
+        
+        // Create content URI (simplified version for demo)
+        const contentURI = `ipfs://${contentId}`;
+        
+        console.log(`Calling createToken with parameters:`, {
           signerAddress,
           initialSupply,
           contentURI,
-          royaltyPercentage * 100, // Convert percentage to basis points (100 = 1%)
-          { 
-            gasLimit: 3000000, // Explicit gas limit to avoid estimation issues
-            gasPrice: ethers.utils.parseUnits('20', 'gwei') // Set explicit gas price for Ganache
-          }
-        );
-        
-        console.log('Token creation transaction submitted:', tx);
-        console.log('Transaction hash:', tx.hash);
-        console.log('Waiting for transaction confirmation...');
-      } catch (txError) {
-        console.error('Error submitting token creation transaction:', txError);
-        
-        // Provide more specific error messages
-        if (txError instanceof Error) {
-          if (txError.message.includes('denied') || txError.message.includes('rejected')) {
-            throw new Error('Transaction was rejected in MetaMask. Please approve the transaction to create tokens.');
-          } else if (txError.message.includes('insufficient funds')) {
-            throw new Error('Your wallet has insufficient funds to complete this transaction.');
-          } else if (txError.message.includes('gas required exceeds allowance')) {
-            throw new Error('Transaction would exceed gas limits. Please try with a smaller initial supply.');
-          } else if (txError.message.includes('execution reverted')) {
-            throw new Error('Transaction failed: Contract execution reverted. This may be due to contract restrictions.');
-          } else if (txError.message.includes('JSON-RPC')) {
-            throw new Error('JSON-RPC error: There was a problem communicating with the blockchain. Please check your connection to MetaMask and the local blockchain.');
-          }
-        }
-        throw txError;
-      }
-      
-      // Wait for transaction confirmation with timeout
-      console.log('Waiting for transaction confirmation...');
-      let receipt;
-      try {
-        // Implement a timeout for transaction confirmation (30 seconds)
-        const confirmationPromise = tx.wait();
-        const timeoutPromise = new Promise((_, reject) => {
-          setTimeout(() => reject(new Error('Transaction confirmation timeout')), 30000);
+          royaltyBasisPoints: royaltyPercentage * 100
         });
         
-        receipt = await Promise.race([confirmationPromise, timeoutPromise]);
-        console.log('Token creation confirmed in block:', receipt.blockNumber);
-        console.log('Transaction receipt:', receipt);
-      } catch (confirmError) {
-        console.error('Error confirming token creation transaction:', confirmError);
-        
-        // Check if the error is a timeout
-        if (confirmError instanceof Error && confirmError.message === 'Transaction confirmation timeout') {
-          console.log('Transaction confirmation timed out. The transaction may still complete.');
-          
-          // Still return the transaction hash so the UI can proceed
-          console.log('Returning transaction hash despite timeout:', tx.hash);
-          return tx.hash;
-        }
-        
-        throw new Error('Transaction was submitted but could not be confirmed. Please check your transaction in MetaMask.');
-      }
-      
-      // Verify that creator received the tokens
-      console.log(`Checking token balance for creator ${signerAddress} after creation...`);
-      
-      // Use multiple methods to verify token balance
-      try {
-        // 1. Check using standard web3Provider
-        const balanceStandard = await tokenContractWithSigner.balanceOf(signerAddress, contentId);
-        console.log(`Creator's token balance (standard provider): ${balanceStandard.toString()}`);
-        
-        // 2. Try with direct Ganache provider
-        const ganacheProvider = new ethers.providers.JsonRpcProvider('http://localhost:8545');
-        const tokenContractGanache = new ethers.Contract(
-          this.contractAddress,
-          wyllohTokenAbi,
-          ganacheProvider
-        );
-        
-        const balanceGanache = await tokenContractGanache.balanceOf(signerAddress, contentId);
-        console.log(`Creator's token balance (Ganache provider): ${balanceGanache.toString()}`);
-        
-        // Check if balances match
-        if (balanceStandard.toString() !== balanceGanache.toString()) {
-          console.warn(`Balance discrepancy: Standard provider: ${balanceStandard}, Ganache provider: ${balanceGanache}`);
-        }
-        
-        // Unified check regardless of which provider was used
-        const creatorBalance = Math.max(
-          balanceStandard.toNumber(),
-          balanceGanache.toNumber()
-        );
-        
-        console.log(`Final creator's token balance: ${creatorBalance}`);
-        
-        if (creatorBalance < initialSupply) {
-          console.warn(`Creator only received ${creatorBalance} tokens out of ${initialSupply} requested`);
-        }
-        
-        if (creatorBalance === 0) {
-          console.error('Token creation succeeded but creator has 0 balance');
-          throw new Error('Token creation succeeded but creator has 0 balance. This may be a contract issue.');
-        }
-      } catch (balanceError) {
-        console.error('Error checking creator balance:', balanceError);
-        // Continue despite balance check error - don't fail the token creation
-        console.warn('Unable to verify creator balance, but transaction was submitted successfully');
-      }
-      
-      // Set rights thresholds if provided
-      if (tokenMetadata.rightsThresholds && tokenMetadata.rightsThresholds.length > 0) {
-        console.log('Setting rights thresholds...');
-        
-        // TokenId is content ID for demo simplicity
-        const tokenId = contentId;
-        
-        // Format rights thresholds for contract
-        const thresholds = tokenMetadata.rightsThresholds.map((t: any) => {
-          return {
-            quantity: t.quantity,
-            rightsType: t.type
-          };
-        });
-        
+        // For debugging, check the contract state before token creation
         try {
-          // Call setRightsThresholds function
-          const thresholdsTx = await tokenContractWithSigner.setRightsThresholds(
-            tokenId,
-            thresholds
+          console.log(`Checking if token ${contentId} already exists...`);
+          const exists = await tokenContractWithSigner.exists(contentId);
+          console.log(`Token ${contentId} exists: ${exists}`);
+          
+          if (exists) {
+            console.log('Token already exists, checking current balance...');
+            const currentBalance = await tokenContractWithSigner.balanceOf(signerAddress, contentId);
+            console.log(`Current balance for token ${contentId}: ${currentBalance.toString()}`);
+          }
+        } catch (checkError) {
+          console.warn('Error checking token existence:', checkError);
+        }
+        
+        // Display debugging info about Ganache accounts
+        if (process.env.NODE_ENV === 'development' || process.env.REACT_APP_DEMO_MODE === 'true') {
+          try {
+            const jsonRpcProvider = new ethers.providers.JsonRpcProvider('http://localhost:8545');
+            const accounts = await jsonRpcProvider.listAccounts();
+            console.log('Available Ganache accounts:', accounts);
+            
+            // Check balances
+            for (const account of accounts.slice(0, 2)) {
+              const balance = await jsonRpcProvider.getBalance(account);
+              console.log(`Account ${account} has ${ethers.utils.formatEther(balance)} ETH`);
+            }
+          } catch (e) {
+            console.log('Error fetching Ganache accounts for debugging:', e);
+          }
+        }
+        
+        // Create a unique token ID from the contentId using hash
+        // This ensures deterministic but unique IDs for each content
+        const tokenIdBytes = ethers.utils.solidityKeccak256(['string'], [contentId]);
+        const tokenId = ethers.BigNumber.from(tokenIdBytes);
+        
+        // Use more explicit transaction options for better reliability in the demo environment
+        console.log('Generating token ID from contentId:', {
+          contentId, 
+          tokenIdBytes: tokenIdBytes.substring(0, 20) + '...',
+          tokenId: tokenId.toString()
+        });
+        
+        console.log('Submitting createToken transaction...');
+        let tx;
+        try {
+          tx = await tokenContractWithSigner.create(
+            signerAddress,  // to - recipient address 
+            tokenId,        // id - token ID (using hash of contentId)
+            initialSupply,  // amount - initial token supply
+            contentId,      // contentId string
+            ethers.utils.keccak256(ethers.utils.toUtf8Bytes(contentId)),  // contentHash - hash of contentId
+            "media",        // contentType - type of content
+            contentURI,     // tokenURI - metadata URI
+            signerAddress,  // royaltyRecipient - creator address
+            royaltyPercentage * 100, // royaltyPercentage - convert percentage to basis points (100 = 1%)
+            { 
+              gasLimit: 5000000,  // Higher gas limit for local development
+              gasPrice: ethers.utils.parseUnits('50', 'gwei')  // Higher gas price for priority
+            }
           );
           
-          console.log('Rights thresholds transaction submitted:', thresholdsTx.hash);
-          await thresholdsTx.wait();
-          console.log('Rights thresholds set successfully');
-        } catch (rightsError) {
-          console.error('Error setting rights thresholds:', rightsError);
-          console.warn('Token was created but rights thresholds could not be set');
-          // Don't fail the token creation if rights thresholds fail
+          console.log('Token creation transaction submitted:', tx);
+          console.log('Transaction hash:', tx.hash);
+          
+          // Wait for transaction confirmation with timeout
+          console.log('Waiting for transaction confirmation...');
+          try {
+            // Implement a timeout for transaction confirmation (30 seconds)
+            const confirmationPromise = tx.wait(1); // Wait for 1 confirmation
+            const timeoutPromise = new Promise((_, reject) => {
+              setTimeout(() => reject(new Error('Transaction confirmation timeout')), 30000);
+            });
+            
+            const receipt = await Promise.race([confirmationPromise, timeoutPromise]);
+            console.log('Token creation confirmed in block:', receipt.blockNumber);
+            console.log('Transaction receipt:', receipt);
+            
+            // Verify that tokens were minted properly - add a longer delay to ensure blockchain state updates
+            console.log(`Waiting 3 seconds before checking token balance...`);
+            await new Promise(resolve => setTimeout(resolve, 3000));
+            
+            try {
+              const balanceAfter = await tokenContractWithSigner.balanceOf(signerAddress, tokenId);
+              console.log(`Creator's token balance after creation: ${balanceAfter.toString()}`);
+              
+              if (balanceAfter.eq(0)) {
+                console.warn('Warning: Creator has 0 tokens despite successful transaction. Attempting to mint tokens directly...');
+                
+                // If balance is still 0, try to mint tokens directly to the creator
+                try {
+                  console.log('Attempting direct token mint as a recovery mechanism...');
+                  const mintTx = await tokenContractWithSigner.mint(
+                    signerAddress,  // creator address to receive tokens
+                    tokenId,        // token ID
+                    initialSupply,  // amount to mint
+                    [],             // no data for simplicity
+                    { 
+                      gasLimit: 5000000,
+                      gasPrice: ethers.utils.parseUnits('50', 'gwei')
+                    }
+                  );
+                  
+                  console.log('Mint transaction submitted:', mintTx.hash);
+                  await mintTx.wait(1);
+                  
+                  // Check balance again after direct mint
+                  const balanceAfterMint = await tokenContractWithSigner.balanceOf(signerAddress, tokenId);
+                  console.log(`Creator's token balance after direct mint: ${balanceAfterMint.toString()}`);
+                  
+                  if (balanceAfterMint.eq(0)) {
+                    throw new Error('Failed to mint tokens to creator even with direct mint attempt');
+                  }
+                } catch (mintError) {
+                  console.error('Error attempting direct token mint:', mintError);
+                  throw new Error('Token creation succeeded but minting failed. This may be a contract implementation issue.');
+                }
+              }
+            } catch (balanceError) {
+              console.error('Error checking token balance after creation:', balanceError);
+              throw new Error('Error verifying token balance after creation. Please check the transaction in MetaMask.');
+            }
+          } catch (confirmError) {
+            console.error('Error confirming token creation transaction:', confirmError);
+            
+            // Check if the error is a timeout
+            if (confirmError instanceof Error && confirmError.message === 'Transaction confirmation timeout') {
+              console.log('Transaction confirmation timed out. The transaction may still complete.');
+              
+              // Still return the transaction hash so the UI can proceed
+              console.log('Returning transaction hash despite timeout:', tx.hash);
+              return tx.hash;
+            }
+            
+            throw new Error('Transaction was submitted but could not be confirmed. It may still be processing in the background.');
+          }
+        } catch (txError) {
+          console.error('Error submitting token creation transaction:', txError);
+          
+          // Provide more specific error messages
+          if (txError instanceof Error) {
+            if (txError.message.includes('denied') || txError.message.includes('rejected')) {
+              throw new Error('Transaction was rejected in MetaMask. Please approve the transaction to create tokens.');
+            } else if (txError.message.includes('insufficient funds')) {
+              throw new Error('Your wallet has insufficient funds to complete this transaction.');
+            } else if (txError.message.includes('gas required exceeds allowance')) {
+              throw new Error('Transaction would exceed gas limits. Please try with a smaller initial supply.');
+            }
+          }
+          throw txError;
         }
+        
+        return tx.hash;
+      } catch (error) {
+        console.error('MetaMask connection error:', error);
+        throw error;
       }
-      
-      return tx.hash;
     } catch (error) {
       console.error('Error creating token:', error);
       throw error;
@@ -573,14 +554,14 @@ class BlockchainService {
    * @param tokenId ID of the token to check balance for
    * @returns Number of tokens owned
    */
-  async getTokenBalance(address: string, tokenId: string): Promise<number> {
+  async getTokenBalance(address: string, tokenId: string | ethers.BigNumber): Promise<number> {
     if (!this.isInitialized()) {
       console.warn('BlockchainService not initialized for getTokenBalance');
       return 0;
     }
     
     try {
-      console.log(`Checking token balance for address ${address} and token ID ${tokenId}`);
+      console.log(`Checking token balance for address ${address} and token ID ${tokenId.toString()}`);
       
       // If in demo mode, try different providers to ensure we get the balance
       if (process.env.REACT_APP_DEMO_MODE === 'true' || process.env.NODE_ENV === 'development') {
@@ -593,7 +574,12 @@ class BlockchainService {
             localProvider
           );
           
-          const balanceBN = await localTokenContract.balanceOf(address, tokenId);
+          // Convert string tokenId to BigNumber if needed
+          const tokenIdBN = typeof tokenId === 'string' 
+            ? ethers.BigNumber.from(tokenId)
+            : tokenId;
+            
+          const balanceBN = await localTokenContract.balanceOf(address, tokenIdBN);
           const balance = balanceBN.toNumber();
           console.log(`Token balance result (local provider): ${balance}`);
           return balance;
@@ -604,7 +590,12 @@ class BlockchainService {
       }
       
       // Standard approach with web3 provider
-      const balanceBN = await this.tokenContract!.balanceOf(address, tokenId);
+      // Convert string tokenId to BigNumber if needed
+      const tokenIdBN = typeof tokenId === 'string' 
+        ? ethers.BigNumber.from(tokenId)
+        : tokenId;
+        
+      const balanceBN = await this.tokenContract!.balanceOf(address, tokenIdBN);
       const balance = balanceBN.toNumber();
       console.log(`Token balance result: ${balance}`);
       return balance;
@@ -1042,6 +1033,11 @@ class BlockchainService {
     try {
       console.log(`Verifying token creation for contentId ${contentId}`);
       
+      // Generate token ID from contentId the same way it was created
+      const tokenIdBytes = ethers.utils.solidityKeccak256(['string'], [contentId]);
+      const tokenId = ethers.BigNumber.from(tokenIdBytes);
+      console.log(`Generated token ID for verification: ${tokenId.toString()}`);
+      
       // If no creator address provided, try to get the first account
       let ownerAddress = creatorAddress;
       if (!ownerAddress && window.ethereum) {
@@ -1062,7 +1058,7 @@ class BlockchainService {
       // Check balance using multiple methods for reliability
       try {
         // Method 1: Direct contract balance check
-        const balance = await this.getTokenBalance(ownerAddress, contentId);
+        const balance = await this.getTokenBalance(ownerAddress, tokenId.toString());
         console.log(`Token balance for ${ownerAddress} is ${balance}`);
         
         // Method 2: Try using direct Ganache provider
@@ -1073,7 +1069,7 @@ class BlockchainService {
           ganacheProvider
         );
         
-        const ganacheBalance = await tokenContract.balanceOf(ownerAddress, contentId);
+        const ganacheBalance = await tokenContract.balanceOf(ownerAddress, tokenId);
         console.log(`Token balance from Ganache provider: ${ganacheBalance.toString()}`);
         
         // Use the maximum balance reported by either method

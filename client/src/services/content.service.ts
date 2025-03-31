@@ -298,43 +298,35 @@ class ContentService {
 
   async getMarketplaceContent(): Promise<Content[]> {
     try {
-      const response = await axios.get<ApiResponse<Content[]>>(`${this.baseUrl}/marketplace`);
-      const apiContent = response.data.data || [];
+      // Get content from API
+      const apiContent = await this.getAllContent();
       
-      // For marketplace, filter local content to only public/active items
-      const localContent = this.getLocalContent().filter(
+      // Filter for marketplace (public, active, tokenized)
+      const marketplaceContent = apiContent.filter(content => {
+        // Check if content has a tokenization failure flag in localStorage
+        const tokenizationFailed = localStorage.getItem(`tokenization_failed_${content.id}`) === 'true';
+        
+        // Skip content that has failed tokenization
+        if (tokenizationFailed) {
+          console.log(`Filtering out content with ID ${content.id} due to tokenization failure`);
+          return false;
+        }
+        
+        return content.status === 'active' && 
+               content.visibility === 'public' && 
+               content.tokenized === true;
+      });
+      
+      // Get mock content for demo mode - filter for marketplace items
+      const filteredMockContent = mockContent.filter(
         item => item.visibility === 'public' && item.status === 'active'
       );
       
-      // Include marketplace-appropriate mock content (public/active)
-      const filteredMock = mockContent.filter(
-        item => item.visibility === 'public' && item.status === 'active'
-      );
-      
-      // Debug output
-      console.log('API Content for marketplace:', apiContent.length);
-      console.log('Local Content for marketplace:', localContent.length);
-      console.log('Mock Content for marketplace:', filteredMock.length);
-      
-      return this.deduplicateContent([...apiContent, ...localContent, ...filteredMock]);
+      // Combine and deduplicate
+      return this.deduplicateContent([...marketplaceContent, ...filteredMockContent]);
     } catch (error) {
-      console.warn('API unavailable, returning filtered local and mock content:', error);
-      
-      // For marketplace, filter local content to only public/active items
-      const localContent = this.getLocalContent().filter(
-        item => item.visibility === 'public' && item.status === 'active'
-      );
-      
-      // Include marketplace-appropriate mock content (public/active)
-      const filteredMock = mockContent.filter(
-        item => item.visibility === 'public' && item.status === 'active'
-      );
-      
-      // Debug output
-      console.log('Local Content for marketplace (fallback):', localContent.length);
-      console.log('Mock Content for marketplace (fallback):', filteredMock.length);
-      
-      return this.deduplicateContent([...localContent, ...filteredMock]);
+      console.error('Error getting marketplace content:', error);
+      return [];
     }
   }
 
@@ -450,130 +442,162 @@ class ContentService {
         // Inform user to check MetaMask
         console.log('Please check MetaMask for a transaction confirmation popup');
         
-        const txHash = await blockchainService.createToken(
-          id,
-          tokenizationData.initialSupply,
-          {
-            contentId: id,
-            title: content.title,
-            description: content.description,
-            rightsThresholds: rightsThresholds
-          },
-          tokenizationData.royaltyPercentage
-        );
-        
-        console.log('Token creation transaction submitted, hash:', txHash);
-        
-        // Update content metadata even if transaction confirmation timed out
-        // This allows the UI to proceed, and we'll verify token creation in the background
-        const updatedContent = {
-          ...content,
-          tokenized: true,
-          tokenId: id, // In a real implementation, this would be the token ID from the blockchain
-          price: tokenizationData.price,
-          available: tokenizationData.initialSupply,
-          totalSupply: tokenizationData.initialSupply,
-          rightsThresholds: rightsThresholds,
-          status: 'active' as const,
-          visibility: 'public' as const
-        };
-        
-        // Make sure creator address is stored with the content
-        if (walletAddress && !updatedContent.creatorAddress) {
-          console.log(`Setting creator address to ${walletAddress}`);
-          updatedContent.creatorAddress = walletAddress;
-        }
-        
-        // Attempt to update content in API
-        let apiUpdated = false;
+        // Attempt to create token and get transaction hash
+        let txHash: string;
         try {
-          const response = await axios.put<ApiResponse<Content>>(
-            `${this.baseUrl}/${id}`, 
-            updatedContent
+          txHash = await blockchainService.createToken(
+            id,
+            tokenizationData.initialSupply,
+            {
+              contentId: id,
+              title: content.title,
+              description: content.description,
+              rightsThresholds: rightsThresholds
+            },
+            tokenizationData.royaltyPercentage
           );
           
-          // If API call succeeded, mark as updated
-          console.log('Content updated with tokenization info in API:', response.data.data);
-          apiUpdated = true;
-        } catch (apiError) {
-          console.warn('Failed to update content in API, falling back to local storage:', apiError);
-          // Fall back to local storage update
-          this.saveLocalContent(updatedContent);
-        }
-        
-        // Verify token creation by checking creator's balance in the background
-        // This doesn't block the UI but ensures we eventually verify the token creation
-        setTimeout(async () => {
-          try {
-            if (walletAddress) {
-              console.log(`Verifying token balance for creator wallet after delay: ${walletAddress}`);
-              const balance = await blockchainService.getTokenBalance(walletAddress, id);
-              console.log(`Creator's token balance after delayed check: ${balance}`);
-              
-              if (balance === 0) {
-                console.error('Warning: Token creation transaction was submitted but balance is still 0 after delay');
-                
-                // Even if token verification fails, don't revert the UI state
-                // Just log the issue for debugging
-              } else {
-                console.log(`Token verified: Creator has ${balance} tokens`);
-                
-                // Only update API again if we have a confirmed balance and API update failed before
-                if (!apiUpdated) {
-                  try {
-                    console.log('Attempting to update API with confirmed tokenization...');
-                    await axios.put<ApiResponse<Content>>(`${this.baseUrl}/${id}`, updatedContent);
-                    console.log('API updated with confirmed tokenization');
-                  } catch (laterApiError) {
-                    console.warn('Still unable to update API after token verification:', laterApiError);
-                  }
-                }
-              }
-            }
-          } catch (verificationError) {
-            console.error('Error in delayed token verification:', verificationError);
+          console.log('Token creation transaction submitted, hash:', txHash);
+          
+          if (!txHash) {
+            throw new Error('Token creation failed - no transaction hash returned');
           }
-        }, 5000);
-        
-        return updatedContent;
-      } catch (blockchainError) {
-        console.error('Error creating token on blockchain:', blockchainError);
-        
-        // Add more specific error details
-        if (blockchainError instanceof Error) {
-          // Check for MetaMask errors
-          if (blockchainError.message.includes('user denied transaction') || 
-              blockchainError.message.includes('User denied')) {
-            console.warn('User rejected the MetaMask transaction');
-            throw new Error('Token creation cancelled: You rejected the transaction in MetaMask. Please try again if this was unintended.');
-          } else if (blockchainError.message.includes('0 tokens')) {
-            throw new Error('Token creation failed: Creator received 0 tokens. This may be due to a blockchain issue or contract configuration problem. Please try again.');
-          } else if (blockchainError.message.includes('MetaMask not available')) {
-            throw new Error('MetaMask not available. Please install MetaMask to create tokens.');
-          } else if (blockchainError.message.includes('confirmation timeout')) {
-            // Handle timeout more gracefully
-            console.log('Token creation transaction submitted but confirmation timed out.');
-            console.log('The transaction is still processing and may complete successfully.');
+          
+          // Verify token creation immediately
+          // This step is crucial - don't proceed without verification
+          console.log('Attempting to verify token creation');
+          
+          // Wait for blockchain state to update
+          await new Promise(resolve => setTimeout(resolve, 3000));
+          
+          // Attempt to verify the token was created properly
+          const verification = await this.verifyTokenCreation(id, walletAddress || undefined);
+          
+          if (!verification.success) {
+            console.error('Token verification failed immediately after creation:', verification);
             
-            // Allow the UI to proceed anyway, we'll verify in the background
-            const updatedContent = {
+            // Clean up - flag the content as having a tokenization failure
+            localStorage.setItem(`tokenization_failed_${id}`, 'true');
+            
+            // Create a partial update that doesn't mark it as fully tokenized
+            const partialContent = {
               ...content,
-              tokenized: true,
-              tokenId: id,
-              price: tokenizationData.price,
-              available: tokenizationData.initialSupply,
-              totalSupply: tokenizationData.initialSupply,
-              rightsThresholds: rightsThresholds,
               status: 'active' as const,
-              visibility: 'public' as const
+              visibility: 'public' as const,
+              creatorAddress: walletAddress || content.creatorAddress,
+              blockchainTxHash: txHash,
+              // Note we're not setting tokenized: true here
             };
             
-            // Save to local storage since this is a timeout scenario
-            this.saveLocalContent(updatedContent);
+            // Save to local storage 
+            this.saveLocalContent(partialContent);
             
-            // Inform user but don't block UI
-            console.log('Proceeding with tokenization despite timeout. The transaction is still processing.');
-            return updatedContent;
+            throw new Error('Token creation transaction submitted but verification failed. The transaction may be pending.');
+          }
+          
+          console.log('Token verified successfully:', verification);
+          
+          // Only if verification succeeded, update content metadata with tokenization details
+          const updatedContent = {
+            ...content,
+            tokenized: true, // Only set this to true when verified
+            tokenId: id,
+            price: tokenizationData.price,
+            available: tokenizationData.initialSupply,
+            totalSupply: tokenizationData.initialSupply,
+            rightsThresholds: rightsThresholds,
+            status: 'active' as const,
+            visibility: 'public' as const,
+            creatorAddress: walletAddress || content.creatorAddress,
+            blockchainTxHash: txHash
+          };
+          
+          // Save to local storage and return
+          this.saveLocalContent(updatedContent);
+          
+          // Remove any failure flag if it existed
+          localStorage.removeItem(`tokenization_failed_${id}`);
+          
+          return updatedContent;
+        } catch (tokenCreationError) {
+          console.error('Token creation error:', tokenCreationError);
+          
+          // Check for specific error conditions
+          const errorMessage = tokenCreationError instanceof Error ? tokenCreationError.message : String(tokenCreationError);
+          
+          if (errorMessage.includes('Transaction confirmation timeout')) {
+            console.log('Token creation transaction submitted but confirmation timed out.');
+            console.log('Will attempt to verify token creation anyway.');
+            
+            // Give the blockchain a moment to process
+            await new Promise(resolve => setTimeout(resolve, 5000));
+            
+            // Check if the token was created despite the timeout
+            try {
+              const verificationResult = await this.verifyTokenCreation(id, walletAddress || undefined);
+              
+              if (verificationResult.success) {
+                console.log('Token creation verified after timeout. Proceeding with tokenization.');
+                
+                // Update content metadata with tokenization details
+                const updatedContent = {
+                  ...content,
+                  tokenized: true,
+                  tokenId: id,
+                  price: tokenizationData.price,
+                  available: tokenizationData.initialSupply,
+                  totalSupply: tokenizationData.initialSupply,
+                  rightsThresholds: rightsThresholds,
+                  status: 'active' as const,
+                  visibility: 'public' as const,
+                  creatorAddress: walletAddress || content.creatorAddress
+                };
+                
+                // Save to local storage and return
+                this.saveLocalContent(updatedContent);
+                
+                // Remove any failure flag if it existed
+                localStorage.removeItem(`tokenization_failed_${id}`);
+                
+                return updatedContent;
+              } else {
+                console.error('Token verification failed after timeout:', verificationResult);
+                
+                // Set failure flag
+                localStorage.setItem(`tokenization_failed_${id}`, 'true');
+                
+                throw new Error('Token creation transaction timed out and verification failed. Please check your transaction status in MetaMask.');
+              }
+            } catch (verificationError) {
+              console.error('Error during post-timeout verification:', verificationError);
+              
+              // Set failure flag
+              localStorage.setItem(`tokenization_failed_${id}`, 'true');
+              
+              throw new Error('Unable to verify token creation after timeout. Please check your transaction status in MetaMask.');
+            }
+          }
+          
+          // Set failure flag for any other errors
+          localStorage.setItem(`tokenization_failed_${id}`, 'true');
+          
+          // Re-throw the original error
+          throw tokenCreationError;
+        }
+      } catch (blockchainError) {
+        console.error('Blockchain error during token creation:', blockchainError);
+        
+        // Set failure flag
+        localStorage.setItem(`tokenization_failed_${id}`, 'true');
+        
+        // Provide more helpful error messages based on common error types
+        if (blockchainError instanceof Error) {
+          if (blockchainError.message.includes('MetaMask not detected')) {
+            throw new Error('MetaMask not available. Please install MetaMask to create tokens.');
+          } else if (blockchainError.message.includes('rejected')) {
+            throw new Error('You rejected the transaction. Please approve the MetaMask transaction to create tokens.');
+          } else if (blockchainError.message.includes('network') || blockchainError.message.includes('chainId')) {
+            throw new Error('Network error. Please make sure MetaMask is connected to the Ganache network (localhost:8545).');
           }
         }
         
@@ -583,6 +607,35 @@ class ContentService {
     } catch (error) {
       console.error('Error tokenizing content:', error);
       throw error;
+    }
+  }
+  
+  /**
+   * Verify token creation was successful immediately after transaction
+   * @param contentId Content ID to verify
+   * @param walletAddress Wallet address of token creator
+   * @returns Promise resolving to verification result
+   * @private
+   */
+  private async verifyTokenCreation(contentId: string, walletAddress?: string): Promise<{ success: boolean, balance?: number }> {
+    try {
+      if (!blockchainService.isInitialized()) {
+        await blockchainService.initialize();
+      }
+      
+      // Wait briefly to give blockchain time to update
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      
+      // Verify token creation using blockchain service
+      const verificationResult = await blockchainService.verifyTokenCreation(contentId, walletAddress || undefined);
+      
+      return {
+        success: verificationResult.success && verificationResult.balance > 0,
+        balance: verificationResult.balance
+      };
+    } catch (error) {
+      console.error('Error verifying token creation:', error);
+      return { success: false };
     }
   }
   
@@ -1041,7 +1094,7 @@ class ContentService {
       const tokenId = content.tokenId;
       
       // Use verifyTokenCreation method as it's more robust
-      const verificationResult = await blockchainService.verifyTokenCreation(tokenId, walletAddress);
+      const verificationResult = await blockchainService.verifyTokenCreation(tokenId, walletAddress || undefined);
       
       console.log(`Token verification result:`, verificationResult);
       

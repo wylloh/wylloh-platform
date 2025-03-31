@@ -1666,10 +1666,25 @@ const UploadForm: React.FC = () => {
         <Box sx={{ mt: 4, mb: 2 }}>
           <TokenVerifier 
             contentId={createdContentId}
-            onVerificationComplete={(result) => {
-              console.log('Token verification complete:', result);
-              setTokenVerificationResult(result);
-              setTokenVerified(result.verified);
+            onSuccess={() => {
+              console.log('Token verification successful');
+              setTokenVerificationResult({
+                verified: true,
+                balance: 0,
+                imported: false,
+                creatorAddress: undefined
+              });
+              setTokenVerified(true);
+            }}
+            onError={(error) => {
+              console.log('Token verification failed:', error);
+              setTokenVerificationResult({
+                verified: false,
+                balance: 0,
+                imported: false,
+                creatorAddress: undefined
+              });
+              setTokenVerified(false);
             }}
           />
         </Box>
