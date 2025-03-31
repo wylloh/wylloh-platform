@@ -103,6 +103,37 @@ class BlockchainService {
         // Listen for chain and account changes
         this.listenForAccountChanges();
         
+        // Check if we already have a connected account and dispatch the event
+        window.ethereum.request({ method: 'eth_accounts' })
+          .then((accounts: string[]) => {
+            if (accounts && accounts.length > 0) {
+              const connectedAccount = accounts[0];
+              console.log('Found already connected account during initialization:', connectedAccount);
+              
+              // Check if this is one of our demo accounts to ensure proper capitalization
+              // as MetaMask might return accounts with different capitalization
+              const demoWallets = {
+                '0x90F8bf6A479f320ead074411a4B0e7944Ea8c9C1': true,
+                '0x8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC': true
+              };
+              
+              // Use the properly capitalized version if it's a demo wallet
+              const normalizedAccount = Object.keys(demoWallets).find(
+                wallet => wallet.toLowerCase() === connectedAccount.toLowerCase()
+              ) || connectedAccount;
+              
+              // Dispatch wallet-account-changed event to trigger auto-login
+              const walletChangeEvent = new CustomEvent('wallet-account-changed', { 
+                detail: { account: normalizedAccount }
+              });
+              window.dispatchEvent(walletChangeEvent);
+              console.log('Dispatched wallet-account-changed event with normalized account:', normalizedAccount);
+            }
+          })
+          .catch((error: any) => {
+            console.error('Error checking for connected accounts:', error);
+          });
+        
         this._initialized = true;
         console.log('Blockchain service initialized successfully');
       } else {
@@ -171,6 +202,29 @@ class BlockchainService {
         console.log('Account changed:', accounts[0]);
         // Refresh provider with new account
         this.provider = new ethers.providers.Web3Provider(window.ethereum as any);
+        
+        // Dispatch wallet-account-changed event to trigger auto-login
+        if (accounts && accounts.length > 0) {
+          const connectedAccount = accounts[0];
+          
+          // Check if this is one of our demo accounts to ensure proper capitalization
+          // as MetaMask might return accounts with different capitalization
+          const demoWallets = {
+            '0x90F8bf6A479f320ead074411a4B0e7944Ea8c9C1': true,
+            '0x8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC': true
+          };
+          
+          // Use the properly capitalized version if it's a demo wallet
+          const normalizedAccount = Object.keys(demoWallets).find(
+            wallet => wallet.toLowerCase() === connectedAccount.toLowerCase()
+          ) || connectedAccount;
+          
+          const walletChangeEvent = new CustomEvent('wallet-account-changed', { 
+            detail: { account: normalizedAccount }
+          });
+          window.dispatchEvent(walletChangeEvent);
+          console.log('Dispatched wallet-account-changed event for changed account:', normalizedAccount);
+        }
       });
 
       window.ethereum.on('chainChanged', (_chainId: string) => {
@@ -338,6 +392,26 @@ class BlockchainService {
         // Get the connected account address
         const signerAddress = accounts[0];
         console.log(`Using account address for token creation: ${signerAddress}`);
+        
+        // Check if this is one of our demo accounts to ensure proper capitalization
+        // as MetaMask might return accounts with different capitalization
+        const demoWallets = {
+          '0x90F8bf6A479f320ead074411a4B0e7944Ea8c9C1': true,
+          '0x8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC': true
+        };
+        
+        // Use the properly capitalized version if it's a demo wallet
+        const normalizedAccount = Object.keys(demoWallets).find(
+          wallet => wallet.toLowerCase() === signerAddress.toLowerCase()
+        ) || signerAddress;
+        
+        // Dispatch wallet-account-changed event to trigger auto-login
+        // This is needed because our changes to createToken broke the auto-login flow
+        const walletChangeEvent = new CustomEvent('wallet-account-changed', { 
+          detail: { account: normalizedAccount }
+        });
+        window.dispatchEvent(walletChangeEvent);
+        console.log('Dispatched wallet-account-changed event for:', normalizedAccount);
         
         // Create fresh Web3Provider after account request
         const web3Provider = new ethers.providers.Web3Provider(window.ethereum);

@@ -138,6 +138,19 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       console.log('Wallet connected successfully');
       setWalletModalOpen(false);
       setConnectionError(null);
+      
+      // Get the current account after successful connection
+      const accounts = await (window as any).ethereum.request({ method: 'eth_accounts' });
+      if (accounts && accounts.length > 0) {
+        console.log('WalletContext - Connected account:', accounts[0]);
+        
+        // Dispatch wallet-account-changed event to trigger auto-login
+        const walletChangeEvent = new CustomEvent('wallet-account-changed', { 
+          detail: { account: accounts[0] }
+        });
+        window.dispatchEvent(walletChangeEvent);
+        console.log('WalletContext - Dispatched wallet-account-changed event for account:', accounts[0]);
+      }
     } catch (error) {
       console.error('Error connecting wallet:', error);
       setConnectionError('Failed to connect wallet. Please make sure MetaMask is installed and unlocked.');
@@ -385,8 +398,25 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       console.log('isAuthorized:', isAuthorized);
       if (isAuthorized) {
         activate(injected, undefined, true)
-          .then(() => {
+          .then(async () => {
             console.log('Wallet auto-connected successfully');
+            
+            // Get the current account after successful auto-connection
+            try {
+              const accounts = await (window as any).ethereum.request({ method: 'eth_accounts' });
+              if (accounts && accounts.length > 0) {
+                console.log('WalletContext - Auto-connected account:', accounts[0]);
+                
+                // Dispatch wallet-account-changed event to trigger auto-login
+                const walletChangeEvent = new CustomEvent('wallet-account-changed', { 
+                  detail: { account: accounts[0] }
+                });
+                window.dispatchEvent(walletChangeEvent);
+                console.log('WalletContext - Dispatched wallet-account-changed event for auto-connected account:', accounts[0]);
+              }
+            } catch (accountError) {
+              console.error('Error getting accounts after auto-connection:', accountError);
+            }
           })
           .catch((error) => {
             console.error('Error auto-connecting wallet:', error);
