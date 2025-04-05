@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { useParams, Navigate, Link } from 'react-router-dom';
+import { useParams, Navigate, Link, useLocation } from 'react-router-dom';
 import { Box, Container, Typography, Paper, Button, Alert, ButtonGroup, CircularProgress } from '@mui/material';
 import { Download, PlayArrow, Refresh } from '@mui/icons-material';
 import VideoPlayer from '../../components/player/VideoPlayer';
@@ -9,6 +9,7 @@ import { downloadService } from '../../services/download.service';
 
 const PlayerPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
+  const location = useLocation();
   const [content, setContent] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -16,6 +17,9 @@ const PlayerPage: React.FC = () => {
   const [accessChecked, setAccessChecked] = useState(false);
   const [hasAccess, setHasAccess] = useState(false);
   const [verifying, setVerifying] = useState(false);
+
+  const queryParams = new URLSearchParams(location.search);
+  const isPreview = queryParams.get('preview') === 'true';
 
   useEffect(() => {
     const fetchContent = async () => {
@@ -44,10 +48,14 @@ const PlayerPage: React.FC = () => {
     fetchContent();
   }, [id]);
 
-  // Check access when content and account are available
   useEffect(() => {
     const checkAccess = async () => {
-      if (!content || !content.mainFileCid || !account) {
+      if (!content || !content.mainFileCid || !account || isPreview) {
+        if (isPreview) {
+          console.log('Preview mode: Skipping ownership check.');
+          setHasAccess(true);
+          setAccessChecked(true);
+        }
         return;
       }
 
@@ -67,9 +75,8 @@ const PlayerPage: React.FC = () => {
     };
 
     checkAccess();
-  }, [content, account]);
+  }, [content, account, isPreview]);
 
-  // Handler to force refresh token ownership
   const handleForceVerification = async () => {
     if (!content || !account) return;
     
@@ -77,10 +84,8 @@ const PlayerPage: React.FC = () => {
       setVerifying(true);
       console.log('Force verifying token ownership for content:', content.id);
       
-      // Clear any cached data that might be causing issues
       localStorage.removeItem(`ownership_${content.id}_${account}`);
       
-      // Perform a fresh ownership check
       const ownership = await contentService.checkContentOwnership(content.id, true);
       console.log('Force verification result:', ownership);
       
@@ -93,8 +98,7 @@ const PlayerPage: React.FC = () => {
     }
   };
 
-  // Redirect if no account or wallet not connected
-  if (!loading && (!active || !account)) {
+  if (!loading && (!active || !account) && !isPreview) {
     return <Navigate to={`/marketplace/details/${id}`} replace />;
   }
 
@@ -121,7 +125,6 @@ const PlayerPage: React.FC = () => {
     );
   }
 
-  // Check if we have the CID property
   if (!content.mainFileCid) {
     return (
       <Container maxWidth="lg" sx={{ py: 4 }}>
@@ -145,13 +148,13 @@ const PlayerPage: React.FC = () => {
 
   console.log('Rendering player with content:', {
     id: id,
-    contentCid: content.mainFileCid,
+    contentCid: isPreview ? content.previewCid : content.mainFileCid,
     wallet: account,
+    isPreview,
     hasAccess
   });
 
-  // Access Denied View
-  if (accessChecked && !hasAccess) {
+  if (accessChecked && !hasAccess && !isPreview) {
     return (
       <Container maxWidth="lg" sx={{ py: 4 }}>
         <Box mb={4}>
@@ -222,7 +225,6 @@ const PlayerPage: React.FC = () => {
     );
   }
 
-  // Content Access View
   return (
     <Container maxWidth="lg" sx={{ py: 4 }}>
       <Box mb={4}>
@@ -238,7 +240,7 @@ const PlayerPage: React.FC = () => {
         <Box sx={{ position: 'relative', width: '100%', aspectRatio: '16/9' }}>
           <VideoPlayer 
             contentId={id || ''}
-            contentCid={content.mainFileCid || ''}
+            contentCid={isPreview ? content.previewCid || content.mainFileCid : content.mainFileCid || ''}
             autoPlay={true}
             controls={true}
             width="100%"

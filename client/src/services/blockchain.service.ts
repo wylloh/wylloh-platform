@@ -372,8 +372,8 @@ class BlockchainService {
         throw new Error('MetaMask not available. Please install MetaMask to create tokens.');
       }
       
-      console.log('Using MetaMask provider for token creation to ensure popup appears');
-      
+        console.log('Using MetaMask provider for token creation to ensure popup appears');
+        
       // Reset connection to MetaMask to ensure fresh state
       try {
         // Try to get current chainId from MetaMask
@@ -382,10 +382,10 @@ class BlockchainService {
         console.log(`Current MetaMask chainId: ${chainId}`);
         
         // Explicitly request accounts to trigger MetaMask popup if not connected
-        console.log('Requesting MetaMask account access...');
-        const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
-        
-        if (!accounts || accounts.length === 0) {
+          console.log('Requesting MetaMask account access...');
+          const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+          
+          if (!accounts || accounts.length === 0) {
           throw new Error('No MetaMask accounts available. Please connect your wallet first.');
         }
         
@@ -436,28 +436,28 @@ class BlockchainService {
             console.error('Failed to switch networks:', switchError);
             throw new Error(`Please manually connect MetaMask to the local Ganache network (chainId: ${expectedChainId})`);
           }
-        }
-        
-        // Get signer from Web3Provider
-        const signer = web3Provider.getSigner();
-        
-        // Connect with signer
-        const tokenContractWithSigner = new ethers.Contract(
-          this.contractAddress,
-          wyllohTokenAbi,
-          signer
-        );
-        
-        // Create content URI (simplified version for demo)
-        const contentURI = `ipfs://${contentId}`;
-        
-        console.log(`Calling createToken with parameters:`, {
-          signerAddress,
-          initialSupply,
-          contentURI,
-          royaltyBasisPoints: royaltyPercentage * 100
-        });
-        
+      }
+      
+      // Get signer from Web3Provider
+      const signer = web3Provider.getSigner();
+      
+      // Connect with signer
+      const tokenContractWithSigner = new ethers.Contract(
+        this.contractAddress,
+        wyllohTokenAbi,
+        signer
+      );
+      
+      // Create content URI (simplified version for demo)
+      const contentURI = `ipfs://${contentId}`;
+      
+      console.log(`Calling createToken with parameters:`, {
+        signerAddress,
+        initialSupply,
+        contentURI,
+        royaltyBasisPoints: royaltyPercentage * 100
+      });
+      
         // For debugging, check the contract state before token creation
         try {
           console.log(`Checking if token ${contentId} already exists...`);
@@ -471,25 +471,25 @@ class BlockchainService {
           }
         } catch (checkError) {
           console.warn('Error checking token existence:', checkError);
-        }
-        
-        // Display debugging info about Ganache accounts
-        if (process.env.NODE_ENV === 'development' || process.env.REACT_APP_DEMO_MODE === 'true') {
-          try {
-            const jsonRpcProvider = new ethers.providers.JsonRpcProvider('http://localhost:8545');
-            const accounts = await jsonRpcProvider.listAccounts();
-            console.log('Available Ganache accounts:', accounts);
-            
-            // Check balances
-            for (const account of accounts.slice(0, 2)) {
-              const balance = await jsonRpcProvider.getBalance(account);
-              console.log(`Account ${account} has ${ethers.utils.formatEther(balance)} ETH`);
-            }
-          } catch (e) {
-            console.log('Error fetching Ganache accounts for debugging:', e);
+      }
+      
+      // Display debugging info about Ganache accounts
+      if (process.env.NODE_ENV === 'development' || process.env.REACT_APP_DEMO_MODE === 'true') {
+        try {
+          const jsonRpcProvider = new ethers.providers.JsonRpcProvider('http://localhost:8545');
+          const accounts = await jsonRpcProvider.listAccounts();
+          console.log('Available Ganache accounts:', accounts);
+          
+          // Check balances
+          for (const account of accounts.slice(0, 2)) {
+            const balance = await jsonRpcProvider.getBalance(account);
+            console.log(`Account ${account} has ${ethers.utils.formatEther(balance)} ETH`);
           }
+        } catch (e) {
+          console.log('Error fetching Ganache accounts for debugging:', e);
         }
-        
+      }
+      
         // Create a unique token ID from the contentId using hash
         // This ensures deterministic but unique IDs for each content
         const tokenIdBytes = ethers.utils.solidityKeccak256(['string'], [contentId]);
@@ -503,8 +503,8 @@ class BlockchainService {
         });
         
         console.log('Submitting createToken transaction...');
-        let tx;
-        try {
+      let tx;
+      try {
           tx = await tokenContractWithSigner.create(
             signerAddress,  // to - recipient address 
             tokenId,        // id - token ID (using hash of contentId)
@@ -518,24 +518,24 @@ class BlockchainService {
             { 
               gasLimit: 5000000,  // Higher gas limit for local development
               gasPrice: ethers.utils.parseUnits('50', 'gwei')  // Higher gas price for priority
-            }
-          );
-          
-          console.log('Token creation transaction submitted:', tx);
-          console.log('Transaction hash:', tx.hash);
-          
-          // Wait for transaction confirmation with timeout
-          console.log('Waiting for transaction confirmation...');
-          try {
-            // Implement a timeout for transaction confirmation (30 seconds)
+          }
+        );
+        
+        console.log('Token creation transaction submitted:', tx);
+        console.log('Transaction hash:', tx.hash);
+      
+      // Wait for transaction confirmation with timeout
+      console.log('Waiting for transaction confirmation...');
+      try {
+        // Implement a timeout for transaction confirmation (30 seconds)
             const confirmationPromise = tx.wait(1); // Wait for 1 confirmation
-            const timeoutPromise = new Promise((_, reject) => {
-              setTimeout(() => reject(new Error('Transaction confirmation timeout')), 30000);
-            });
-            
+        const timeoutPromise = new Promise((_, reject) => {
+          setTimeout(() => reject(new Error('Transaction confirmation timeout')), 30000);
+        });
+        
             const receipt = await Promise.race([confirmationPromise, timeoutPromise]);
-            console.log('Token creation confirmed in block:', receipt.blockNumber);
-            console.log('Transaction receipt:', receipt);
+        console.log('Token creation confirmed in block:', receipt.blockNumber);
+        console.log('Transaction receipt:', receipt);
             
             // Verify that tokens were minted properly - add a longer delay to ensure blockchain state updates
             console.log(`Waiting 3 seconds before checking token balance...`);
@@ -576,8 +576,8 @@ class BlockchainService {
                   console.error('Error attempting direct token mint:', mintError);
                   throw new Error('Token creation succeeded but minting failed. This may be a contract implementation issue.');
                 }
-              }
-            } catch (balanceError) {
+        }
+      } catch (balanceError) {
               console.error('Error checking token balance after creation:', balanceError);
               throw new Error('Error verifying token balance after creation. Please check the transaction in MetaMask.');
             }
@@ -609,9 +609,9 @@ class BlockchainService {
             }
           }
           throw txError;
-        }
-        
-        return tx.hash;
+      }
+      
+      return tx.hash;
       } catch (error) {
         console.error('MetaMask connection error:', error);
         throw error;
@@ -707,11 +707,11 @@ class BlockchainService {
   
   /**
    * Purchase tokens by calling the marketplace contract
-   * @param tokenId ID of the token to purchase
+   * @param contentId The content ID/token ID to purchase
    * @param quantity Number of tokens to purchase
    * @param price Price per token in ETH (NOT total price)
    */
-  async purchaseTokens(tokenId: string, quantity: number, price: number): Promise<boolean> {
+  async purchaseTokens(contentId: string, quantity: number, price: number): Promise<boolean> {
     if (!this.isInitialized()) {
       console.warn('BlockchainService not initialized for purchaseTokens');
       return false;
@@ -719,14 +719,14 @@ class BlockchainService {
     
     try {
       console.log('BlockchainService: Starting token purchase process with params:', {
-        tokenId, 
+        contentId, 
         quantity, 
         price,
         contractAddress: this.contractAddress
       });
       
       // Validate inputs
-      if (!tokenId || !quantity || quantity <= 0) {
+      if (!contentId || !quantity || quantity <= 0) {
         throw new Error('Invalid token ID or quantity');
       }
       
@@ -736,7 +736,12 @@ class BlockchainService {
         throw new Error('Invalid price format. Please provide a valid positive number.');
       }
       
-      console.log(`Purchasing ${quantity} tokens with ID ${tokenId} at price ${price} ETH`);
+      // Generate the correct BigNumber token ID from the contentId string
+      const tokenIdBytes = ethers.utils.solidityKeccak256(['string'], [contentId]);
+      const tokenIdBN = ethers.BigNumber.from(tokenIdBytes);
+      console.log(`Generated BigNumber token ID for purchase: ${tokenIdBN.toString()}`);
+
+      console.log(`Purchasing ${quantity} tokens with ID ${tokenIdBN.toString()} at price ${price} ETH`);
       
       // Calculate total price
       const totalPrice = quantity * price;
@@ -759,9 +764,9 @@ class BlockchainService {
           console.log(`Using buyer address: ${signerAddress}`);
           
           // Get content details to find the creator's address
-          const content = await contentService.getContentById(tokenId);
+          const content = await contentService.getContentById(contentId);
           if (!content) {
-            throw new Error(`Content with ID ${tokenId} not found`);
+            throw new Error(`Content with ID ${contentId} not found`);
           }
           
           // Get the creator address from content
@@ -809,8 +814,8 @@ class BlockchainService {
                 ganacheProvider
               );
               
-              const tokenBalance = await tokenContract.balanceOf(account, tokenId);
-              console.log(`Account ${account} has ${tokenBalance.toString()} tokens for token ID ${tokenId}`);
+              const tokenBalance = await tokenContract.balanceOf(account, tokenIdBN);
+              console.log(`Account ${account} has ${tokenBalance.toString()} tokens for token ID ${tokenIdBN.toString()}`);
               
               // If we find an account with tokens but it's not the seller, suggest using this account
               if (tokenBalance.toNumber() > 0 && account.toLowerCase() !== sellerAddress!.toLowerCase()) {
@@ -818,8 +823,8 @@ class BlockchainService {
                 console.log(`Considering using account ${account} as seller instead`);
                 
                 // If seller has 0 tokens but this account has tokens, use this account instead
-                const sellerBalance = await tokenContract.balanceOf(sellerAddress!, tokenId);
-                if (sellerBalance.toNumber() === 0) {
+                const sellerBalanceCheck = await tokenContract.balanceOf(sellerAddress!, tokenIdBN);
+                if (sellerBalanceCheck.toNumber() === 0) {
                   console.log(`Seller has 0 tokens but account ${account} has ${tokenBalance.toString()} tokens`);
                   console.log(`Switching seller to account ${account}`);
                   sellerAddress = account;
@@ -838,7 +843,7 @@ class BlockchainService {
           );
           
           console.log(`Checking token balance for seller ${sellerAddress}`);
-          const sellerBalance = await tokenContract.balanceOf(sellerAddress!, tokenId);
+          const sellerBalance = await tokenContract.balanceOf(sellerAddress!, tokenIdBN);
           console.log(`Seller token balance from Ganache: ${sellerBalance.toString()} tokens`);
           
           if (sellerBalance.toNumber() < quantity) {
@@ -862,7 +867,7 @@ class BlockchainService {
                 
                 const mintTx = await tokenWithAdminSigner.mint(
                   sellerAddress!,
-                  tokenId,
+                  tokenIdBN,
                   mintAmount,
                   "0x" // No data
                 );
@@ -872,7 +877,7 @@ class BlockchainService {
                 console.log('Mint confirmed in block:', mintReceipt.blockNumber);
                 
                 // Check updated balance
-                const updatedBalance = await tokenContract.balanceOf(sellerAddress!, tokenId);
+                const updatedBalance = await tokenContract.balanceOf(sellerAddress!, tokenIdBN);
                 console.log(`Updated seller balance: ${updatedBalance.toString()} tokens`);
                 
                 if (updatedBalance.toNumber() < quantity) {
@@ -938,10 +943,10 @@ class BlockchainService {
             const tokenWithCreatorSigner = this.tokenContract!.connect(creatorSigner);
             
             // 3. Transfer tokens from creator to buyer
-            console.log(`Transferring ${quantity} tokens of ID ${tokenId} from ${sellerAddress} to ${signerAddress}`);
+            console.log(`Transferring ${quantity} tokens of ID ${tokenIdBN.toString()} from ${sellerAddress} to ${signerAddress}`);
             
             // For debugging, check the balance once more before transfer
-            const preTransferBalance = await tokenContract.balanceOf(sellerAddress!, tokenId);
+            const preTransferBalance = await tokenContract.balanceOf(sellerAddress!, tokenIdBN);
             console.log(`Seller balance immediately before transfer: ${preTransferBalance.toString()} tokens`);
             
             // Check approvals
@@ -963,8 +968,9 @@ class BlockchainService {
               transferTx = await tokenWithCreatorSigner.safeTransferFrom(
                 sellerAddress,
                 signerAddress,
-                tokenId,
+                tokenIdBN,
                 quantity,
+                "0x", // data - empty for simple transfer
                 { gasLimit: 500000 }
               );
             } catch (transferError) {
@@ -978,7 +984,7 @@ class BlockchainService {
                   transferTx = await tokenWithCreatorSigner.transferFrom(
                     sellerAddress,
                     signerAddress,
-                    tokenId,
+                    tokenIdBN,
                     quantity,
                     { gasLimit: 500000 }
                   );
@@ -996,8 +1002,8 @@ class BlockchainService {
             console.log('Transfer confirmed in block:', transferReceipt.blockNumber);
             
             // Verify the transfer succeeded
-            const sellerBalanceAfter = await tokenContract.balanceOf(sellerAddress!, tokenId);
-            const buyerBalanceAfter = await tokenContract.balanceOf(signerAddress, tokenId);
+            const sellerBalanceAfter = await tokenContract.balanceOf(sellerAddress!, tokenIdBN);
+            const buyerBalanceAfter = await tokenContract.balanceOf(signerAddress, tokenIdBN);
             
             console.log(`Seller balance after transfer: ${sellerBalanceAfter.toString()} tokens`);
             console.log(`Buyer balance after transfer: ${buyerBalanceAfter.toString()} tokens`);
@@ -1015,7 +1021,7 @@ class BlockchainService {
           }
           
           // 4. Update local storage through contentService
-          await contentService.purchaseToken(tokenId, quantity);
+          await contentService.purchaseToken(contentId, quantity);
           
           return true;
         } catch (error: any) {
@@ -1052,10 +1058,10 @@ class BlockchainService {
               const tokenWithCreatorSigner = this.tokenContract!.connect(creatorSigner);
               
               // Mint tokens directly to buyer
-              console.log(`Minting ${quantity} tokens of ID ${tokenId} to ${signerAddress}`);
+              console.log(`Minting ${quantity} tokens of ID ${tokenIdBN.toString()} to ${signerAddress}`);
               const mintTx = await tokenWithCreatorSigner.mint(
                 signerAddress,
-                tokenId,
+                tokenIdBN,
                 quantity,
                 "0x" // No data
               );
@@ -1065,11 +1071,11 @@ class BlockchainService {
               console.log('Mint confirmed in block:', mintReceipt.blockNumber);
               
               // Update local storage
-              await contentService.purchaseToken(tokenId, quantity);
+              await contentService.purchaseToken(contentId, quantity);
               return true;
             } catch (mintError) {
               console.error('Mint operation failed:', mintError);
-              // Propagate error to prevent local storage update
+              // Propagate error to prevent local storage update for failed transactions
               throw mintError;
             }
           }
@@ -1082,7 +1088,7 @@ class BlockchainService {
         console.log('No Ethereum provider available, simulating transaction');
         
         // Update local storage through contentService
-        await contentService.purchaseToken(tokenId, quantity);
+        await contentService.purchaseToken(contentId, quantity);
         
         return true;
       }

@@ -554,7 +554,7 @@ const ContentDetailsPage: React.FC = () => {
                 variant="contained"
                 color="primary"
                 component={Link}
-                to={`/player/${content.id}`}
+                to={`/player/${content.id}?preview=true`}
                 startIcon={<PlayArrow />}
                 sx={{ mt: 1 }}
                 fullWidth
@@ -800,7 +800,7 @@ const ContentDetailsPage: React.FC = () => {
                   startIcon={<PlayArrow />}
                   size="large"
                   component={Link}
-                  to={`/player/${content.id}`}
+                  to={`/player/${content.id}?preview=true`}
                   sx={{
                     borderRadius: 50,
                     px: 3,
