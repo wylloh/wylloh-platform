@@ -181,17 +181,18 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       localStorage.removeItem('walletconnect');
       localStorage.removeItem('WALLETCONNECT_DEEPLINK_CHOICE');
       
-      // For MetaMask testing - deactivate any permissions (non-standard)
-      if (ethereum && ethereum.request) {
-        ethereum.request({
-          method: 'wallet_revokePermissions',
-          params: [{ eth_accounts: {} }],
-        }).then(() => {
-          console.log('Permissions revoked successfully');
-        }).catch((error: any) => {
-          console.log('Error revoking permissions (might be unsupported):', error);
-        });
-      }
+      // // For MetaMask testing - deactivate any permissions (non-standard)
+      // // This might be too aggressive and prevent auto-reconnect
+      // if (ethereum && ethereum.request) {
+      //   ethereum.request({
+      //     method: 'wallet_revokePermissions',
+      //     params: [{ eth_accounts: {} }],
+      //   }).then(() => {
+      //     console.log('Permissions revoked successfully');
+      //   }).catch((error: any) => {
+      //     console.log('Error revoking permissions (might be unsupported):', error);
+      //   });
+      // }
       
       console.log('Wallet disconnected successfully');
       
