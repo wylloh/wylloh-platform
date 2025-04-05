@@ -400,7 +400,8 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       console.log('WalletContext: injected.isAuthorized() result:', isAuthorized);
       if (isAuthorized && !active) { // Only activate if authorized AND not already active
         console.log('WalletContext: Attempting to auto-activate wallet...');
-        activate(injected, undefined, true)
+        // Set throwErrors to false to see if it helps with activation state
+        activate(injected, undefined, false) 
           .then(async () => {
             console.log('WalletContext: Wallet auto-connected successfully via activate()');
 
