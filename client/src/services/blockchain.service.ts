@@ -63,10 +63,13 @@ class BlockchainService {
         
         // Get contract address from environment variables or fallback to default
         const contractAddress = process.env.REACT_APP_CONTRACT_ADDRESS || DEFAULT_CONTRACT_ADDRESS;
+        
+        // Explicitly log the value of the env var before reading
+        console.log(`Reading process.env.REACT_APP_MARKETPLACE_ADDRESS: [${process.env.REACT_APP_MARKETPLACE_ADDRESS}]`);
         const marketplaceAddress = process.env.REACT_APP_MARKETPLACE_ADDRESS;
         
         console.log(`Using token contract address: ${contractAddress}`);
-        console.log(`Using marketplace address: ${marketplaceAddress || 'Not configured'}`);
+        console.log(`Using marketplace address from initial load: ${marketplaceAddress || 'Not configured'}`);
         
         this.contractAddress = contractAddress;
         this.marketplaceAddress = marketplaceAddress || '';
@@ -150,7 +153,7 @@ class BlockchainService {
         const marketplaceAddress = process.env.REACT_APP_MARKETPLACE_ADDRESS;
         
         console.log(`Using token contract address: ${contractAddress}`);
-        console.log(`Using marketplace address: ${marketplaceAddress || 'Not configured'}`);
+        console.log(`Using marketplace address from initial load: ${marketplaceAddress || 'Not configured'}`);
         
         this.contractAddress = contractAddress;
         this.marketplaceAddress = marketplaceAddress || '';
@@ -190,6 +193,44 @@ class BlockchainService {
     } catch (error) {
       console.error('Error initializing blockchain service:', error);
       this._initialized = false;
+    }
+  }
+
+  /**
+   * Public method to set or update the marketplace address after initialization.
+   * This is useful if the address is loaded dynamically or via environment variables
+   * that might not be available immediately at service instantiation time.
+   * @param address The marketplace contract address
+   */
+  public setMarketplaceAddress(address: string | undefined): void {
+    if (address && ethers.utils.isAddress(address)) {
+      console.log(`BlockchainService: Setting marketplace address to ${address}`);
+      this.marketplaceAddress = address;
+
+      // Re-initialize the marketplace contract instance if provider exists
+      if (this.provider && !this.marketplaceContract) {
+        console.log('Connecting to marketplace contract with updated address...');
+        this.marketplaceContract = new ethers.Contract(
+          this.marketplaceAddress,
+          marketplaceAbi,
+          this.provider
+        );
+        console.log('Marketplace contract connected successfully');
+        this.checkContractExistence(); // Re-check existence
+      } else if (this.provider && this.marketplaceContract && this.marketplaceContract.address !== address) {
+         console.log('Re-connecting to marketplace contract with new address...');
+         this.marketplaceContract = new ethers.Contract(
+           this.marketplaceAddress,
+           marketplaceAbi,
+           this.provider
+         );
+         console.log('Marketplace contract re-connected successfully');
+         this.checkContractExistence(); // Re-check existence
+      }
+    } else {
+      console.warn(`BlockchainService: Attempted to set invalid or empty marketplace address: [${address}]`);
+      // Keep the existing address or default if it was never set
+      this.marketplaceAddress = this.marketplaceAddress || ''; 
     }
   }
 

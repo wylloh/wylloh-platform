@@ -1,5 +1,5 @@
-import React, { createContext, useContext, useEffect, useState, ReactNode, useCallback } from 'react';
-import { useWeb3React } from '@web3-react/core';
+import React, { createContext, useContext, useEffect, useState, ReactNode, useCallback, useMemo } from 'react';
+import { useWeb3React, Web3ReactProvider } from '@web3-react/core';
 import { InjectedConnector } from '@web3-react/injected-connector';
 import { WalletConnectConnector } from '@web3-react/walletconnect-connector';
 import { ethers } from 'ethers';
@@ -388,40 +388,60 @@ export function WalletProvider({ children }: { children: ReactNode }) {
   // Eager connect attempt on initial load
   useEffect(() => {
     const attemptEagerConnection = async () => {
-      // Check if MetaMask is installed
-      const { ethereum } = window as any;
-      if (ethereum && ethereum.isMetaMask) {
-        console.log('WalletContext: MetaMask detected, attempting eager connection...');
-        try {
-           // Directly try to activate without checking isAuthorized first
-           await activate(injected, undefined, false); // Suppress errors
-           console.log('WalletContext: Eager activation successful');
-           // Get accounts after activation
-           const accounts = await ethereum.request({ method: 'eth_accounts' });
-           if (accounts && accounts.length > 0) {
-             console.log('WalletContext: Eager connected account:', accounts[0]);
-             // Dispatch event to trigger potential auto-login
-             const walletChangeEvent = new CustomEvent('wallet-account-changed', { 
-                detail: { account: accounts[0] }
-             });
-             window.dispatchEvent(walletChangeEvent);
-             console.log('WalletContext: Dispatched wallet-account-changed for eager connection');
-           } else {
-             console.log('WalletContext: Eager activation succeeded but no accounts returned.');
-           }
-        } catch (error) {
-          console.log('WalletContext: Eager connection attempt failed (this is often normal):', error);
+      console.log('WalletContext: MetaMask detected, attempting eager connection...');
+      // Use the EagerConnect method
+      try {
+         // Check if MetaMask is installed
+         if (!window.ethereum) {
+           console.log('WalletContext: MetaMask not installed, skipping eager connection');
+           return;
+         }
+         
+        console.log('WalletContext: Activating connector...');
+        // Attempt to activate the injected connector (MetaMask)
+        await activate(injected, undefined, false); // Suppress errors during activation
+        console.log('WalletContext: Activation attempt completed.');
+        
+        // Check account after activation attempt (use getAccount)
+        const account = await injected.getAccount();
+        if (account) {
+          console.log('WalletContext: Eager connected account:', account);
+          // Dispatch event to notify other parts of the app (like AuthContext)
+          const walletChangeEvent = new CustomEvent('wallet-account-changed', { 
+             detail: { account: account }
+          });
+          window.dispatchEvent(walletChangeEvent);
+          console.log('WalletContext: Dispatched wallet-account-changed for eager connection');
+        } else {
+          console.log('WalletContext: Eager activation succeeded but no account returned.');
         }
-      } else {
-         console.log('WalletContext: MetaMask not detected, skipping eager connection.');
+      } catch (error) {
+        console.error('WalletContext: Error during eager activation attempt:', error);
+        // Don't show toast for eager connect failures
       }
     };
-    
-    // Only run eager connection once on initial mount
+
+    // Run only once on mount if not already active and auto-connect is not skipped
     if (!active && !skipAutoConnect) {
-       attemptEagerConnection();
+      attemptEagerConnection();
     }
-  }, [activate, skipAutoConnect, active]); // Dependencies for eager connect
+  }, [active, activate, skipAutoConnect]); // Dependencies for eager connection
+  
+  // Effect to initialize blockchain service and set marketplace address
+  useEffect(() => {
+    // Initialize the service first (might happen before or after eager connect)
+    if (!blockchainService.isInitialized()) {
+      console.log('WalletContext: Initializing BlockchainService...');
+      blockchainService.initialize();
+    }
+    
+    // Attempt to set the marketplace address after initialization
+    // This should run after the environment variables have likely loaded
+    const marketplaceAddress = process.env.REACT_APP_MARKETPLACE_ADDRESS;
+    console.log(`WalletContext: Reading Marketplace Address from env: [${marketplaceAddress}]`);
+    blockchainService.setMarketplaceAddress(marketplaceAddress);
+
+  }, []); // Run only once on mount
 
   // Log any state changes
   useEffect(() => {
