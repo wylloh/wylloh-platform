@@ -80,39 +80,40 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   
   // Listen for the wallet-account-changed event
   useEffect(() => {
-    // Get the current account value from the WalletContext hook within the effect's scope
-    // This ensures we have the most up-to-date account value when the listener runs
-    const currentConnectedAccount = account;
-    
     const handleWalletAccountChanged = (event: Event) => {
       console.log('AuthContext - wallet-account-changed event received');
       const newAccount = (event as CustomEvent)?.detail?.account;
       console.log('AuthContext - New wallet account from event:', newAccount);
-      console.log('AuthContext - Account from useWallet hook at event time:', currentConnectedAccount);
 
       if (!newAccount) return; // Ignore if no account detail
 
-      // Get current auth state values for comparison
+      // Get current auth state values
       const currentIsAuthenticated = state.isAuthenticated;
-      const currentUserWallet = state.user?.walletAddress; // User state might be slightly stale
+      const currentUserWallet = state.user?.walletAddress;
       
       console.log('AuthContext - State before check:', { 
           currentIsAuthenticated, 
-          currentUserWalletState: currentUserWallet?.toLowerCase(), // Wallet from user state
-          currentConnectedWalletHook: currentConnectedAccount?.toLowerCase(), // Wallet from hook
-          newAccountLower: newAccount.toLowerCase() // Wallet from event
+          currentUserWalletState: currentUserWallet?.toLowerCase(),
+          newAccountLower: newAccount.toLowerCase()
       });
 
-      // Reset auto-login attempt flag for the new account regardless
+      // Reset auto-login attempt flag for the new account
       autoLoginAttemptedRef.current[newAccount] = false;
 
-      // Scenario 1: User is authenticated (according to state)
+      // Determine if the new account corresponds to a demo user
+      const demoWallets: Record<string, string> = {
+        '0x90f8bf6a479f320ead074411a4b0e7944ea8c9c1': 'pro@example.com',
+        '0x8db97c7cece249c2b98bdc0226cc4c2a57bf52fc': 'user@example.com',
+      };
+      const newAccountLower = newAccount.toLowerCase();
+      const isDemoAccount = !!demoWallets[newAccountLower];
+
+      // Scenario 1: User is currently authenticated
       if (currentIsAuthenticated) {
-        // Scenario 1a: The new account (from event) is DIFFERENT from the CURRENTLY CONNECTED account (from hook)
-        // Use currentConnectedAccount for the most reliable check against the event's newAccount
-        if (currentConnectedAccount && currentConnectedAccount.toLowerCase() !== newAccount.toLowerCase()) {
-          console.log(`AuthContext - Wallet account changed from ${currentConnectedAccount} to ${newAccount}. Logging out previous user.`);
-          // Logout previous user IMMEDIATELY
+        // Scenario 1a: The new account (from event) is DIFFERENT from the current user's wallet in state
+        if (!currentUserWallet || currentUserWallet.toLowerCase() !== newAccountLower) {
+          console.log(`AuthContext - Wallet account changed from ${currentUserWallet || 'none'} to ${newAccount}. Logging out previous user.`);
+          // Logout previous user
           setState(prevState => ({
             ...prevState,
             user: null,
@@ -122,25 +123,32 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           localStorage.removeItem('token');
           localStorage.removeItem('user');
 
-          // Queue login attempt for the NEW account
-          console.log(`AuthContext - Queuing login for new account: ${newAccount}`);
-          setTimeout(() => {
-             localStorage.setItem('pendingWalletLogin', newAccount);
-          }, 100); // Small delay to allow state update
+          // Queue login attempt for the NEW account if it's a demo account
+          if (isDemoAccount) {
+             console.log(`AuthContext - Queuing login for new demo account: ${newAccount}`);
+             setTimeout(() => {
+                localStorage.setItem('pendingWalletLogin', newAccount);
+             }, 100); 
+          } else {
+             console.log('AuthContext - New account is not a demo account, login not queued.');
+          }
 
         } else {
-          // Scenario 1b: The new account is the SAME as the currently connected account (or state is inconsistent)
-          // This could happen due to redundant events or state timing issues. Avoid unnecessary logout/login.
-          console.log('AuthContext - Event received, but new account matches current connected account or user state inconsistent. No logout/login needed.');
+          // Scenario 1b: The new account is the SAME as the logged-in user's account state.
+          console.log('AuthContext - Event received for the same authenticated account state. No logout/login needed.');
         }
       } 
       // Scenario 2: User is NOT authenticated
       else {
-        console.log('AuthContext - Not currently authenticated. Queuing login attempt for new account:', newAccount);
-        // Queue login attempt for the NEW account
-        setTimeout(() => {
-          localStorage.setItem('pendingWalletLogin', newAccount);
-        }, 100);
+         // Queue login attempt for the NEW account if it's a demo account
+         if (isDemoAccount) {
+            console.log('AuthContext - Not currently authenticated. Queuing login attempt for new demo account:', newAccount);
+            setTimeout(() => {
+               localStorage.setItem('pendingWalletLogin', newAccount);
+            }, 100);
+         } else {
+             console.log('AuthContext - Not authenticated, and new account is not a demo account. Login not queued.');
+         }
       }
     };
 
@@ -149,8 +157,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => {
       window.removeEventListener('wallet-account-changed', handleWalletAccountChanged);
     };
-    // Add account as dependency to ensure the listener gets the latest value from the hook
-  }, [state.isAuthenticated, state.user?.walletAddress, account]); 
+    // Use state dependencies, account from hook is unreliable here
+  }, [state.isAuthenticated, state.user?.walletAddress]); 
   
   // Load user from localStorage on initial render
   useEffect(() => {

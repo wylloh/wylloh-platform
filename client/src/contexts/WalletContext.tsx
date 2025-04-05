@@ -385,57 +385,43 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  // Auto-connect if previously connected
+  // Eager connect attempt on initial load
   useEffect(() => {
-    console.log('WalletContext: Checking for auto-connect...', { skipAutoConnect });
-
-    // Skip auto-connect if the skip flag is set
-    if (skipAutoConnect) {
-      console.log('WalletContext: Skipping auto-connect due to skipAutoConnect flag');
-      return;
-    }
-
-    console.log('WalletContext: Attempting injected.isAuthorized()');
-    injected.isAuthorized().then((isAuthorized) => {
-      console.log('WalletContext: injected.isAuthorized() result:', isAuthorized);
-      if (isAuthorized && !active) { // Only activate if authorized AND not already active
-        console.log('WalletContext: Attempting to auto-activate wallet...');
-        // Set throwErrors to false to see if it helps with activation state
-        activate(injected, undefined, false) 
-          .then(async () => {
-            console.log('WalletContext: Wallet auto-connected successfully via activate()');
-
-            // Get the current account after successful auto-connection
-            try {
-              const accounts = await (window as any).ethereum.request({ method: 'eth_accounts' });
-              if (accounts && accounts.length > 0) {
-                console.log('WalletContext - Auto-connected account:', accounts[0]);
-
-                // Dispatch wallet-account-changed event to trigger auto-login
-                const walletChangeEvent = new CustomEvent('wallet-account-changed', { 
-                  detail: { account: accounts[0] }
-                });
-                window.dispatchEvent(walletChangeEvent);
-                console.log('WalletContext - Dispatched wallet-account-changed event for auto-connected account:', accounts[0]);
-              } else {
-                 console.log('WalletContext: Auto-connected but eth_accounts returned empty.');
-              }
-            } catch (accountError) {
-              console.error('WalletContext: Error getting accounts after auto-connection:', accountError);
-            }
-          })
-          .catch((error) => {
-            console.error('WalletContext: Error during auto-activate call:', error);
-            // Optionally clear authorization status here if needed
-            // localStorage.removeItem('injectedConnector.authorized'); 
-          });
+    const attemptEagerConnection = async () => {
+      // Check if MetaMask is installed
+      const { ethereum } = window as any;
+      if (ethereum && ethereum.isMetaMask) {
+        console.log('WalletContext: MetaMask detected, attempting eager connection...');
+        try {
+           // Directly try to activate without checking isAuthorized first
+           await activate(injected, undefined, false); // Suppress errors
+           console.log('WalletContext: Eager activation successful');
+           // Get accounts after activation
+           const accounts = await ethereum.request({ method: 'eth_accounts' });
+           if (accounts && accounts.length > 0) {
+             console.log('WalletContext: Eager connected account:', accounts[0]);
+             // Dispatch event to trigger potential auto-login
+             const walletChangeEvent = new CustomEvent('wallet-account-changed', { 
+                detail: { account: accounts[0] }
+             });
+             window.dispatchEvent(walletChangeEvent);
+             console.log('WalletContext: Dispatched wallet-account-changed for eager connection');
+           } else {
+             console.log('WalletContext: Eager activation succeeded but no accounts returned.');
+           }
+        } catch (error) {
+          console.log('WalletContext: Eager connection attempt failed (this is often normal):', error);
+        }
       } else {
-         console.log('WalletContext: Skipping auto-activation.', { isAuthorized, active });
+         console.log('WalletContext: MetaMask not detected, skipping eager connection.');
       }
-    }).catch(authError => {
-       console.error('WalletContext: Error checking injected.isAuthorized():', authError);
-    });
-  }, [activate, skipAutoConnect, active]); // Add active dependency
+    };
+    
+    // Only run eager connection once on initial mount
+    if (!active && !skipAutoConnect) {
+       attemptEagerConnection();
+    }
+  }, [activate, skipAutoConnect, active]); // Dependencies for eager connect
 
   // Log any state changes
   useEffect(() => {
