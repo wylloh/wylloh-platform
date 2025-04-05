@@ -459,19 +459,30 @@ class BlockchainService {
       });
       
         // For debugging, check the contract state before token creation
+        // Remove the non-standard .exists() check
+        /*
         try {
           console.log(`Checking if token ${contentId} already exists...`);
-          const exists = await tokenContractWithSigner.exists(contentId);
-          console.log(`Token ${contentId} exists: ${exists}`);
+          // Convert contentId to tokenId for check
+          const tokenIdBytesForCheck = ethers.utils.solidityKeccak256(['string'], [contentId]);
+          const tokenIdForCheck = ethers.BigNumber.from(tokenIdBytesForCheck);
           
-          if (exists) {
-            console.log('Token already exists, checking current balance...');
-            const currentBalance = await tokenContractWithSigner.balanceOf(signerAddress, contentId);
-            console.log(`Current balance for token ${contentId}: ${currentBalance.toString()}`);
+          // Assuming exists check is replaced by a balance check or similar standard check
+          // const exists = await tokenContractWithSigner.exists(tokenIdForCheck); // Removed
+          // console.log(`Token ${contentId} (ID: ${tokenIdForCheck.toString()}) exists: ${exists}`);
+          
+          // Check balance instead of exists
+          const currentBalance = await tokenContractWithSigner.balanceOf(signerAddress, tokenIdForCheck);
+          console.log(`Current balance for token ID ${tokenIdForCheck.toString()}: ${currentBalance.toString()}`);
+          
+          if (currentBalance.gt(0)) {
+             console.log('Token already exists and has balance.');
           }
+
         } catch (checkError) {
-          console.warn('Error checking token existence:', checkError);
-      }
+          console.warn('Error checking token existence/balance:', checkError);
+        }
+        */
       
       // Display debugging info about Ganache accounts
       if (process.env.NODE_ENV === 'development' || process.env.REACT_APP_DEMO_MODE === 'true') {
@@ -625,17 +636,29 @@ class BlockchainService {
   /**
    * Get token balance for a user
    * @param address User's wallet address
-   * @param tokenId ID of the token to check balance for
+   * @param tokenId ID of the token to check balance for (can be string contentId or BigNumber tokenId)
    * @returns Number of tokens owned
    */
-  async getTokenBalance(address: string, tokenId: string | ethers.BigNumber): Promise<number> {
+  async getTokenBalance(address: string, tokenIdInput: string | ethers.BigNumber): Promise<number> {
     if (!this.isInitialized()) {
       console.warn('BlockchainService not initialized for getTokenBalance');
       return 0;
     }
     
+    let tokenIdBN: ethers.BigNumber;
     try {
-      console.log(`Checking token balance for address ${address} and token ID ${tokenId.toString()}`);
+      // Convert string contentId to BigNumber tokenId if needed
+      if (typeof tokenIdInput === 'string') {
+         console.log(`Converting contentId "${tokenIdInput}" to BigNumber tokenId for balance check`);
+         const tokenIdBytes = ethers.utils.solidityKeccak256(['string'], [tokenIdInput]);
+         tokenIdBN = ethers.BigNumber.from(tokenIdBytes);
+         console.log(`Generated tokenId: ${tokenIdBN.toString()}`);
+      } else {
+         tokenIdBN = tokenIdInput;
+         console.log(`Using provided BigNumber tokenId: ${tokenIdBN.toString()}`);
+      }
+
+      console.log(`Checking token balance for address ${address} and token ID ${tokenIdBN.toString()}`);
       
       // If in demo mode, try different providers to ensure we get the balance
       if (process.env.REACT_APP_DEMO_MODE === 'true' || process.env.NODE_ENV === 'development') {
@@ -648,11 +671,6 @@ class BlockchainService {
             localProvider
           );
           
-          // Convert string tokenId to BigNumber if needed
-          const tokenIdBN = typeof tokenId === 'string' 
-            ? ethers.BigNumber.from(tokenId)
-            : tokenId;
-            
           const balanceBN = await localTokenContract.balanceOf(address, tokenIdBN);
           const balance = balanceBN.toNumber();
           console.log(`Token balance result (local provider): ${balance}`);
@@ -664,11 +682,6 @@ class BlockchainService {
       }
       
       // Standard approach with web3 provider
-      // Convert string tokenId to BigNumber if needed
-      const tokenIdBN = typeof tokenId === 'string' 
-        ? ethers.BigNumber.from(tokenId)
-        : tokenId;
-        
       const balanceBN = await this.tokenContract!.balanceOf(address, tokenIdBN);
       const balance = balanceBN.toNumber();
       console.log(`Token balance result: ${balance}`);
@@ -681,18 +694,30 @@ class BlockchainService {
   
   /**
    * Get rights thresholds for a token
-   * @param tokenId ID of the token to get rights thresholds for
+   * @param tokenId ID of the token to get rights thresholds for (can be string contentId or BigNumber tokenId)
    * @returns Array of rights thresholds
    */
-  async getRightsThresholds(tokenId: string): Promise<{quantity: number, type: string}[]> {
+  async getRightsThresholds(tokenIdInput: string | ethers.BigNumber): Promise<{quantity: number, type: string}[]> {
     if (!this.isInitialized()) {
       console.warn('BlockchainService not initialized for getRightsThresholds');
       return [];
     }
     
+    let tokenIdBN: ethers.BigNumber;
     try {
-      console.log(`Getting rights thresholds for token ID ${tokenId}`);
-      const thresholds = await this.tokenContract!.getRightsThresholds(tokenId);
+       // Convert string contentId to BigNumber tokenId if needed
+       if (typeof tokenIdInput === 'string') {
+          console.log(`Converting contentId "${tokenIdInput}" to BigNumber tokenId for rights check`);
+          const tokenIdBytes = ethers.utils.solidityKeccak256(['string'], [tokenIdInput]);
+          tokenIdBN = ethers.BigNumber.from(tokenIdBytes);
+          console.log(`Generated tokenId: ${tokenIdBN.toString()}`);
+       } else {
+          tokenIdBN = tokenIdInput;
+          console.log(`Using provided BigNumber tokenId: ${tokenIdBN.toString()}`);
+       }
+
+      console.log(`Getting rights thresholds for token ID ${tokenIdBN.toString()}`);
+      const thresholds = await this.tokenContract!.getRightsThresholds(tokenIdBN);
       const formattedThresholds = thresholds.map((t: any) => ({
         quantity: t.quantity.toNumber(),
         type: t.rightsType
@@ -949,17 +974,37 @@ class BlockchainService {
             const preTransferBalance = await tokenContract.balanceOf(sellerAddress!, tokenIdBN);
             console.log(`Seller balance immediately before transfer: ${preTransferBalance.toString()} tokens`);
             
-            // Check approvals
-            const isApproved = await tokenContract.isApprovedForAll(sellerAddress!, sellerAddress!);
-            console.log(`Is seller approved for all? ${isApproved}`);
+            // Check approvals - requires the OPERATOR (marketplace) address
+            if (!this.marketplaceAddress || !ethers.utils.isAddress(this.marketplaceAddress)) {
+              console.error("Marketplace address is not configured or invalid. Cannot check/set approval.");
+              throw new Error("Marketplace address is not configured. Approval cannot be handled.");
+            }
             
-            // In development mode, ensure approval is set if needed
+            const operatorAddress = this.marketplaceAddress; // The marketplace contract needs approval
+            console.log(`Checking if seller (${sellerAddress}) has approved operator (${operatorAddress})...`);
+            
+            const isApproved = await tokenContract.isApprovedForAll(sellerAddress!, operatorAddress);
+            console.log(`Is seller approved for operator (${operatorAddress})? ${isApproved}`);
+            
+            // In development mode, ensure approval is set if needed, *by the seller*
             if (!isApproved && (process.env.NODE_ENV === 'development' || process.env.REACT_APP_DEMO_MODE === 'true')) {
-              console.log('Setting approval for all tokens...');
-              const approveTx = await tokenWithCreatorSigner.setApprovalForAll(sellerAddress!, true);
-              console.log('Approval transaction submitted:', approveTx.hash);
-              const approveReceipt = await approveTx.wait();
-              console.log('Approval confirmed in block:', approveReceipt.blockNumber);
+              console.log(`Setting approval for operator ${operatorAddress}... (Needs seller's signature)`);
+              
+              try {
+                // This MUST be signed by the seller (creatorSigner)
+                const approveTx = await tokenWithCreatorSigner.setApprovalForAll(
+                   operatorAddress, // The address to approve (Marketplace Contract)
+                   true            // Approve status
+                 );
+                console.log('Approval transaction submitted:', approveTx.hash);
+                const approveReceipt = await approveTx.wait();
+                console.log('Approval confirmed in block:', approveReceipt.blockNumber);
+              } catch (approvalError) {
+                 console.error("Failed to set approval:", approvalError);
+                 // Decide if this is critical. For now, we'll log and proceed, maybe transfer fails.
+                 // throw new Error("Failed to set approval for marketplace contract."); 
+                 console.warn("Proceeding without confirmed approval, transfer might fail.");
+              }
             }
             
             // Use safeTransferFrom to send tokens
