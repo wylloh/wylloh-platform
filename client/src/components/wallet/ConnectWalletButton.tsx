@@ -110,20 +110,20 @@ const ConnectWalletButton: React.FC = () => {
       console.log('Wallet Button Debug:', info);
     }
     
-    // Auto-connect if MetaMask is detected and not already connected,
-    // but only do this once to prevent infinite popups
-    const { ethereum } = window as any;
-    if (ethereum && ethereum.isMetaMask && !active && !autoConnectAttemptedRef.current && !connecting) {
-      console.log('ConnectWalletButton - MetaMask detected but not connected, auto-connecting...');
-      autoConnectAttemptedRef.current = true;
-      connect().catch(err => {
-        console.error('Auto connect error:', err);
-        // Reset the flag after a timeout to allow a retry later
-        setTimeout(() => {
-          autoConnectAttemptedRef.current = false;
-        }, 5000);
-      });
-    }
+    // // Auto-connect if MetaMask is detected and not already connected,
+    // // but only do this once to prevent infinite popups
+    // const { ethereum } = window as any;
+    // if (ethereum && ethereum.isMetaMask && !active && !autoConnectAttemptedRef.current && !connecting) {
+    //   console.log('ConnectWalletButton - MetaMask detected but not connected, auto-connecting...');
+    //   autoConnectAttemptedRef.current = true;
+    //   connect().catch(err => {
+    //     console.error('Auto connect error:', err);
+    //     // Reset the flag after a timeout to allow a retry later
+    //     setTimeout(() => {
+    //       autoConnectAttemptedRef.current = false;
+    //     }, 5000);
+    //   });
+    // }
   }, [active, connect, connecting]);
 
   // Direct login attempt for recognized wallets - this is actually a good pattern for production

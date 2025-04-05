@@ -241,17 +241,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   // Update user wallet address when wallet connection changes
   useEffect(() => {
-    if (state.isAuthenticated && state.user && account && account !== state.user.walletAddress) {
+    // This effect ensures the user object in AuthContext state
+    // always reflects the currently connected wallet address from WalletContext
+    if (state.isAuthenticated && state.user && account && 
+        (!state.user.walletAddress || state.user.walletAddress.toLowerCase() !== account.toLowerCase())) {
+      console.log(`AuthContext - Syncing wallet address to user state: ${account}`);
       const updatedUser = { ...state.user, walletAddress: account };
-      setState({
-        ...state,
+      setState(prevState => ({
+        ...prevState,
         user: updatedUser,
-      });
+      }));
+      // Update localStorage as well
       localStorage.setItem('user', JSON.stringify(updatedUser));
-      
-      // In a real app, you would update this on the server as well
+    } else if (state.isAuthenticated && state.user && !account && state.user.walletAddress) {
+      // Handle case where wallet disconnects while user is logged in
+      console.log('AuthContext - Wallet disconnected, clearing wallet address from user state');
+       const updatedUser = { ...state.user, walletAddress: undefined };
+      setState(prevState => ({
+        ...prevState,
+        user: updatedUser,
+      }));
+      localStorage.setItem('user', JSON.stringify(updatedUser));
     }
-  }, [account, state.isAuthenticated, state.user]);
+  }, [account, state.isAuthenticated, state.user]); // Rerun when account or auth state changes
 
   // Login function
   const login = async (email: string, password: string): Promise<boolean> => {
@@ -275,6 +287,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             username: 'testuser',
             email: email,
             roles: ['user'], // Default role
+            // Explicitly set walletAddress using the *current* account from the hook
             walletAddress: account || undefined,
             proStatus: email === 'pro@example.com' ? 'verified' as const : undefined // Demo only: pre-verified pro for demo
           }
@@ -342,6 +355,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             username,
             email,
             roles,
+            // Explicitly set walletAddress using the *current* account from the hook
             walletAddress: account || undefined
           }
         }
