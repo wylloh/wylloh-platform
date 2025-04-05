@@ -82,45 +82,58 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const handleWalletAccountChanged = (event: Event) => {
       console.log('AuthContext - wallet-account-changed event received');
-
-      // Extract the new account from the event if available
       const newAccount = (event as CustomEvent)?.detail?.account;
       console.log('AuthContext - New wallet account:', newAccount);
 
-      // Reset auto-login tracking for the new account
-      if (newAccount) {
-        autoLoginAttemptedRef.current[newAccount] = false;
+      if (!newAccount) return; // Ignore if no account detail
 
-        // Check if the new account is different from the current logged-in user's wallet
-        // Only force logout if the account genuinely changes *and* the user was logged in
-        // Do NOT logout if the event fires while the user is already authenticated with the *same* account
-        // This prevents logout during processes like tokenization where the event might fire unnecessarily
-        if (state.isAuthenticated && state.user?.walletAddress && state.user.walletAddress.toLowerCase() !== newAccount.toLowerCase()) {
-          console.log('AuthContext - Wallet account genuinely changed, logging out current user');
+      // Get current state values for comparison
+      const currentIsAuthenticated = state.isAuthenticated;
+      const currentUserWallet = state.user?.walletAddress;
+      
+      console.log('AuthContext - State before check:', { 
+          currentIsAuthenticated, 
+          currentUserWallet: currentUserWallet?.toLowerCase(), 
+          newAccountLower: newAccount.toLowerCase() 
+      });
+
+      // Reset auto-login attempt flag for the new account regardless
+      autoLoginAttemptedRef.current[newAccount] = false;
+
+      // Scenario 1: User is authenticated
+      if (currentIsAuthenticated) {
+        // Scenario 1a: The new account is DIFFERENT from the logged-in user's account
+        if (currentUserWallet && currentUserWallet.toLowerCase() !== newAccount.toLowerCase()) {
+          console.log(`AuthContext - Wallet account changed from ${currentUserWallet} to ${newAccount}. Logging out previous user.`);
+          // Logout previous user IMMEDIATELY
           setState(prevState => ({
-            ...prevState, // Keep loading state etc.
+            ...prevState,
             user: null,
             error: null,
             isAuthenticated: false,
           }));
           localStorage.removeItem('token');
           localStorage.removeItem('user');
-          
-          // Queue the auto-login attempt for the new account
+
+          // Queue login attempt for the NEW account
+          console.log(`AuthContext - Queuing login for new account: ${newAccount}`);
           setTimeout(() => {
              localStorage.setItem('pendingWalletLogin', newAccount);
-          }, 100);
+          }, 100); // Small delay to allow state update
 
-        } else if (!state.isAuthenticated) {
-           // If not authenticated, always queue the auto-login attempt
-           console.log('AuthContext - Not authenticated, queuing auto-login attempt for new account.');
-           // Queue the auto-login attempt after this render cycle
-           setTimeout(() => {
-             localStorage.setItem('pendingWalletLogin', newAccount);
-           }, 100);
         } else {
-           console.log('AuthContext - Event received for the same authenticated account, no logout needed.');
+          // Scenario 1b: The new account is the SAME as the logged-in user's account
+          // This can happen due to redundant events. Do nothing.
+          console.log('AuthContext - Event received for the same authenticated account, no logout/login needed.');
         }
+      } 
+      // Scenario 2: User is NOT authenticated
+      else {
+        console.log('AuthContext - Not currently authenticated. Queuing login attempt for new account:', newAccount);
+        // Queue login attempt for the NEW account
+        setTimeout(() => {
+          localStorage.setItem('pendingWalletLogin', newAccount);
+        }, 100);
       }
     };
 
@@ -129,7 +142,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => {
       window.removeEventListener('wallet-account-changed', handleWalletAccountChanged);
     };
-  }, [state.isAuthenticated, state.user?.walletAddress]); // Add state.user?.walletAddress dependency
+  }, [state.isAuthenticated, state.user?.walletAddress]); // Keep dependencies
   
   // Load user from localStorage on initial render
   useEffect(() => {
