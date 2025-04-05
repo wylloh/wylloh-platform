@@ -241,6 +241,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   // Update user wallet address when wallet connection changes
   useEffect(() => {
+    console.log('AuthContext: Wallet sync effect running.', { 
+      isAuthenticated: state.isAuthenticated, 
+      userId: state.user?.id, 
+      userWallet: state.user?.walletAddress,
+      hookAccount: account 
+    });
     // This effect ensures the user object in AuthContext state
     // always reflects the currently connected wallet address from WalletContext
     if (state.isAuthenticated && state.user && account && 

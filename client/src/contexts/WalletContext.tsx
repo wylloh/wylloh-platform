@@ -386,44 +386,54 @@ export function WalletProvider({ children }: { children: ReactNode }) {
 
   // Auto-connect if previously connected
   useEffect(() => {
-    console.log('Checking for auto-connect...', { skipAutoConnect });
-    
+    console.log('WalletContext: Checking for auto-connect...', { skipAutoConnect });
+
     // Skip auto-connect if the skip flag is set
     if (skipAutoConnect) {
-      console.log('Skipping auto-connect due to skipAutoConnect flag');
+      console.log('WalletContext: Skipping auto-connect due to skipAutoConnect flag');
       return;
     }
-    
+
+    console.log('WalletContext: Attempting injected.isAuthorized()');
     injected.isAuthorized().then((isAuthorized) => {
-      console.log('isAuthorized:', isAuthorized);
-      if (isAuthorized) {
+      console.log('WalletContext: injected.isAuthorized() result:', isAuthorized);
+      if (isAuthorized && !active) { // Only activate if authorized AND not already active
+        console.log('WalletContext: Attempting to auto-activate wallet...');
         activate(injected, undefined, true)
           .then(async () => {
-            console.log('Wallet auto-connected successfully');
-            
+            console.log('WalletContext: Wallet auto-connected successfully via activate()');
+
             // Get the current account after successful auto-connection
             try {
               const accounts = await (window as any).ethereum.request({ method: 'eth_accounts' });
               if (accounts && accounts.length > 0) {
                 console.log('WalletContext - Auto-connected account:', accounts[0]);
-                
+
                 // Dispatch wallet-account-changed event to trigger auto-login
                 const walletChangeEvent = new CustomEvent('wallet-account-changed', { 
                   detail: { account: accounts[0] }
                 });
                 window.dispatchEvent(walletChangeEvent);
                 console.log('WalletContext - Dispatched wallet-account-changed event for auto-connected account:', accounts[0]);
+              } else {
+                 console.log('WalletContext: Auto-connected but eth_accounts returned empty.');
               }
             } catch (accountError) {
-              console.error('Error getting accounts after auto-connection:', accountError);
+              console.error('WalletContext: Error getting accounts after auto-connection:', accountError);
             }
           })
           .catch((error) => {
-            console.error('Error auto-connecting wallet:', error);
+            console.error('WalletContext: Error during auto-activate call:', error);
+            // Optionally clear authorization status here if needed
+            // localStorage.removeItem('injectedConnector.authorized'); 
           });
+      } else {
+         console.log('WalletContext: Skipping auto-activation.', { isAuthorized, active });
       }
+    }).catch(authError => {
+       console.error('WalletContext: Error checking injected.isAuthorized():', authError);
     });
-  }, [activate, skipAutoConnect]);
+  }, [activate, skipAutoConnect, active]); // Add active dependency
 
   // Log any state changes
   useEffect(() => {
