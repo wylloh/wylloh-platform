@@ -975,6 +975,10 @@ class BlockchainService {
             console.log(`Seller balance immediately before transfer: ${preTransferBalance.toString()} tokens`);
             
             // Check approvals - requires the OPERATOR (marketplace) address
+            
+            // Add explicit logging here to check the marketplace address value
+            console.log(`DEBUG: Checking marketplaceAddress inside purchaseTokens: [${this.marketplaceAddress}]`);
+            
             if (!this.marketplaceAddress || !ethers.utils.isAddress(this.marketplaceAddress)) {
               console.error("Marketplace address is not configured or invalid. Cannot check/set approval.");
               throw new Error("Marketplace address is not configured. Approval cannot be handled.");
