@@ -600,6 +600,17 @@ update_configuration() {
     # Clean up backup files created by sed
     find "$SCRIPT_DIR/client" -name '.env.local.bak' -delete
     find "$SCRIPT_DIR" -name '.env.demo.bak' -delete
+
+    # --- Demo Only: Pre-approve Marketplace Contract ---
+    # In a real application, the seller would need to grant this approval via the UI.
+    # For the demo, we automatically approve the marketplace using the seller's (Ganache account 0) private key.
+    echo "Pre-approving marketplace contract ($marketplace_address) for token transfers by seller ($contract_address)..."
+    cast send "$contract_address" "setApprovalForAll(address,bool)" "$marketplace_address" true --private-key 0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80 --rpc-url http://127.0.0.1:8545
+    echo "Marketplace approval set."
+    # --- End Demo Only ---
+
+    echo "---------------------------------------"
+    echo "Writing deployed addresses to client config..."
   else
     echo -e "${YELLOW}In dry-run mode - would create and update environment files for client, API, and storage services${NC}"
   fi
