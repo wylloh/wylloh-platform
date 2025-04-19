@@ -446,19 +446,19 @@ class ContentService {
         let txHash: string;
         try {
           txHash = await blockchainService.createToken(
-            id,
-            tokenizationData.initialSupply,
-            {
-              contentId: id,
-              title: content.title,
-              description: content.description,
-              rightsThresholds: rightsThresholds
-            },
-            tokenizationData.royaltyPercentage
-          );
-          
-          console.log('Token creation transaction submitted, hash:', txHash);
-          
+          id,
+          tokenizationData.initialSupply,
+          {
+            contentId: id,
+            title: content.title,
+            description: content.description,
+            rightsThresholds: rightsThresholds
+          },
+          tokenizationData.royaltyPercentage
+        );
+        
+        console.log('Token creation transaction submitted, hash:', txHash);
+        
           if (!txHash) {
             throw new Error('Token creation failed - no transaction hash returned');
           }
@@ -498,15 +498,15 @@ class ContentService {
           console.log('Token verified successfully:', verification);
           
           // Only if verification succeeded, update content metadata with tokenization details
-          const updatedContent = {
-            ...content,
+        const updatedContent = {
+          ...content,
             tokenized: true, // Only set this to true when verified
             tokenId: id,
-            price: tokenizationData.price,
-            available: tokenizationData.initialSupply,
-            totalSupply: tokenizationData.initialSupply,
-            rightsThresholds: rightsThresholds,
-            status: 'active' as const,
+          price: tokenizationData.price,
+          available: tokenizationData.initialSupply,
+          totalSupply: tokenizationData.initialSupply,
+          rightsThresholds: rightsThresholds,
+          status: 'active' as const,
             visibility: 'public' as const,
             creatorAddress: walletAddress || content.creatorAddress,
             blockchainTxHash: txHash
@@ -540,26 +540,26 @@ class ContentService {
                 console.log('Token creation verified after timeout. Proceeding with tokenization.');
                 
                 // Update content metadata with tokenization details
-                const updatedContent = {
-                  ...content,
-                  tokenized: true,
-                  tokenId: id,
-                  price: tokenizationData.price,
-                  available: tokenizationData.initialSupply,
-                  totalSupply: tokenizationData.initialSupply,
-                  rightsThresholds: rightsThresholds,
-                  status: 'active' as const,
+            const updatedContent = {
+              ...content,
+              tokenized: true,
+              tokenId: id,
+              price: tokenizationData.price,
+              available: tokenizationData.initialSupply,
+              totalSupply: tokenizationData.initialSupply,
+              rightsThresholds: rightsThresholds,
+              status: 'active' as const,
                   visibility: 'public' as const,
                   creatorAddress: walletAddress || content.creatorAddress
-                };
-                
+            };
+            
                 // Save to local storage and return
-                this.saveLocalContent(updatedContent);
-                
+            this.saveLocalContent(updatedContent);
+            
                 // Remove any failure flag if it existed
                 localStorage.removeItem(`tokenization_failed_${id}`);
                 
-                return updatedContent;
+            return updatedContent;
               } else {
                 console.error('Token verification failed after timeout:', verificationResult);
                 

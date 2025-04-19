@@ -5,6 +5,9 @@ import { WalletConnectConnector } from '@web3-react/walletconnect-connector';
 import { ethers } from 'ethers';
 import { blockchainService } from '../services/blockchain.service';
 
+// Import the generated JSON configuration
+import deployedAddresses from '../config/deployedAddresses.json';
+
 // Add Snackbar for notifications
 import { 
   Snackbar, 
@@ -116,18 +119,31 @@ export function WalletProvider({ children }: { children: ReactNode }) {
   // Get provider
   const provider = library ? library as ethers.providers.Web3Provider : null;
 
-  // Initialize blockchain service when provider becomes available
+  // Initialize blockchain service and set addresses when provider becomes available
   useEffect(() => {
     if (active && provider && account) {
       try {
-        blockchainService.initialize();
-        console.log('Blockchain service initialized');
+        // Initialize the service if not already done
+        if (!blockchainService.isInitialized()) {
+           console.log('WalletContext: Initializing BlockchainService...');
+           blockchainService.initialize();
+           console.log('Blockchain service initialized from WalletContext');
+           
+           // Now set the marketplace address using the imported config
+           console.log(`WalletContext: Setting Marketplace Address from imported config: [${deployedAddresses.marketplaceAddress}]`);
+           blockchainService.setMarketplaceAddress(deployedAddresses.marketplaceAddress);
+        }
+
       } catch (error) {
-        console.error('Failed to initialize blockchain service:', error);
+        console.error('Failed to initialize blockchain service or set address:', error);
         setConnectionError('Failed to connect to blockchain contracts. Please try again.');
       }
+    } else if (!active) {
+      // If wallet becomes inactive, ensure service is potentially re-initialized later
+      // (Optional: could reset service state here if needed)
+      console.log('WalletContext: Wallet inactive, service state preserved.');
     }
-  }, [active, provider, account]);
+  }, [active, provider, account]); // Dependencies include active, provider, account
 
   // Connect wallet
   const connect = async () => {
@@ -427,22 +443,6 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     }
   }, [active, activate, skipAutoConnect]); // Dependencies for eager connection
   
-  // Effect to initialize blockchain service and set marketplace address
-  useEffect(() => {
-    // Initialize the service first (might happen before or after eager connect)
-    if (!blockchainService.isInitialized()) {
-      console.log('WalletContext: Initializing BlockchainService...');
-      blockchainService.initialize();
-    }
-    
-    // Attempt to set the marketplace address after initialization
-    // This should run after the environment variables have likely loaded
-    const marketplaceAddress = process.env.REACT_APP_MARKETPLACE_ADDRESS;
-    console.log(`WalletContext: Reading Marketplace Address from env: [${marketplaceAddress}]`);
-    blockchainService.setMarketplaceAddress(marketplaceAddress);
-
-  }, []); // Run only once on mount
-
   // Log any state changes
   useEffect(() => {
     console.log('WalletContext state updated:', { 

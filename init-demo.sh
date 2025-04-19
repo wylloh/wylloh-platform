@@ -581,6 +581,25 @@ update_configuration() {
     sed -i '' "s|IPFS_API_URL=.*|IPFS_API_URL=\"http://localhost:$PORT_IPFS\"|g" "$STORAGE_ENV_FILE"
     sed -i '' "s|IPFS_GATEWAY_URL=.*|IPFS_GATEWAY_URL=\"http://localhost:$PORT_IPFS_GATEWAY\"|g" "$STORAGE_ENV_FILE"
     sed -i '' "s|STORAGE_PORT=.*|STORAGE_PORT=4001|g" "$STORAGE_ENV_FILE"
+
+    # Update .env.demo for backend services
+    sed -i.bak "s/WEB3_PROVIDER_URL=.*/WEB3_PROVIDER_URL=$WEB3_PROVIDER_URL/" "$SCRIPT_DIR/.env.demo"
+    sed -i.bak "s/CONTRACT_ADDRESS=.*/CONTRACT_ADDRESS=$contract_address/" "$SCRIPT_DIR/.env.demo"
+    sed -i.bak "s/REACT_APP_MARKETPLACE_ADDRESS=.*/REACT_APP_MARKETPLACE_ADDRESS=$marketplace_address/" "$SCRIPT_DIR/.env.demo"
+
+    # Create JSON config file for client
+    CONFIG_DIR="$SCRIPT_DIR/client/src/config"
+    CONFIG_FILE="$CONFIG_DIR/deployedAddresses.json"
+    mkdir -p "$CONFIG_DIR"
+    echo "{
+      \\"tokenAddress\\": \\"$contract_address\\",
+      \\"marketplaceAddress\\": \\"$marketplace_address\\"
+    }" > "$CONFIG_FILE"
+    echo "✅ Created client config file: $CONFIG_FILE"
+
+    # Clean up backup files created by sed
+    find "$SCRIPT_DIR/client" -name '.env.local.bak' -delete
+    find "$SCRIPT_DIR" -name '.env.demo.bak' -delete
   else
     echo -e "${YELLOW}In dry-run mode - would create and update environment files for client, API, and storage services${NC}"
   fi
