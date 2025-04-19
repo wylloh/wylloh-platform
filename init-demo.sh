@@ -188,8 +188,8 @@ start_ganache() {
   echo "Starting Ganache on port $PORT_GANACHE..."
   
   if [ "$DRY_RUN" = false ]; then
-    # Start Ganache with deterministic addresses and specific chain ID
-    ganache --deterministic --chain.chainId 1337 --wallet.defaultBalance 1000 --port $PORT_GANACHE > $GANACHE_LOG 2>&1 &
+    # Start Ganache with deterministic addresses and specific chain ID, and higher balance
+    ganache --deterministic --chain.chainId 1337 --wallet.defaultBalance 2000 --port $PORT_GANACHE > $GANACHE_LOG 2>&1 &
     
     GANACHE_PID=$!
     echo $GANACHE_PID > /tmp/ganache.pid
