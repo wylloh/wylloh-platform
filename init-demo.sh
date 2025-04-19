@@ -592,8 +592,8 @@ update_configuration() {
     CONFIG_FILE="$CONFIG_DIR/deployedAddresses.json"
     mkdir -p "$CONFIG_DIR"
     echo "{
-      \\"tokenAddress\\": \\"$contract_address\\",
-      \\"marketplaceAddress\\": \\"$marketplace_address\\"
+      \"tokenAddress\": \"$contract_address\",
+      \"marketplaceAddress\": \"$marketplace_address\"
     }" > "$CONFIG_FILE"
     echo "✅ Created client config file: $CONFIG_FILE"
 
