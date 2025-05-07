@@ -1,81 +1,72 @@
 {
-  "name": "wylloh-player",
+  "name": "wylloh-platform",
   "version": "0.1.0",
-  "description": "Web-based media player for tokenized content with native extensions",
-  "main": "dist/index.js",
-  "type": "module",
+  "description": "An open protocol for movie tokenization and distribution",
+  "private": true,
+  "workspaces": [
+    "client",
+    "api",
+    "contracts"
+  ],
   "scripts": {
-    "dev": "vite",
-    "start": "vite",
-    "start:web": "vite --mode=web",
-    "start:seedone": "cross-env PLATFORM=seedone vite --mode=seedone",
-    "build": "vite build",
-    "build:web": "vite build --mode=web",
-    "build:seedone": "cross-env PLATFORM=seedone vite build --mode=seedone",
-    "build:desktop": "vite build --mode=desktop",
-    "build:with-types": "tsc && vite build",
-    "build:web:with-types": "tsc && vite build --mode=web",
-    "build:seedone:with-types": "cross-env PLATFORM=seedone tsc && vite build --mode=seedone",
-    "build:desktop:with-types": "tsc && vite build --mode=desktop",
-    "preview": "vite preview",
-    "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
-    "test": "vitest run",
-    "test:watch": "vitest",
-    "test:coverage": "vitest run --coverage",
-    "demo": "bash ./init-demo.sh",
-    "stop-demo": "bash ./stop-demo.sh",
-    "compile": "hardhat compile"
+    "dev": "concurrently \"yarn dev:client\" \"yarn dev:api\"",
+    "dev:client": "cd client && yarn start",
+    "dev:api": "cd api && yarn dev",
+    "build": "yarn build:client && yarn build:api",
+    "build:client": "cd client && yarn build",
+    "build:api": "cd api && yarn build",
+    "test": "yarn test:contracts && yarn test:client && yarn test:api",
+    "test:contracts": "cd contracts && yarn test",
+    "test:client": "cd client && yarn test",
+    "test:api": "cd api && yarn test",
+    "lint": "yarn lint:contracts && yarn lint:client && yarn lint:api",
+    "lint:contracts": "cd contracts && yarn lint",
+    "lint:client": "cd client && yarn lint",
+    "lint:api": "cd api && yarn lint",
+    "format": "prettier --write \"**/*.{js,jsx,ts,tsx,json,md}\"",
+    "prepare": "husky install",
+    "commit": "git-cz",
+    "deploy:mumbai": "cd contracts && yarn deploy:mumbai",
+    "deploy:polygon": "cd contracts && yarn deploy:polygon",
+    "verify:mumbai": "cd contracts && yarn verify:mumbai",
+    "verify:polygon": "cd contracts && yarn verify:polygon"
   },
-  "dependencies": {
-    "@mui/icons-material": "^5.15.14",
-    "@mui/material": "^5.15.14",
-    "ethers": "^5.7.2",
-    "ipfs-http-client": "^60.0.1",
-    "react": "^18.2.0",
-    "react-dom": "^18.2.0",
-    "react-router-dom": "^6.22.3",
-    "shaka-player": "^4.7.11",
-    "zustand": "^4.5.2"
-  },
-  "devDependencies": {
-    "@nomicfoundation/hardhat-ethers": "^3.0.8",
-    "@nomiclabs/hardhat-ethers": "^2.0.0",
-    "@nomiclabs/hardhat-waffle": "^2.0.0",
-    "@openzeppelin/contracts": "4.9.3",
-    "@openzeppelin/hardhat-upgrades": "^1.22.0",
-    "@testing-library/jest-dom": "^6.6.3",
-    "@testing-library/react": "^16.2.0",
-    "@types/node": "^20.11.30",
-    "@types/react": "^18.2.67",
-    "@types/react-dom": "^18.2.22",
-    "@typescript-eslint/eslint-plugin": "^7.11.0",
-    "@typescript-eslint/parser": "^7.11.0",
-    "@vitejs/plugin-react": "^4.3.4",
-    "cross-env": "^7.0.3",
-    "dotenv": "^16.4.7",
-    "eslint": "^8.57.0",
-    "eslint-plugin-react-hooks": "^4.6.0",
-    "eslint-plugin-react-refresh": "^0.4.6",
-    "hardhat": "^2.19.4",
-    "hardhat-gas-reporter": "^1.0.8",
-    "jsdom": "^26.0.0",
-    "solidity-coverage": "^0.8.2",
-    "typescript": "^5.4.3",
-    "vite": "^5.2.3",
-    "vite-plugin-pwa": "^0.19.6",
-    "vitest": "^3.0.8"
-  },
-  "author": "Wylloh Team",
-  "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/wy1bur/wylloh-platform.git"
+    "url": "git+https://github.com/Wy1bur/wylloh-platform.git"
   },
   "keywords": [
-    "media-player",
     "blockchain",
-    "ipfs",
-    "web3",
-    "tokenized-content"
-  ]
+    "movie",
+    "tokenization",
+    "nft",
+    "polygon",
+    "ipfs"
+  ],
+  "author": "Wylloh Protocol",
+  "license": "Apache-2.0",
+  "bugs": {
+    "url": "https://github.com/Wy1bur/wylloh-platform/issues"
+  },
+  "homepage": "https://github.com/Wy1bur/wylloh-platform#readme",
+  "devDependencies": {
+    "@commitlint/cli": "^17.0.0",
+    "@commitlint/config-conventional": "^17.0.0",
+    "concurrently": "^8.0.0",
+    "husky": "^8.0.0",
+    "lint-staged": "^13.0.0",
+    "prettier": "^3.0.0"
+  },
+  "lint-staged": {
+    "*.{js,jsx,ts,tsx}": [
+      "eslint --fix",
+      "prettier --write"
+    ],
+    "*.{json,md}": [
+      "prettier --write"
+    ]
+  },
+  "engines": {
+    "node": ">=16.0.0"
+  }
 }

@@ -1,4 +1,6 @@
 {
-      \tokenAddress\: \0xe78A0F7E598Cc8b0Bb87894B0F60dD2a88d6a8Ab\,
-      \marketplaceAddress\: \0x5b1869D9A4C187F2EAa108f3062412ecf0526b24\
+      "tokenAddress": "0x5FbDB2315678afecb367f032d93F642f64180aa3",
+      "marketplaceAddress": "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512",
+      "creatorAddress": "0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266",
+      "consumerAddress": "0x70997970c51812dc3a010c7d01b50e0d17dc79c8"
     }

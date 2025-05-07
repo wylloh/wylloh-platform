@@ -9,10 +9,22 @@ import CryptoJS from 'crypto-js';
  * Generate a random content encryption key
  * @returns A secure random encryption key
  */
-export function generateContentKey(): string {
-  // Create a random 256-bit key (32 bytes)
-  const randomWordArray = CryptoJS.lib.WordArray.random(32);
-  return randomWordArray.toString(CryptoJS.enc.Base64);
+export async function generateContentKey(): Promise<string> {
+  const key = await window.crypto.subtle.generateKey(
+    {
+      name: 'AES-GCM',
+      length: 256
+    },
+    true,
+    ['encrypt', 'decrypt']
+  );
+
+  const exportedKey = await window.crypto.subtle.exportKey(
+    'raw',
+    key
+  );
+
+  return Buffer.from(exportedKey).toString('base64');
 }
 
 /**
@@ -21,18 +33,48 @@ export function generateContentKey(): string {
  * @param contentKey The symmetric key to use for encryption
  * @returns Encrypted content as a string
  */
-export function encryptContent(content: ArrayBuffer | string, contentKey: string): string {
-  // If content is ArrayBuffer, convert to Base64 string first
-  let contentStr: string;
-  if (content instanceof ArrayBuffer) {
-    contentStr = arrayBufferToBase64(content);
+export async function encryptContent(
+  content: ArrayBuffer | string,
+  contentKey: string
+): Promise<string> {
+  // Convert content to ArrayBuffer if it's a string
+  let contentBuffer: ArrayBuffer;
+  if (typeof content === 'string') {
+    const encoder = new TextEncoder();
+    contentBuffer = encoder.encode(content).buffer;
   } else {
-    contentStr = content;
+    contentBuffer = content;
   }
-  
-  // Encrypt using AES
-  const encrypted = CryptoJS.AES.encrypt(contentStr, contentKey).toString();
-  return encrypted;
+
+  // Import the key
+  const keyBuffer = Buffer.from(contentKey, 'base64');
+  const key = await window.crypto.subtle.importKey(
+    'raw',
+    keyBuffer,
+    { name: 'AES-GCM', length: 256 },
+    false,
+    ['encrypt']
+  );
+
+  // Generate IV
+  const iv = window.crypto.getRandomValues(new Uint8Array(12));
+
+  // Encrypt
+  const encryptedBuffer = await window.crypto.subtle.encrypt(
+    {
+      name: 'AES-GCM',
+      iv
+    },
+    key,
+    contentBuffer
+  );
+
+  // Combine IV and encrypted data
+  const result = new Uint8Array(iv.length + encryptedBuffer.byteLength);
+  result.set(iv);
+  result.set(new Uint8Array(encryptedBuffer), iv.length);
+
+  return Buffer.from(result).toString('base64');
 }
 
 /**
@@ -41,9 +83,40 @@ export function encryptContent(content: ArrayBuffer | string, contentKey: string
  * @param contentKey The symmetric key used for decryption
  * @returns Decrypted content as string
  */
-export function decryptContent(encryptedContent: string, contentKey: string): string {
-  const decrypted = CryptoJS.AES.decrypt(encryptedContent, contentKey);
-  return decrypted.toString(CryptoJS.enc.Utf8);
+export async function decryptContent(
+  encryptedContent: string,
+  contentKey: string
+): Promise<string> {
+  // Convert base64 to ArrayBuffer
+  const encryptedBuffer = Buffer.from(encryptedContent, 'base64');
+  
+  // Extract IV and encrypted data
+  const iv = encryptedBuffer.slice(0, 12);
+  const data = encryptedBuffer.slice(12);
+
+  // Import the key
+  const keyBuffer = Buffer.from(contentKey, 'base64');
+  const key = await window.crypto.subtle.importKey(
+    'raw',
+    keyBuffer,
+    { name: 'AES-GCM', length: 256 },
+    false,
+    ['decrypt']
+  );
+
+  // Decrypt
+  const decryptedBuffer = await window.crypto.subtle.decrypt(
+    {
+      name: 'AES-GCM',
+      iv: new Uint8Array(iv)
+    },
+    key,
+    data
+  );
+
+  // Convert to string
+  const decoder = new TextDecoder();
+  return decoder.decode(decryptedBuffer);
 }
 
 /**
@@ -53,12 +126,36 @@ export function decryptContent(encryptedContent: string, contentKey: string): st
  * @param publicKey The public key to encrypt with (typically derived from wallet)
  * @returns Encrypted key that only the holder of the private key can decrypt
  */
-export async function encryptContentKey(contentKey: string, publicKey: string): Promise<string> {
-  // In production, use asymmetric encryption like RSA or ECIES
-  // For this prototype, we'll use a placeholder approach
-  
-  // Simple encryption for demo - in production use proper asymmetric encryption
-  return CryptoJS.AES.encrypt(contentKey, publicKey).toString();
+export async function encryptContentKey(
+  contentKey: string,
+  publicKey: string
+): Promise<string> {
+  // Import the public key
+  const publicKeyBuffer = Buffer.from(publicKey, 'base64');
+  const key = await window.crypto.subtle.importKey(
+    'spki',
+    publicKeyBuffer,
+    {
+      name: 'RSA-OAEP',
+      hash: 'SHA-256'
+    },
+    false,
+    ['encrypt']
+  );
+
+  // Convert content key to ArrayBuffer
+  const contentKeyBuffer = Buffer.from(contentKey, 'base64');
+
+  // Encrypt
+  const encryptedBuffer = await window.crypto.subtle.encrypt(
+    {
+      name: 'RSA-OAEP'
+    },
+    key,
+    contentKeyBuffer
+  );
+
+  return Buffer.from(encryptedBuffer).toString('base64');
 }
 
 /**
@@ -67,12 +164,36 @@ export async function encryptContentKey(contentKey: string, publicKey: string): 
  * @param privateKey The private key for decryption (derived from wallet)
  * @returns The decrypted content key
  */
-export async function decryptContentKey(encryptedKey: string, privateKey: string): Promise<string> {
-  // In production, use proper asymmetric decryption
-  // This is a simplified placeholder
-  
-  const decrypted = CryptoJS.AES.decrypt(encryptedKey, privateKey);
-  return decrypted.toString(CryptoJS.enc.Utf8);
+export async function decryptContentKey(
+  encryptedKey: string,
+  privateKey: string
+): Promise<string> {
+  // Import the private key
+  const privateKeyBuffer = Buffer.from(privateKey, 'base64');
+  const key = await window.crypto.subtle.importKey(
+    'pkcs8',
+    privateKeyBuffer,
+    {
+      name: 'RSA-OAEP',
+      hash: 'SHA-256'
+    },
+    false,
+    ['decrypt']
+  );
+
+  // Convert encrypted key to ArrayBuffer
+  const encryptedBuffer = Buffer.from(encryptedKey, 'base64');
+
+  // Decrypt
+  const decryptedBuffer = await window.crypto.subtle.decrypt(
+    {
+      name: 'RSA-OAEP'
+    },
+    key,
+    encryptedBuffer
+  );
+
+  return Buffer.from(decryptedBuffer).toString('base64');
 }
 
 /**
@@ -104,25 +225,25 @@ export function base64ToArrayBuffer(base64: string): ArrayBuffer {
  * @returns Promise with the encrypted file and the key used
  */
 export async function encryptFile(
-  file: File, 
+  file: File,
   contentKey?: string
-): Promise<{ encryptedFile: File, contentKey: string }> {
+): Promise<{ encryptedFile: File; contentKey: string }> {
   // Generate a key if not provided
-  const key = contentKey || generateContentKey();
-  
+  const key = contentKey || await generateContentKey();
+
   // Read file as ArrayBuffer
   const fileBuffer = await file.arrayBuffer();
-  
+
   // Encrypt the file content
-  const encryptedContent = encryptContent(fileBuffer, key);
-  
+  const encryptedContent = await encryptContent(fileBuffer, key);
+
   // Create a new file with encrypted content
   const encryptedFile = new File(
-    [encryptedContent], 
-    `${file.name}.encrypted`, 
+    [encryptedContent],
+    `${file.name}.encrypted`,
     { type: 'application/encrypted' }
   );
-  
+
   return {
     encryptedFile,
     contentKey: key
@@ -140,53 +261,56 @@ export async function decryptFile(
   contentKey: string
 ): Promise<File> {
   try {
-    console.log(`EncryptionUtils: Decrypting file ${encryptedFile instanceof File ? encryptedFile.name : 'blob'}`);
-    
+    console.log(
+      `EncryptionUtils: Decrypting file ${
+        encryptedFile instanceof File ? encryptedFile.name : 'blob'
+      }`
+    );
+
     // Read the encrypted file as text
     let encryptedContent: string;
-    
+
     try {
       encryptedContent = await readFileAsText(encryptedFile);
     } catch (readError) {
       console.error('EncryptionUtils: Error reading encrypted file as text:', readError);
       throw new Error('Failed to read encrypted file');
     }
-    
+
     if (!encryptedContent || encryptedContent.length === 0) {
       console.error('EncryptionUtils: Empty encrypted content');
       throw new Error('Encrypted file is empty or corrupted');
     }
-    
+
     // Decrypt the content
     let decryptedContent: string;
-    
+
     try {
-      decryptedContent = decryptContent(encryptedContent, contentKey);
+      decryptedContent = await decryptContent(encryptedContent, contentKey);
     } catch (decryptError) {
       console.error('EncryptionUtils: Error decrypting content:', decryptError);
       throw new Error('Failed to decrypt file - the encryption key may be invalid');
     }
-    
+
     if (!decryptedContent || decryptedContent.length === 0) {
       console.error('EncryptionUtils: Empty decrypted content');
       throw new Error('Decryption produced empty content - the file may be corrupted');
     }
-    
+
     // Determine original filename by removing .encrypted extension
-    const fileName = encryptedFile instanceof File 
-      ? encryptedFile.name.replace('.encrypted', '') 
-      : 'decrypted-file';
-    
+    const fileName =
+      encryptedFile instanceof File
+        ? encryptedFile.name.replace('.encrypted', '')
+        : 'decrypted-file';
+
     // Create a new file with decrypted content
     // For binary files, we need to convert base64 back to ArrayBuffer
     try {
       const binaryContent = base64ToArrayBuffer(decryptedContent);
-      
-      return new File(
-        [binaryContent], 
-        fileName, 
-        { type: determineMimeType(fileName) }
-      );
+
+      return new File([binaryContent], fileName, {
+        type: determineMimeType(fileName)
+      });
     } catch (fileCreationError) {
       console.error('EncryptionUtils: Error creating decrypted file:', fileCreationError);
       throw new Error('Failed to create decrypted file');

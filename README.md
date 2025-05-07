@@ -1,271 +1,130 @@
-# Wylloh
+# Wylloh Protocol
 
-Wylloh is a blockchain-based media licensing system that revolutionizes how digital content is distributed, accessed, and monetized. Our platform creates a transparent, efficient, and equitable ecosystem where creators maintain control of their intellectual property while audiences gain flexible access to content through tokenized ownership.
+An open protocol for movie tokenization and distribution, enabling cross-platform interoperability and direct relationships between creators and audiences.
 
-## Project Structure
+## Vision
 
-The project is organized as a monorepo with the following main components:
+Wylloh aims to create a decentralized ecosystem for film distribution, where:
+- Movies can be tokenized and traded across platforms
+- Creators maintain direct relationships with their audience
+- Quality and authenticity are guaranteed through reputation systems
+- Users can lend or rent their movie tokens
+- Royalties are automatically distributed to rights holders
+- The network grows stronger as more users participate
 
-- `client`: React frontend application including player components
-- `api`: Backend REST API services
-- `storage`: IPFS/Filecoin storage service
-- `contracts`: Smart contracts for the Polygon blockchain
-- `seed-one`: Configuration for Seed One media player hardware
-- `archive`: Archived code (including deprecated implementations)
+## Core Features
 
-## Features
+### Smart Contracts
+- **Token Management**: ERC-1155 based movie tokens with stacking capabilities
+- **Marketplace**: Cross-platform trading protocol
+- **Rights Management**: Flexible rights tiers and thresholds
+- **Royalty Distribution**: EIP-2981 compliant royalty system
 
-### IPFS Integration
+### Modular Licensing
+- **Token Stacking**: Combine multiple tokens to unlock higher-tier rights
+- **Commercial Rights**: Access to DCP and IMF files for commercial use
+- **Bundle Management**: Create and unbundle token packages
+- **Rights Thresholds**: Configurable quantity-based rights unlocking
+  - 1 token: Personal viewing rights
+  - 100 tokens: Small venue screening (up to 50 seats)
+  - 5,000 tokens: Streaming platform rights with IMF file access
+  - 10,000 tokens: Theatrical exhibition rights with DCP access
+  - 50,000 tokens: National distribution rights
 
-Wylloh Player includes comprehensive IPFS support with the following features:
+### Security
+- **Content Encryption**: AES-256-GCM encryption for all media
+- **Key Management**: Token-based access control
+- **License Verification**: On-chain verification system
+- **Wallet Authentication**: Secure wallet-based access
+- **Anti-Piracy**: Forensic watermarking and content fingerprinting
 
-- Content retrieval from IPFS via multiple configurable gateways
-- Intelligent gateway fallback for reliable content access
-- Configurable content caching to improve performance
-- Content pinning to ensure important content remains available
-- Automatic pinning of owned content
-- Foundation for network participation and distributed storage incentives
+### Integration
+- **Cross-Platform**: Interoperable marketplace protocol
+- **API-First**: RESTful API for easy integration
+- **IPFS Storage**: Decentralized content storage
+- **Polygon Network**: Scalable blockchain infrastructure
 
-These features enhance content availability and reliability for users while establishing a framework for future distributed storage rewards.
-
-### Blockchain Integration
-
-- Wallet connection for token verification
-- Smart contract integration for content ownership verification
-- Token-based access control
-- Support for NFT-based licenses
-
-### Content Security
-
-Wylloh employs a robust content security system to protect digital assets:
-
-- **End-to-End Encryption**: AES-256 encryption for all content stored on IPFS
-- **Blockchain-Based Access Control**: Content keys are only accessible to token owners
-- **Key Management Service**: Secure storage and retrieval of encryption keys
-- **Wallet-Key Association**: Encryption keys are associated with user wallet addresses
-- **Protected Content Components**: UI components that enforce access control
-- **Download Security**: Content remains encrypted during download and is only decrypted for authorized playback
-
-This security architecture ensures that only legitimate token owners can access content, maintaining the integrity of the licensing model even in a decentralized storage environment.
+### Seed Network
+- **Distributed Storage**: Each Seed acts as an IPFS node
+- **Network Growth**: Network strengthens as more Seeds join
+- **Content Delivery**: Optimized content delivery through distributed nodes
+- **Resource Contribution**: Seeds contribute storage and bandwidth
+- **Reward System**: Incentives for network participation (coming soon)
 
 ## Getting Started
 
 ### Prerequisites
 
-- Node.js (v16+)
-- Yarn package manager
-- IPFS Desktop (for local development)
-- MongoDB (for the API service)
-- MetaMask or another Ethereum wallet
+- Node.js v16 or later
+- npm or yarn
+- MetaMask or compatible Web3 wallet
+- IPFS node (optional for development)
 
 ### Installation
 
 1. Clone the repository:
-   ```
-   git clone https://github.com/your-organization/wylloh.git
-   cd wylloh
+   ```bash
+   git clone https://github.com/Wy1bur/wylloh-platform.git
+   cd wylloh-platform
    ```
 
 2. Install dependencies:
-   ```
+   ```bash
    yarn install
    ```
 
-3. Copy the `.env.example` file to `.env` and update the values:
-   ```
+3. Set up environment variables:
+   ```bash
    cp .env.example .env
    ```
 
-4. Compile the smart contracts:
+4. Deploy contracts to Polygon Mumbai testnet:
+   ```bash
+   yarn deploy:mumbai
    ```
-   yarn compile-contracts
-   ```
 
-### Development
+### Running a Seed
 
-Start all services in development mode:
+A Seed is a combination of a media player and IPFS node that can run on:
+- Raspberry Pi 4 (8GB RAM recommended)
+- Other small form factor PCs
+- Any device with HDMI output and network connectivity
 
-```
-yarn dev
-```
+Requirements:
+- 4GB+ RAM
+- 16GB+ storage for OS
+- External storage for content (USB 3.0 HDD/SSD)
+- Gigabit Ethernet or Wi-Fi 5
+- HDMI output
 
-Or start individual services:
+## Protocol Documentation
 
-```
-yarn client  # Start the React frontend
-yarn api     # Start the API server
-yarn storage # Start the storage service
-yarn player  # Start the player in development mode
-```
+### Smart Contracts
 
-### Testing
+- [Token Contract](contracts/token/WyllohToken.sol)
+- [Marketplace Contract](contracts/marketplace/WyllohMarketplace.sol)
+- [Rights Manager](contracts/rights/RightsManager.sol)
+- [Royalty Distributor](contracts/royalty/RoyaltyDistributor.sol)
 
-Run tests for all workspaces:
+### Integration Guide
 
-```
-yarn test
-```
-
-Or test individual components:
-
-```
-yarn test-contracts  # Test smart contracts
-yarn test-player     # Test player components
-```
-
-### Deployment
-
-Build all packages for production:
-
-```
-yarn build
-```
-
-Deploy smart contracts to the Mumbai testnet:
-
-```
-yarn deploy-contracts:testnet
-```
-
-## Demo Mode
-
-To easily run the Wylloh platform in demo mode with all required services:
-
-```bash
-# Start the demo environment (includes Ganache and IPFS)
-yarn demo
-
-# Run the client application
-cd client && yarn start
-
-# When you're done, stop all services
-yarn stop-demo
-```
-
-The demo mode includes:
-- Local Ganache blockchain with pre-loaded test accounts
-- Local IPFS node running in offline mode
-- Sample content pre-loaded into IPFS
-- Automatic configuration for client, API, and storage components
-
-For additional demo options, run:
-```bash
-yarn demo --help
-```
-
-For a dry run to see what would happen without starting services:
-```bash
-yarn demo --dry-run
-```
-
-For more detailed instructions, see the [DEMO-README.MD](./DEMO-README.MD) file.
+See [INTEGRATION.md](docs/INTEGRATION.md) for detailed integration instructions.
 
 ## Contributing
 
-Please read [CONTRIBUTING.md](CONTRIBUTING.md) for details on our code of conduct and the process for submitting pull requests.
+We welcome contributions! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
 
 ## License
 
-This project is licensed under the proprietary license - see the [LICENSE](LICENSE) file for details.
+This project is licensed under the Apache License 2.0 - see the [LICENSE](LICENSE) file for details.
 
-### Wylloh Player
+## Contact
 
-The Wylloh Player is now fully integrated into the client application as a set of modular components. It's designed to work both in web browsers and on the Seed One hardware via Chromium in kiosk mode. The player architecture uses responsive design and platform detection to adapt to different environments.
+- GitHub: [@Wy1bur](https://github.com/Wy1bur)
+- Email: [contact@wylloh.com](mailto:contact@wylloh.com)
 
-#### Player Architecture
+## Acknowledgments
 
-The player is built with these key components:
-
-- `VideoPlayer`: Core video playback component with integrated decryption
-- `PlayerContainer`: Manages the overall player UI and controls
-- `PlaybackControls`: Play/pause and related controls
-- `VolumeControls`: Volume and mute functionality
-- `DisplayControls`: Fullscreen, subtitles, and playback speed
-- `TimeDisplay`: Progress bar and time display
-- `PlatformContext`: Detects and provides platform information (web browser vs Seed One)
-- `ProtectedContent`: Access control wrapper for token-gated content
-- `KeyManagementService`: Handles secure content key storage and retrieval
-
-#### Running the Player
-
-The player is now part of the client application:
-
-```bash
-cd client
-yarn install
-yarn start
-```
-
-For production build:
-```bash
-cd client
-yarn install
-yarn build
-```
-
-#### Installing on Seed One
-
-The Seed One deployment uses Chromium in kiosk mode to provide a seamless media center experience.
-
-1. Set up the Seed One hardware:
-```bash
-# Install dependencies
-sudo apt update
-sudo apt install -y chromium-browser
-
-# Clone the repository
-git clone https://github.com/your-organization/wylloh.git
-cd wylloh
-
-# Install the setup script
-cd seed-one
-sudo ./setup.sh
-```
-
-2. The setup script will:
-   - Configure Chromium in kiosk mode
-   - Set up auto-start on boot
-   - Configure wallet connection
-   - Set up network connectivity
-
-3. For manual configuration, see the [Seed One Setup Guide](seed-one/README.md)
-
-## Testing Tokenization Process
-
-After the recent fixes to the token creation and verification process, follow these steps to test tokenization:
-
-1. Start the demo environment:
-   ```
-   ./stop-demo.sh && yarn demo
-   ```
-
-2. Open your browser and navigate to http://localhost:3000
-
-3. Log in with the Pro user account:
-   - Email: pro@example.com
-   - Password: password
-
-4. Upload content:
-   - Navigate to Creator Dashboard
-   - Click "Upload New Content"
-   - Complete the form and submit
-
-5. Tokenize the content:
-   - Click "Tokenize" on your content
-   - Fill in token details
-   - Click "Submit" to create the token
-   - Approve the MetaMask transaction when prompted
-
-6. Verify success:
-   - Wait for token verification to complete
-   - You should see a success message
-   - Content should appear in the Marketplace with token badge
-
-If you encounter any issues:
-- Check browser console for detailed error messages (F12 > Console)
-- Ensure MetaMask is connected to localhost:8545 network
-- Verify TOKEN_CONTRACT_ADDRESS matches REACT_APP_CONTRACT_ADDRESS in client/.env.local
-
-Common errors:
-- "Token verification failed: Balance is 0" - Check if MetaMask transaction was approved
-- "No contract found at address" - Ensure contracts are deployed correctly
+- [OpenZeppelin](https://openzeppelin.com/) for secure smart contract libraries
+- [IPFS](https://ipfs.io/) for decentralized content storage
+- [Polygon](https://polygon.technology/) for scalable blockchain infrastructure

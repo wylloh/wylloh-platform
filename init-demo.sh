@@ -182,14 +182,114 @@ stop_services() {
   fi
 }
 
+# Function to transfer ETH to Consumer wallet
+transfer_eth_to_consumer() {
+  echo -e "\n${BOLD}Transferring ETH to Consumer wallet...${NC}"
+  
+  if [ "$DRY_RUN" = false ]; then
+    # Consumer wallet address
+    CONSUMER_WALLET="0x8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC"
+    
+    # Amount of ETH to transfer (in wei)
+    AMOUNT_WEI="1000000000000000000" # 1 ETH
+    
+    # Send transaction using curl
+    RESPONSE=$(curl -s -X POST --data "{
+      \"jsonrpc\":\"2.0\",
+      \"method\":\"eth_sendTransaction\",
+      \"params\":[{
+        \"from\": \"0x90F8bf6A479f320ead074411a4B0e7944Ea8c9C1\",
+        \"to\": \"$CONSUMER_WALLET\",
+        \"value\": \"$AMOUNT_WEI\"
+      }],
+      \"id\":1
+    }" http://localhost:$PORT_GANACHE)
+    
+    # Check if transaction was successful
+    if echo "$RESPONSE" | grep -q "error"; then
+      echo -e "${RED}✗ Failed to transfer ETH to Consumer wallet${NC}"
+      echo "Error response: $RESPONSE"
+    else
+      echo -e "${GREEN}✓ Successfully transferred 1 ETH to Consumer wallet${NC}"
+    fi
+  else
+    echo -e "${YELLOW}In dry-run mode - would transfer ETH to Consumer wallet${NC}"
+  fi
+}
+
+# Function to check account balances
+check_account_balances() {
+  echo -e "\n${BOLD}Checking account balances...${NC}"
+  
+  if [ "$DRY_RUN" = false ]; then
+    # List of accounts to check
+    ACCOUNTS=(
+      "$CREATOR_ADDRESS"  # Creator wallet
+      "$CONSUMER_ADDRESS"  # Consumer wallet
+    )
+    
+    for account in "${ACCOUNTS[@]}"; do
+      # Get balance using eth_getBalance
+      BALANCE_HEX=$(curl -s -X POST --data "{
+        \"jsonrpc\":\"2.0\",
+        \"method\":\"eth_getBalance\",
+        \"params\":[\"$account\", \"latest\"],
+        \"id\":1
+      }" http://localhost:$PORT_GANACHE | jq -r '.result')
+      
+      # Convert from hex to decimal and then to ETH
+      BALANCE_WEI=$(printf "%d" $BALANCE_HEX)
+      BALANCE_ETH=$(echo "scale=4; $BALANCE_WEI / 1000000000000000000" | bc)
+      
+      echo "Account $account: $BALANCE_ETH ETH"
+    done
+  else
+    echo -e "${YELLOW}In dry-run mode - would check account balances${NC}"
+  fi
+}
+
+# Function to list all Ganache accounts
+list_ganache_accounts() {
+  echo -e "\n${BOLD}Listing all Ganache accounts...${NC}"
+  
+  if [ "$DRY_RUN" = false ]; then
+    # Get all accounts using eth_accounts
+    ACCOUNTS=$(curl -s -X POST --data '{
+      "jsonrpc":"2.0",
+      "method":"eth_accounts",
+      "params":[],
+      "id":1
+    }' http://localhost:$PORT_GANACHE | jq -r '.result[]')
+    
+    echo "Available accounts:"
+    for account in $ACCOUNTS; do
+      echo "- $account"
+    done
+    
+    # Check specifically for our Consumer wallet
+    if echo "$ACCOUNTS" | grep -qi "$CONSUMER_ADDRESS"; then
+      echo -e "${GREEN}✓ Consumer wallet found in Ganache accounts${NC}"
+    else
+      echo -e "${RED}✗ Consumer wallet NOT found in Ganache accounts${NC}"
+      echo "Expected: $CONSUMER_ADDRESS"
+    fi
+  else
+    echo -e "${YELLOW}In dry-run mode - would list Ganache accounts${NC}"
+  fi
+}
+
 # 1. Start local blockchain
 start_ganache() {
   echo -e "\n${BOLD}1. Starting local blockchain (Ganache)${NC}"
   echo "Starting Ganache on port $PORT_GANACHE..."
   
   if [ "$DRY_RUN" = false ]; then
-    # Start Ganache with deterministic addresses and specific chain ID, and higher balance
-    ganache --deterministic --chain.chainId 1337 --wallet.defaultBalance 2000 --port $PORT_GANACHE > $GANACHE_LOG 2>&1 &
+    # Start Ganache with deterministic addresses and specific chain ID
+    ganache \
+      --chain.chainId 1337 \
+      --mnemonic "test test test test test test test test test test test junk" \
+      --wallet.defaultBalance "100" \
+      --port $PORT_GANACHE > $GANACHE_LOG 2>&1 &
     
     GANACHE_PID=$!
     echo $GANACHE_PID > /tmp/ganache.pid
@@ -197,18 +297,31 @@ start_ganache() {
     
     if ps -p $GANACHE_PID > /dev/null; then
       echo -e "${GREEN}✓ Ganache started successfully (PID: $GANACHE_PID)${NC}"
-      # Extract account information
-      TEST_ACCOUNT=$(curl -s -X POST --data '{"jsonrpc":"2.0","method":"eth_accounts","params":[],"id":1}' http://localhost:$PORT_GANACHE | jq -r '.result[2]')
-      TEST_PRIVATE_KEY="0x4f3edf983ac636a65a842ce7c78d9aa706d3b113bce9c46f30d7d21715b23b1d"  # Third deterministic private key from Ganache
+      
+      # Get the accounts
+      ACCOUNTS=$(curl -s -X POST --data '{"jsonrpc":"2.0","method":"eth_accounts","params":[],"id":1}' http://localhost:$PORT_GANACHE | jq -r '.result[]')
+      CREATOR_ADDRESS=$(echo "$ACCOUNTS" | head -n 1)
+      CONSUMER_ADDRESS=$(echo "$ACCOUNTS" | sed -n '2p')
+      echo "Creator address: $CREATOR_ADDRESS"
+      echo "Consumer address: $CONSUMER_ADDRESS"
+      TEST_ACCOUNT=$CONSUMER_ADDRESS
+      TEST_PRIVATE_KEY="0x6370fd033278c143179d81c5526140625662b8daa446c22ee2d73db3707e620c"  # Second account private key
+      
       echo "Test account: $TEST_ACCOUNT"
+      
+      # List all accounts and verify Consumer wallet
+      list_ganache_accounts
+      
+      # Check account balances
+      check_account_balances
     else
       echo -e "${RED}✗ Failed to start Ganache${NC}"
       exit 1
     fi
   else
     echo -e "${YELLOW}In dry-run mode - would start Ganache on port $PORT_GANACHE${NC}"
-    TEST_ACCOUNT="0x22d491bde2303f2f43325b2108d26f1eaba1e32b"  # Deterministic address from Ganache
-    TEST_PRIVATE_KEY="0x4f3edf983ac636a65a842ce7c78d9aa706d3b113bce9c46f30d7d21715b23b1d"  # Corresponding private key
+    TEST_ACCOUNT="0x8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC"  # Consumer wallet address
+    TEST_PRIVATE_KEY="0x6cbed15c793ce57650b9877cf6fa156fbef513c4e6134f022a85b1ffdd59b2a1"  # Consumer wallet private key
     echo "Test account would be: $TEST_ACCOUNT"
   fi
 }
@@ -566,7 +679,7 @@ update_configuration() {
     # Update client environment values
     sed -i '' "s|REACT_APP_CONTRACT_ADDRESS=.*|REACT_APP_CONTRACT_ADDRESS=\"$contract_address\"|g" "$CLIENT_ENV_FILE"
     sed -i '' "s|REACT_APP_TOKEN_FACTORY_ADDRESS=.*|REACT_APP_TOKEN_FACTORY_ADDRESS=\"$TOKEN_FACTORY_ADDRESS\"|g" "$CLIENT_ENV_FILE"
-    sed -i '' "s|REACT_APP_TEST_ACCOUNT_ADDRESS=.*|REACT_APP_TEST_ACCOUNT_ADDRESS=\"$TEST_ACCOUNT\"|g" "$CLIENT_ENV_FILE"
+    sed -i '' "s|REACT_APP_TEST_ACCOUNT_ADDRESS=.*|REACT_APP_TEST_ACCOUNT_ADDRESS=\"$CONSUMER_ADDRESS\"|g" "$CLIENT_ENV_FILE"
     sed -i '' "s|REACT_APP_TEST_PRIVATE_KEY=.*|REACT_APP_TEST_PRIVATE_KEY=\"$TEST_PRIVATE_KEY\"|g" "$CLIENT_ENV_FILE"
     sed -i '' "s|REACT_APP_SAMPLE_MOVIE_CID=.*|REACT_APP_SAMPLE_MOVIE_CID=\"$MOVIE_CID\"|g" "$CLIENT_ENV_FILE"
     sed -i '' "s|REACT_APP_LOCAL_IP=.*|REACT_APP_LOCAL_IP=\"$LOCAL_IP\"|g" "$CLIENT_ENV_FILE"
@@ -593,7 +706,9 @@ update_configuration() {
     mkdir -p "$CONFIG_DIR"
     echo "{
       \"tokenAddress\": \"$contract_address\",
-      \"marketplaceAddress\": \"$marketplace_address\"
+      \"marketplaceAddress\": \"$marketplace_address\",
+      \"creatorAddress\": \"$CREATOR_ADDRESS\",
+      \"consumerAddress\": \"$CONSUMER_ADDRESS\"
     }" > "$CONFIG_FILE"
     echo "✅ Created client config file: $CONFIG_FILE"
 

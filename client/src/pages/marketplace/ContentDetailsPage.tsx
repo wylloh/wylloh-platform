@@ -69,6 +69,7 @@ import { generatePlaceholderImage } from '../../utils/placeholders';
 import { Content } from '../../services/content.service';
 import { blockchainService } from '../../services/blockchain.service';
 import { keyManagementService } from '../../services/keyManagement.service';
+import DeviceManagementPanel from '../../components/content/DeviceManagementPanel';
 
 // Add interfaces for content types
 interface SecondaryMarketListing {
@@ -217,35 +218,35 @@ const ContentDetailsPage: React.FC = () => {
   const [userOwnsContent, setUserOwnsContent] = useState(false);
   const [ownedTokens, setOwnedTokens] = useState(0);
 
-  useEffect(() => {
-    const fetchContent = async () => {
-      if (!id) return;
-      
-      try {
-        const contentData = await contentService.getContentById(id);
-        if (contentData) {
-          setContent(contentData);
-          
-          // Check ownership
-          try {
-            const ownershipStatus = await contentService.checkContentOwnership(id);
-            setUserOwnsContent(ownershipStatus.owned);
-            setOwnedTokens(ownershipStatus.quantity);
-            console.log('Ownership status:', ownershipStatus);
-          } catch (error) {
-            console.error('Error checking content ownership:', error);
-          }
-        } else {
-          setError('Content not found');
-        }
-      } catch (error) {
-        console.error('Error fetching content:', error);
-        setError('Failed to load content details');
-      } finally {
-        setLoading(false);
-      }
-    };
+  const fetchContent = async () => {
+    if (!id) return;
     
+    try {
+      const contentData = await contentService.getContentById(id);
+      if (contentData) {
+        setContent(contentData);
+        
+        // Check ownership
+        try {
+          const ownershipStatus = await contentService.checkContentOwnership(id);
+          setUserOwnsContent(ownershipStatus.owned);
+          setOwnedTokens(ownershipStatus.quantity);
+          console.log('Ownership status:', ownershipStatus);
+        } catch (error) {
+          console.error('Error checking content ownership:', error);
+        }
+      } else {
+        setError('Content not found');
+      }
+    } catch (error) {
+      console.error('Error fetching content:', error);
+      setError('Failed to load content details');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
     fetchContent();
   }, [id]);
 
@@ -865,7 +866,7 @@ const ContentDetailsPage: React.FC = () => {
             </Box>
 
             {/* Tabs Panel */}
-            <Box sx={{ width: '100%', mb: 4 }}>
+            <Box sx={{ width: '100%' }}>
               <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
                 <Tabs
                   value={tabValue}
@@ -874,12 +875,13 @@ const ContentDetailsPage: React.FC = () => {
                   variant="scrollable"
                   scrollButtons="auto"
                 >
-                  <Tab label="Description" icon={<Info />} iconPosition="start" />
-                  <Tab label="Cast & Crew" icon={<People />} iconPosition="start" />
-                  <Tab label="License Tiers" icon={<ListAlt />} iconPosition="start" />
-                  <Tab label="Transaction History" icon={<Timeline />} iconPosition="start" />
+                  <Tab label="Overview" />
+                  <Tab label="Details" />
+                  <Tab label="Devices" />
+                  <Tab label="History" />
                 </Tabs>
               </Box>
+
               <TabPanel value={tabValue} index={0}>
                 <Typography variant="body1" paragraph>
                   {content.longDescription ? content.longDescription.split('\n\n').map((paragraph: string, idx: number) => (
@@ -890,6 +892,7 @@ const ContentDetailsPage: React.FC = () => {
                   )) : content.description}
                 </Typography>
               </TabPanel>
+
               <TabPanel value={tabValue} index={1}>
                 <Typography variant="h6" gutterBottom>Cast</Typography>
                 <List>
@@ -955,61 +958,23 @@ const ContentDetailsPage: React.FC = () => {
                   </ListItem>
                 </List>
               </TabPanel>
+
               <TabPanel value={tabValue} index={2}>
-                <Typography variant="body1" paragraph>
-                  Wylloh licenses use a unique modular rights system. By accumulating more tokens, you can unlock additional rights for this content:
-                </Typography>
-                <List dense>
-                  {content?.rightsThresholds ? 
-                    content.rightsThresholds.map((right, index: number) => (
-                      <ListItem key={index} sx={{ pl: 0 }}>
-                        <ListItemIcon sx={{ minWidth: '36px' }}>
-                          {Number(quantity) >= right.quantity ? (
-                            <Check color="success" />
-                          ) : (
-                            <Close color="disabled" />
-                          )}
-                        </ListItemIcon>
-                        <ListItemText 
-                          primary={right.type} 
-                          secondary={`Required tokens: ${right.quantity}`}
-                        />
-                      </ListItem>
-                    ))
-                  : content?.metadata?.rightsThresholds ?
-                    content.metadata.rightsThresholds.map((right: RightsThreshold, index: number) => (
-                      <ListItem key={index} sx={{ pl: 0 }}>
-                        <ListItemIcon sx={{ minWidth: '36px' }}>
-                          {Number(quantity) >= right.quantity ? (
-                            <Check color="success" />
-                          ) : (
-                            <Close color="disabled" />
-                          )}
-                        </ListItemIcon>
-                        <ListItemText 
-                          primary={right.type} 
-                          secondary={`Required tokens: ${right.quantity}`}
-                        />
-                      </ListItem>
-                    ))
-                  : 
-                    <ListItem sx={{ pl: 0 }}>
-                      <ListItemIcon sx={{ minWidth: '36px' }}>
-                        <Check color="success" />
-                      </ListItemIcon>
-                      <ListItemText 
-                        primary="Personal Viewing" 
-                        secondary="Basic access to content"
-                      />
-                    </ListItem>
-                  }
-                </List>
-                <Box sx={{ mt: 2 }}>
-                  <Typography variant="body2" color="text.secondary">
-                    Tokens can be accumulated and stacked to unlock these rights. For example, if you want to stream this content on your platform, you would need to acquire the necessary number of tokens that give you that right.
-                  </Typography>
+                <Box>
+                  {userOwnsContent && (
+                    <DeviceManagementPanel
+                      contentId={id || ''}
+                      onDeviceChange={fetchContent}
+                    />
+                  )}
+                  {!userOwnsContent && (
+                    <Alert severity="info" sx={{ m: 2 }}>
+                      You need to own this content to manage devices.
+                    </Alert>
+                  )}
                 </Box>
               </TabPanel>
+
               <TabPanel value={tabValue} index={3}>
                 <Typography variant="subtitle1" gutterBottom>
                   Recent Transactions

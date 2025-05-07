@@ -16,31 +16,14 @@ import MyCollectionPage from './pages/user/MyCollectionPage';
 import NotFoundPage from './pages/NotFoundPage';
 import LoginPage from './pages/auth/LoginPage';
 import RegisterPage from './pages/auth/RegisterPage';
-import PlatformTestPage from './pages/PlatformTestPage';
-import PlayerTestPage from './pages/test/PlayerTestPage';
-import KioskSimulatorPage from './pages/test/KioskSimulatorPage';
-import TestHubPage from './pages/test/TestHubPage';
+
+// Admin pages
+import AdminDashboardPage from './pages/admin/DashboardPage';
+import FeaturedContentPage from './pages/admin/FeaturedContentPage';
+import UsersPage from './pages/admin/UsersPage';
 
 // Auth components
 import ProtectedRoute from './components/auth/ProtectedRoute';
-
-// Admin components
-import ProVerificationPanel from './components/admin/ProVerificationPanel';
-
-// Admin page layout
-const AdminLayout = ({ children }: { children: React.ReactNode }) => (
-  <div className="admin-layout">
-    <h1>Admin Dashboard</h1>
-    {children}
-  </div>
-);
-
-// Admin page wrapper component
-const AdminPage = ({ component: Component }: { component: React.ComponentType }) => (
-  <AdminLayout>
-    <Component />
-  </AdminLayout>
-);
 
 const AppRoutes: React.FC = () => {
   return (
@@ -88,18 +71,23 @@ const AppRoutes: React.FC = () => {
       
       {/* Admin routes */}
       <Route path="admin">
-        <Route path="pro-verification" element={
+        <Route index element={
           <ProtectedRoute requireAdmin>
-            <AdminPage component={ProVerificationPanel} />
+            <AdminDashboardPage />
+          </ProtectedRoute>
+        } />
+        <Route path="featured-content" element={
+          <ProtectedRoute requireAdmin>
+            <FeaturedContentPage />
+          </ProtectedRoute>
+        } />
+        <Route path="users" element={
+          <ProtectedRoute requireAdmin>
+            <UsersPage />
           </ProtectedRoute>
         } />
       </Route>
       
-      {/* Test routes */}
-      <Route path="platform-test" element={<PlatformTestPage />} />
-      <Route path="player-test" element={<PlayerTestPage />} />
-      <Route path="kiosk-simulator" element={<KioskSimulatorPage />} />
-      <Route path="test" element={<TestHubPage />} />
       <Route path="*" element={<NotFoundPage />} />
     </Routes>
   );

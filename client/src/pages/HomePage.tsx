@@ -4,98 +4,48 @@ import {
   Typography, 
   Box, 
   Grid, 
-  Card, 
-  CardContent, 
-  CardMedia, 
   Button, 
-  CardActions,
-  Divider,
   Paper,
   Stack,
-  Chip
+  useTheme,
+  useMediaQuery,
+  Fade,
+  Card,
+  CardMedia,
+  CardContent,
+  CardActionArea,
+  Skeleton
 } from '@mui/material';
-import { PlayArrow, Info, Theaters } from '@mui/icons-material';
+import { 
+  PlayArrow, 
+  Movie, 
+  Security, 
+  MonetizationOn,
+  ArrowForward
+} from '@mui/icons-material';
 import { Link } from 'react-router-dom';
 import { useWallet } from '../contexts/WalletContext';
-import { generatePlaceholderImage } from '../utils/placeholders';
+import { useSnackbar } from 'notistack';
 
-// Mock featured content data
-const featuredContent = [
-  {
-    id: '1',
-    title: 'The Digital Frontier',
-    description: 'A journey into the world of blockchain and digital ownership.',
-    image: generatePlaceholderImage('The Digital Frontier'),
-    contentType: 'movie',
-    creator: 'Digital Studios',
-    price: 0.01
-  },
-  {
-    id: '2',
-    title: 'Nature Unveiled',
-    description: 'A breathtaking documentary exploring the wonders of nature.',
-    image: generatePlaceholderImage('Nature Unveiled'),
-    contentType: 'documentary',
-    creator: 'EcoVision Films',
-    price: 0.008
-  },
-  {
-    id: '3',
-    title: 'Future Horizons',
-    description: 'A science fiction tale about the future of humanity.',
-    image: generatePlaceholderImage('Future Horizons'),
-    contentType: 'movie',
-    creator: 'Quantum Entertainment',
-    price: 0.015
-  }
-];
-
-// Mock latest releases data
-const latestReleases = [
-  {
-    id: '4',
-    title: 'Urban Landscapes',
-    description: 'A visual journey through the world\'s most iconic cities.',
-    image: generatePlaceholderImage('Urban Landscapes'),
-    contentType: 'short film',
-    creator: 'Metropolitan Arts',
-    price: 0.005
-  },
-  {
-    id: '5',
-    title: 'Emotional Symphony',
-    description: 'A musical exploration of human emotions.',
-    image: generatePlaceholderImage('Emotional Symphony'),
-    contentType: 'music film',
-    creator: 'Harmony Productions',
-    price: 0.007
-  },
-  {
-    id: '6',
-    title: 'Culinary Adventures',
-    description: 'A journey through global cuisines and food cultures.',
-    image: generatePlaceholderImage('Culinary Adventures'),
-    contentType: 'series',
-    creator: 'Gourmet Studios',
-    price: 0.01
-  },
-  {
-    id: '7',
-    title: 'Sports Legends',
-    description: 'Stories of triumph and perseverance in sports.',
-    image: generatePlaceholderImage('Sports Legends'),
-    contentType: 'documentary',
-    creator: 'Champion Media',
-    price: 0.009
-  }
-];
+interface FeaturedContent {
+  id: string;
+  title: string;
+  description: string;
+  imageUrl: string;
+  creator: string;
+  price: string;
+}
 
 const HomePage: React.FC = () => {
   const { active } = useWallet();
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const [showConnectPrompt, setShowConnectPrompt] = useState<boolean>(false);
+  const [featuredContent, setFeaturedContent] = useState<FeaturedContent[]>([]);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const { enqueueSnackbar } = useSnackbar();
 
   useEffect(() => {
-    // Show connect wallet prompt after a short delay if not connected
     const timer = setTimeout(() => {
       if (!active) {
         setShowConnectPrompt(true);
@@ -105,231 +55,310 @@ const HomePage: React.FC = () => {
     return () => clearTimeout(timer);
   }, [active]);
 
+  useEffect(() => {
+    const fetchFeaturedContent = async () => {
+      try {
+        setIsLoading(true);
+        const response = await fetch(`${process.env.REACT_APP_API_URL}/api/featured-content`);
+        if (!response.ok) {
+          throw new Error('Failed to fetch featured content');
+        }
+        const data = await response.json();
+        setFeaturedContent(data);
+      } catch (error) {
+        console.error('Error fetching featured content:', error);
+        enqueueSnackbar('Failed to load featured content', { variant: 'error' });
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchFeaturedContent();
+  }, [enqueueSnackbar]);
+
+  const features = [
+    {
+      icon: <Movie sx={{ fontSize: 40 }} />,
+      title: "True Ownership",
+      description: "Own your content rights through blockchain technology"
+    },
+    {
+      icon: <Security sx={{ fontSize: 40 }} />,
+      title: "Secure Distribution",
+      description: "Advanced DRM with hardware-bound encryption"
+    },
+    {
+      icon: <MonetizationOn sx={{ fontSize: 40 }} />,
+      title: "Fair Compensation",
+      description: "Direct revenue sharing with no intermediaries"
+    }
+  ];
+
   return (
-    <Container maxWidth="lg">
+    <Box sx={{ overflow: 'hidden' }}>
       {/* Hero Section */}
       <Paper
         sx={{
           position: 'relative',
-          backgroundColor: 'grey.800',
+          backgroundColor: 'grey.900',
           color: '#fff',
-          mb: 4,
+          mb: 8,
           backgroundSize: 'cover',
           backgroundRepeat: 'no-repeat',
           backgroundPosition: 'center',
-          backgroundImage: `url(https://source.unsplash.com/random/1200x600/?cinema)`,
-          p: 6,
-          borderRadius: 2
+          backgroundImage: `linear-gradient(rgba(0, 0, 0, 0.8), rgba(0, 0, 0, 0.8)), url(/images/hero-background.jpg)`,
+          minHeight: '90vh',
+          display: 'flex',
+          alignItems: 'center'
         }}
       >
-        <Box
-          sx={{
-            position: 'absolute',
-            top: 0,
-            bottom: 0,
-            right: 0,
-            left: 0,
-            backgroundColor: 'rgba(0,0,0,.4)',
-            borderRadius: 2
-          }}
-        />
-        <Grid container>
-          <Grid item md={6}>
-            <Box
-              sx={{
-                position: 'relative',
-                p: { xs: 3, md: 6 },
-                pr: { md: 0 },
-              }}
-            >
-              <Typography component="h1" variant="h3" color="inherit" gutterBottom>
-                Welcome to Wylloh
-              </Typography>
-              <Typography variant="h5" color="inherit" paragraph>
-                A blockchain-based media licensing platform with true ownership and frictionless distribution.
-              </Typography>
-              <Button 
-                variant="contained" 
-                size="large" 
-                component={Link} 
-                to="/marketplace"
-              >
-                Explore Films
-              </Button>
-            </Box>
+        <Container maxWidth="lg">
+          <Grid container spacing={4} alignItems="center">
+            <Grid item xs={12} md={6}>
+              <Fade in timeout={1000}>
+                <Box>
+                  <Typography 
+                    component="h1" 
+                    variant={isMobile ? "h3" : "h2"} 
+                    color="inherit" 
+                    gutterBottom
+                    sx={{ 
+                      fontWeight: 800,
+                      letterSpacing: '-0.5px',
+                      textShadow: '0 2px 4px rgba(0,0,0,0.3)'
+                    }}
+                  >
+                    Revolutionizing Film Distribution
+                  </Typography>
+                  <Typography 
+                    variant="h5" 
+                    color="inherit" 
+                    paragraph
+                    sx={{ 
+                      mb: 4,
+                      opacity: 0.95,
+                      fontWeight: 300,
+                      textShadow: '0 1px 2px rgba(0,0,0,0.3)'
+                    }}
+                  >
+                    A decentralized platform where filmmakers and audiences connect directly, powered by blockchain technology.
+                  </Typography>
+                  <Stack 
+                    direction={{ xs: 'column', sm: 'row' }} 
+                    spacing={2}
+                  >
+                    <Button 
+                      variant="contained" 
+                      size="large"
+                      component={Link} 
+                      to="/marketplace"
+                      endIcon={<ArrowForward />}
+                      sx={{ 
+                        py: 1.5,
+                        px: 4,
+                        borderRadius: 2
+                      }}
+                    >
+                      Explore Films
+                    </Button>
+                    <Button 
+                      variant="outlined" 
+                      size="large"
+                      component={Link} 
+                      to="/about"
+                      sx={{ 
+                        py: 1.5,
+                        px: 4,
+                        borderRadius: 2,
+                        borderWidth: 2,
+                        '&:hover': {
+                          borderWidth: 2
+                        }
+                      }}
+                    >
+                      Learn More
+                    </Button>
+                  </Stack>
+                </Box>
+              </Fade>
+            </Grid>
           </Grid>
+        </Container>
+      </Paper>
+
+      {/* Featured Content Section - Only shown when content is available */}
+      {featuredContent.length > 0 && (
+        <Container maxWidth="lg" sx={{ mb: 8 }}>
+          <Typography variant="h4" gutterBottom sx={{ mb: 4, fontWeight: 600 }}>
+            Featured Films
+          </Typography>
+          <Grid container spacing={4}>
+            {featuredContent.map((content) => (
+              <Grid item xs={12} sm={6} md={4} key={content.id}>
+                <Card 
+                  elevation={0}
+                  sx={{ 
+                    height: '100%',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    borderRadius: 2,
+                    overflow: 'hidden',
+                    transition: 'transform 0.2s',
+                    '&:hover': {
+                      transform: 'translateY(-4px)'
+                    }
+                  }}
+                >
+                  <CardActionArea 
+                    component={Link} 
+                    to={`/marketplace/${content.id}`}
+                    sx={{ height: '100%' }}
+                  >
+                    <CardMedia
+                      component="img"
+                      height="300"
+                      image={content.imageUrl}
+                      alt={content.title}
+                      sx={{ objectFit: 'cover' }}
+                    />
+                    <CardContent>
+                      <Typography variant="h6" gutterBottom noWrap>
+                        {content.title}
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary" gutterBottom>
+                        by {content.creator}
+                      </Typography>
+                      <Typography variant="h6" color="primary.main">
+                        {content.price}
+                      </Typography>
+                    </CardContent>
+                  </CardActionArea>
+                </Card>
+              </Grid>
+            ))}
+          </Grid>
+        </Container>
+      )}
+
+      {/* Features Section */}
+      <Container maxWidth="lg" sx={{ mb: 8 }}>
+        <Grid container spacing={4}>
+          {features.map((feature, index) => (
+            <Grid item xs={12} md={4} key={index}>
+              <Fade in timeout={1000} style={{ transitionDelay: `${index * 100}ms` }}>
+                <Paper 
+                  elevation={0}
+                  sx={{ 
+                    p: 4,
+                    height: '100%',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    textAlign: 'center',
+                    bgcolor: 'background.default',
+                    borderRadius: 2
+                  }}
+                >
+                  <Box sx={{ color: 'primary.main', mb: 2 }}>
+                    {feature.icon}
+                  </Box>
+                  <Typography variant="h5" gutterBottom sx={{ fontWeight: 600 }}>
+                    {feature.title}
+                  </Typography>
+                  <Typography variant="body1" color="text.secondary">
+                    {feature.description}
+                  </Typography>
+                </Paper>
+              </Fade>
+            </Grid>
+          ))}
         </Grid>
+      </Container>
+
+      {/* CTA Section */}
+      <Paper
+        sx={{
+          position: 'relative',
+          backgroundColor: 'primary.main',
+          color: '#fff',
+          py: 8,
+          mb: 8
+        }}
+      >
+        <Container maxWidth="lg">
+          <Grid container spacing={4} alignItems="center">
+            <Grid item xs={12} md={8}>
+              <Typography variant="h4" gutterBottom sx={{ fontWeight: 600 }}>
+                Ready to Transform Film Distribution?
+              </Typography>
+              <Typography variant="h6" sx={{ opacity: 0.9, fontWeight: 300 }}>
+                Join the future of content ownership and distribution.
+              </Typography>
+            </Grid>
+            <Grid item xs={12} md={4} sx={{ textAlign: { xs: 'left', md: 'right' } }}>
+              <Button
+                variant="contained"
+                size="large"
+                component={Link}
+                to="/marketplace"
+                sx={{
+                  bgcolor: 'white',
+                  color: 'primary.main',
+                  '&:hover': {
+                    bgcolor: 'grey.100'
+                  },
+                  py: 1.5,
+                  px: 4,
+                  borderRadius: 2
+                }}
+              >
+                Get Started
+              </Button>
+            </Grid>
+          </Grid>
+        </Container>
       </Paper>
 
       {/* Wallet Connection Prompt */}
       {showConnectPrompt && !active && (
-        <Paper sx={{ p: 3, mb: 4, bgcolor: 'primary.light', color: 'white' }}>
-          <Stack direction="row" spacing={2} alignItems="center">
-            <Box sx={{ flexGrow: 1 }}>
-              <Typography variant="h6">Connect your wallet to get started</Typography>
-              <Typography variant="body2">
-                Access your film library and discover new titles on the marketplace.
-              </Typography>
-            </Box>
-            <Button 
-              variant="contained" 
-              color="secondary"
-              onClick={() => setShowConnectPrompt(false)}
-            >
-              Later
-            </Button>
-          </Stack>
-        </Paper>
+        <Fade in>
+          <Paper 
+            sx={{ 
+              position: 'fixed',
+              bottom: 24,
+              left: '50%',
+              transform: 'translateX(-50%)',
+              p: 3,
+              bgcolor: 'primary.main',
+              color: 'white',
+              borderRadius: 2,
+              maxWidth: 600,
+              width: '90%',
+              zIndex: 1000
+            }}
+          >
+            <Stack direction="row" spacing={2} alignItems="center">
+              <Box sx={{ flexGrow: 1 }}>
+                <Typography variant="h6" gutterBottom>
+                  Connect your wallet to get started
+                </Typography>
+                <Typography variant="body2" sx={{ opacity: 0.9 }}>
+                  Access your film library and discover new titles on the marketplace.
+                </Typography>
+              </Box>
+              <Button 
+                variant="contained" 
+                color="secondary"
+                onClick={() => setShowConnectPrompt(false)}
+                sx={{ whiteSpace: 'nowrap' }}
+              >
+                Connect Wallet
+              </Button>
+            </Stack>
+          </Paper>
+        </Fade>
       )}
-
-      {/* Featured Content */}
-      <Typography variant="h4" component="h2" gutterBottom>
-        Featured Films
-      </Typography>
-      <Grid container spacing={4} sx={{ mb: 6 }}>
-        {featuredContent.map((content) => (
-          <Grid item key={content.id} xs={12} sm={6} md={4}>
-            <Card sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
-              <CardMedia
-                component="img"
-                height="200"
-                image={content.image}
-                alt={content.title}
-              />
-              <CardContent sx={{ flexGrow: 1 }}>
-                <Typography gutterBottom variant="h5" component="h2">
-                  {content.title}
-                </Typography>
-                <Typography variant="body2" color="text.secondary">
-                  {content.description}
-                </Typography>
-                <Box sx={{ mt: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <Chip label={content.contentType.toUpperCase()} size="small" />
-                  <Typography variant="body2" color="text.secondary">
-                    By {content.creator}
-                  </Typography>
-                </Box>
-              </CardContent>
-              <Divider />
-              <CardActions>
-                <Button 
-                  size="small" 
-                  startIcon={<Info />}
-                  component={Link}
-                  to={`/marketplace/${content.id}`}
-                >
-                  Details
-                </Button>
-                <Button 
-                  size="small" 
-                  startIcon={<PlayArrow />}
-                  component={Link}
-                  to={`/player/${content.id}`}
-                >
-                  Preview
-                </Button>
-                <Box sx={{ flexGrow: 1 }} />
-                <Typography variant="button" color="primary">
-                  {content.price} MATIC
-                </Typography>
-              </CardActions>
-            </Card>
-          </Grid>
-        ))}
-      </Grid>
-
-      {/* Latest Releases */}
-      <Typography variant="h4" component="h2" gutterBottom>
-        Latest Releases
-      </Typography>
-      <Grid container spacing={3} sx={{ mb: 6 }}>
-        {latestReleases.map((content) => (
-          <Grid item key={content.id} xs={12} sm={6} md={3}>
-            <Card sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
-              <CardMedia
-                component="img"
-                height="140"
-                image={content.image}
-                alt={content.title}
-              />
-              <CardContent sx={{ flexGrow: 1 }}>
-                <Typography gutterBottom variant="h6" component="h2">
-                  {content.title}
-                </Typography>
-                <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-                  {content.description.substring(0, 60)}...
-                </Typography>
-                <Chip label={content.contentType.toUpperCase()} size="small" />
-              </CardContent>
-              <Divider />
-              <CardActions>
-                <Button 
-                  size="small"
-                  component={Link}
-                  to={`/marketplace/${content.id}`}
-                >
-                  Details
-                </Button>
-                <Box sx={{ flexGrow: 1 }} />
-                <Typography variant="button" color="primary">
-                  {content.price} MATIC
-                </Typography>
-              </CardActions>
-            </Card>
-          </Grid>
-        ))}
-      </Grid>
-
-      {/* How It Works Section */}
-      <Box sx={{ my: 6 }}>
-        <Paper sx={{ p: 4, borderRadius: 2 }}>
-          <Typography variant="h4" component="h2" gutterBottom align="center">
-            How Wylloh Works
-          </Typography>
-          <Divider sx={{ mb: 4 }} />
-          <Grid container spacing={4}>
-            <Grid item xs={12} md={4}>
-              <Box sx={{ textAlign: 'center', p: 2 }}>
-                <Box sx={{ fontSize: 60, color: 'primary.main', mb: 2 }}>1</Box>
-                <Typography variant="h6" gutterBottom>Connect Your Wallet</Typography>
-                <Typography variant="body2" color="text.secondary">
-                  Link your blockchain wallet to buy, sell, and manage your digital content licenses.
-                </Typography>
-              </Box>
-            </Grid>
-            <Grid item xs={12} md={4}>
-              <Box sx={{ textAlign: 'center', p: 2 }}>
-                <Box sx={{ fontSize: 60, color: 'primary.main', mb: 2 }}>2</Box>
-                <Typography variant="h6" gutterBottom>Purchase Content Licenses</Typography>
-                <Typography variant="body2" color="text.secondary">
-                  Buy tokens that represent licenses to view and own digital content with true ownership.
-                </Typography>
-              </Box>
-            </Grid>
-            <Grid item xs={12} md={4}>
-              <Box sx={{ textAlign: 'center', p: 2 }}>
-                <Box sx={{ fontSize: 60, color: 'primary.main', mb: 2 }}>3</Box>
-                <Typography variant="h6" gutterBottom>Watch or Trade</Typography>
-                <Typography variant="body2" color="text.secondary">
-                  Enjoy your content on the Seed One player or trade licenses on the marketplace.
-                </Typography>
-              </Box>
-            </Grid>
-          </Grid>
-          <Box sx={{ textAlign: 'center', mt: 4 }}>
-            <Button 
-              variant="contained" 
-              size="large" 
-              color="primary"
-              component={Link}
-              to="/about"
-            >
-              Learn More
-            </Button>
-          </Box>
-        </Paper>
-      </Box>
-    </Container>
+    </Box>
   );
 };
 

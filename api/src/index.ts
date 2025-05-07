@@ -14,6 +14,7 @@ import userRoutes from './routes/userRoutes';
 import contentRoutes from './routes/contentRoutes';
 import tokenRoutes from './routes/tokenRoutes';
 import marketplaceRoutes from './routes/marketplaceRoutes';
+import featuredContentRoutes from './routes/featuredContent';
 
 // Import middleware
 import { errorHandler } from './middleware/errorHandler';
@@ -54,6 +55,7 @@ app.use('/api/users', userRoutes);
 app.use('/api/content', contentRoutes);
 app.use('/api/tokens', tokenRoutes);
 app.use('/api/marketplace', marketplaceRoutes);
+app.use('/api/featured-content', featuredContentRoutes);
 
 // Apply error handling middleware
 app.use(errorHandler);

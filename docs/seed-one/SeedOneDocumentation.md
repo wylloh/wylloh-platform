@@ -22,28 +22,21 @@ Seed One consists of several integrated components:
 │  │ IPFS/Storage│ │  Blockchain  │ │    Local     │  │
 │  │ Integration │ │  Integration │ │ API Server   │  │
 │  └─────────────┘ └──────────────┘ └──────────────┘  │
-│                                          ▲           │
-└───────────────────────────────────────────┬─────────┘
-                                          │
-                        ┌─────────────────▼─────────────┐
-                        │     Kodi Integration          │
-                        │  ┌─────────────────────────┐  │
-                        │  │     Kodi Addon          │  │
-                        │  └─────────────────────────┘  │
-                        └───────────────────────────────┘
+└───────────────────────────────────────────────────────┘
 ```
 
 ## Components
 
 ### Main Application (`src/index.js`)
 
-The Electron-based desktop application provides the primary user interface and orchestrates the different components of the Seed One player.
+The Chromium-based desktop application provides the primary user interface and orchestrates the different components of the Seed One player.
 
 Key features:
 - Content library browsing and management
 - Media playback with license verification
 - Wallet connection and management
 - Settings and configuration
+- Integrated marketplace and upload features
 
 ### Wallet Connection (`wallet/connection.js`)
 
@@ -71,15 +64,6 @@ Provides a local HTTP API for integration with external components:
 - License verification requests
 - Content status checking
 - Token management
-
-### Kodi Addon
-
-Python-based addon for the Kodi media center:
-
-- Integration with Seed One via the local API
-- Content browsing and playback
-- Authentication and license verification
-- Custom player with rights management
 
 ## Content Playback Workflow
 
@@ -131,15 +115,6 @@ sequenceDiagram
 3. Follow the on-screen instructions
 4. Launch the application
 
-#### Kodi Addon Installation
-
-1. Download the Wylloh repository ZIP file
-2. In Kodi, go to Add-ons > Install from ZIP file
-3. Browse to the downloaded ZIP file
-4. Install the Wylloh repository
-5. Go to Install from repository > Wylloh Repository > Video add-ons
-6. Install the Wylloh addon
-
 ## Configuration
 
 The Seed One application can be configured through the settings interface or by editing the configuration files directly.
@@ -150,7 +125,6 @@ The Seed One application can be configured through the settings interface or by 
 - **Wallet Settings**: Network, connection type
 - **Storage Settings**: Cache size, storage location
 - **Network Settings**: IPFS gateway, API endpoints
-- **Kodi Integration**: Enable/disable, connection settings
 
 ### Configuration Files
 
@@ -220,24 +194,6 @@ Each content item displays:
 - Rights level information
 - Additional metadata (genre, duration, etc.)
 
-## Kodi Addon Features
-
-The Kodi addon extends Seed One functionality to the Kodi media center:
-
-- **Content Library**: Browse owned content
-- **Authentication**: Connect to wallet through Seed One
-- **Playback**: Play content with license verification
-- **Settings**: Configure quality, caching, verification intervals
-
-### Addon Settings
-
-The Kodi addon can be configured through its settings menu:
-
-- **General**: Auto-connect, quality preferences, buffer size
-- **API**: Connection to Seed One API
-- **Playback**: Subtitle settings, watermarking, verification
-- **Advanced**: Debugging, caching, expert options
-
 ## Security Features
 
 Seed One implements several security measures:
@@ -261,11 +217,6 @@ Seed One implements several security measures:
 - Verify token ownership in wallet
 - Check internet connection
 - Clear the application cache
-
-**Kodi Addon Not Connecting**
-- Ensure Seed One is running
-- Check API server settings
-- Verify network permissions
 
 ### Logs and Diagnostics
 
