@@ -15,6 +15,8 @@ import contentRoutes from './routes/contentRoutes';
 import tokenRoutes from './routes/tokenRoutes';
 import marketplaceRoutes from './routes/marketplaceRoutes';
 import featuredContentRoutes from './routes/featuredContent';
+import libraryRoutes from './routes/library.routes';
+import libraryAnalyticsRoutes from './routes/library-analytics.routes';
 
 // Import middleware
 import { errorHandler } from './middleware/errorHandler';
@@ -56,6 +58,8 @@ app.use('/api/content', contentRoutes);
 app.use('/api/tokens', tokenRoutes);
 app.use('/api/marketplace', marketplaceRoutes);
 app.use('/api/featured-content', featuredContentRoutes);
+app.use('/api/libraries', libraryRoutes);
+app.use('/api/library-analytics', libraryAnalyticsRoutes);
 
 // Apply error handling middleware
 app.use(errorHandler);

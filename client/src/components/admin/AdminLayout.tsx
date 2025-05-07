@@ -19,9 +19,11 @@ import {
   Dashboard as DashboardIcon,
   Movie as MovieIcon,
   People as PeopleIcon,
-  Settings as SettingsIcon
+  Settings as SettingsIcon,
+  Flag as FlagIcon
 } from '@mui/icons-material';
 import { Link, useLocation } from 'react-router-dom';
+import NotificationCenter from './NotificationCenter';
 
 interface AdminLayoutProps {
   children: React.ReactNode;
@@ -33,6 +35,7 @@ const menuItems = [
   { text: 'Dashboard', icon: <DashboardIcon />, path: '/admin' },
   { text: 'Featured Content', icon: <MovieIcon />, path: '/admin/featured-content' },
   { text: 'Users', icon: <PeopleIcon />, path: '/admin/users' },
+  { text: 'Content Moderation', icon: <FlagIcon />, path: '/admin/moderation' },
   { text: 'Settings', icon: <SettingsIcon />, path: '/admin/settings' }
 ];
 
@@ -91,9 +94,10 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
           >
             <MenuIcon />
           </IconButton>
-          <Typography variant="h6" noWrap component="div">
+          <Typography variant="h6" noWrap component="div" sx={{ flexGrow: 1 }}>
             {menuItems.find(item => item.path === location.pathname)?.text || 'Admin Panel'}
           </Typography>
+          <NotificationCenter />
         </Toolbar>
       </AppBar>
       <Box

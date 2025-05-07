@@ -1,94 +1,167 @@
 import React from 'react';
-import { Routes, Route } from 'react-router-dom';
+import { Routes, Route, Navigate } from 'react-router-dom';
+
+// Layout components
+import AppLayout from './layouts/AppLayout';
+import AdminLayout from './layouts/AdminLayout';
 
 // Pages
 import HomePage from './pages/HomePage';
-import MarketplacePage from './pages/marketplace/MarketplacePage';
-import ContentDetailsPage from './pages/marketplace/ContentDetailsPage';
-import TestContentDetails from './pages/marketplace/TestContentDetails';
-import DashboardPage from './pages/creator/DashboardPage';
-import UploadPage from './pages/creator/UploadPage';
-import TokenizePublishPage from './pages/creator/TokenizePublishPage';
-import EditContentPage from './pages/creator/EditContentPage';
-import PlayerPage from './pages/player/PlayerPage';
-import ProfilePage from './pages/ProfilePage';
-import MyCollectionPage from './pages/user/MyCollectionPage';
-import NotFoundPage from './pages/NotFoundPage';
-import LoginPage from './pages/auth/LoginPage';
-import RegisterPage from './pages/auth/RegisterPage';
+import LoginPage from './pages/LoginPage';
+import RegisterPage from './pages/RegisterPage';
+import DashboardPage from './pages/DashboardPage';
+import StorePage from './pages/StorePage';
+import ContentDetailsPage from './pages/ContentDetailsPage';
+import TokenizeTestPage from './pages/TokenizeTestPage';
+import StoragePage from './pages/StoragePage';
+import ContentMediaPage from './pages/ContentMediaPage';
+
+// Pro pages
+import ProDashboardPage from './pages/pro/DashboardPage';
+import ProUploadPage from './pages/pro/UploadPage';
+import ProTokenizePublishPage from './pages/pro/TokenizePublishPage';
+import ProEditContentPage from './pages/pro/EditContentPage';
+import ProLibrariesPage from './pages/pro/LibrariesPage';
 
 // Admin pages
 import AdminDashboardPage from './pages/admin/DashboardPage';
-import FeaturedContentPage from './pages/admin/FeaturedContentPage';
-import UsersPage from './pages/admin/UsersPage';
+import AdminUsersPage from './pages/admin/UsersPage';
+import AdminContentPage from './pages/admin/ContentPage';
 
 // Auth components
-import ProtectedRoute from './components/auth/ProtectedRoute';
+import { RequireAuth } from './components/auth/RequireAuth';
 
-const AppRoutes: React.FC = () => {
+// Library Pages
+import LibraryPage from './pages/library/LibraryPage';
+
+const AppRoutes = () => {
   return (
     <Routes>
-      <Route index element={<HomePage />} />
-      <Route path="marketplace" element={<MarketplacePage />} />
-      <Route path="marketplace/content/:id" element={<ContentDetailsPage />} />
-      <Route path="marketplace/details/:id" element={<ContentDetailsPage />} />
-      <Route path="test-content-details" element={<TestContentDetails />} />
-      
-      {/* Creator routes - protected with Pro status verification */}
-      <Route path="creator/dashboard" element={
-        <ProtectedRoute requireProVerified>
-          <DashboardPage />
-        </ProtectedRoute>
-      } />
-      <Route path="creator/upload" element={
-        <ProtectedRoute requireProVerified>
-          <UploadPage />
-        </ProtectedRoute>
-      } />
-      <Route path="creator/tokenize-publish" element={
-        <ProtectedRoute requireProVerified>
-          <TokenizePublishPage />
-        </ProtectedRoute>
-      } />
-      <Route path="creator/edit/:id" element={
-        <ProtectedRoute requireProVerified>
-          <EditContentPage />
-        </ProtectedRoute>
-      } />
-      
-      <Route path="player/:id" element={<PlayerPage />} />
-      <Route path="profile" element={<ProfilePage />} />
-      
-      {/* User collection - protected but doesn't require Pro status */}
-      <Route path="collection" element={
-        <ProtectedRoute>
-          <MyCollectionPage />
-        </ProtectedRoute>
-      } />
-      
-      <Route path="login" element={<LoginPage />} />
-      <Route path="register" element={<RegisterPage />} />
-      
-      {/* Admin routes */}
-      <Route path="admin">
-        <Route index element={
-          <ProtectedRoute requireAdmin>
-            <AdminDashboardPage />
-          </ProtectedRoute>
-        } />
-        <Route path="featured-content" element={
-          <ProtectedRoute requireAdmin>
-            <FeaturedContentPage />
-          </ProtectedRoute>
-        } />
-        <Route path="users" element={
-          <ProtectedRoute requireAdmin>
-            <UsersPage />
-          </ProtectedRoute>
-        } />
+      <Route path="/" element={<AppLayout />}>
+        {/* Public routes */}
+        <Route index element={<HomePage />} />
+        <Route path="login" element={<LoginPage />} />
+        <Route path="register" element={<RegisterPage />} />
+        <Route path="store" element={<StorePage />} />
+        <Route path="content/:contentId" element={<ContentDetailsPage />} />
+        <Route path="content/:contentId/media" element={<ContentMediaPage />} />
+        <Route path="library/:libraryId" element={<LibraryPage />} />
+
+        {/* Protected routes for all users */}
+        <Route
+          path="dashboard"
+          element={
+            <RequireAuth>
+              <DashboardPage />
+            </RequireAuth>
+          }
+        />
+        <Route
+          path="tokenize-test"
+          element={
+            <RequireAuth>
+              <TokenizeTestPage />
+            </RequireAuth>
+          }
+        />
+        <Route
+          path="storage"
+          element={
+            <RequireAuth>
+              <StoragePage />
+            </RequireAuth>
+          }
+        />
+
+        {/* Pro routes */}
+        <Route
+          path="pro"
+          element={
+            <RequireAuth requireProStatus>
+              <Navigate to="/pro/dashboard" replace />
+            </RequireAuth>
+          }
+        />
+        <Route
+          path="pro/dashboard"
+          element={
+            <RequireAuth requireProStatus>
+              <ProDashboardPage />
+            </RequireAuth>
+          }
+        />
+        <Route
+          path="pro/upload"
+          element={
+            <RequireAuth requireProStatus>
+              <ProUploadPage />
+            </RequireAuth>
+          }
+        />
+        <Route
+          path="pro/tokenize-publish"
+          element={
+            <RequireAuth requireProStatus>
+              <ProTokenizePublishPage />
+            </RequireAuth>
+          }
+        />
+        <Route
+          path="pro/edit/:contentId"
+          element={
+            <RequireAuth requireProStatus>
+              <ProEditContentPage />
+            </RequireAuth>
+          }
+        />
+        <Route
+          path="pro/libraries"
+          element={
+            <RequireAuth requireProStatus>
+              <ProLibrariesPage />
+            </RequireAuth>
+          }
+        />
+
+        {/* Admin routes */}
+        <Route path="admin" element={<AdminLayout />}>
+          <Route
+            index
+            element={
+              <RequireAuth requireAdmin>
+                <Navigate to="/admin/dashboard" replace />
+              </RequireAuth>
+            }
+          />
+          <Route
+            path="dashboard"
+            element={
+              <RequireAuth requireAdmin>
+                <AdminDashboardPage />
+              </RequireAuth>
+            }
+          />
+          <Route
+            path="users"
+            element={
+              <RequireAuth requireAdmin>
+                <AdminUsersPage />
+              </RequireAuth>
+            }
+          />
+          <Route
+            path="content"
+            element={
+              <RequireAuth requireAdmin>
+                <AdminContentPage />
+              </RequireAuth>
+            }
+          />
+        </Route>
+
+        {/* Catch all route */}
+        <Route path="*" element={<Navigate to="/" replace />} />
       </Route>
-      
-      <Route path="*" element={<NotFoundPage />} />
     </Routes>
   );
 };

@@ -15,16 +15,22 @@ import {
   Select,
   MenuItem,
   FormControl,
-  InputLabel
+  InputLabel,
+  Grid,
+  Paper,
+  Tooltip,
+  Divider
 } from '@mui/material';
-import { DataGrid, GridColDef, GridRenderCellParams } from '@mui/x-data-grid';
+import { DataGrid, GridColDef, GridRenderCellParams, GridToolbar } from '@mui/x-data-grid';
 import { useSnackbar } from 'notistack';
 import {
   Add as AddIcon,
   Edit as EditIcon,
   Delete as DeleteIcon,
   Verified as VerifiedIcon,
-  Block as BlockIcon
+  Block as BlockIcon,
+  History as HistoryIcon,
+  FilterList as FilterListIcon
 } from '@mui/icons-material';
 import AdminLayout from '../../components/admin/AdminLayout';
 
@@ -37,6 +43,15 @@ interface User {
   proVerificationStatus: 'none' | 'pending' | 'approved' | 'rejected';
   createdAt: Date;
   lastLogin: Date;
+  verificationHistory?: VerificationHistory[];
+}
+
+interface VerificationHistory {
+  id: string;
+  status: 'pending' | 'approved' | 'rejected';
+  timestamp: Date;
+  notes?: string;
+  adminId: string;
 }
 
 interface FormData {
@@ -45,6 +60,7 @@ interface FormData {
   role: 'user' | 'pro' | 'admin';
   status: 'active' | 'inactive' | 'pending';
   proVerificationStatus: 'none' | 'pending' | 'approved' | 'rejected';
+  verificationNotes?: string;
 }
 
 const formatDate = (date: string | Date) => {
@@ -56,6 +72,8 @@ const UsersPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [historyDialogOpen, setHistoryDialogOpen] = useState(false);
+  const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [editingUser, setEditingUser] = useState<User | null>(null);
   const { enqueueSnackbar } = useSnackbar();
 
@@ -64,7 +82,8 @@ const UsersPage: React.FC = () => {
     username: '',
     role: 'user',
     status: 'active',
-    proVerificationStatus: 'none'
+    proVerificationStatus: 'none',
+    verificationNotes: ''
   });
 
   const columns: GridColDef[] = [
@@ -143,32 +162,47 @@ const UsersPage: React.FC = () => {
     {
       field: 'actions',
       headerName: 'Actions',
-      width: 150,
+      width: 200,
       sortable: false,
       renderCell: (params: GridRenderCellParams) => (
         <Box>
-          <IconButton
-            size="small"
-            onClick={() => handleEdit(params.row as User)}
-            color="primary"
-          >
-            <EditIcon />
-          </IconButton>
-          <IconButton
-            size="small"
-            onClick={() => handleDelete(params.row.id as string)}
-            color="error"
-          >
-            <DeleteIcon />
-          </IconButton>
-          {params.row.proVerificationStatus === 'pending' && (
+          <Tooltip title="View History">
             <IconButton
               size="small"
-              onClick={() => handleProVerification(params.row as User)}
-              color="success"
+              onClick={() => handleViewHistory(params.row as User)}
+              color="info"
             >
-              <VerifiedIcon />
+              <HistoryIcon />
             </IconButton>
+          </Tooltip>
+          <Tooltip title="Edit User">
+            <IconButton
+              size="small"
+              onClick={() => handleEdit(params.row as User)}
+              color="primary"
+            >
+              <EditIcon />
+            </IconButton>
+          </Tooltip>
+          <Tooltip title="Delete User">
+            <IconButton
+              size="small"
+              onClick={() => handleDelete(params.row.id as string)}
+              color="error"
+            >
+              <DeleteIcon />
+            </IconButton>
+          </Tooltip>
+          {params.row.proVerificationStatus === 'pending' && (
+            <Tooltip title="Verify Pro Status">
+              <IconButton
+                size="small"
+                onClick={() => handleProVerification(params.row as User)}
+                color="success"
+              >
+                <VerifiedIcon />
+              </IconButton>
+            </Tooltip>
           )}
         </Box>
       )
@@ -201,7 +235,8 @@ const UsersPage: React.FC = () => {
       username: '',
       role: 'user',
       status: 'active',
-      proVerificationStatus: 'none'
+      proVerificationStatus: 'none',
+      verificationNotes: ''
     });
     setDialogOpen(true);
   };
@@ -213,7 +248,8 @@ const UsersPage: React.FC = () => {
       username: user.username,
       role: user.role,
       status: user.status,
-      proVerificationStatus: user.proVerificationStatus
+      proVerificationStatus: user.proVerificationStatus,
+      verificationNotes: ''
     });
     setDialogOpen(true);
   };
@@ -233,6 +269,11 @@ const UsersPage: React.FC = () => {
     }
   };
 
+  const handleViewHistory = (user: User) => {
+    setSelectedUser(user);
+    setHistoryDialogOpen(true);
+  };
+
   const handleProVerification = async (user: User) => {
     try {
       const response = await fetch(
@@ -242,7 +283,10 @@ const UsersPage: React.FC = () => {
           headers: {
             'Content-Type': 'application/json'
           },
-          body: JSON.stringify({ status: 'approved' })
+          body: JSON.stringify({ 
+            status: 'approved',
+            notes: formData.verificationNotes
+          })
         }
       );
       if (!response.ok) throw new Error('Failed to verify Pro status');
@@ -260,8 +304,10 @@ const UsersPage: React.FC = () => {
         ? `${process.env.REACT_APP_API_URL}/api/users/${editingUser.id}`
         : `${process.env.REACT_APP_API_URL}/api/users`;
       
+      const method = editingUser ? 'PUT' : 'POST';
+      
       const response = await fetch(url, {
-        method: editingUser ? 'PUT' : 'POST',
+        method,
         headers: {
           'Content-Type': 'application/json'
         },
@@ -271,22 +317,27 @@ const UsersPage: React.FC = () => {
       if (!response.ok) throw new Error('Failed to save user');
       
       enqueueSnackbar(
-        `User ${editingUser ? 'updated' : 'added'} successfully`,
+        `User ${editingUser ? 'updated' : 'created'} successfully`,
         { variant: 'success' }
       );
       
       setDialogOpen(false);
       fetchUsers();
     } catch (err) {
-      enqueueSnackbar('Failed to save user', { variant: 'error' });
+      enqueueSnackbar(
+        `Failed to ${editingUser ? 'update' : 'create'} user`,
+        { variant: 'error' }
+      );
     }
   };
 
   return (
     <AdminLayout>
-      <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-          <Typography variant="h4">User Management</Typography>
+      <Box sx={{ p: 3 }}>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 3 }}>
+          <Typography variant="h4" component="h1">
+            User Management
+          </Typography>
           <Button
             variant="contained"
             startIcon={<AddIcon />}
@@ -302,95 +353,160 @@ const UsersPage: React.FC = () => {
           </Alert>
         )}
 
-        <Box sx={{ flexGrow: 1, minHeight: 400 }}>
-          {loading ? (
-            <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%' }}>
-              <CircularProgress />
-            </Box>
-          ) : (
-            <DataGrid
-              rows={users}
-              columns={columns}
-              initialState={{
-                pagination: {
-                  paginationModel: { pageSize: 10, page: 0 }
-                }
-              }}
-              pageSizeOptions={[10]}
-              disableRowSelectionOnClick
-              autoHeight
-            />
-          )}
-        </Box>
+        <Paper sx={{ height: 'calc(100vh - 200px)', width: '100%' }}>
+          <DataGrid
+            rows={users}
+            columns={columns}
+            loading={loading}
+            slots={{
+              toolbar: GridToolbar
+            }}
+            slotProps={{
+              toolbar: {
+                showQuickFilter: true,
+                quickFilterProps: { debounceMs: 500 }
+              }
+            }}
+            disableRowSelectionOnClick
+            initialState={{
+              pagination: {
+                paginationModel: { pageSize: 10, page: 0 }
+              }
+            }}
+            pageSizeOptions={[10, 25, 50]}
+          />
+        </Paper>
 
         <Dialog open={dialogOpen} onClose={() => setDialogOpen(false)} maxWidth="sm" fullWidth>
-          <form onSubmit={handleSubmit}>
-            <DialogTitle>
-              {editingUser ? 'Edit User' : 'Add User'}
-            </DialogTitle>
-            <DialogContent>
-              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: 2 }}>
-                <TextField
-                  label="Email"
-                  type="email"
-                  value={formData.email}
-                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                  required
-                  fullWidth
-                />
-                <TextField
-                  label="Username"
-                  value={formData.username}
-                  onChange={(e) => setFormData({ ...formData, username: e.target.value })}
-                  required
-                  fullWidth
-                />
-                <FormControl fullWidth>
-                  <InputLabel>Role</InputLabel>
-                  <Select
-                    value={formData.role}
-                    label="Role"
-                    onChange={(e) => setFormData({ ...formData, role: e.target.value as User['role'] })}
-                  >
-                    <MenuItem value="user">User</MenuItem>
-                    <MenuItem value="pro">Pro</MenuItem>
-                    <MenuItem value="admin">Admin</MenuItem>
-                  </Select>
-                </FormControl>
-                <FormControl fullWidth>
-                  <InputLabel>Status</InputLabel>
-                  <Select
-                    value={formData.status}
-                    label="Status"
-                    onChange={(e) => setFormData({ ...formData, status: e.target.value as User['status'] })}
-                  >
-                    <MenuItem value="active">Active</MenuItem>
-                    <MenuItem value="inactive">Inactive</MenuItem>
-                    <MenuItem value="pending">Pending</MenuItem>
-                  </Select>
-                </FormControl>
-                <FormControl fullWidth>
-                  <InputLabel>Pro Verification Status</InputLabel>
-                  <Select
-                    value={formData.proVerificationStatus}
-                    label="Pro Verification Status"
-                    onChange={(e) => setFormData({ ...formData, proVerificationStatus: e.target.value as User['proVerificationStatus'] })}
-                  >
-                    <MenuItem value="none">None</MenuItem>
-                    <MenuItem value="pending">Pending</MenuItem>
-                    <MenuItem value="approved">Approved</MenuItem>
-                    <MenuItem value="rejected">Rejected</MenuItem>
-                  </Select>
-                </FormControl>
+          <DialogTitle>
+            {editingUser ? 'Edit User' : 'Add New User'}
+          </DialogTitle>
+          <DialogContent>
+            <Box component="form" onSubmit={handleSubmit} sx={{ mt: 2 }}>
+              <Grid container spacing={2}>
+                <Grid item xs={12}>
+                  <TextField
+                    fullWidth
+                    label="Email"
+                    value={formData.email}
+                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                    required
+                  />
+                </Grid>
+                <Grid item xs={12}>
+                  <TextField
+                    fullWidth
+                    label="Username"
+                    value={formData.username}
+                    onChange={(e) => setFormData({ ...formData, username: e.target.value })}
+                    required
+                  />
+                </Grid>
+                <Grid item xs={12} sm={6}>
+                  <FormControl fullWidth>
+                    <InputLabel>Role</InputLabel>
+                    <Select
+                      value={formData.role}
+                      label="Role"
+                      onChange={(e) => setFormData({ ...formData, role: e.target.value as FormData['role'] })}
+                    >
+                      <MenuItem value="user">User</MenuItem>
+                      <MenuItem value="pro">Pro</MenuItem>
+                      <MenuItem value="admin">Admin</MenuItem>
+                    </Select>
+                  </FormControl>
+                </Grid>
+                <Grid item xs={12} sm={6}>
+                  <FormControl fullWidth>
+                    <InputLabel>Status</InputLabel>
+                    <Select
+                      value={formData.status}
+                      label="Status"
+                      onChange={(e) => setFormData({ ...formData, status: e.target.value as FormData['status'] })}
+                    >
+                      <MenuItem value="active">Active</MenuItem>
+                      <MenuItem value="inactive">Inactive</MenuItem>
+                      <MenuItem value="pending">Pending</MenuItem>
+                    </Select>
+                  </FormControl>
+                </Grid>
+                {editingUser && (
+                  <Grid item xs={12}>
+                    <FormControl fullWidth>
+                      <InputLabel>Pro Verification Status</InputLabel>
+                      <Select
+                        value={formData.proVerificationStatus}
+                        label="Pro Verification Status"
+                        onChange={(e) => setFormData({ ...formData, proVerificationStatus: e.target.value as FormData['proVerificationStatus'] })}
+                      >
+                        <MenuItem value="none">None</MenuItem>
+                        <MenuItem value="pending">Pending</MenuItem>
+                        <MenuItem value="approved">Approved</MenuItem>
+                        <MenuItem value="rejected">Rejected</MenuItem>
+                      </Select>
+                    </FormControl>
+                  </Grid>
+                )}
+                {formData.proVerificationStatus === 'pending' && (
+                  <Grid item xs={12}>
+                    <TextField
+                      fullWidth
+                      label="Verification Notes"
+                      multiline
+                      rows={4}
+                      value={formData.verificationNotes}
+                      onChange={(e) => setFormData({ ...formData, verificationNotes: e.target.value })}
+                    />
+                  </Grid>
+                )}
+              </Grid>
+            </Box>
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={() => setDialogOpen(false)}>Cancel</Button>
+            <Button onClick={handleSubmit} variant="contained" color="primary">
+              {editingUser ? 'Update' : 'Create'}
+            </Button>
+          </DialogActions>
+        </Dialog>
+
+        <Dialog open={historyDialogOpen} onClose={() => setHistoryDialogOpen(false)} maxWidth="md" fullWidth>
+          <DialogTitle>
+            Verification History - {selectedUser?.username}
+          </DialogTitle>
+          <DialogContent>
+            {selectedUser?.verificationHistory?.map((history, index) => (
+              <Box key={history.id} sx={{ mb: 2 }}>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <Chip
+                    label={history.status}
+                    color={
+                      history.status === 'approved'
+                        ? 'success'
+                        : history.status === 'pending'
+                        ? 'warning'
+                        : 'error'
+                    }
+                    size="small"
+                  />
+                  <Typography variant="caption" color="text.secondary">
+                    {formatDate(history.timestamp)}
+                  </Typography>
+                </Box>
+                {history.notes && (
+                  <Typography variant="body2" sx={{ mt: 1 }}>
+                    {history.notes}
+                  </Typography>
+                )}
+                {index < (selectedUser.verificationHistory?.length || 0) - 1 && (
+                  <Divider sx={{ my: 1 }} />
+                )}
               </Box>
-            </DialogContent>
-            <DialogActions>
-              <Button onClick={() => setDialogOpen(false)}>Cancel</Button>
-              <Button type="submit" variant="contained">
-                {editingUser ? 'Update' : 'Add'}
-              </Button>
-            </DialogActions>
-          </form>
+            ))}
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={() => setHistoryDialogOpen(false)}>Close</Button>
+          </DialogActions>
         </Dialog>
       </Box>
     </AdminLayout>
