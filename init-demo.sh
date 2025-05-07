@@ -604,9 +604,55 @@ update_configuration() {
     # --- Demo Only: Pre-approve Marketplace Contract ---
     # In a real application, the seller would need to grant this approval via the UI.
     # For the demo, we automatically approve the marketplace using the seller's (Ganache account 0) private key.
-    echo "Pre-approving marketplace contract ($marketplace_address) for token transfers by seller ($contract_address)..."
-    cast send "$contract_address" "setApprovalForAll(address,bool)" "$marketplace_address" true --private-key 0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80 --rpc-url http://127.0.0.1:8545
-    echo "Marketplace approval set."
+    echo "Pre-approving marketplace contract ($marketplace_address) for token transfers by seller..."
+    
+    # Create a temporary script to approve the marketplace
+    cat > "$SCRIPT_DIR/temp-approve.cjs" << EOF
+const { ethers } = require('hardhat');
+
+async function main() {
+  try {
+    // Get the first signer (account 0 in Ganache)
+    const [signer] = await ethers.getSigners();
+    console.log('Using seller account:', signer.address);
+    
+    // Get the token contract
+    const tokenAddress = '$contract_address';
+    const tokenAbi = require('./artifacts/contracts/token/WyllohToken.sol/WyllohToken.json').abi;
+    const tokenContract = new ethers.Contract(tokenAddress, tokenAbi, signer);
+    
+    // Approve the marketplace for all tokens
+    const marketplaceAddress = '$marketplace_address';
+    console.log('Approving marketplace:', marketplaceAddress);
+    
+    const tx = await tokenContract.setApprovalForAll(marketplaceAddress, true);
+    console.log('Approval transaction sent:', tx.hash);
+    
+    // Wait for confirmation
+    const receipt = await tx.wait();
+    console.log('Approval confirmed, gas used:', receipt.gasUsed.toString());
+    console.log('✅ Marketplace approval successful');
+  } catch (error) {
+    console.error('❌ Failed to approve marketplace:', error.message);
+  }
+}
+
+main()
+  .then(() => process.exit(0))
+  .catch(error => {
+    console.error(error);
+    process.exit(1);
+  });
+EOF
+    
+    # Run the script
+    cd "$SCRIPT_DIR"
+    npx hardhat run temp-approve.cjs --network localhost
+    
+    # Clean up
+    rm "$SCRIPT_DIR/temp-approve.cjs"
+    
+    echo "Marketplace approval attempted."
     # --- End Demo Only ---
 
     echo "---------------------------------------"
