@@ -31,11 +31,17 @@ import {
   Legend,
 } from 'recharts';
 import { format, subDays, subMonths } from 'date-fns';
-import { libraryService, LibraryAnalytics as LibraryAnalyticsType } from '../../services/library.service';
+import { 
+  libraryService, 
+  LibraryAnalytics as LibraryAnalyticsType, 
+  TokenValueMetrics,
+  TokenValueHistoryEntry 
+} from '../../services/library.service';
 
 // Extended analytics type with genre distribution
 interface ExtendedLibraryAnalytics extends LibraryAnalyticsType {
   genreDistribution?: { name: string; value: number }[];
+  tokenValueMetrics?: TokenValueMetrics;
 }
 
 interface LibraryAnalyticsProps {
@@ -59,6 +65,31 @@ const generateSampleData = (): ExtendedLibraryAnalytics => {
       value: Math.round(currentValue),
       change: Math.round(change),
       changePercentage: Math.round((change / (currentValue - change)) * 1000) / 10,
+    });
+  }
+  
+  // Generate token value history
+  const tokenValueHistory = [];
+  let currentTokenValue = 800;
+  let verifiedCount = 5;
+  
+  for (let i = 90; i >= 0; i--) {
+    const date = subDays(today, i);
+    // Random change between -3% and +4%
+    const change = currentTokenValue * (Math.random() * 0.07 - 0.03);
+    currentTokenValue += change;
+    
+    // Occasionally increase verified tokens count
+    if (i % 10 === 0 && verifiedCount < 15) {
+      verifiedCount += 1;
+    }
+    
+    tokenValueHistory.push({
+      date: date.toISOString(),
+      value: Math.round(currentTokenValue),
+      change: Math.round(change),
+      changePercentage: Math.round((change / (currentTokenValue - change)) * 1000) / 10,
+      verifiedTokensCount: verifiedCount
     });
   }
   
@@ -87,6 +118,23 @@ const generateSampleData = (): ExtendedLibraryAnalytics => {
       { name: 'Thriller', value: 10 },
       { name: 'Other', value: 10 },
     ],
+    tokenValueMetrics: {
+      totalTokenValue: Math.round(currentTokenValue),
+      tokenValueHistory,
+      verifiedTokens: verifiedCount,
+      unverifiedTokens: 3,
+      tokenPriceChanges: {
+        day: 2.5,
+        week: -1.2,
+        month: 15.7,
+      },
+      highestValueToken: {
+        contentId: 'content-123',
+        tokenId: '0x1a2b3c4d5e6f',
+        value: 250,
+        chain: 'Ethereum',
+      },
+    },
   };
 };
 
@@ -103,6 +151,18 @@ const LibraryAnalytics: React.FC<LibraryAnalyticsProps> = ({ libraryId }) => {
       try {
         setLoading(true);
         const data = await libraryService.getLibraryAnalytics(libraryId, period);
+        
+        // If tokenValueMetrics isn't included in the API response, try to fetch it separately
+        if (!data.tokenValueMetrics) {
+          try {
+            const tokenValueMetrics = await libraryService.getLibraryTokenValueMetrics(libraryId, period);
+            data.tokenValueMetrics = tokenValueMetrics;
+          } catch (tokenMetricsError) {
+            console.warn('Error fetching token value metrics:', tokenMetricsError);
+            // Continue without token metrics
+          }
+        }
+        
         setAnalytics(data);
         setError(null);
       } catch (err) {
@@ -204,6 +264,21 @@ const LibraryAnalytics: React.FC<LibraryAnalyticsProps> = ({ libraryId }) => {
   const formatPercentage = (value: number) => {
     const sign = value >= 0 ? '+' : '';
     return `${sign}${value.toFixed(2)}%`;
+  };
+
+  // Get cutoff date based on selected period
+  const getFilteredDateCutoff = () => {
+    const today = new Date();
+    switch (period) {
+      case '7d':
+        return subDays(today, 7);
+      case '30d':
+        return subDays(today, 30);
+      case '1y':
+        return subMonths(today, 12);
+      default:
+        return subDays(today, 30);
+    }
   };
 
   // Render pie chart for genre distribution
@@ -357,9 +432,189 @@ const LibraryAnalytics: React.FC<LibraryAnalyticsProps> = ({ libraryId }) => {
             </CardContent>
           </Card>
         </Grid>
+        
+        {/* Token Value Metrics */}
+        {analytics.tokenValueMetrics && (
+          <>
+            <Grid item xs={12}>
+              <Typography variant="h6" gutterBottom sx={{ mt: 3, mb: 2 }}>
+                Token Value Metrics
+              </Typography>
+            </Grid>
+            
+            {/* Token Value Summary Cards */}
+            <Grid item xs={12} sm={6} md={3}>
+              <Paper elevation={2} sx={{ p: 2, borderRadius: 2 }}>
+                <Typography variant="subtitle2" color="text.secondary">
+                  Total Token Value
+                </Typography>
+                <Typography variant="h4" gutterBottom>
+                  {formatCurrency(analytics.tokenValueMetrics.totalTokenValue)}
+                </Typography>
+                <Typography 
+                  variant="body2" 
+                  color={analytics.tokenValueMetrics.tokenPriceChanges.month >= 0 ? 'success.main' : 'error.main'}
+                >
+                  {formatPercentage(analytics.tokenValueMetrics.tokenPriceChanges.month)}% (30d)
+                </Typography>
+              </Paper>
+            </Grid>
+            
+            <Grid item xs={12} sm={6} md={3}>
+              <Paper elevation={2} sx={{ p: 2, borderRadius: 2 }}>
+                <Typography variant="subtitle2" color="text.secondary">
+                  Verified Tokens
+                </Typography>
+                <Typography variant="h4" gutterBottom>
+                  {analytics.tokenValueMetrics.verifiedTokens}
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  {analytics.tokenValueMetrics.unverifiedTokens} unverified
+                </Typography>
+              </Paper>
+            </Grid>
+            
+            <Grid item xs={12} sm={6} md={3}>
+              <Paper elevation={2} sx={{ p: 2, borderRadius: 2 }}>
+                <Typography variant="subtitle2" color="text.secondary">
+                  24h Change
+                </Typography>
+                <Typography 
+                  variant="h4" 
+                  color={analytics.tokenValueMetrics.tokenPriceChanges.day >= 0 ? 'success.main' : 'error.main'}
+                  gutterBottom
+                >
+                  {formatPercentage(analytics.tokenValueMetrics.tokenPriceChanges.day)}%
+                </Typography>
+                <Typography 
+                  variant="body2" 
+                  color={analytics.tokenValueMetrics.tokenPriceChanges.week >= 0 ? 'success.main' : 'error.main'}
+                >
+                  {formatPercentage(analytics.tokenValueMetrics.tokenPriceChanges.week)}% (7d)
+                </Typography>
+              </Paper>
+            </Grid>
+            
+            <Grid item xs={12} sm={6} md={3}>
+              <Paper elevation={2} sx={{ p: 2, borderRadius: 2 }}>
+                <Typography variant="subtitle2" color="text.secondary">
+                  Highest Value Token
+                </Typography>
+                <Typography variant="h4" gutterBottom>
+                  {formatCurrency(analytics.tokenValueMetrics.highestValueToken.value)}
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  {analytics.tokenValueMetrics.highestValueToken.chain}
+                </Typography>
+              </Paper>
+            </Grid>
+            
+            {/* Token Value History Chart */}
+            <Grid item xs={12}>
+              <Card>
+                <CardContent>
+                  <Typography variant="h6" gutterBottom>
+                    Token Value History
+                  </Typography>
+                  <Box height={300}>
+                    <ResponsiveContainer width="100%" height="100%">
+                      <LineChart 
+                        data={analytics.tokenValueMetrics.tokenValueHistory.filter(entry => {
+                          const cutoffDate = getFilteredDateCutoff();
+                          return new Date(entry.date) >= cutoffDate;
+                        })}
+                      >
+                        <CartesianGrid strokeDasharray="3 3" />
+                        <XAxis
+                          dataKey="date"
+                          tickFormatter={(value: string) => format(new Date(value), 'MMM d')}
+                        />
+                        <YAxis
+                          yAxisId="left"
+                          tickFormatter={(value: number) => formatCurrency(value)}
+                        />
+                        <YAxis
+                          yAxisId="right"
+                          orientation="right"
+                          domain={[0, 'dataMax + 5']}
+                        />
+                        <Tooltip
+                          formatter={(value: number, name: string) => {
+                            if (name === 'value') return formatCurrency(value);
+                            if (name === 'verifiedTokensCount') return value;
+                            return value;
+                          }}
+                          labelFormatter={(label: string) => format(new Date(label), 'MMM d, yyyy')}
+                        />
+                        <Legend />
+                        <Line
+                          type="monotone"
+                          dataKey="value"
+                          name="Token Value"
+                          stroke="#8884d8"
+                          yAxisId="left"
+                          strokeWidth={2}
+                          dot={false}
+                        />
+                        <Line
+                          type="monotone"
+                          dataKey="verifiedTokensCount"
+                          name="Verified Tokens"
+                          stroke="#82ca9d"
+                          yAxisId="right"
+                          strokeWidth={2}
+                          dot={false}
+                        />
+                      </LineChart>
+                    </ResponsiveContainer>
+                  </Box>
+                </CardContent>
+              </Card>
+            </Grid>
+            
+            {/* Blockchain Verification Status */}
+            <Grid item xs={12} md={6}>
+              <Card>
+                <CardContent>
+                  <Typography variant="h6" gutterBottom>
+                    Token Verification Status
+                  </Typography>
+                  <Box height={300}>
+                    <ResponsiveContainer width="100%" height="100%">
+                      <PieChart>
+                        <Pie
+                          data={[
+                            { name: 'Verified', value: analytics.tokenValueMetrics.verifiedTokens },
+                            { name: 'Unverified', value: analytics.tokenValueMetrics.unverifiedTokens }
+                          ]}
+                          cx="50%"
+                          cy="50%"
+                          labelLine={false}
+                          outerRadius={80}
+                          fill="#8884d8"
+                          dataKey="value"
+                          nameKey="name"
+                          label={({ name, percent }: { name: string; percent: number }) => 
+                            `${name}: ${(percent * 100).toFixed(0)}%`
+                          }
+                        >
+                          <Cell key="cell-verified" fill="#4caf50" />
+                          <Cell key="cell-unverified" fill="#ff9800" />
+                        </Pie>
+                        <Tooltip 
+                          formatter={(value: number) => value}
+                        />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  </Box>
+                </CardContent>
+              </Card>
+            </Grid>
+          </>
+        )}
 
         {/* Genre Distribution */}
-        <Grid item xs={12} md={6}>
+        <Grid item xs={12} md={analytics.tokenValueMetrics ? 6 : 6}>
           <Card>
             <CardContent>
               <Typography variant="h6" gutterBottom>

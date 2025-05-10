@@ -43,6 +43,7 @@ export interface LibraryAnalytics {
   lendingMetrics: LendingMetrics;
   engagementMetrics: EngagementMetrics;
   lastUpdated: string;
+  tokenValueMetrics?: TokenValueMetrics;
 }
 
 export interface ValueHistoryEntry {
@@ -50,6 +51,32 @@ export interface ValueHistoryEntry {
   value: number;
   change: number;
   changePercentage: number;
+}
+
+export interface TokenValueMetrics {
+  totalTokenValue: number;
+  tokenValueHistory: TokenValueHistoryEntry[];
+  verifiedTokens: number;
+  unverifiedTokens: number;
+  tokenPriceChanges: {
+    day: number;
+    week: number;
+    month: number;
+  };
+  highestValueToken: {
+    contentId: string;
+    tokenId: string;
+    value: number;
+    chain: string;
+  };
+}
+
+export interface TokenValueHistoryEntry {
+  date: string;
+  value: number;
+  change: number;
+  changePercentage: number;
+  verifiedTokensCount: number;
 }
 
 export interface LendingMetrics {
@@ -281,6 +308,21 @@ class LibraryService {
       return response.data;
     } catch (error) {
       console.error(`Error fetching value trends for library ${libraryId}:`, error);
+      throw error;
+    }
+  }
+
+  // Get library token value metrics
+  async getLibraryTokenValueMetrics(libraryId: string, period?: string): Promise<TokenValueMetrics> {
+    try {
+      const url = period
+        ? `${API_BASE_URL}/api/library-analytics/${libraryId}/token-values?period=${period}`
+        : `${API_BASE_URL}/api/library-analytics/${libraryId}/token-values`;
+      
+      const response = await axios.get(url);
+      return response.data;
+    } catch (error) {
+      console.error(`Error fetching token value metrics for library ${libraryId}:`, error);
       throw error;
     }
   }

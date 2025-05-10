@@ -11,6 +11,7 @@ import userRoutes from './routes/user.routes';
 import contentRoutes from './routes/content.routes';
 import libraryRoutes from './routes/library.routes';
 import libraryAnalyticsRoutes from './routes/library-analytics.routes';
+import lendingRoutes from './routes/lending.routes';
 
 // Load environment variables
 dotenv.config();
@@ -33,6 +34,12 @@ app.use('/api/users', userRoutes);
 app.use('/api/content', contentRoutes);
 app.use('/api/libraries', libraryRoutes);
 app.use('/api/library-analytics', libraryAnalyticsRoutes);
+app.use('/api/lending', lendingRoutes);
+
+// Root route
+app.get('/', (req, res) => {
+  res.send('Wylloh API');
+});
 
 // Error handling middleware
 app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {

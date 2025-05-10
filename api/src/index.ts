@@ -5,6 +5,7 @@ import morgan from 'morgan';
 import compression from 'compression';
 import dotenv from 'dotenv';
 import mongoose from 'mongoose';
+import bodyParser from 'body-parser';
 
 // Load environment variables
 dotenv.config();
@@ -17,6 +18,7 @@ import marketplaceRoutes from './routes/marketplaceRoutes';
 import featuredContentRoutes from './routes/featuredContent';
 import libraryRoutes from './routes/library.routes';
 import libraryAnalyticsRoutes from './routes/library-analytics.routes';
+import lendingRoutes from './routes/lending.routes';
 
 // Import middleware
 import { errorHandler } from './middleware/errorHandler';
@@ -46,6 +48,7 @@ app.use(morgan('dev')); // Logging
 app.use(compression()); // Compress responses
 app.use(express.json()); // Parse JSON bodies
 app.use(express.urlencoded({ extended: true })); // Parse URL-encoded bodies
+app.use(bodyParser.json());
 
 // Health check endpoint
 app.get('/health', (req, res) => {
@@ -60,6 +63,16 @@ app.use('/api/marketplace', marketplaceRoutes);
 app.use('/api/featured-content', featuredContentRoutes);
 app.use('/api/libraries', libraryRoutes);
 app.use('/api/library-analytics', libraryAnalyticsRoutes);
+app.use('/api/lending', lendingRoutes);
+
+// Root route
+app.get('/', (req, res) => {
+  res.json({
+    message: 'Welcome to Wylloh API',
+    version: '1.0.0',
+    docs: '/api/docs'
+  });
+});
 
 // Apply error handling middleware
 app.use(errorHandler);

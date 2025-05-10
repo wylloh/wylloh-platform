@@ -19,6 +19,15 @@ Wylloh aims to create a decentralized ecosystem for film distribution, where:
 - **Marketplace**: Cross-platform trading protocol
 - **Rights Management**: Flexible rights tiers and thresholds
 - **Royalty Distribution**: EIP-2981 compliant royalty system
+- **Content Lending**: Secure token-based lending with blockchain verification
+
+### Content Lending System
+- **Smart Contract Verification**: Secure lending through blockchain-verified transactions
+- **Lending Agreements**: Customizable lending terms including duration and price
+- **Automatic Returns**: Smart contract-enforced content return at term completion
+- **Royalty Distribution**: Ensures creators receive royalties from lending transactions
+- **Lending History**: Track lending history for all content with complete transparency
+- **Cross-Platform**: Lend and borrow content across any Wylloh-compatible platform
 
 ### Modular Licensing
 - **Token Stacking**: Combine multiple tokens to unlock higher-tier rights
@@ -37,6 +46,7 @@ Wylloh aims to create a decentralized ecosystem for film distribution, where:
 - **License Verification**: On-chain verification system
 - **Wallet Authentication**: Secure wallet-based access
 - **Anti-Piracy**: Forensic watermarking and content fingerprinting
+- **Lending Protection**: Blockchain-enforced content return with automatic license revocation
 
 ### Integration
 - **Cross-Platform**: Interoperable marketplace protocol
@@ -105,6 +115,7 @@ Requirements:
 - [Marketplace Contract](contracts/marketplace/WyllohMarketplace.sol)
 - [Rights Manager](contracts/rights/RightsManager.sol)
 - [Royalty Distributor](contracts/royalty/RoyaltyDistributor.sol)
+- [Content Lending Contract](contracts/token/ContentLending.sol)
 
 ### Integration Guide
 

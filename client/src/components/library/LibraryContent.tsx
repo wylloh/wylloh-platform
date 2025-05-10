@@ -28,6 +28,9 @@ import {
   Tab,
   Tabs,
   LinearProgress,
+  ListItem,
+  ListItemText,
+  List
 } from '@mui/material';
 import MonetizationOnIcon from '@mui/icons-material/MonetizationOn';
 import PermMediaIcon from '@mui/icons-material/PermMedia';
@@ -42,6 +45,7 @@ import { WalletContext } from '../../contexts/WalletContext';
 import { ownershipVerificationService, VerificationResult } from '../../services/ownershipVerification.service';
 import { userSettingsService } from '../../services/userSettings.service';
 import { filterWyllohMovieTokens } from '../../utils/tokenFilters';
+import { lendingService } from '../../services/lending.service';
 
 // Sample data for development
 const SAMPLE_CONTENT = [
@@ -133,7 +137,8 @@ const LibraryContent: React.FC<LibraryContentProps> = ({ libraryId }) => {
   // Form states for lending
   const [lendToEmail, setLendToEmail] = useState('');
   const [lendDuration, setLendDuration] = useState(7);
-  const [lendPrice, setLendPrice] = useState(10);
+  const [lendPrice, setLendPrice] = useState(0.01);
+  const [lendingInProgress, setLendingInProgress] = useState(false);
   
   // Form states for selling
   const [sellPrice, setSellPrice] = useState(0);
@@ -451,7 +456,7 @@ const LibraryContent: React.FC<LibraryContentProps> = ({ libraryId }) => {
     setLendDialogOpen(false);
     setLendToEmail('');
     setLendDuration(7);
-    setLendPrice(10);
+    setLendPrice(0.01);
   };
 
   const handleCloseSellDialog = () => {
@@ -511,6 +516,151 @@ const LibraryContent: React.FC<LibraryContentProps> = ({ libraryId }) => {
         return 'warning';
       default:
         return 'default';
+    }
+  };
+
+  // Initialize lending service when provider is available
+  useEffect(() => {
+    if (provider) {
+      try {
+        lendingService.initialize(provider);
+        console.log('Lending service initialized with provider');
+      } catch (error) {
+        console.error('Failed to initialize lending service:', error);
+      }
+    }
+  }, [provider]);
+
+  // Handle lending content
+  const handleLendContent = async () => {
+    if (!selectedItem) return;
+    
+    if (!lendToEmail) {
+      setSnackbar({
+        open: true,
+        message: 'Please enter the borrower email',
+        severity: 'error'
+      });
+      return;
+    }
+    
+    if (lendDuration <= 0) {
+      setSnackbar({
+        open: true,
+        message: 'Please select a valid lending duration',
+        severity: 'error'
+      });
+      return;
+    }
+    
+    if (lendPrice <= 0) {
+      setSnackbar({
+        open: true,
+        message: 'Please enter a valid lending price',
+        severity: 'error'
+      });
+      return;
+    }
+    
+    // Check if the item has blockchain token data
+    if (selectedItem.tokenData) {
+      try {
+        setLendingInProgress(true);
+        
+        // Use blockchain lending service
+        const lendingId = await lendingService.lendContent(
+          selectedItem.contentId,
+          lendToEmail,
+          lendDuration,
+          lendPrice
+        );
+        
+        setSnackbar({
+          open: true,
+          message: `Content lent successfully with blockchain verification. Lending ID: ${lendingId}`,
+          severity: 'success'
+        });
+        
+        // Refresh content
+        // We need to reload the content data after lending
+        setLoading(true);
+        const libraryItems = await libraryService.getLibraryItems(libraryId);
+        
+        // Map the items to include content details
+        const enhancedItems = libraryItems.map((item: any) => {
+          return {
+            ...item,
+            title: `Content ${item.contentId.substring(0, 8)}`,
+            thumbnailUrl: `https://images.unsplash.com/photo-${Math.floor(Math.random() * 1000000)}`,
+            genre: ['Drama', 'Comedy', 'Action', 'Sci-Fi', 'Documentary'][Math.floor(Math.random() * 5)],
+            director: ['John Doe', 'Jane Smith', 'Robert Johnson', 'Alice Brown'][Math.floor(Math.random() * 4)],
+            year: 2020 + Math.floor(Math.random() * 4)
+          };
+        });
+        
+        setContent(enhancedItems);
+        setLoading(false);
+        
+      } catch (error) {
+        console.error('Error lending content with blockchain:', error);
+        setSnackbar({
+          open: true,
+          message: `Error lending content: ${error instanceof Error ? error.message : 'Unknown error'}`,
+          severity: 'error'
+        });
+      } finally {
+        setLendingInProgress(false);
+        handleCloseLendDialog();
+      }
+    } else {
+      // Use traditional lending service for non-blockchain content
+      try {
+        setLendingInProgress(true);
+        
+        // Make API call to lend content
+        await libraryService.lendItem(selectedItem.contentId, {
+          borrowerEmail: lendToEmail,
+          duration: lendDuration,
+          price: lendPrice
+        });
+        
+        setSnackbar({
+          open: true,
+          message: 'Content lent successfully',
+          severity: 'success'
+        });
+        
+        // Refresh content
+        // We need to reload the content data after lending
+        setLoading(true);
+        const libraryItems = await libraryService.getLibraryItems(libraryId);
+        
+        // Map the items to include content details
+        const enhancedItems = libraryItems.map((item: any) => {
+          return {
+            ...item,
+            title: `Content ${item.contentId.substring(0, 8)}`,
+            thumbnailUrl: `https://images.unsplash.com/photo-${Math.floor(Math.random() * 1000000)}`,
+            genre: ['Drama', 'Comedy', 'Action', 'Sci-Fi', 'Documentary'][Math.floor(Math.random() * 5)],
+            director: ['John Doe', 'Jane Smith', 'Robert Johnson', 'Alice Brown'][Math.floor(Math.random() * 4)],
+            year: 2020 + Math.floor(Math.random() * 4)
+          };
+        });
+        
+        setContent(enhancedItems);
+        setLoading(false);
+        
+      } catch (error) {
+        console.error('Error lending content:', error);
+        setSnackbar({
+          open: true,
+          message: `Error lending content: ${error instanceof Error ? error.message : 'Unknown error'}`,
+          severity: 'error'
+        });
+      } finally {
+        setLendingInProgress(false);
+        handleCloseLendDialog();
+      }
     }
   };
 
@@ -648,6 +798,7 @@ const LibraryContent: React.FC<LibraryContentProps> = ({ libraryId }) => {
               variant="outlined"
               type="email"
               required
+              disabled={lendingInProgress}
             />
             <FormControl fullWidth margin="normal">
               <InputLabel>Lend Duration</InputLabel>
@@ -655,6 +806,7 @@ const LibraryContent: React.FC<LibraryContentProps> = ({ libraryId }) => {
                 value={lendDuration}
                 label="Lend Duration"
                 onChange={(e) => setLendDuration(Number(e.target.value))}
+                disabled={lendingInProgress}
               >
                 <MenuItem value={1}>1 day</MenuItem>
                 <MenuItem value={3}>3 days</MenuItem>
@@ -671,8 +823,13 @@ const LibraryContent: React.FC<LibraryContentProps> = ({ libraryId }) => {
               margin="normal"
               variant="outlined"
               type="number"
+              disabled={lendingInProgress}
               InputProps={{
-                startAdornment: <InputAdornment position="start">$</InputAdornment>,
+                startAdornment: selectedItem?.tokenData ? (
+                  <InputAdornment position="start">ETH</InputAdornment>
+                ) : (
+                  <InputAdornment position="start">$</InputAdornment>
+                ),
               }}
             />
             {selectedItem && (
@@ -683,18 +840,36 @@ const LibraryContent: React.FC<LibraryContentProps> = ({ libraryId }) => {
                 <Typography variant="body2">
                   License type: {getLicenseTypeLabel(selectedItem.licenseType)}
                 </Typography>
+                {selectedItem.tokenData && (
+                  <>
+                    <Divider sx={{ my: 1 }} />
+                    <Typography variant="body2" fontWeight="bold">
+                      Blockchain Verified Content
+                    </Typography>
+                    <Typography variant="body2">
+                      This content will be lent using smart contract verification.
+                    </Typography>
+                    <Typography variant="body2">
+                      Token ID: {selectedItem.tokenData.tokenId.substring(0, 10)}...
+                    </Typography>
+                    <Typography variant="body2">
+                      Chain: {selectedItem.tokenData.chain}
+                    </Typography>
+                  </>
+                )}
               </Alert>
             )}
           </Box>
         </DialogContent>
         <DialogActions>
-          <Button onClick={handleCloseLendDialog}>Cancel</Button>
+          <Button onClick={handleCloseLendDialog} disabled={lendingInProgress}>Cancel</Button>
           <Button 
             variant="contained" 
             color="primary"
-            onClick={handleCloseLendDialog}
+            onClick={handleLendContent}
+            disabled={lendingInProgress}
           >
-            Lend Content
+            {lendingInProgress ? 'Processing...' : 'Lend Content'}
           </Button>
         </DialogActions>
       </Dialog>
