@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import {
   Box,
   Grid,
@@ -25,13 +25,23 @@ import {
   Tooltip,
   CircularProgress,
   Divider,
+  Tab,
+  Tabs,
+  LinearProgress,
 } from '@mui/material';
 import MonetizationOnIcon from '@mui/icons-material/MonetizationOn';
 import PermMediaIcon from '@mui/icons-material/PermMedia';
 import InfoIcon from '@mui/icons-material/Info';
 import CloseIcon from '@mui/icons-material/Close';
+import VerifiedIcon from '@mui/icons-material/Verified';
+import RefreshIcon from '@mui/icons-material/Refresh';
 import { format } from 'date-fns';
 import { libraryService, LibraryItem } from '../../services/library.service';
+import LibraryContentCard from './LibraryContentCard';
+import { WalletContext } from '../../contexts/WalletContext';
+import { ownershipVerificationService, VerificationResult } from '../../services/ownershipVerification.service';
+import { userSettingsService } from '../../services/userSettings.service';
+import { filterWyllohMovieTokens } from '../../utils/tokenFilters';
 
 // Sample data for development
 const SAMPLE_CONTENT = [
@@ -89,10 +99,23 @@ interface LibraryContentProps {
   libraryId: string;
 }
 
+// Tab values
+type TabValue = 'all' | 'verified' | 'unverified' | 'sold';
+
+// Extend the Snackbar severity type to include 'info' and 'warning'
+type SnackbarSeverity = 'success' | 'error' | 'info' | 'warning';
+
 const LibraryContent: React.FC<LibraryContentProps> = ({ libraryId }) => {
   const [content, setContent] = useState<ContentItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [verifying, setVerifying] = useState(false);
+  const [activeTab, setActiveTab] = useState<TabValue>('all');
+  const [verificationResults, setVerificationResults] = useState<Record<string, VerificationResult>>({});
+  const [showExternalProtocol, setShowExternalProtocol] = useState(true);
+  
+  // Get wallet context for blockchain interactions
+  const { provider, account } = useContext(WalletContext);
   
   // Dialog states
   const [lendDialogOpen, setLendDialogOpen] = useState(false);
@@ -104,7 +127,7 @@ const LibraryContent: React.FC<LibraryContentProps> = ({ libraryId }) => {
   const [snackbar, setSnackbar] = useState({
     open: false,
     message: '',
-    severity: 'success' as 'success' | 'error'
+    severity: 'success' as SnackbarSeverity
   });
   
   // Form states for lending
@@ -115,6 +138,27 @@ const LibraryContent: React.FC<LibraryContentProps> = ({ libraryId }) => {
   // Form states for selling
   const [sellPrice, setSellPrice] = useState(0);
   const [buyerEmail, setBuyerEmail] = useState('');
+
+  // Set provider when it's available
+  useEffect(() => {
+    if (provider) {
+      ownershipVerificationService.setProvider(provider);
+    }
+  }, [provider]);
+
+  // Get user settings
+  useEffect(() => {
+    const loadSettings = async () => {
+      try {
+        const settings = await userSettingsService.getAllSettings();
+        setShowExternalProtocol(settings.tokenDisplay.includeExternalProtocolTokens);
+      } catch (error) {
+        console.error('Error loading user settings:', error);
+      }
+    };
+    
+    loadSettings();
+  }, []);
 
   useEffect(() => {
     const fetchContent = async () => {
@@ -135,6 +179,11 @@ const LibraryContent: React.FC<LibraryContentProps> = ({ libraryId }) => {
             year: 2020 + Math.floor(Math.random() * 4)
           };
         });
+        
+        // If we have a provider and a wallet connected, verify token ownership
+        if (provider && account) {
+          await verifyContentOwnership(enhancedItems);
+        }
         
         setContent(enhancedItems);
         setError(null);
@@ -162,22 +211,239 @@ const LibraryContent: React.FC<LibraryContentProps> = ({ libraryId }) => {
     } else {
       fetchContent();
     }
-  }, [libraryId]);
+  }, [libraryId, provider, account]);
 
-  const handleOpenLendDialog = (item: ContentItem) => {
-    setSelectedItem(item);
-    setLendPrice(Math.round(item.currentValue * 0.05)); // Default to 5% of current value
+  // Verify ownership of content items
+  const verifyContentOwnership = async (items: ContentItem[]) => {
+    if (!provider || !account) {
+      setSnackbar({
+        open: true,
+        message: 'Wallet not connected. Cannot verify token ownership.',
+        severity: 'error'
+      });
+      return;
+    }
+
+    try {
+      setVerifying(true);
+      
+      // Only verify items with token data
+      const tokenItems = items.filter(item => item.tokenData);
+      
+      if (tokenItems.length === 0) {
+        setVerifying(false);
+        return;
+      }
+      
+      // Verify each item in parallel
+      const verificationPromises = tokenItems.map(item => {
+        if (!item.tokenData) return null;
+        
+        return ownershipVerificationService.verifyContentOwnership(
+          item.contentId,
+          item.title,
+          account,
+          item.tokenData.tokenId,
+          item.tokenData.contractAddress,
+          item.tokenData.standard,
+          item.tokenData.chain,
+          { includeHistory: true }
+        );
+      });
+      
+      // Filter out null promises and await results
+      const results = await Promise.all(verificationPromises.filter(Boolean) as Promise<VerificationResult>[]);
+      
+      // Convert results to a map for easier lookup
+      const resultsMap = results.reduce((map, result) => {
+        map[result.contentId] = result;
+        return map;
+      }, {} as Record<string, VerificationResult>);
+      
+      setVerificationResults(resultsMap);
+      
+      // Update content items with verification results
+      const updatedItems = items.map(item => {
+        const result = resultsMap[item.contentId];
+        
+        if (result && item.tokenData) {
+          return {
+            ...item,
+            tokenData: {
+              ...item.tokenData,
+              ownershipVerified: result.isOwned,
+              ownershipLastChecked: result.verificationTimestamp,
+              owner: result.isOwned ? account : result.newOwnerAddress
+            }
+          };
+        }
+        
+        return item;
+      });
+      
+      setContent(updatedItems);
+      
+      // Show notification if any ownership changes were detected
+      const changedItems = results.filter(result => result.ownershipChanged);
+      if (changedItems.length > 0) {
+        setSnackbar({
+          open: true,
+          message: `Ownership changes detected for ${changedItems.length} item(s). Content has been moved to the "Sold" section.`,
+          severity: 'info'
+        });
+      }
+    } catch (error) {
+      console.error('Error verifying content ownership:', error);
+      setSnackbar({
+        open: true,
+        message: 'Failed to verify token ownership. Please try again.',
+        severity: 'error'
+      });
+    } finally {
+      setVerifying(false);
+    }
+  };
+
+  // Handle manual verification request for a single item
+  const handleVerifyOwnership = (item: LibraryItem) => {
+    // Convert LibraryItem to ContentItem if needed
+    const contentItem = content.find(c => c.contentId === item.contentId);
+    if (!contentItem || !contentItem.tokenData) return;
+    
+    // Now verify the found content item
+    verifyContentItemOwnership(contentItem);
+  };
+  
+  // Helper method to verify a specific content item
+  const verifyContentItemOwnership = async (item: ContentItem) => {
+    if (!item.tokenData) return;
+    
+    try {
+      setVerifying(true);
+      
+      const result = await ownershipVerificationService.verifyContentOwnership(
+        item.contentId,
+        item.title,
+        account || '',
+        item.tokenData.tokenId,
+        item.tokenData.contractAddress,
+        item.tokenData.standard,
+        item.tokenData.chain,
+        { forceReverify: true, includeHistory: true }
+      );
+      
+      // Update verification results
+      setVerificationResults(prev => ({
+        ...prev,
+        [item.contentId]: result
+      }));
+      
+      // Update content item with verification result
+      const updatedContent = content.map(contentItem => {
+        if (contentItem.contentId === item.contentId && contentItem.tokenData) {
+          return {
+            ...contentItem,
+            tokenData: {
+              ...contentItem.tokenData,
+              ownershipVerified: result.isOwned,
+              ownershipLastChecked: result.verificationTimestamp,
+              owner: result.isOwned ? account || '' : result.newOwnerAddress
+            }
+          };
+        }
+        return contentItem;
+      });
+      
+      setContent(updatedContent);
+      
+      // Show success message
+      setSnackbar({
+        open: true,
+        message: result.isOwned 
+          ? 'Ownership verified successfully!' 
+          : 'Ownership verification failed. You may no longer own this token.',
+        severity: result.isOwned ? 'success' : 'error'
+      });
+      
+      // If ownership changed, update UI accordingly
+      if (result.ownershipChanged) {
+        setSnackbar({
+          open: true,
+          message: 'This token appears to have been sold on an external marketplace. It has been moved to the "Sold" section.',
+          severity: 'warning'
+        });
+      }
+    } catch (error) {
+      console.error('Error verifying ownership:', error);
+      setSnackbar({
+        open: true,
+        message: 'Failed to verify token ownership. Please try again.',
+        severity: 'error'
+      });
+    } finally {
+      setVerifying(false);
+    }
+  };
+
+  // Handle tab change
+  const handleTabChange = (event: React.SyntheticEvent, newValue: TabValue) => {
+    setActiveTab(newValue);
+  };
+
+  // Filter content based on active tab
+  const filteredContent = content.filter(item => {
+    // Filter by verification status
+    switch (activeTab) {
+      case 'verified':
+        return item.tokenData?.ownershipVerified === true;
+      case 'unverified':
+        return item.tokenData?.ownershipVerified === false && !verificationResults[item.contentId]?.ownershipChanged;
+      case 'sold':
+        return verificationResults[item.contentId]?.ownershipChanged === true;
+      case 'all':
+      default:
+        return !verificationResults[item.contentId]?.ownershipChanged;
+    }
+  });
+
+  // Filter out non-Wylloh tokens based on user settings
+  const displayContent = showExternalProtocol
+    ? filteredContent
+    : filteredContent.filter(item => {
+        if (!item.tokenData) return true;
+        
+        return item.tokenData.origin === 'wylloh' || !item.tokenData.origin;
+      });
+
+  // Handle opening the lend dialog
+  const handleOpenLendDialog = (item: LibraryItem) => {
+    // Find the content item with full metadata
+    const contentItem = content.find(c => c.contentId === item.contentId);
+    if (!contentItem) return;
+    
+    setSelectedItem(contentItem);
+    setLendPrice(Math.round(contentItem.currentValue * 0.05)); // Default to 5% of current value
     setLendDialogOpen(true);
   };
 
-  const handleOpenSellDialog = (item: ContentItem) => {
-    setSelectedItem(item);
-    setSellPrice(item.currentValue);
+  // Handle opening the sell dialog
+  const handleOpenSellDialog = (item: LibraryItem) => {
+    // Find the content item with full metadata
+    const contentItem = content.find(c => c.contentId === item.contentId);
+    if (!contentItem) return;
+    
+    setSelectedItem(contentItem);
+    setSellPrice(contentItem.currentValue);
     setSellDialogOpen(true);
   };
 
-  const handleOpenInfoDialog = (item: ContentItem) => {
-    setSelectedItem(item);
+  // Handle opening the info dialog
+  const handleOpenInfoDialog = (item: LibraryItem) => {
+    // Find the content item with full metadata
+    const contentItem = content.find(c => c.contentId === item.contentId);
+    if (!contentItem) return;
+    
+    setSelectedItem(contentItem);
     setInfoDialogOpen(true);
   };
 
@@ -198,132 +464,14 @@ const LibraryContent: React.FC<LibraryContentProps> = ({ libraryId }) => {
     setInfoDialogOpen(false);
   };
 
-  const handleLendContent = async () => {
-    if (!selectedItem) return;
-    
-    // Validate input
-    if (!lendToEmail.trim()) {
-      setSnackbar({
-        open: true,
-        message: 'Please enter a valid email address',
-        severity: 'error'
-      });
-      return;
-    }
-    
-    try {
-      setLoading(true);
-      
-      await libraryService.lendItem(selectedItem.contentId, {
-        borrowerEmail: lendToEmail,
-        duration: lendDuration,
-        price: lendPrice
-      });
-      
-      // Update the content list
-      const updatedContent = content.map(item => {
-        if (item.contentId === selectedItem.contentId) {
-          return {
-            ...item,
-            isLent: true,
-            lentTo: lendToEmail
-          };
-        }
-        return item;
-      });
-      
-      setContent(updatedContent);
-      handleCloseLendDialog();
-      
-      setSnackbar({
-        open: true,
-        message: `Item successfully lent to ${lendToEmail}`,
-        severity: 'success'
-      });
-    } catch (error) {
-      console.error('Error lending content:', error);
-      setSnackbar({
-        open: true,
-        message: 'Failed to lend the item. Please try again.',
-        severity: 'error'
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleSellContent = async () => {
-    if (!selectedItem) return;
-    
-    // Validate input
-    if (buyerEmail && !buyerEmail.includes('@')) {
-      setSnackbar({
-        open: true,
-        message: 'Please enter a valid email address',
-        severity: 'error'
-      });
-      return;
-    }
-    
-    try {
-      // In development, mock the API call
-      if (process.env.NODE_ENV === 'development') {
-        // Remove the sold item from the content list
-        const updatedContent = content.filter(item => item.contentId !== selectedItem.contentId);
-        
-        setContent(updatedContent);
-        handleCloseSellDialog();
-        
-        setSnackbar({
-          open: true,
-          message: `Content sold successfully for ${formatCurrency(sellPrice)}`,
-          severity: 'success'
-        });
-        
-        return;
-      }
-      
-      // This would be replaced with libraryService.sellItem in a real implementation
-      const response = await fetch(`/api/libraries/${libraryId}/items/${selectedItem.contentId}/sell`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          buyerEmail,
-          price: sellPrice
-        }),
-      });
-      
-      if (!response.ok) {
-        throw new Error('Failed to sell content');
-      }
-      
-      // Remove the sold item from the content list - renamed to avoid duplicate variable
-      const filteredContent = content.filter(item => item.contentId !== selectedItem.contentId);
-      
-      setContent(filteredContent);
-      handleCloseSellDialog();
-      
-      setSnackbar({
-        open: true,
-        message: `Content sold successfully for ${formatCurrency(sellPrice)}`,
-        severity: 'success'
-      });
-    } catch (err) {
-      console.error('Error selling content:', err);
-      setSnackbar({
-        open: true,
-        message: err instanceof Error ? err.message : 'Failed to sell content',
-        severity: 'error'
-      });
-    }
-  };
-
   const handleCloseSnackbar = () => {
-    setSnackbar(prev => ({ ...prev, open: false }));
+    setSnackbar({
+      ...snackbar,
+      open: false
+    });
   };
 
+  // Format currency for display
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
@@ -331,19 +479,23 @@ const LibraryContent: React.FC<LibraryContentProps> = ({ libraryId }) => {
     }).format(value);
   };
 
+  // Format date for display
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
-    return format(date, 'MMMM d, yyyy');
+    return format(date, 'MMM d, yyyy');
   };
 
+  // Get license type label
   const getLicenseTypeLabel = (type: string) => {
     switch (type) {
+      case 'personal':
+        return 'Personal Use';
+      case 'commercial':
+        return 'Commercial Use';
       case 'perpetual':
         return 'Perpetual License';
       case 'limited':
         return 'Limited License';
-      case 'personal':
-        return 'Personal Use Only';
       default:
         return type;
     }
@@ -392,130 +544,90 @@ const LibraryContent: React.FC<LibraryContentProps> = ({ libraryId }) => {
   }
 
   return (
-    <Box>
-      <Grid container spacing={3}>
-        {content.map((item) => (
-          <Grid item xs={12} sm={6} md={4} key={item.contentId}>
-            <Card 
-              sx={{ 
-                height: '100%', 
-                display: 'flex', 
-                flexDirection: 'column',
-                transition: 'transform 0.2s, box-shadow 0.2s',
-                '&:hover': {
-                  transform: 'translateY(-4px)',
-                  boxShadow: 4,
-                }
-              }}
-            >
-              <CardMedia
-                component="img"
-                height="180"
-                image={item.thumbnailUrl}
-                alt={item.title}
+    <Box sx={{ width: '100%' }}>
+      {error && (
+        <Alert severity="error" sx={{ mb: 2 }}>
+          {error}
+        </Alert>
+      )}
+      
+      {/* Verification status bar */}
+      {verifying && (
+        <Box sx={{ width: '100%', mb: 2 }}>
+          <LinearProgress color="primary" />
+          <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+            Verifying token ownership on blockchain...
+          </Typography>
+        </Box>
+      )}
+      
+      {/* Filter tabs */}
+      <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 2 }}>
+        <Tabs
+          value={activeTab}
+          onChange={handleTabChange}
+          aria-label="library content tabs"
+          variant="scrollable"
+          scrollButtons="auto"
+        >
+          <Tab label="All Content" value="all" />
+          <Tab 
+            label={
+              <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                <VerifiedIcon fontSize="small" sx={{ mr: 0.5 }} />
+                Verified
+              </Box>
+            } 
+            value="verified" 
+          />
+          <Tab label="Unverified" value="unverified" />
+          <Tab label="Sold Items" value="sold" />
+        </Tabs>
+      </Box>
+      
+      {loading ? (
+        <Box sx={{ display: 'flex', justifyContent: 'center', my: 4 }}>
+          <CircularProgress />
+        </Box>
+      ) : displayContent.length === 0 ? (
+        <Alert severity="info" sx={{ my: 2 }}>
+          {activeTab === 'sold' 
+            ? 'No sold items found.' 
+            : activeTab === 'verified'
+              ? 'No verified items found. Try connecting your wallet to verify ownership.'
+              : 'No content found in this library.'}
+        </Alert>
+      ) : (
+        <Grid container spacing={3}>
+          {displayContent.map(item => (
+            <Grid item xs={12} sm={6} md={4} lg={3} key={item.contentId}>
+              <LibraryContentCard
+                item={item}
+                onLend={handleOpenLendDialog}
+                onSell={handleOpenSellDialog}
+                onInfo={handleOpenInfoDialog}
+                onVerifyOwnership={handleVerifyOwnership}
               />
-              <CardContent sx={{ flexGrow: 1 }}>
-                <Typography variant="h6" component="div" gutterBottom noWrap>
-                  {item.title}
-                </Typography>
-                
-                <Grid container spacing={1} sx={{ mb: 2 }}>
-                  <Grid item>
-                    <Chip 
-                      size="small" 
-                      label={getLicenseTypeLabel(item.licenseType)} 
-                      color={getLicenseTypeColor(item.licenseType) as any}
-                      variant="outlined"
-                    />
-                  </Grid>
-                  {item.isLent && (
-                    <Grid item>
-                      <Chip 
-                        size="small" 
-                        label="Lent Out" 
-                        color="secondary"
-                        variant="outlined"
-                      />
-                    </Grid>
-                  )}
-                </Grid>
-                
-                <Box display="flex" justifyContent="space-between" mb={1}>
-                  <Typography variant="body2" color="text.secondary">
-                    Purchase Price:
-                  </Typography>
-                  <Typography variant="body2" fontWeight="medium">
-                    {formatCurrency(item.purchasePrice)}
-                  </Typography>
-                </Box>
-                
-                <Box display="flex" justifyContent="space-between" mb={1}>
-                  <Typography variant="body2" color="text.secondary">
-                    Current Value:
-                  </Typography>
-                  <Typography 
-                    variant="body2" 
-                    fontWeight="medium"
-                    color={item.currentValue > item.purchasePrice ? 'success.main' : 
-                          item.currentValue < item.purchasePrice ? 'error.main' : 
-                          'text.primary'}
-                  >
-                    {formatCurrency(item.currentValue)}
-                  </Typography>
-                </Box>
-                
-                <Box display="flex" justifyContent="space-between">
-                  <Typography variant="body2" color="text.secondary">
-                    Purchased:
-                  </Typography>
-                  <Typography variant="body2">
-                    {formatDate(item.purchaseDate)}
-                  </Typography>
-                </Box>
-                
-                {item.isLent && item.lentTo && (
-                  <Box mt={2}>
-                    <Typography variant="body2" color="text.secondary" fontStyle="italic">
-                      Currently lent to: {item.lentTo}
-                    </Typography>
-                  </Box>
-                )}
-              </CardContent>
-              <Divider />
-              <CardActions>
-                <Tooltip title="Item Details">
-                  <IconButton 
-                    size="small" 
-                    onClick={() => handleOpenInfoDialog(item)}
-                  >
-                    <InfoIcon />
-                  </IconButton>
-                </Tooltip>
-                <Box flexGrow={1} />
-                <Button 
-                  size="small" 
-                  startIcon={<PermMediaIcon />} 
-                  onClick={() => handleOpenLendDialog(item)}
-                  disabled={item.isLent}
-                >
-                  Lend
-                </Button>
-                <Button 
-                  size="small" 
-                  color="primary" 
-                  startIcon={<MonetizationOnIcon />} 
-                  onClick={() => handleOpenSellDialog(item)}
-                  disabled={item.isLent}
-                >
-                  Sell
-                </Button>
-              </CardActions>
-            </Card>
-          </Grid>
-        ))}
-      </Grid>
-
-      {/* Lend dialog */}
+            </Grid>
+          ))}
+        </Grid>
+      )}
+      
+      {/* Manual verify button */}
+      {!loading && content.some(item => item.tokenData) && (
+        <Box sx={{ display: 'flex', justifyContent: 'center', mt: 4 }}>
+          <Button
+            variant="outlined"
+            startIcon={<RefreshIcon />}
+            onClick={() => verifyContentOwnership(content)}
+            disabled={verifying || !account}
+          >
+            {verifying ? 'Verifying...' : 'Verify All Ownership'}
+          </Button>
+        </Box>
+      )}
+      
+      {/* Lend Dialog */}
       <Dialog open={lendDialogOpen} onClose={handleCloseLendDialog} maxWidth="sm" fullWidth>
         <DialogTitle>
           Lend Content
@@ -577,13 +689,17 @@ const LibraryContent: React.FC<LibraryContentProps> = ({ libraryId }) => {
         </DialogContent>
         <DialogActions>
           <Button onClick={handleCloseLendDialog}>Cancel</Button>
-          <Button onClick={handleLendContent} variant="contained" color="primary">
+          <Button 
+            variant="contained" 
+            color="primary"
+            onClick={handleCloseLendDialog}
+          >
             Lend Content
           </Button>
         </DialogActions>
       </Dialog>
-
-      {/* Sell dialog */}
+      
+      {/* Sell Dialog */}
       <Dialog open={sellDialogOpen} onClose={handleCloseSellDialog} maxWidth="sm" fullWidth>
         <DialogTitle>
           Sell Content
@@ -641,14 +757,18 @@ const LibraryContent: React.FC<LibraryContentProps> = ({ libraryId }) => {
         </DialogContent>
         <DialogActions>
           <Button onClick={handleCloseSellDialog}>Cancel</Button>
-          <Button onClick={handleSellContent} variant="contained" color="primary">
+          <Button 
+            variant="contained" 
+            color="primary"
+            onClick={handleCloseSellDialog}
+          >
             Sell Content
           </Button>
         </DialogActions>
       </Dialog>
-
-      {/* Item info dialog */}
-      <Dialog open={infoDialogOpen} onClose={handleCloseInfoDialog} maxWidth="sm">
+      
+      {/* Info Dialog */}
+      <Dialog open={infoDialogOpen} onClose={handleCloseInfoDialog} maxWidth="md" fullWidth>
         <DialogTitle>
           Content Details
           <IconButton
@@ -745,26 +865,17 @@ const LibraryContent: React.FC<LibraryContentProps> = ({ libraryId }) => {
           <Button onClick={handleCloseInfoDialog}>Close</Button>
         </DialogActions>
       </Dialog>
-
-      {/* Snackbar for notifications */}
+      
+      {/* Status Snackbar */}
       <Snackbar
         open={snackbar.open}
         autoHideDuration={6000}
         onClose={handleCloseSnackbar}
-        message={snackbar.message}
-        action={
-          <IconButton
-            size="small"
-            color="inherit"
-            onClick={handleCloseSnackbar}
-          >
-            <CloseIcon fontSize="small" />
-          </IconButton>
-        }
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
       >
-        <Alert 
-          onClose={handleCloseSnackbar} 
-          severity={snackbar.severity} 
+        <Alert
+          onClose={handleCloseSnackbar}
+          severity={snackbar.severity}
           sx={{ width: '100%' }}
         >
           {snackbar.message}
