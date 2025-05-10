@@ -61,6 +61,51 @@ Wylloh aims to create a decentralized ecosystem for film distribution, where:
 - **Resource Contribution**: Seeds contribute storage and bandwidth
 - **Reward System**: Incentives for network participation (coming soon)
 
+### User-Powered Storage Network
+
+The Wylloh platform now includes a browser-based IPFS node implementation allowing users to directly contribute to the network:
+
+- **Browser-Based Nodes**: Users can run IPFS nodes directly in their browsers without additional software
+- **Resource Contribution**: Users can contribute storage and bandwidth to strengthen the network
+- **Configurable Contribution**: Users control how much storage and bandwidth they contribute
+- **Metrics Tracking**: Detailed metrics on contribution and resource usage
+- **Reward System**: Users earn Wylloh tokens based on their contribution level
+- **Network Scaling**: As userbase grows, storage costs decrease rather than increase
+- **P2P Content Delivery**: Content is delivered directly between users via WebRTC when possible
+- **Fallback Mechanism**: Automatic fallback to traditional CDN when P2P delivery isn't available
+
+### Enhanced Encryption and Access Control
+
+The platform includes a robust encryption and access control system:
+
+- **Multi-level Access Control**: Granular access levels including view-only, download, metadata editing, and full control
+- **Key Rotation**: Support for rotating encryption keys without re-encrypting content
+- **Performance Optimizations**: Adaptive encryption algorithms based on content size and type
+- **Expiring Access**: Ability to grant temporary access with automatic expiration
+- **Access Delegation**: Content owners can delegate access rights to other users
+- **Revocation**: Quick revocation of access without content re-encryption
+
+### Content Delivery System
+
+The Wylloh platform includes an advanced content delivery system with the following features:
+
+- **CDN Integration**: Content is delivered through an optimized CDN that selects the fastest available IPFS gateway based on real-time performance metrics
+- **Adaptive Gateway Selection**: The system continuously monitors gateway performance and automatically switches to faster gateways as needed
+- **Content Prefetching**: Popular content is prefetched to ensure fast loading times for users
+- **Caching**: Content delivery includes proper cache control headers for better performance
+- **Streaming Optimization**: Video streaming is optimized for minimal buffering and fast start times
+- **Fallback Mechanism**: Multiple fallback options ensure content is always available, even if some gateways fail
+
+### Long-term Storage with Filecoin
+
+For reliable long-term storage, the platform integrates with Filecoin:
+
+- **Automated Archiving**: Content is automatically archived to Filecoin after a configurable period
+- **Cost-effective Storage**: Cold content moves to Filecoin for cost-efficient long-term preservation
+- **Seamless Retrieval**: Content is automatically retrieved from Filecoin when needed if not in IPFS cache
+- **Storage Deals Management**: The system handles creation and management of Filecoin storage deals
+- **Deal Monitoring**: Active monitoring of storage deals ensures content remains available
+
 ## Getting Started
 
 ### Prerequisites

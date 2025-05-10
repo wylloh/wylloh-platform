@@ -31,7 +31,8 @@ import {
   Home,
   AdminPanelSettings,
   VerifiedUser,
-  Search as SearchIcon
+  Search as SearchIcon,
+  Cloud as CloudIcon
 } from '@mui/icons-material';
 import { useWallet } from '../../contexts/WalletContext';
 import { useAuth } from '../../contexts/AuthContext';
@@ -127,8 +128,9 @@ const Navbar: React.FC = () => {
   
   // User menu items
   const userMenuItems = [
-    { text: 'Profile', to: '/profile', icon: <AccountCircle /> },
+    { text: 'Dashboard', to: '/dashboard', icon: <Dashboard /> },
     { text: 'My Collection', to: '/collection', icon: <Collections /> },
+    { text: 'Network', to: '/network', icon: <CloudIcon /> },
   ];
   
   // Admin menu items (only if user has admin role)
