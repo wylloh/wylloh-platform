@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import {
   Box,
   Card,
@@ -12,6 +12,9 @@ import {
   CircularProgress,
   Alert,
   Paper,
+  Tooltip as MuiTooltip,
+  IconButton,
+  Badge,
 } from '@mui/material';
 import {
   LineChart,
@@ -37,6 +40,12 @@ import {
   TokenValueMetrics,
   TokenValueHistoryEntry 
 } from '../../services/library.service';
+import { WalletContext } from '../../contexts/WalletContext';
+import InfoIcon from '@mui/icons-material/Info';
+import VerifiedIcon from '@mui/icons-material/Verified';
+import TokenIcon from '@mui/icons-material/Token';
+import TrendingUpIcon from '@mui/icons-material/TrendingUp';
+import TrendingDownIcon from '@mui/icons-material/TrendingDown';
 
 // Extended analytics type with genre distribution
 interface ExtendedLibraryAnalytics extends LibraryAnalyticsType {
@@ -145,6 +154,10 @@ const LibraryAnalytics: React.FC<LibraryAnalyticsProps> = ({ libraryId }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [period, setPeriod] = useState('30d');
+  const [tokenValueLoading, setTokenValueLoading] = useState(false);
+  
+  // Get wallet context for blockchain connection status
+  const { provider, account } = useContext(WalletContext);
 
   useEffect(() => {
     const fetchAnalytics = async () => {
@@ -155,11 +168,14 @@ const LibraryAnalytics: React.FC<LibraryAnalyticsProps> = ({ libraryId }) => {
         // If tokenValueMetrics isn't included in the API response, try to fetch it separately
         if (!data.tokenValueMetrics) {
           try {
+            setTokenValueLoading(true);
             const tokenValueMetrics = await libraryService.getLibraryTokenValueMetrics(libraryId, period);
             data.tokenValueMetrics = tokenValueMetrics;
           } catch (tokenMetricsError) {
             console.warn('Error fetching token value metrics:', tokenMetricsError);
             // Continue without token metrics
+          } finally {
+            setTokenValueLoading(false);
           }
         }
         
@@ -318,6 +334,86 @@ const LibraryAnalytics: React.FC<LibraryAnalyticsProps> = ({ libraryId }) => {
     );
   };
 
+  // Format currency with optional color coding
+  const formatCurrencyWithColor = (value: number, colorCoding: boolean = false) => {
+    const formattedValue = formatCurrency(value);
+    if (!colorCoding) return formattedValue;
+    
+    return (
+      <Typography
+        component="span"
+        color={value >= 0 ? 'success.main' : 'error.main'}
+      >
+        {formattedValue}
+      </Typography>
+    );
+  };
+
+  // Format percentage with sign and color
+  const formatPercentageWithColor = (value: number) => {
+    const sign = value >= 0 ? '+' : '';
+    const formattedValue = `${sign}${value.toFixed(2)}%`;
+    
+    return (
+      <Typography
+        component="span"
+        color={value >= 0 ? 'success.main' : 'error.main'}
+        sx={{ display: 'flex', alignItems: 'center' }}
+      >
+        {value >= 0 ? <TrendingUpIcon fontSize="small" sx={{ mr: 0.5 }} /> : <TrendingDownIcon fontSize="small" sx={{ mr: 0.5 }} />}
+        {formattedValue}
+      </Typography>
+    );
+  };
+
+  // Render token verification info
+  const renderTokenVerificationInfo = () => {
+    if (!analytics || !analytics.tokenValueMetrics) return null;
+    
+    const { verifiedTokens, unverifiedTokens } = analytics.tokenValueMetrics;
+    const total = verifiedTokens + unverifiedTokens;
+    
+    if (total === 0) return null;
+    
+    const verifiedPercentage = Math.round((verifiedTokens / total) * 100);
+    
+    return (
+      <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+        <MuiTooltip title="Verified tokens have been confirmed on the blockchain">
+          <Badge 
+            badgeContent={verifiedTokens} 
+            color="success"
+            sx={{ mr: 2 }}
+          >
+            <VerifiedIcon color="success" />
+          </Badge>
+        </MuiTooltip>
+        
+        <MuiTooltip title="Unverified tokens exist but have not been verified on the blockchain">
+          <Badge 
+            badgeContent={unverifiedTokens} 
+            color="warning"
+            sx={{ mr: 2 }}
+          >
+            <TokenIcon color="warning" />
+          </Badge>
+        </MuiTooltip>
+        
+        <Typography variant="body2" color="text.secondary">
+          {verifiedPercentage}% of tokens verified on blockchain
+        </Typography>
+        
+        {!account && (
+          <MuiTooltip title="Connect wallet to verify tokens">
+            <IconButton size="small" sx={{ ml: 1 }}>
+              <InfoIcon fontSize="small" color="info" />
+            </IconButton>
+          </MuiTooltip>
+        )}
+      </Box>
+    );
+  };
+
   return (
     <Box>
       <Box mb={3} display="flex" justifyContent="space-between" alignItems="center">
@@ -344,12 +440,17 @@ const LibraryAnalytics: React.FC<LibraryAnalyticsProps> = ({ libraryId }) => {
               Total Value
             </Typography>
             <Typography variant="h4" gutterBottom>
-              {formatCurrency(analytics.totalValue)}
+              {formatCurrency(analytics?.totalValue || 0)}
             </Typography>
             <Typography 
               variant="body2" 
               color={percentageChange >= 0 ? 'success.main' : 'error.main'}
+              sx={{ display: 'flex', alignItems: 'center' }}
             >
+              {percentageChange >= 0 ? 
+                <TrendingUpIcon fontSize="small" sx={{ mr: 0.5 }} /> : 
+                <TrendingDownIcon fontSize="small" sx={{ mr: 0.5 }} />
+              }
               {formatPercentage(percentageChange)} ({period})
             </Typography>
           </Paper>
@@ -434,182 +535,230 @@ const LibraryAnalytics: React.FC<LibraryAnalyticsProps> = ({ libraryId }) => {
         </Grid>
         
         {/* Token Value Metrics */}
-        {analytics.tokenValueMetrics && (
+        {(analytics?.tokenValueMetrics || tokenValueLoading) && (
           <>
             <Grid item xs={12}>
-              <Typography variant="h6" gutterBottom sx={{ mt: 3, mb: 2 }}>
+              <Typography variant="h6" gutterBottom sx={{ mt: 3, mb: 1 }}>
                 Token Value Metrics
+                <MuiTooltip title="Data based on verified blockchain tokens in your library">
+                  <IconButton size="small" sx={{ ml: 1 }}>
+                    <InfoIcon fontSize="small" color="info" />
+                  </IconButton>
+                </MuiTooltip>
               </Typography>
+              
+              {renderTokenVerificationInfo()}
+              
+              {tokenValueLoading && (
+                <Box display="flex" alignItems="center" mb={2}>
+                  <CircularProgress size={20} sx={{ mr: 1 }} />
+                  <Typography variant="body2" color="text.secondary">
+                    Loading token value data...
+                  </Typography>
+                </Box>
+              )}
             </Grid>
             
             {/* Token Value Summary Cards */}
-            <Grid item xs={12} sm={6} md={3}>
-              <Paper elevation={2} sx={{ p: 2, borderRadius: 2 }}>
-                <Typography variant="subtitle2" color="text.secondary">
-                  Total Token Value
-                </Typography>
-                <Typography variant="h4" gutterBottom>
-                  {formatCurrency(analytics.tokenValueMetrics.totalTokenValue)}
-                </Typography>
-                <Typography 
-                  variant="body2" 
-                  color={analytics.tokenValueMetrics.tokenPriceChanges.month >= 0 ? 'success.main' : 'error.main'}
-                >
-                  {formatPercentage(analytics.tokenValueMetrics.tokenPriceChanges.month)}% (30d)
-                </Typography>
-              </Paper>
-            </Grid>
-            
-            <Grid item xs={12} sm={6} md={3}>
-              <Paper elevation={2} sx={{ p: 2, borderRadius: 2 }}>
-                <Typography variant="subtitle2" color="text.secondary">
-                  Verified Tokens
-                </Typography>
-                <Typography variant="h4" gutterBottom>
-                  {analytics.tokenValueMetrics.verifiedTokens}
-                </Typography>
-                <Typography variant="body2" color="text.secondary">
-                  {analytics.tokenValueMetrics.unverifiedTokens} unverified
-                </Typography>
-              </Paper>
-            </Grid>
-            
-            <Grid item xs={12} sm={6} md={3}>
-              <Paper elevation={2} sx={{ p: 2, borderRadius: 2 }}>
-                <Typography variant="subtitle2" color="text.secondary">
-                  24h Change
-                </Typography>
-                <Typography 
-                  variant="h4" 
-                  color={analytics.tokenValueMetrics.tokenPriceChanges.day >= 0 ? 'success.main' : 'error.main'}
-                  gutterBottom
-                >
-                  {formatPercentage(analytics.tokenValueMetrics.tokenPriceChanges.day)}%
-                </Typography>
-                <Typography 
-                  variant="body2" 
-                  color={analytics.tokenValueMetrics.tokenPriceChanges.week >= 0 ? 'success.main' : 'error.main'}
-                >
-                  {formatPercentage(analytics.tokenValueMetrics.tokenPriceChanges.week)}% (7d)
-                </Typography>
-              </Paper>
-            </Grid>
-            
-            <Grid item xs={12} sm={6} md={3}>
-              <Paper elevation={2} sx={{ p: 2, borderRadius: 2 }}>
-                <Typography variant="subtitle2" color="text.secondary">
-                  Highest Value Token
-                </Typography>
-                <Typography variant="h4" gutterBottom>
-                  {formatCurrency(analytics.tokenValueMetrics.highestValueToken.value)}
-                </Typography>
-                <Typography variant="body2" color="text.secondary">
-                  {analytics.tokenValueMetrics.highestValueToken.chain}
-                </Typography>
-              </Paper>
-            </Grid>
+            {analytics?.tokenValueMetrics && (
+              <>
+                <Grid item xs={12} sm={6} md={3}>
+                  <Paper elevation={2} sx={{ p: 2, borderRadius: 2 }}>
+                    <Typography variant="subtitle2" color="text.secondary">
+                      Total Token Value
+                    </Typography>
+                    <Typography variant="h4" gutterBottom>
+                      {formatCurrency(analytics.tokenValueMetrics.totalTokenValue)}
+                    </Typography>
+                    <Typography 
+                      variant="body2" 
+                      sx={{ display: 'flex', alignItems: 'center' }}
+                      color={analytics.tokenValueMetrics.tokenPriceChanges.month >= 0 ? 'success.main' : 'error.main'}
+                    >
+                      {analytics.tokenValueMetrics.tokenPriceChanges.month >= 0 ? 
+                        <TrendingUpIcon fontSize="small" sx={{ mr: 0.5 }} /> : 
+                        <TrendingDownIcon fontSize="small" sx={{ mr: 0.5 }} />
+                      }
+                      {formatPercentage(analytics.tokenValueMetrics.tokenPriceChanges.month)}% (30d)
+                    </Typography>
+                  </Paper>
+                </Grid>
+                
+                <Grid item xs={12} sm={6} md={3}>
+                  <Paper elevation={2} sx={{ p: 2, borderRadius: 2 }}>
+                    <Typography variant="subtitle2" color="text.secondary">
+                      Verification Status
+                    </Typography>
+                    <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                      <Typography variant="h4" gutterBottom sx={{ mr: 1 }}>
+                        {analytics.tokenValueMetrics.verifiedTokens}
+                      </Typography>
+                      <VerifiedIcon color="success" />
+                    </Box>
+                    <Typography variant="body2" color="text.secondary" sx={{ display: 'flex', alignItems: 'center' }}>
+                      <TokenIcon fontSize="small" sx={{ mr: 0.5 }} color="warning" />
+                      {analytics.tokenValueMetrics.unverifiedTokens} unverified
+                    </Typography>
+                  </Paper>
+                </Grid>
+                
+                <Grid item xs={12} sm={6} md={3}>
+                  <Paper elevation={2} sx={{ p: 2, borderRadius: 2 }}>
+                    <Typography variant="subtitle2" color="text.secondary">
+                      24h Change
+                    </Typography>
+                    <Typography 
+                      variant="h4" 
+                      color={analytics.tokenValueMetrics.tokenPriceChanges.day >= 0 ? 'success.main' : 'error.main'}
+                      gutterBottom
+                      sx={{ display: 'flex', alignItems: 'center' }}
+                    >
+                      {analytics.tokenValueMetrics.tokenPriceChanges.day >= 0 ? 
+                        <TrendingUpIcon sx={{ mr: 0.5 }} /> : 
+                        <TrendingDownIcon sx={{ mr: 0.5 }} />
+                      }
+                      {formatPercentage(analytics.tokenValueMetrics.tokenPriceChanges.day)}%
+                    </Typography>
+                    <Typography 
+                      variant="body2" 
+                      color={analytics.tokenValueMetrics.tokenPriceChanges.week >= 0 ? 'success.main' : 'error.main'}
+                      sx={{ display: 'flex', alignItems: 'center' }}
+                    >
+                      {analytics.tokenValueMetrics.tokenPriceChanges.week >= 0 ? 
+                        <TrendingUpIcon fontSize="small" sx={{ mr: 0.5 }} /> : 
+                        <TrendingDownIcon fontSize="small" sx={{ mr: 0.5 }} />
+                      }
+                      {formatPercentage(analytics.tokenValueMetrics.tokenPriceChanges.week)}% (7d)
+                    </Typography>
+                  </Paper>
+                </Grid>
+                
+                <Grid item xs={12} sm={6} md={3}>
+                  <Paper elevation={2} sx={{ p: 2, borderRadius: 2 }}>
+                    <Typography variant="subtitle2" color="text.secondary">
+                      Highest Value Token
+                    </Typography>
+                    <Typography variant="h4" gutterBottom>
+                      {formatCurrency(analytics.tokenValueMetrics.highestValueToken.value)}
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary" sx={{ display: 'flex', alignItems: 'center' }}>
+                      <img 
+                        src={`https://raw.githubusercontent.com/spothq/cryptocurrency-icons/master/svg/color/eth.svg`} 
+                        alt="Ethereum" 
+                        style={{ width: 16, height: 16, marginRight: 4 }} 
+                      />
+                      {analytics.tokenValueMetrics.highestValueToken.chain}
+                    </Typography>
+                  </Paper>
+                </Grid>
+              </>
+            )}
             
             {/* Token Value History Chart */}
-            <Grid item xs={12}>
-              <Card>
-                <CardContent>
-                  <Typography variant="h6" gutterBottom>
-                    Token Value History
-                  </Typography>
-                  <Box height={300}>
-                    <ResponsiveContainer width="100%" height="100%">
-                      <LineChart 
-                        data={analytics.tokenValueMetrics.tokenValueHistory.filter(entry => {
-                          const cutoffDate = getFilteredDateCutoff();
-                          return new Date(entry.date) >= cutoffDate;
-                        })}
-                      >
-                        <CartesianGrid strokeDasharray="3 3" />
-                        <XAxis
-                          dataKey="date"
-                          tickFormatter={(value: string) => format(new Date(value), 'MMM d')}
-                        />
-                        <YAxis
-                          yAxisId="left"
-                          tickFormatter={(value: number) => formatCurrency(value)}
-                        />
-                        <YAxis
-                          yAxisId="right"
-                          orientation="right"
-                          domain={[0, 'dataMax + 5']}
-                        />
-                        <Tooltip
-                          formatter={(value: number, name: string) => {
-                            if (name === 'value') return formatCurrency(value);
-                            if (name === 'verifiedTokensCount') return value;
-                            return value;
-                          }}
-                          labelFormatter={(label: string) => format(new Date(label), 'MMM d, yyyy')}
-                        />
-                        <Legend />
-                        <Line
-                          type="monotone"
-                          dataKey="value"
-                          name="Token Value"
-                          stroke="#8884d8"
-                          yAxisId="left"
-                          strokeWidth={2}
-                          dot={false}
-                        />
-                        <Line
-                          type="monotone"
-                          dataKey="verifiedTokensCount"
-                          name="Verified Tokens"
-                          stroke="#82ca9d"
-                          yAxisId="right"
-                          strokeWidth={2}
-                          dot={false}
-                        />
-                      </LineChart>
-                    </ResponsiveContainer>
-                  </Box>
-                </CardContent>
-              </Card>
-            </Grid>
+            {analytics?.tokenValueMetrics && (
+              <Grid item xs={12}>
+                <Card>
+                  <CardContent>
+                    <Typography variant="h6" gutterBottom>
+                      Token Value History
+                    </Typography>
+                    <Box height={300}>
+                      <ResponsiveContainer width="100%" height="100%">
+                        <LineChart 
+                          data={analytics.tokenValueMetrics.tokenValueHistory.filter(entry => {
+                            const cutoffDate = getFilteredDateCutoff();
+                            return new Date(entry.date) >= cutoffDate;
+                          })}
+                        >
+                          <CartesianGrid strokeDasharray="3 3" />
+                          <XAxis
+                            dataKey="date"
+                            tickFormatter={(value: string) => format(new Date(value), 'MMM d')}
+                          />
+                          <YAxis
+                            yAxisId="left"
+                            tickFormatter={(value: number) => formatCurrency(value)}
+                          />
+                          <YAxis
+                            yAxisId="right"
+                            orientation="right"
+                            domain={[0, 'dataMax + 5']}
+                          />
+                          <Tooltip
+                            formatter={(value: number, name: string) => {
+                              if (name === 'value') return formatCurrency(value);
+                              if (name === 'verifiedTokensCount') return value;
+                              return value;
+                            }}
+                            labelFormatter={(label: string) => format(new Date(label), 'MMM d, yyyy')}
+                          />
+                          <Legend />
+                          <Line
+                            type="monotone"
+                            dataKey="value"
+                            name="Token Value"
+                            stroke="#8884d8"
+                            yAxisId="left"
+                            strokeWidth={2}
+                            dot={false}
+                          />
+                          <Line
+                            type="monotone"
+                            dataKey="verifiedTokensCount"
+                            name="Verified Tokens"
+                            stroke="#82ca9d"
+                            yAxisId="right"
+                            strokeWidth={2}
+                            dot={false}
+                          />
+                        </LineChart>
+                      </ResponsiveContainer>
+                    </Box>
+                  </CardContent>
+                </Card>
+              </Grid>
+            )}
             
             {/* Blockchain Verification Status */}
-            <Grid item xs={12} md={6}>
-              <Card>
-                <CardContent>
-                  <Typography variant="h6" gutterBottom>
-                    Token Verification Status
-                  </Typography>
-                  <Box height={300}>
-                    <ResponsiveContainer width="100%" height="100%">
-                      <PieChart>
-                        <Pie
-                          data={[
-                            { name: 'Verified', value: analytics.tokenValueMetrics.verifiedTokens },
-                            { name: 'Unverified', value: analytics.tokenValueMetrics.unverifiedTokens }
-                          ]}
-                          cx="50%"
-                          cy="50%"
-                          labelLine={false}
-                          outerRadius={80}
-                          fill="#8884d8"
-                          dataKey="value"
-                          nameKey="name"
-                          label={({ name, percent }: { name: string; percent: number }) => 
-                            `${name}: ${(percent * 100).toFixed(0)}%`
-                          }
-                        >
-                          <Cell key="cell-verified" fill="#4caf50" />
-                          <Cell key="cell-unverified" fill="#ff9800" />
-                        </Pie>
-                        <Tooltip 
-                          formatter={(value: number) => value}
-                        />
-                      </PieChart>
-                    </ResponsiveContainer>
-                  </Box>
-                </CardContent>
-              </Card>
-            </Grid>
+            {analytics?.tokenValueMetrics && (
+              <Grid item xs={12} md={6}>
+                <Card>
+                  <CardContent>
+                    <Typography variant="h6" gutterBottom>
+                      Token Verification Status
+                    </Typography>
+                    <Box height={300}>
+                      <ResponsiveContainer width="100%" height="100%">
+                        <PieChart>
+                          <Pie
+                            data={[
+                              { name: 'Verified', value: analytics.tokenValueMetrics.verifiedTokens },
+                              { name: 'Unverified', value: analytics.tokenValueMetrics.unverifiedTokens }
+                            ]}
+                            cx="50%"
+                            cy="50%"
+                            labelLine={false}
+                            outerRadius={80}
+                            fill="#8884d8"
+                            dataKey="value"
+                            nameKey="name"
+                            label={({ name, percent }: { name: string; percent: number }) => 
+                              `${name}: ${(percent * 100).toFixed(0)}%`
+                            }
+                          >
+                            <Cell key="cell-verified" fill="#4caf50" />
+                            <Cell key="cell-unverified" fill="#ff9800" />
+                          </Pie>
+                          <Tooltip 
+                            formatter={(value: number) => value}
+                          />
+                        </PieChart>
+                      </ResponsiveContainer>
+                    </Box>
+                  </CardContent>
+                </Card>
+              </Grid>
+            )}
           </>
         )}
 

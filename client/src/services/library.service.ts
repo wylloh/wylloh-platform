@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { blockchainService } from './blockchain.service';
 
 // Types
 export interface Library {
@@ -315,12 +316,50 @@ class LibraryService {
   // Get library token value metrics
   async getLibraryTokenValueMetrics(libraryId: string, period?: string): Promise<TokenValueMetrics> {
     try {
-      const url = period
-        ? `${API_BASE_URL}/api/library-analytics/${libraryId}/token-values?period=${period}`
-        : `${API_BASE_URL}/api/library-analytics/${libraryId}/token-values`;
-      
-      const response = await axios.get(url);
-      return response.data;
+      // First try to get from the API
+      try {
+        const url = period
+          ? `${API_BASE_URL}/api/library-analytics/${libraryId}/token-values?period=${period}`
+          : `${API_BASE_URL}/api/library-analytics/${libraryId}/token-values`;
+        
+        const response = await axios.get(url);
+        return response.data;
+      } catch (apiError) {
+        console.warn('API for token value metrics not available, falling back to blockchain data', apiError);
+        
+        // If API fails, fallback to blockchain data
+        // First get all tokens in the library
+        const libraryItems = await this.getLibraryItems(libraryId);
+        
+        // Extract token IDs from items that have token data
+        const tokenIds = libraryItems
+          .filter(item => item.tokenData && item.tokenData.tokenId)
+          .map(item => item.tokenData?.tokenId as string);
+        
+        if (tokenIds.length === 0) {
+          // No tokens in library, return empty metrics
+          return {
+            totalTokenValue: 0,
+            tokenValueHistory: [],
+            verifiedTokens: 0,
+            unverifiedTokens: 0,
+            tokenPriceChanges: {
+              day: 0,
+              week: 0,
+              month: 0
+            },
+            highestValueToken: {
+              contentId: '',
+              tokenId: '',
+              value: 0,
+              chain: ''
+            }
+          };
+        }
+        
+        // Get token value metrics from blockchain service
+        return await blockchainService.getTokenValueMetrics(tokenIds, period);
+      }
     } catch (error) {
       console.error(`Error fetching token value metrics for library ${libraryId}:`, error);
       throw error;

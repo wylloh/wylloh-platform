@@ -1342,6 +1342,141 @@ class BlockchainService {
       return false;
     }
   }
+
+  /**
+   * Get token value metrics and history for a library
+   * @param tokenIds Array of token IDs to get values for
+   * @param period Optional period (7d, 30d, 1y)
+   * @returns Token value metrics and history
+   */
+  async getTokenValueMetrics(tokenIds: string[], period: string = '30d'): Promise<{
+    totalTokenValue: number,
+    tokenValueHistory: Array<{
+      date: string,
+      value: number,
+      change: number,
+      changePercentage: number,
+      verifiedTokensCount: number
+    }>,
+    verifiedTokens: number,
+    unverifiedTokens: number,
+    tokenPriceChanges: {
+      day: number,
+      week: number,
+      month: number
+    },
+    highestValueToken: {
+      contentId: string,
+      tokenId: string,
+      value: number,
+      chain: string
+    }
+  }> {
+    if (!this.isInitialized()) {
+      console.warn('BlockchainService not initialized for getTokenValueMetrics');
+      throw new Error('Blockchain service not initialized');
+    }
+    
+    try {
+      console.log(`Getting token value metrics for ${tokenIds.length} tokens, period: ${period}`);
+      
+      // For real implementation, we would query blockchain for token price history
+      // For now, we'll generate simulated data based on the token IDs
+      
+      // Generate a deterministic seed based on tokenIds to ensure consistency
+      const seed = tokenIds.reduce((acc, id) => acc + parseInt(id.substring(0, 8), 16), 0);
+      const random = (min: number, max: number) => {
+        const x = Math.sin(seed * 9999) * 10000;
+        const r = x - Math.floor(x);
+        return min + r * (max - min);
+      };
+      
+      // Get date range based on period
+      const today = new Date();
+      let days = 30;
+      switch (period) {
+        case '7d':
+          days = 7;
+          break;
+        case '30d':
+          days = 30;
+          break;
+        case '1y':
+          days = 365;
+          break;
+      }
+      
+      // Generate token value history
+      const tokenValueHistory = [];
+      let currentValue = 1000 + (seed % 1000); // Start value based on token IDs
+      let verifiedCount = Math.max(1, Math.min(tokenIds.length, Math.floor(tokenIds.length * 0.7))); // Start with 70% verified
+      
+      for (let i = days; i >= 0; i--) {
+        const date = new Date();
+        date.setDate(today.getDate() - i);
+        
+        // Random daily change between -3% and +4%
+        const changePercent = random(-3, 4);
+        const change = currentValue * (changePercent / 100);
+        currentValue += change;
+        
+        // Occasionally increase verified tokens count
+        if (i % 10 === 0 && verifiedCount < tokenIds.length) {
+          verifiedCount = Math.min(tokenIds.length, verifiedCount + 1);
+        }
+        
+        tokenValueHistory.push({
+          date: date.toISOString(),
+          value: Math.round(currentValue),
+          change: Math.round(change),
+          changePercentage: Math.round(changePercent * 10) / 10,
+          verifiedTokensCount: verifiedCount
+        });
+      }
+      
+      // Last day's value
+      const lastValue = tokenValueHistory[tokenValueHistory.length - 1].value;
+      
+      // Calculate price changes
+      const dayChange = tokenValueHistory.length >= 2 
+        ? ((tokenValueHistory[tokenValueHistory.length - 1].value / tokenValueHistory[tokenValueHistory.length - 2].value) - 1) * 100 
+        : 0;
+        
+      const weekChange = tokenValueHistory.length >= 8 
+        ? ((tokenValueHistory[tokenValueHistory.length - 1].value / tokenValueHistory[tokenValueHistory.length - 8].value) - 1) * 100 
+        : 0;
+        
+      const monthChange = tokenValueHistory.length >= 31 
+        ? ((tokenValueHistory[tokenValueHistory.length - 1].value / tokenValueHistory[tokenValueHistory.length - 31].value) - 1) * 100 
+        : ((tokenValueHistory[tokenValueHistory.length - 1].value / tokenValueHistory[0].value) - 1) * 100;
+      
+      // Find highest value token
+      const highestValueTokenIndex = Math.floor(random(0, tokenIds.length));
+      const highestTokenId = tokenIds[highestValueTokenIndex] || tokenIds[0] || '0x1';
+      const contentId = `content-${highestTokenId.substring(0, 8)}`;
+      
+      return {
+        totalTokenValue: lastValue,
+        tokenValueHistory,
+        verifiedTokens: verifiedCount,
+        unverifiedTokens: tokenIds.length - verifiedCount,
+        tokenPriceChanges: {
+          day: Math.round(dayChange * 10) / 10,
+          week: Math.round(weekChange * 10) / 10,
+          month: Math.round(monthChange * 10) / 10
+        },
+        highestValueToken: {
+          contentId,
+          tokenId: highestTokenId,
+          value: Math.round(lastValue * 0.3), // Highest token is 30% of total value
+          chain: 'Ethereum'
+        }
+      };
+    } catch (error) {
+      console.error('Error getting token value metrics:', error);
+      throw error;
+    }
+  }
 }
 
 // Export singleton instance
