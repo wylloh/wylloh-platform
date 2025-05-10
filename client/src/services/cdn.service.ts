@@ -37,6 +37,14 @@ interface CachedContent {
   expiresAt: number;
 }
 
+// Interface for user node as gateway
+interface UserNode {
+  peerId: string;
+  gateway: string; 
+  performance: GatewayPerformance;
+  contentAvailable: string[]; // List of CIDs available on this node
+}
+
 /**
  * CDN Service for optimized content delivery
  * Handles gateway selection, performance tracking, and caching
@@ -44,6 +52,7 @@ interface CachedContent {
 class CdnService {
   private gatewayPerformance: Map<string, GatewayPerformance> = new Map();
   private contentCache: Map<string, CachedContent> = new Map();
+  private userNodes: Map<string, UserNode> = new Map(); // Track user nodes by peerId
   private isInitialized: boolean = false;
   private isDemoMode: boolean;
   
@@ -92,6 +101,10 @@ class CdnService {
       // Add local gateway in demo mode
       if (this.isDemoMode) gateways.push(LOCAL_GATEWAY);
       
+      // Add user nodes (if any are registered)
+      const userNodeGateways = Array.from(this.userNodes.values()).map(node => node.gateway);
+      gateways.push(...userNodeGateways);
+      
       // Test each gateway and update metrics
       for (const gateway of gateways) {
         try {
@@ -130,6 +143,12 @@ class CdnService {
           // Store updated metrics
           this.gatewayPerformance.set(gateway, updatedMetrics);
           
+          // If it's a user node, update its performance in the userNodes map
+          const userNode = Array.from(this.userNodes.values()).find(node => node.gateway === gateway);
+          if (userNode) {
+            userNode.performance = updatedMetrics;
+          }
+          
           console.log(`Gateway ${gateway} performance: ${latency}ms, success: ${success}`);
         } catch (error) {
           // Gateway failed - mark as unavailable with increased latency
@@ -142,6 +161,12 @@ class CdnService {
               lastChecked: Date.now(),
               available: false
             });
+            
+            // If it's a user node, update its performance in the userNodes map
+            const userNode = Array.from(this.userNodes.values()).find(node => node.gateway === gateway);
+            if (userNode) {
+              userNode.performance = this.gatewayPerformance.get(gateway)!;
+            }
           }
           console.warn(`Gateway ${gateway} test failed:`, error);
         }
@@ -172,13 +197,12 @@ class CdnService {
       return PROJECT_GATEWAY;
     }
     
-    // Otherwise, find the fastest available public gateway
+    // Otherwise, find the fastest available gateway (including user nodes)
     let fastestGateway = PUBLIC_GATEWAYS[0];
     let bestScore = Number.MAX_VALUE;
     
-    for (const gateway of PUBLIC_GATEWAYS) {
-      const metrics = this.gatewayPerformance.get(gateway);
-      
+    // Include all gateways in the performance map
+    Array.from(this.gatewayPerformance.entries()).forEach(([gateway, metrics]) => {
       if (metrics && metrics.available) {
         // Score = latency / successRate (lower is better)
         const score = metrics.latency / (metrics.successRate || 0.1);
@@ -188,9 +212,41 @@ class CdnService {
           fastestGateway = gateway;
         }
       }
-    }
+    });
     
     return fastestGateway;
+  }
+  
+  /**
+   * Find the best gateway for a specific CID
+   * Prioritizes user nodes that have the content
+   * @param cid IPFS CID
+   * @returns Best gateway URL for this content
+   */
+  getBestGatewayForCid(cid: string): string {
+    const normalizedCid = normalizeCid(cid);
+    
+    // First check if any user nodes have this content
+    const nodesWithContent = Array.from(this.userNodes.values())
+      .filter(node => 
+        node.contentAvailable.includes(normalizedCid) && 
+        node.performance.available
+      );
+    
+    if (nodesWithContent.length > 0) {
+      // Sort by performance score (latency / success rate)
+      nodesWithContent.sort((a, b) => {
+        const scoreA = a.performance.latency / (a.performance.successRate || 0.1);
+        const scoreB = b.performance.latency / (b.performance.successRate || 0.1);
+        return scoreA - scoreB;
+      });
+      
+      // Return the best performing node's gateway
+      return nodesWithContent[0].gateway;
+    }
+    
+    // If no user nodes have the content, fall back to fastest gateway
+    return this.getFastestGateway();
   }
   
   /**
@@ -209,8 +265,8 @@ class CdnService {
       return cached.gatewayUrl;
     }
     
-    // Get the fastest gateway
-    const gateway = this.getFastestGateway();
+    // Get the best gateway for this CID (may be a user node)
+    const gateway = this.getBestGatewayForCid(normalizedCid);
     
     // Create the full URL
     const url = `${gateway}/${normalizedCid}`;
@@ -245,6 +301,19 @@ class CdnService {
     // In demo mode, use local gateway first
     if (this.isDemoMode) {
       streamingGateways.unshift(LOCAL_GATEWAY);
+    }
+    
+    // Add user nodes that have this content (for peer-assisted streaming)
+    const nodesWithContent = Array.from(this.userNodes.values())
+      .filter(node => 
+        node.contentAvailable.includes(normalizedCid) && 
+        node.performance.available
+      )
+      .map(node => node.gateway);
+    
+    if (nodesWithContent.length > 0) {
+      // Add user nodes at the beginning for priority (faster local streaming)
+      streamingGateways.unshift(...nodesWithContent);
     }
     
     // Find first available streaming gateway
@@ -308,6 +377,90 @@ class CdnService {
     
     // Add cache control query parameter if gateway supports it
     return `${url}?cache-control=max-age=${maxAge}`;
+  }
+  
+  /**
+   * Register a user node as a potential gateway for content
+   * @param peerId The peer ID of the node
+   * @param nodeUrl The gateway URL for the node
+   */
+  registerUserNode(peerId: string, nodeUrl: string): void {
+    const gateway = nodeUrl.endsWith('/ipfs') ? nodeUrl : `${nodeUrl}/ipfs`;
+    
+    // Create or update the user node entry
+    this.userNodes.set(peerId, {
+      peerId,
+      gateway,
+      performance: {
+        gateway,
+        latency: 500, // Default to optimistic latency for local nodes
+        successRate: 0.9,
+        lastChecked: 0,
+        available: true
+      },
+      contentAvailable: []
+    });
+    
+    // Add to gateway performance tracking
+    this.gatewayPerformance.set(gateway, this.userNodes.get(peerId)!.performance);
+    
+    console.log(`Registered user node: ${peerId} at ${gateway}`);
+    
+    // Trigger a performance update to include the new node
+    this.updateGatewayPerformance();
+  }
+  
+  /**
+   * Unregister a user node
+   * @param peerId The peer ID of the node to unregister
+   */
+  unregisterUserNode(peerId: string): void {
+    const node = this.userNodes.get(peerId);
+    if (node) {
+      // Remove from gateway performance tracking
+      this.gatewayPerformance.delete(node.gateway);
+      
+      // Remove from user nodes
+      this.userNodes.delete(peerId);
+      
+      console.log(`Unregistered user node: ${peerId}`);
+    }
+  }
+  
+  /**
+   * Update the list of content available on a user node
+   * @param peerId The peer ID of the node
+   * @param cids Array of CIDs available on this node
+   */
+  updateUserNodeContent(peerId: string, cids: string[]): void {
+    const node = this.userNodes.get(peerId);
+    if (node) {
+      // Update the list of available content
+      node.contentAvailable = cids.map(cid => normalizeCid(cid));
+      console.log(`Updated content for node ${peerId}: ${cids.length} items`);
+    }
+  }
+
+  /**
+   * Check if content is available on any user node
+   * @param cid The CID to check
+   * @returns Boolean indicating if content is available on user nodes
+   */
+  isContentOnUserNodes(cid: string): boolean {
+    const normalizedCid = normalizeCid(cid);
+    
+    // Check if any user node has this content
+    return Array.from(this.userNodes.values()).some(
+      node => node.contentAvailable.includes(normalizedCid) && node.performance.available
+    );
+  }
+  
+  /**
+   * Get all registered user nodes
+   * @returns Array of registered user nodes
+   */
+  getUserNodes(): UserNode[] {
+    return Array.from(this.userNodes.values());
   }
   
   /**

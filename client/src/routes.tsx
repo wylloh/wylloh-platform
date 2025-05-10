@@ -16,6 +16,7 @@ import TokenizeTestPage from './pages/TokenizeTestPage';
 import StoragePage from './pages/StoragePage';
 import ContentMediaPage from './pages/ContentMediaPage';
 import SearchPage from './pages/SearchPage';
+import NetworkPage from './pages/NetworkPage';
 
 // Pro pages
 import ProDashboardPage from './pages/pro/DashboardPage';
@@ -71,6 +72,14 @@ const AppRoutes = () => {
           element={
             <RequireAuth>
               <StoragePage />
+            </RequireAuth>
+          }
+        />
+        <Route
+          path="network"
+          element={
+            <RequireAuth>
+              <NetworkPage />
             </RequireAuth>
           }
         />
