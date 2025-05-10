@@ -31,39 +31,19 @@ import {
   Legend,
 } from 'recharts';
 import { format, subDays, subMonths } from 'date-fns';
+import { libraryService, LibraryAnalytics as LibraryAnalyticsType } from '../../services/library.service';
+
+// Extended analytics type with genre distribution
+interface ExtendedLibraryAnalytics extends LibraryAnalyticsType {
+  genreDistribution?: { name: string; value: number }[];
+}
 
 interface LibraryAnalyticsProps {
   libraryId: string;
 }
 
-interface AnalyticsData {
-  totalValue: number;
-  valueHistory: Array<{
-    value: number;
-    timestamp: string;
-    change?: number;
-    changePercentage?: number;
-  }>;
-  lendingMetrics: {
-    totalLends: number;
-    totalRevenue: number;
-    averageLendDuration: number;
-    activeLends?: number;
-  };
-  engagementMetrics: {
-    totalViews: number;
-    uniqueViewers: number;
-    averageWatchTime: number;
-    shares?: number;
-  };
-  genreDistribution?: {
-    name: string;
-    value: number;
-  }[];
-}
-
-// Sample data for development
-const generateSampleData = (): AnalyticsData => {
+// Sample data for development - keep for fallback
+const generateSampleData = (): ExtendedLibraryAnalytics => {
   const today = new Date();
   const valueHistory = [];
   let currentValue = 1200;
@@ -75,7 +55,7 @@ const generateSampleData = (): AnalyticsData => {
     const change = currentValue * (Math.random() * 0.05 - 0.02);
     currentValue += change;
     valueHistory.push({
-      timestamp: date.toISOString(),
+      date: date.toISOString(),
       value: Math.round(currentValue),
       change: Math.round(change),
       changePercentage: Math.round((change / (currentValue - change)) * 1000) / 10,
@@ -83,20 +63,22 @@ const generateSampleData = (): AnalyticsData => {
   }
   
   return {
+    libraryId: '1',
     totalValue: Math.round(currentValue),
     valueHistory,
     lendingMetrics: {
       totalLends: 24,
-      totalRevenue: 320,
-      averageLendDuration: 5.2,
       activeLends: 3,
+      averageLendDuration: 5.2,
+      lendingRevenue: 320,
     },
     engagementMetrics: {
-      totalViews: 142,
+      views: 142,
       uniqueViewers: 87,
       averageWatchTime: 45.5,
       shares: 12,
     },
+    lastUpdated: new Date().toISOString(),
     genreDistribution: [
       { name: 'Drama', value: 35 },
       { name: 'Sci-Fi', value: 20 },
@@ -111,7 +93,7 @@ const generateSampleData = (): AnalyticsData => {
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#A569BD', '#D2B4DE'];
 
 const LibraryAnalytics: React.FC<LibraryAnalyticsProps> = ({ libraryId }) => {
-  const [analytics, setAnalytics] = useState<AnalyticsData | null>(null);
+  const [analytics, setAnalytics] = useState<ExtendedLibraryAnalytics | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [period, setPeriod] = useState('30d');
@@ -119,19 +101,17 @@ const LibraryAnalytics: React.FC<LibraryAnalyticsProps> = ({ libraryId }) => {
   useEffect(() => {
     const fetchAnalytics = async () => {
       try {
-        const response = await fetch(`/api/library-analytics/${libraryId}?period=${period}`);
-        if (!response.ok) {
-          throw new Error('Failed to fetch analytics');
-        }
-        const data = await response.json();
+        setLoading(true);
+        const data = await libraryService.getLibraryAnalytics(libraryId, period);
         setAnalytics(data);
+        setError(null);
       } catch (err) {
         console.error('Error fetching analytics:', err);
-        setError(err instanceof Error ? err.message : 'An error occurred');
+        setError(err instanceof Error ? err.message : 'An error occurred while fetching analytics');
         
         // Fall back to sample data in development environment
-        if (process.env.NODE_ENV === 'development') {
-          console.log('Using sample data for analytics');
+        if (process.env.NODE_ENV === 'development' && process.env.REACT_APP_USE_SAMPLE_DATA === 'true') {
+          console.log('Using sample data for analytics due to error');
           setAnalytics(generateSampleData());
           setError(null);
         }
@@ -140,8 +120,8 @@ const LibraryAnalytics: React.FC<LibraryAnalyticsProps> = ({ libraryId }) => {
       }
     };
 
-    // In development, use sample data
-    if (process.env.NODE_ENV === 'development') {
+    // In development, use sample data if the environment flag is set
+    if (process.env.NODE_ENV === 'development' && process.env.REACT_APP_USE_SAMPLE_DATA === 'true') {
       setTimeout(() => {
         setAnalytics(generateSampleData());
         setLoading(false);
@@ -208,7 +188,7 @@ const LibraryAnalytics: React.FC<LibraryAnalyticsProps> = ({ libraryId }) => {
     }
     
     return analytics.valueHistory.filter(entry => 
-      new Date(entry.timestamp) >= cutoffDate
+      new Date(entry.date) >= cutoffDate
     );
   };
 
@@ -224,6 +204,43 @@ const LibraryAnalytics: React.FC<LibraryAnalyticsProps> = ({ libraryId }) => {
   const formatPercentage = (value: number) => {
     const sign = value >= 0 ? '+' : '';
     return `${sign}${value.toFixed(2)}%`;
+  };
+
+  // Render pie chart for genre distribution
+  const renderGenreDistribution = () => {
+    if (!analytics || !analytics.genreDistribution || analytics.genreDistribution.length === 0) {
+      return (
+        <Box p={2} display="flex" justifyContent="center" alignItems="center" height="300px">
+          <Typography variant="body2" color="text.secondary">
+            No genre data available
+          </Typography>
+        </Box>
+      );
+    }
+
+    return (
+      <ResponsiveContainer width="100%" height={300}>
+        <PieChart>
+          <Pie
+            data={analytics.genreDistribution}
+            cx="50%"
+            cy="50%"
+            labelLine={false}
+            outerRadius={80}
+            fill="#8884d8"
+            dataKey="value"
+            nameKey="name"
+            label={({ name, percent }: { name: string; percent: number }) => `${name}: ${(percent * 100).toFixed(0)}%`}
+          >
+            {analytics.genreDistribution.map((entry, index: number) => (
+              <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+            ))}
+          </Pie>
+          <Tooltip />
+          <Legend />
+        </PieChart>
+      </ResponsiveContainer>
+    );
   };
 
   return (
@@ -268,7 +285,7 @@ const LibraryAnalytics: React.FC<LibraryAnalyticsProps> = ({ libraryId }) => {
               Lending Revenue
             </Typography>
             <Typography variant="h4" gutterBottom>
-              {formatCurrency(analytics.lendingMetrics.totalRevenue)}
+              {formatCurrency(analytics.lendingMetrics.lendingRevenue)}
             </Typography>
             <Typography variant="body2" color="text.secondary">
               {analytics.lendingMetrics.totalLends} total lends
@@ -281,7 +298,7 @@ const LibraryAnalytics: React.FC<LibraryAnalyticsProps> = ({ libraryId }) => {
               Total Views
             </Typography>
             <Typography variant="h4" gutterBottom>
-              {analytics.engagementMetrics.totalViews}
+              {analytics.engagementMetrics.views}
             </Typography>
             <Typography variant="body2" color="text.secondary">
               {analytics.engagementMetrics.uniqueViewers} unique viewers
@@ -316,7 +333,7 @@ const LibraryAnalytics: React.FC<LibraryAnalyticsProps> = ({ libraryId }) => {
                   <AreaChart data={filteredHistory}>
                     <CartesianGrid strokeDasharray="3 3" />
                     <XAxis
-                      dataKey="timestamp"
+                      dataKey="date"
                       tickFormatter={(value: string) => format(new Date(value), 'MMM d')}
                     />
                     <YAxis
@@ -342,39 +359,16 @@ const LibraryAnalytics: React.FC<LibraryAnalyticsProps> = ({ libraryId }) => {
         </Grid>
 
         {/* Genre Distribution */}
-        {analytics.genreDistribution && (
-          <Grid item xs={12} md={6}>
-            <Card>
-              <CardContent>
-                <Typography variant="h6" gutterBottom>
-                  Genre Distribution
-                </Typography>
-                <Box height={300} display="flex" justifyContent="center">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <PieChart>
-                      <Pie
-                        data={analytics.genreDistribution}
-                        cx="50%"
-                        cy="50%"
-                        innerRadius={60}
-                        outerRadius={90}
-                        fill="#8884d8"
-                        paddingAngle={5}
-                        dataKey="value"
-                        label={({ name, percent }) => `${name} (${(percent * 100).toFixed(0)}%)`}
-                      >
-                        {analytics.genreDistribution.map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                        ))}
-                      </Pie>
-                      <Tooltip formatter={(value: number) => `${value}%`} />
-                    </PieChart>
-                  </ResponsiveContainer>
-                </Box>
-              </CardContent>
-            </Card>
-          </Grid>
-        )}
+        <Grid item xs={12} md={6}>
+          <Card>
+            <CardContent>
+              <Typography variant="h6" gutterBottom>
+                Genre Distribution
+              </Typography>
+              {renderGenreDistribution()}
+            </CardContent>
+          </Card>
+        </Grid>
 
         {/* Lending Metrics */}
         <Grid item xs={12} md={6}>
@@ -398,7 +392,7 @@ const LibraryAnalytics: React.FC<LibraryAnalyticsProps> = ({ libraryId }) => {
                       Total Revenue
                     </Typography>
                     <Typography variant="h4">
-                      {formatCurrency(analytics.lendingMetrics.totalRevenue)}
+                      {formatCurrency(analytics.lendingMetrics.lendingRevenue)}
                     </Typography>
                   </Grid>
                   <Grid item xs={4}>
@@ -414,7 +408,7 @@ const LibraryAnalytics: React.FC<LibraryAnalyticsProps> = ({ libraryId }) => {
                 <ResponsiveContainer width="100%" height="65%">
                   <BarChart
                     data={[
-                      { name: 'Revenue', current: analytics.lendingMetrics.totalRevenue, previous: analytics.lendingMetrics.totalRevenue * 0.7 },
+                      { name: 'Revenue', current: analytics.lendingMetrics.lendingRevenue, previous: analytics.lendingMetrics.lendingRevenue * 0.7 },
                       { name: 'Lends', current: analytics.lendingMetrics.totalLends, previous: analytics.lendingMetrics.totalLends * 0.8 },
                       { name: 'Active', current: analytics.lendingMetrics.activeLends || 0, previous: (analytics.lendingMetrics.activeLends || 0) * 1.2 },
                     ]}
@@ -447,7 +441,7 @@ const LibraryAnalytics: React.FC<LibraryAnalyticsProps> = ({ libraryId }) => {
                       Total Views
                     </Typography>
                     <Typography variant="h4">
-                      {analytics.engagementMetrics.totalViews}
+                      {analytics.engagementMetrics.views}
                     </Typography>
                   </Grid>
                   <Grid item xs={4}>
@@ -471,10 +465,10 @@ const LibraryAnalytics: React.FC<LibraryAnalyticsProps> = ({ libraryId }) => {
                 <ResponsiveContainer width="100%" height="65%">
                   <LineChart
                     data={[
-                      { name: 'Week 1', views: Math.round(analytics.engagementMetrics.totalViews * 0.2) },
-                      { name: 'Week 2', views: Math.round(analytics.engagementMetrics.totalViews * 0.15) },
-                      { name: 'Week 3', views: Math.round(analytics.engagementMetrics.totalViews * 0.3) },
-                      { name: 'Week 4', views: Math.round(analytics.engagementMetrics.totalViews * 0.35) },
+                      { name: 'Week 1', views: Math.round(analytics.engagementMetrics.views * 0.2) },
+                      { name: 'Week 2', views: Math.round(analytics.engagementMetrics.views * 0.15) },
+                      { name: 'Week 3', views: Math.round(analytics.engagementMetrics.views * 0.3) },
+                      { name: 'Week 4', views: Math.round(analytics.engagementMetrics.views * 0.35) },
                     ]}
                   >
                     <CartesianGrid strokeDasharray="3 3" />

@@ -31,26 +31,12 @@ import PermMediaIcon from '@mui/icons-material/PermMedia';
 import InfoIcon from '@mui/icons-material/Info';
 import CloseIcon from '@mui/icons-material/Close';
 import { format } from 'date-fns';
-
-interface ContentItem {
-  id: string;
-  title: string;
-  thumbnailUrl: string;
-  purchaseDate: string;
-  purchasePrice: number;
-  currentValue: number;
-  licenseType: 'perpetual' | 'limited' | 'personal';
-  isLent: boolean;
-  lentTo?: string;
-  genre?: string;
-  director?: string;
-  year?: number;
-}
+import { libraryService, LibraryItem } from '../../services/library.service';
 
 // Sample data for development
-const SAMPLE_CONTENT: ContentItem[] = [
+const SAMPLE_CONTENT = [
   {
-    id: '1',
+    contentId: '1',
     title: 'The Silent Echo',
     thumbnailUrl: 'https://images.unsplash.com/photo-1536440136628-849c177e76a1',
     purchaseDate: new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString(),
@@ -63,7 +49,7 @@ const SAMPLE_CONTENT: ContentItem[] = [
     year: 2022,
   },
   {
-    id: '2',
+    contentId: '2',
     title: 'Digital Horizons',
     thumbnailUrl: 'https://images.unsplash.com/photo-1605106702734-205df224ecce',
     purchaseDate: new Date(Date.now() - 45 * 24 * 60 * 60 * 1000).toISOString(),
@@ -77,7 +63,7 @@ const SAMPLE_CONTENT: ContentItem[] = [
     year: 2021,
   },
   {
-    id: '3',
+    contentId: '3',
     title: 'Nature\'s Symphony',
     thumbnailUrl: 'https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05',
     purchaseDate: new Date(Date.now() - 120 * 24 * 60 * 60 * 1000).toISOString(),
@@ -90,6 +76,14 @@ const SAMPLE_CONTENT: ContentItem[] = [
     year: 2023,
   },
 ];
+
+interface ContentItem extends LibraryItem {
+  title: string;
+  thumbnailUrl: string;
+  genre?: string;
+  director?: string;
+  year?: number;
+}
 
 interface LibraryContentProps {
   libraryId: string;
@@ -125,20 +119,33 @@ const LibraryContent: React.FC<LibraryContentProps> = ({ libraryId }) => {
   useEffect(() => {
     const fetchContent = async () => {
       try {
-        const response = await fetch(`/api/libraries/${libraryId}/items`);
-        if (!response.ok) {
-          throw new Error('Failed to fetch library content');
-        }
-        const data = await response.json();
-        setContent(data);
+        setLoading(true);
+        const libraryItems = await libraryService.getLibraryItems(libraryId);
+        
+        // In a real implementation, we would fetch content details for each item
+        // For now, we'll enhance the items with mock data for display purposes
+        const enhancedItems = libraryItems.map((item: any) => {
+          // This would typically come from a content service lookup by contentId
+          return {
+            ...item,
+            title: `Content ${item.contentId.substring(0, 8)}`,
+            thumbnailUrl: `https://images.unsplash.com/photo-${Math.floor(Math.random() * 1000000)}`,
+            genre: ['Drama', 'Comedy', 'Action', 'Sci-Fi', 'Documentary'][Math.floor(Math.random() * 5)],
+            director: ['John Doe', 'Jane Smith', 'Robert Johnson', 'Alice Brown'][Math.floor(Math.random() * 4)],
+            year: 2020 + Math.floor(Math.random() * 4)
+          };
+        });
+        
+        setContent(enhancedItems);
+        setError(null);
       } catch (err) {
         console.error('Error fetching library content:', err);
-        setError(err instanceof Error ? err.message : 'An error occurred');
+        setError(err instanceof Error ? err.message : 'An error occurred while fetching content');
         
         // Fall back to sample data in development environment
         if (process.env.NODE_ENV === 'development') {
-          console.log('Using sample data for library content');
-          setContent(SAMPLE_CONTENT);
+          console.log('Using sample data for library content due to error');
+          setContent(SAMPLE_CONTENT as unknown as ContentItem[]);
           setError(null);
         }
       } finally {
@@ -146,10 +153,10 @@ const LibraryContent: React.FC<LibraryContentProps> = ({ libraryId }) => {
       }
     };
 
-    // In development, use sample data
-    if (process.env.NODE_ENV === 'development') {
+    // In development, use sample data if the environment flag is set
+    if (process.env.NODE_ENV === 'development' && process.env.REACT_APP_USE_SAMPLE_DATA === 'true') {
       setTimeout(() => {
-        setContent(SAMPLE_CONTENT);
+        setContent(SAMPLE_CONTENT as unknown as ContentItem[]);
         setLoading(false);
       }, 1000); // Simulate network delay
     } else {
@@ -205,73 +212,43 @@ const LibraryContent: React.FC<LibraryContentProps> = ({ libraryId }) => {
     }
     
     try {
-      // In development, mock the API call
-      if (process.env.NODE_ENV === 'development') {
-        // Update the content item to reflect that it's lent
-        const updatedContent = content.map(item => 
-          item.id === selectedItem.id
-            ? {
-                ...item,
-                isLent: true,
-                lentTo: lendToEmail
-              }
-            : item
-        );
-        
-        setContent(updatedContent);
-        handleCloseLendDialog();
-        
-        setSnackbar({
-          open: true,
-          message: `Content "${selectedItem.title}" lent successfully`,
-          severity: 'success'
-        });
-        
-        return;
-      }
+      setLoading(true);
       
-      const response = await fetch(`/api/libraries/${libraryId}/items/${selectedItem.id}/lend`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          lentTo: lendToEmail,
-          duration: lendDuration,
-          price: lendPrice
-        }),
+      await libraryService.lendItem(selectedItem.contentId, {
+        borrowerEmail: lendToEmail,
+        duration: lendDuration,
+        price: lendPrice
       });
       
-      if (!response.ok) {
-        throw new Error('Failed to lend content');
-      }
-      
-      const data = await response.json();
-      
-      // Update the content list with the updated item
-      const updatedContent = content.map(item => 
-        item.id === selectedItem.id ? {
-          ...item,
-          isLent: true,
-          lentTo: lendToEmail
-        } : item
-      );
+      // Update the content list
+      const updatedContent = content.map(item => {
+        if (item.contentId === selectedItem.contentId) {
+          return {
+            ...item,
+            isLent: true,
+            lentTo: lendToEmail
+          };
+        }
+        return item;
+      });
       
       setContent(updatedContent);
       handleCloseLendDialog();
       
       setSnackbar({
         open: true,
-        message: `Content "${selectedItem.title}" lent successfully`,
+        message: `Item successfully lent to ${lendToEmail}`,
         severity: 'success'
       });
-    } catch (err) {
-      console.error('Error lending content:', err);
+    } catch (error) {
+      console.error('Error lending content:', error);
       setSnackbar({
         open: true,
-        message: err instanceof Error ? err.message : 'Failed to lend content',
+        message: 'Failed to lend the item. Please try again.',
         severity: 'error'
       });
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -279,10 +256,10 @@ const LibraryContent: React.FC<LibraryContentProps> = ({ libraryId }) => {
     if (!selectedItem) return;
     
     // Validate input
-    if (!buyerEmail.trim()) {
+    if (buyerEmail && !buyerEmail.includes('@')) {
       setSnackbar({
         open: true,
-        message: 'Please enter a valid buyer email address',
+        message: 'Please enter a valid email address',
         severity: 'error'
       });
       return;
@@ -292,21 +269,22 @@ const LibraryContent: React.FC<LibraryContentProps> = ({ libraryId }) => {
       // In development, mock the API call
       if (process.env.NODE_ENV === 'development') {
         // Remove the sold item from the content list
-        const updatedContent = content.filter(item => item.id !== selectedItem.id);
+        const updatedContent = content.filter(item => item.contentId !== selectedItem.contentId);
         
         setContent(updatedContent);
         handleCloseSellDialog();
         
         setSnackbar({
           open: true,
-          message: `Content "${selectedItem.title}" sold successfully`,
+          message: `Content sold successfully for ${formatCurrency(sellPrice)}`,
           severity: 'success'
         });
         
         return;
       }
       
-      const response = await fetch(`/api/libraries/${libraryId}/items/${selectedItem.id}/sell`, {
+      // This would be replaced with libraryService.sellItem in a real implementation
+      const response = await fetch(`/api/libraries/${libraryId}/items/${selectedItem.contentId}/sell`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -321,15 +299,15 @@ const LibraryContent: React.FC<LibraryContentProps> = ({ libraryId }) => {
         throw new Error('Failed to sell content');
       }
       
-      // Remove the sold item from the content list
-      const updatedContent = content.filter(item => item.id !== selectedItem.id);
+      // Remove the sold item from the content list - renamed to avoid duplicate variable
+      const filteredContent = content.filter(item => item.contentId !== selectedItem.contentId);
       
-      setContent(updatedContent);
+      setContent(filteredContent);
       handleCloseSellDialog();
       
       setSnackbar({
         open: true,
-        message: `Content "${selectedItem.title}" sold successfully`,
+        message: `Content sold successfully for ${formatCurrency(sellPrice)}`,
         severity: 'success'
       });
     } catch (err) {
@@ -417,7 +395,7 @@ const LibraryContent: React.FC<LibraryContentProps> = ({ libraryId }) => {
     <Box>
       <Grid container spacing={3}>
         {content.map((item) => (
-          <Grid item xs={12} sm={6} md={4} key={item.id}>
+          <Grid item xs={12} sm={6} md={4} key={item.contentId}>
             <Card 
               sx={{ 
                 height: '100%', 

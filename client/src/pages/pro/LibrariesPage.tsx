@@ -32,6 +32,7 @@ import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
 import FormatListBulletedIcon from '@mui/icons-material/FormatListBulleted';
 import SearchIcon from '@mui/icons-material/Search';
+import { libraryService, Library } from '../../services/library.service';
 
 // Sample library images for development
 const SAMPLE_THUMBNAILS = [
@@ -41,25 +42,14 @@ const SAMPLE_THUMBNAILS = [
   'https://images.unsplash.com/photo-1544967082-d9d25d867d66',
 ];
 
-interface Library {
-  _id: string;
-  name: string;
-  description: string;
-  isPublic: boolean;
-  itemCount: number;
-  totalValue: number;
-  thumbnailUrl?: string;
-  createdAt: string;
-  updatedAt: string;
-}
-
-// Sample data for development
-const SAMPLE_LIBRARIES: Library[] = [
+// Sample data for development - with correct type structure
+const SAMPLE_LIBRARIES: EnhancedLibrary[] = [
   {
     _id: '1',
     name: 'Film Collection',
     description: 'My curated collection of independent films from around the world',
     isPublic: true,
+    items: [],
     itemCount: 24,
     totalValue: 1450,
     thumbnailUrl: SAMPLE_THUMBNAILS[0],
@@ -71,6 +61,7 @@ const SAMPLE_LIBRARIES: Library[] = [
     name: 'Documentary Series',
     description: 'A collection of educational documentaries focusing on climate change',
     isPublic: true,
+    items: [],
     itemCount: 12,
     totalValue: 850,
     thumbnailUrl: SAMPLE_THUMBNAILS[1],
@@ -82,6 +73,7 @@ const SAMPLE_LIBRARIES: Library[] = [
     name: 'Private Archive',
     description: 'Personal archive of family videos and memories',
     isPublic: false,
+    items: [],
     itemCount: 47,
     totalValue: 0, // Not for sale
     thumbnailUrl: SAMPLE_THUMBNAILS[2],
@@ -90,9 +82,16 @@ const SAMPLE_LIBRARIES: Library[] = [
   },
 ];
 
+// Add itemCount and totalValue properties to the Library interface
+interface EnhancedLibrary extends Library {
+  itemCount?: number;
+  totalValue?: number;
+  thumbnailUrl?: string;
+}
+
 const LibrariesPage: React.FC = () => {
   const navigate = useNavigate();
-  const [libraries, setLibraries] = useState<Library[]>([]);
+  const [libraries, setLibraries] = useState<EnhancedLibrary[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
@@ -101,7 +100,7 @@ const LibrariesPage: React.FC = () => {
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [selectedLibrary, setSelectedLibrary] = useState<Library | null>(null);
+  const [selectedLibrary, setSelectedLibrary] = useState<EnhancedLibrary | null>(null);
   
   // Form states
   const [libraryName, setLibraryName] = useState('');
@@ -112,19 +111,28 @@ const LibrariesPage: React.FC = () => {
   useEffect(() => {
     const fetchLibraries = async () => {
       try {
-        const response = await fetch('/api/libraries');
-        if (!response.ok) {
-          throw new Error('Failed to fetch libraries');
-        }
-        const data = await response.json();
-        setLibraries(data);
+        setLoading(true);
+        const data = await libraryService.getAllLibraries();
+        
+        // Enhance libraries with additional display properties
+        const enhancedLibraries = data.map(library => ({
+          ...library,
+          itemCount: library.items.length,
+          totalValue: library.items.reduce((sum, item) => sum + (item.currentValue || 0), 0),
+          thumbnailUrl: library.items.length > 0 
+            ? `https://images.unsplash.com/photo-${Math.floor(Math.random() * 1000000)}`
+            : SAMPLE_THUMBNAILS[Math.floor(Math.random() * SAMPLE_THUMBNAILS.length)]
+        }));
+        
+        setLibraries(enhancedLibraries);
+        setError(null);
       } catch (err) {
         console.error('Error fetching libraries:', err);
-        setError(err instanceof Error ? err.message : 'An error occurred');
+        setError(err instanceof Error ? err.message : 'An error occurred while fetching libraries');
         
         // Fall back to sample data in development environment
         if (process.env.NODE_ENV === 'development') {
-          console.log('Using sample data for libraries');
+          console.log('Using sample data for libraries due to error');
           setLibraries(SAMPLE_LIBRARIES);
           setError(null);
         }
@@ -133,8 +141,8 @@ const LibrariesPage: React.FC = () => {
       }
     };
 
-    // In development, use sample data
-    if (process.env.NODE_ENV === 'development') {
+    // In development, use sample data if the environment flag is set
+    if (process.env.NODE_ENV === 'development' && process.env.REACT_APP_USE_SAMPLE_DATA === 'true') {
       setTimeout(() => {
         setLibraries(SAMPLE_LIBRARIES);
         setLoading(false);
@@ -157,49 +165,32 @@ const LibrariesPage: React.FC = () => {
     }
 
     try {
-      const newLibrary = {
+      setLoading(true);
+      
+      const newLibrary = await libraryService.createLibrary({
         name: libraryName,
         description: libraryDescription,
-        isPublic: libraryIsPublic,
-      };
-      
-      // In development, mock the API call
-      if (process.env.NODE_ENV === 'development') {
-        const mockNewLibrary: Library = {
-          _id: Date.now().toString(),
-          ...newLibrary,
-          itemCount: 0,
-          totalValue: 0,
-          thumbnailUrl: SAMPLE_THUMBNAILS[Math.floor(Math.random() * SAMPLE_THUMBNAILS.length)],
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-        };
-        
-        setLibraries([mockNewLibrary, ...libraries]);
-        setCreateDialogOpen(false);
-        resetForm();
-        return;
-      }
-      
-      const response = await fetch('/api/libraries', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(newLibrary),
+        isPublic: libraryIsPublic
       });
       
-      if (!response.ok) {
-        throw new Error('Failed to create library');
-      }
+      // Add display properties for the UI
+      const enhancedLibrary: EnhancedLibrary = {
+        ...newLibrary,
+        itemCount: 0,
+        totalValue: 0,
+        thumbnailUrl: SAMPLE_THUMBNAILS[Math.floor(Math.random() * SAMPLE_THUMBNAILS.length)]
+      };
       
-      const createdLibrary = await response.json();
-      setLibraries([createdLibrary, ...libraries]);
+      setLibraries([enhancedLibrary, ...libraries]);
       setCreateDialogOpen(false);
       resetForm();
-    } catch (err) {
-      console.error('Error creating library:', err);
-      setError(err instanceof Error ? err.message : 'Failed to create library');
+    } catch (error) {
+      console.error('Error creating library:', error);
+      setFormErrors({
+        submit: error instanceof Error ? error.message : 'Failed to create library'
+      });
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -297,7 +288,7 @@ const LibrariesPage: React.FC = () => {
     }
   };
 
-  const openEditDialog = (library: Library) => {
+  const openEditDialog = (library: EnhancedLibrary) => {
     setSelectedLibrary(library);
     setLibraryName(library.name);
     setLibraryDescription(library.description);
@@ -305,7 +296,7 @@ const LibrariesPage: React.FC = () => {
     setEditDialogOpen(true);
   };
 
-  const openDeleteDialog = (library: Library) => {
+  const openDeleteDialog = (library: EnhancedLibrary) => {
     setSelectedLibrary(library);
     setDeleteDialogOpen(true);
   };
@@ -481,7 +472,10 @@ const LibrariesPage: React.FC = () => {
                         Value:
                       </Typography>
                       <Typography variant="body2" fontWeight="bold">
-                        {library.totalValue > 0 ? formatCurrency(library.totalValue) : 'Not for sale'}
+                        {library.totalValue !== undefined && library.totalValue > 0 
+                          ? formatCurrency(library.totalValue) 
+                          : 'Not for sale'
+                        }
                       </Typography>
                     </Box>
                     

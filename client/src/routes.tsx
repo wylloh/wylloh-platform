@@ -15,6 +15,7 @@ import ContentDetailsPage from './pages/ContentDetailsPage';
 import TokenizeTestPage from './pages/TokenizeTestPage';
 import StoragePage from './pages/StoragePage';
 import ContentMediaPage from './pages/ContentMediaPage';
+import SearchPage from './pages/SearchPage';
 
 // Pro pages
 import ProDashboardPage from './pages/pro/DashboardPage';
@@ -43,6 +44,7 @@ const AppRoutes = () => {
         <Route path="login" element={<LoginPage />} />
         <Route path="register" element={<RegisterPage />} />
         <Route path="store" element={<StorePage />} />
+        <Route path="search" element={<SearchPage />} />
         <Route path="content/:contentId" element={<ContentDetailsPage />} />
         <Route path="content/:contentId/media" element={<ContentMediaPage />} />
         <Route path="library/:libraryId" element={<LibraryPage />} />

@@ -30,7 +30,8 @@ import {
   FileUpload,
   Home,
   AdminPanelSettings,
-  VerifiedUser
+  VerifiedUser,
+  Search as SearchIcon
 } from '@mui/icons-material';
 import { useWallet } from '../../contexts/WalletContext';
 import { useAuth } from '../../contexts/AuthContext';
@@ -115,6 +116,7 @@ const Navbar: React.FC = () => {
   const navLinks = [
     { text: 'Home', to: '/', icon: <Home /> },
     { text: 'Marketplace', to: '/marketplace', icon: <VideoLibrary /> },
+    { text: 'Discover', to: '/search', icon: <SearchIcon /> },
   ];
   
   // Creator links (if authenticated)
