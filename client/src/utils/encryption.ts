@@ -6,36 +6,96 @@ import CryptoJS from 'crypto-js';
  */
 
 /**
+ * Access level types for content permissions
+ */
+export enum AccessLevel {
+  // No access
+  NONE = 0,
+  // Can view content only
+  VIEW = 10,
+  // Can download content
+  DOWNLOAD = 20,
+  // Can edit metadata
+  EDIT_METADATA = 30,
+  // Full control (owner)
+  FULL_CONTROL = 100
+}
+
+// Interface for encrypted access rights
+export interface EncryptedAccessRight {
+  userId: string; // User identifier (wallet address)
+  contentId: string; // Content identifier
+  encryptedKey: string; // Encrypted content key
+  accessLevel: AccessLevel; // User's access level
+  expiresAt?: number; // Optional expiration timestamp
+  keyVersion: number; // Key version for rotation support
+  signature?: string; // Signature for verification
+}
+
+/**
  * Generate a random content encryption key
  * @returns A secure random encryption key
  */
 export async function generateContentKey(): Promise<string> {
-  const key = await window.crypto.subtle.generateKey(
-    {
-      name: 'AES-GCM',
-      length: 256
-    },
-    true,
-    ['encrypt', 'decrypt']
-  );
+  // Create a buffer for the key
+  const keyBuffer = new Uint8Array(32); // 256 bits
+  
+  // Fill with cryptographically secure random values
+  window.crypto.getRandomValues(keyBuffer);
+  
+  // Convert to base64 for storage
+  return Buffer.from(keyBuffer).toString('base64');
+}
 
-  const exportedKey = await window.crypto.subtle.exportKey(
+/**
+ * Generate a deterministic key from master key and version
+ * Used for key rotation without re-encrypting content
+ * @param masterKey The master content key
+ * @param version The key version
+ * @returns A derived key for the specific version
+ */
+export async function deriveKeyForVersion(masterKey: string, version: number): Promise<string> {
+  // Convert master key to buffer
+  const masterKeyBuffer = Buffer.from(masterKey, 'base64');
+  
+  // Create version as byte array
+  const versionBuffer = new Uint8Array(4);
+  new DataView(versionBuffer.buffer).setUint32(0, version, false);
+  
+  // Use HKDF (HMAC-based Key Derivation Function) to derive a new key
+  // First import the master key
+  const masterKeyImport = await window.crypto.subtle.importKey(
     'raw',
-    key
+    masterKeyBuffer,
+    { name: 'HMAC', hash: 'SHA-256' },
+    false,
+    ['sign']
   );
-
-  return Buffer.from(exportedKey).toString('base64');
+  
+  // Use the master key to sign the version
+  const signature = await window.crypto.subtle.sign(
+    'HMAC',
+    masterKeyImport,
+    versionBuffer
+  );
+  
+  // Use the first 32 bytes as the derived key
+  const derivedKey = new Uint8Array(signature).slice(0, 32);
+  
+  return Buffer.from(derivedKey).toString('base64');
 }
 
 /**
  * Encrypt content with a symmetric key
  * @param content The content to encrypt (typically file data as ArrayBuffer or string)
  * @param contentKey The symmetric key to use for encryption
+ * @param performance Whether to optimize for performance (uses AES-CTR instead of GCM)
  * @returns Encrypted content as a string
  */
 export async function encryptContent(
   content: ArrayBuffer | string,
-  contentKey: string
+  contentKey: string,
+  performance: boolean = false
 ): Promise<string> {
   // Convert content to ArrayBuffer if it's a string
   let contentBuffer: ArrayBuffer;
@@ -48,31 +108,42 @@ export async function encryptContent(
 
   // Import the key
   const keyBuffer = Buffer.from(contentKey, 'base64');
+  
+  // Choose algorithm based on performance needs
+  const algorithm = performance ? 'AES-CTR' : 'AES-GCM';
+  
   const key = await window.crypto.subtle.importKey(
     'raw',
     keyBuffer,
-    { name: 'AES-GCM', length: 256 },
+    { name: algorithm, length: 256 },
     false,
     ['encrypt']
   );
 
-  // Generate IV
-  const iv = window.crypto.getRandomValues(new Uint8Array(12));
+  // Generate IV (12 bytes for GCM, 16 bytes for CTR)
+  const ivLength = performance ? 16 : 12;
+  const iv = window.crypto.getRandomValues(new Uint8Array(ivLength));
 
-  // Encrypt
+  // Encrypt with appropriate parameters
+  const encryptParams = performance 
+    ? { name: 'AES-CTR', counter: iv, length: 128 }
+    : { name: 'AES-GCM', iv };
+    
   const encryptedBuffer = await window.crypto.subtle.encrypt(
-    {
-      name: 'AES-GCM',
-      iv
-    },
+    encryptParams,
     key,
     contentBuffer
   );
 
-  // Combine IV and encrypted data
-  const result = new Uint8Array(iv.length + encryptedBuffer.byteLength);
-  result.set(iv);
-  result.set(new Uint8Array(encryptedBuffer), iv.length);
+  // Add algorithm identifier (1 byte: 0 for GCM, 1 for CTR)
+  const algoIdentifier = new Uint8Array(1);
+  algoIdentifier[0] = performance ? 1 : 0;
+  
+  // Combine algorithm, IV and encrypted data
+  const result = new Uint8Array(1 + iv.length + encryptedBuffer.byteLength);
+  result.set(algoIdentifier, 0);
+  result.set(iv, 1);
+  result.set(new Uint8Array(encryptedBuffer), 1 + iv.length);
 
   return Buffer.from(result).toString('base64');
 }
@@ -90,26 +161,33 @@ export async function decryptContent(
   // Convert base64 to ArrayBuffer
   const encryptedBuffer = Buffer.from(encryptedContent, 'base64');
   
-  // Extract IV and encrypted data
-  const iv = encryptedBuffer.slice(0, 12);
-  const data = encryptedBuffer.slice(12);
+  // Extract algorithm identifier
+  const algoIdentifier = encryptedBuffer[0];
+  const isPerformanceMode = algoIdentifier === 1;
+  
+  // Extract IV and encrypted data with appropriate offsets
+  const ivLength = isPerformanceMode ? 16 : 12;
+  const iv = encryptedBuffer.slice(1, 1 + ivLength);
+  const data = encryptedBuffer.slice(1 + ivLength);
 
-  // Import the key
+  // Import the key with correct algorithm
+  const algorithm = isPerformanceMode ? 'AES-CTR' : 'AES-GCM';
   const keyBuffer = Buffer.from(contentKey, 'base64');
   const key = await window.crypto.subtle.importKey(
     'raw',
     keyBuffer,
-    { name: 'AES-GCM', length: 256 },
+    { name: algorithm, length: 256 },
     false,
     ['decrypt']
   );
 
-  // Decrypt
+  // Decrypt with appropriate parameters
+  const decryptParams = isPerformanceMode
+    ? { name: 'AES-CTR', counter: new Uint8Array(iv), length: 128 }
+    : { name: 'AES-GCM', iv: new Uint8Array(iv) };
+    
   const decryptedBuffer = await window.crypto.subtle.decrypt(
-    {
-      name: 'AES-GCM',
-      iv: new Uint8Array(iv)
-    },
+    decryptParams,
     key,
     data
   );
@@ -120,16 +198,22 @@ export async function decryptContent(
 }
 
 /**
- * Encrypt a content key with a user's public key
- * This allows secure key sharing via blockchain
+ * Encrypt a content key for a specific user and access level
  * @param contentKey The symmetric content key
  * @param publicKey The public key to encrypt with (typically derived from wallet)
- * @returns Encrypted key that only the holder of the private key can decrypt
+ * @param accessLevel The access level to grant
+ * @param expiresAt Optional expiration timestamp
+ * @returns Encrypted access right object
  */
-export async function encryptContentKey(
+export async function encryptContentKeyForUser(
+  contentId: string,
   contentKey: string,
-  publicKey: string
-): Promise<string> {
+  userId: string,
+  publicKey: string,
+  accessLevel: AccessLevel = AccessLevel.VIEW,
+  expiresAt?: number,
+  keyVersion: number = 1
+): Promise<EncryptedAccessRight> {
   // Import the public key
   const publicKeyBuffer = Buffer.from(publicKey, 'base64');
   const key = await window.crypto.subtle.importKey(
@@ -155,7 +239,17 @@ export async function encryptContentKey(
     contentKeyBuffer
   );
 
-  return Buffer.from(encryptedBuffer).toString('base64');
+  // Create the access right object
+  const accessRight: EncryptedAccessRight = {
+    userId,
+    contentId,
+    encryptedKey: Buffer.from(encryptedBuffer).toString('base64'),
+    accessLevel,
+    keyVersion,
+    expiresAt
+  };
+  
+  return accessRight;
 }
 
 /**
@@ -208,26 +302,31 @@ function arrayBufferToBase64(buffer: ArrayBuffer): string {
 /**
  * Convert Base64 string to ArrayBuffer (after decryption)
  */
-export function base64ToArrayBuffer(base64: string): ArrayBuffer {
+export function base64ToArrayBuffer(base64: string): Uint8Array {
   const binary_string = atob(base64);
   const len = binary_string.length;
   const bytes = new Uint8Array(len);
   for (let i = 0; i < len; i++) {
       bytes[i] = binary_string.charCodeAt(i);
   }
-  return bytes.buffer;
+  return bytes;
 }
 
 /**
  * Encrypt a file before uploading to IPFS
  * @param file The file to encrypt
  * @param contentKey The encryption key (if not provided, a new one is generated)
+ * @param optimizeForPerformance Whether to optimize for performance over security
  * @returns Promise with the encrypted file and the key used
  */
 export async function encryptFile(
   file: File,
-  contentKey?: string
+  contentKey?: string,
+  optimizeForPerformance: boolean = false
 ): Promise<{ encryptedFile: File; contentKey: string }> {
+  // For large files (>10MB), optimize for performance by default
+  const performanceOptimize = optimizeForPerformance || file.size > 10 * 1024 * 1024;
+  
   // Generate a key if not provided
   const key = contentKey || await generateContentKey();
 
@@ -235,7 +334,7 @@ export async function encryptFile(
   const fileBuffer = await file.arrayBuffer();
 
   // Encrypt the file content
-  const encryptedContent = await encryptContent(fileBuffer, key);
+  const encryptedContent = await encryptContent(fileBuffer, key, performanceOptimize);
 
   // Create a new file with encrypted content
   const encryptedFile = new File(
@@ -251,8 +350,8 @@ export async function encryptFile(
 }
 
 /**
- * Decrypt a file after downloading from IPFS
- * @param encryptedFile The encrypted file
+ * Decrypt an encrypted file using the content key
+ * @param encryptedFile The encrypted file blob
  * @param contentKey The decryption key
  * @returns Promise with the decrypted file
  */
@@ -260,115 +359,135 @@ export async function decryptFile(
   encryptedFile: File | Blob,
   contentKey: string
 ): Promise<File> {
+  // Performance monitoring
+  const startTime = performance.now();
+  
   try {
-    console.log(
-      `EncryptionUtils: Decrypting file ${
-        encryptedFile instanceof File ? encryptedFile.name : 'blob'
-      }`
-    );
-
-    // Read the encrypted file as text
-    let encryptedContent: string;
-
-    try {
-      encryptedContent = await readFileAsText(encryptedFile);
-    } catch (readError) {
-      console.error('EncryptionUtils: Error reading encrypted file as text:', readError);
-      throw new Error('Failed to read encrypted file');
-    }
-
-    if (!encryptedContent || encryptedContent.length === 0) {
-      console.error('EncryptionUtils: Empty encrypted content');
-      throw new Error('Encrypted file is empty or corrupted');
-    }
-
+    // Read file as text
+    const encryptedContent = await readFileAsText(encryptedFile);
+    
     // Decrypt the content
-    let decryptedContent: string;
-
-    try {
-      decryptedContent = await decryptContent(encryptedContent, contentKey);
-    } catch (decryptError) {
-      console.error('EncryptionUtils: Error decrypting content:', decryptError);
-      throw new Error('Failed to decrypt file - the encryption key may be invalid');
+    const decryptedContent = await decryptContent(encryptedContent, contentKey);
+    
+    // Convert the decrypted content to binary data
+    const binaryData = base64ToArrayBuffer(decryptedContent);
+    
+    // Create a new Blob with the decrypted data
+    const decryptedBlob = new Blob([binaryData]);
+    
+    // Try to determine the original filename and mimetype
+    let fileName = 'decrypted-file';
+    if (encryptedFile instanceof File && encryptedFile.name.endsWith('.encrypted')) {
+      fileName = encryptedFile.name.substring(0, encryptedFile.name.length - 10);
     }
-
-    if (!decryptedContent || decryptedContent.length === 0) {
-      console.error('EncryptionUtils: Empty decrypted content');
-      throw new Error('Decryption produced empty content - the file may be corrupted');
-    }
-
-    // Determine original filename by removing .encrypted extension
-    const fileName =
-      encryptedFile instanceof File
-        ? encryptedFile.name.replace('.encrypted', '')
-        : 'decrypted-file';
-
-    // Create a new file with decrypted content
-    // For binary files, we need to convert base64 back to ArrayBuffer
-    try {
-      const binaryContent = base64ToArrayBuffer(decryptedContent);
-
-      return new File([binaryContent], fileName, {
-        type: determineMimeType(fileName)
-      });
-    } catch (fileCreationError) {
-      console.error('EncryptionUtils: Error creating decrypted file:', fileCreationError);
-      throw new Error('Failed to create decrypted file');
-    }
+    
+    // Try to determine MIME type based on file extension
+    const mimeType = determineMimeType(fileName);
+    
+    // Create a new File object with the decrypted data
+    const decryptedFile = new File([decryptedBlob], fileName, { type: mimeType });
+    
+    // Log performance metrics
+    const endTime = performance.now();
+    console.log(`File decryption took ${endTime - startTime}ms for ${encryptedFile.size} bytes`);
+    
+    return decryptedFile;
   } catch (error) {
-    console.error('EncryptionUtils: Decryption failed:', error);
-    throw error;
+    console.error('Error decrypting file:', error);
+    throw new Error('Failed to decrypt file: ' + (error instanceof Error ? error.message : String(error)));
   }
 }
 
 /**
- * Determine MIME type from filename
- * @param fileName Name of the file
- * @returns Appropriate MIME type
+ * Determine MIME type based on file extension
+ * @param fileName The file name
+ * @returns The MIME type
  */
 function determineMimeType(fileName: string): string {
   const extension = fileName.split('.').pop()?.toLowerCase();
   
-  switch (extension) {
-    case 'mp4':
-    case 'mov':
-    case 'm4v':
-      return 'video/mp4';
-    case 'webm':
-      return 'video/webm';
-    case 'avi':
-      return 'video/x-msvideo';
-    case 'wmv':
-      return 'video/x-ms-wmv';
-    case 'mpg':
-    case 'mpeg':
-      return 'video/mpeg';
-    case 'jpg':
-    case 'jpeg':
-      return 'image/jpeg';
-    case 'png':
-      return 'image/png';
-    case 'gif':
-      return 'image/gif';
-    case 'mp3':
-      return 'audio/mpeg';
-    case 'wav':
-      return 'audio/wav';
-    case 'pdf':
-      return 'application/pdf';
-    default:
-      return 'application/octet-stream';
+  // Common MIME types mapping
+  const mimeTypes: Record<string, string> = {
+    'txt': 'text/plain',
+    'html': 'text/html',
+    'css': 'text/css',
+    'js': 'text/javascript',
+    'json': 'application/json',
+    'pdf': 'application/pdf',
+    'jpg': 'image/jpeg',
+    'jpeg': 'image/jpeg',
+    'png': 'image/png',
+    'gif': 'image/gif',
+    'svg': 'image/svg+xml',
+    'webp': 'image/webp',
+    'mp4': 'video/mp4',
+    'webm': 'video/webm',
+    'mp3': 'audio/mpeg',
+    'wav': 'audio/wav',
+    'ogg': 'audio/ogg',
+    'doc': 'application/msword',
+    'docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    'xls': 'application/vnd.ms-excel',
+    'xlsx': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+  };
+  
+  if (extension && extension in mimeTypes) {
+    return mimeTypes[extension];
   }
+  
+  // Default MIME type
+  return 'application/octet-stream';
 }
 
 /**
- * Helper function to read a file as text
+ * Read file as text
+ * @param file The file to read
+ * @returns Promise with the file content as text
  */
 async function readFileAsText(file: File | Blob): Promise<string> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = () => resolve(reader.result as string);
-    reader.onerror = reject;
+    reader.onerror = () => reject(new Error('Failed to read file'));
     reader.readAsText(file);
   });
+}
+
+/**
+ * Create a batch of encrypted keys for multiple users
+ * Used for efficient permission granting to multiple users
+ * @param contentId Content identifier 
+ * @param contentKey The content encryption key
+ * @param userAccessRights Map of user IDs to their access level and public key
+ * @param keyVersion The key version
+ * @returns Array of encrypted access rights
+ */
+export async function batchEncryptContentKey(
+  contentId: string,
+  contentKey: string,
+  userAccessRights: Map<string, { accessLevel: AccessLevel, publicKey: string, expiresAt?: number }>,
+  keyVersion: number = 1
+): Promise<EncryptedAccessRight[]> {
+  const results: EncryptedAccessRight[] = [];
+  
+  // Process each user (using Array.from for compatibility)
+  for (const [userId, rights] of Array.from(userAccessRights.entries())) {
+    try {
+      const encryptedRight = await encryptContentKeyForUser(
+        contentId,
+        contentKey,
+        userId,
+        rights.publicKey,
+        rights.accessLevel,
+        rights.expiresAt,
+        keyVersion
+      );
+      
+      results.push(encryptedRight);
+    } catch (error) {
+      console.error(`Error encrypting key for user ${userId}:`, error);
+    }
+  }
+  
+  return results;
 } 
