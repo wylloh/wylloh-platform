@@ -2,24 +2,42 @@ import axios from 'axios';
 import { API_BASE_URL } from '../config';
 import * as encryptionUtils from '../utils/encryption';
 import { keyManagementService } from './keyManagement.service';
+import { cdnService } from './cdn.service';
 
 /**
  * Service for downloading and decrypting content
  */
 class DownloadService {
   /**
-   * Download a file from IPFS by CID
+   * Download a file from IPFS by CID with CDN optimization
    * 
    * @param cid IPFS Content Identifier
    * @returns Promise with the file blob
    */
   private async downloadFile(cid: string): Promise<Blob> {
     try {
-      const response = await axios.get(`${API_BASE_URL}/api/ipfs/${cid}`, {
-        responseType: 'blob'
-      });
+      // Get the optimized URL from the CDN service
+      const optimizedUrl = cdnService.getOptimizedUrl(cid);
       
-      return response.data;
+      // Try the optimized CDN path first
+      try {
+        console.log(`DownloadService: Downloading from optimized CDN URL: ${optimizedUrl}`);
+        const response = await axios.get(optimizedUrl, {
+          responseType: 'blob',
+          headers: {
+            'Cache-Control': 'max-age=3600' // Enable caching
+          }
+        });
+        return response.data;
+      } catch (cdnError) {
+        console.warn(`DownloadService: CDN download failed, falling back to API: ${cdnError}`);
+        
+        // Fallback to API if CDN fails
+        const response = await axios.get(`${API_BASE_URL}/api/ipfs/${cid}`, {
+          responseType: 'blob'
+        });
+        return response.data;
+      }
     } catch (error) {
       console.error(`Error downloading file with CID ${cid}:`, error);
       throw error;
@@ -88,6 +106,15 @@ class DownloadService {
     try {
       console.log(`DownloadService: Creating stream URL for content ${cid} and wallet ${walletAddress}`);
       
+      // First try to get the cached stream URL if it exists
+      const cachedStreamKey = `stream_${cid}_${walletAddress}`;
+      const cachedStreamUrl = sessionStorage.getItem(cachedStreamKey);
+      
+      if (cachedStreamUrl) {
+        console.log('DownloadService: Using cached stream URL');
+        return cachedStreamUrl;
+      }
+      
       // Verify ownership before proceeding
       const ownershipVerified = await keyManagementService.verifyContentOwnership(cid, walletAddress);
       
@@ -96,6 +123,7 @@ class DownloadService {
         return null;
       }
       
+      // For content that requires decryption, we need to download and decrypt
       const decryptedFile = await this.getDecryptedContent(cid, walletAddress);
       if (!decryptedFile) {
         console.error('DownloadService: Failed to decrypt content');
@@ -105,11 +133,30 @@ class DownloadService {
       // Create object URL for streaming
       const objectUrl = URL.createObjectURL(decryptedFile);
       console.log(`DownloadService: Created stream URL: ${objectUrl}`);
+      
+      // Cache the stream URL in session storage for faster access next time
+      try {
+        sessionStorage.setItem(cachedStreamKey, objectUrl);
+      } catch (storageError) {
+        console.warn('Failed to cache stream URL:', storageError);
+      }
+      
       return objectUrl;
     } catch (error) {
       console.error('Error creating content stream URL:', error);
       return null;
     }
+  }
+  
+  /**
+   * Get optimized streaming URL for public (non-encrypted) content
+   * 
+   * @param cid IPFS Content Identifier
+   * @returns Stream URL for the content
+   */
+  getPublicStreamUrl(cid: string): string {
+    // For public content, we can use the CDN directly
+    return cdnService.getStreamingUrl(cid);
   }
   
   /**
@@ -183,6 +230,32 @@ class DownloadService {
     } catch (error) {
       console.error('Error downloading content to device:', error);
       return false;
+    }
+  }
+  
+  /**
+   * Prefetch content for faster playback
+   * 
+   * @param cid IPFS Content Identifier
+   * @param walletAddress User's wallet address
+   */
+  async prefetchContent(cid: string, walletAddress: string): Promise<void> {
+    try {
+      console.log(`DownloadService: Prefetching content: ${cid}`);
+      
+      // Check access first - don't prefetch if user can't access
+      const canAccess = await this.canAccessContent(cid, walletAddress);
+      if (!canAccess) {
+        console.log('DownloadService: User cannot access content, skipping prefetch');
+        return;
+      }
+      
+      // Use the CDN service to prefetch
+      await cdnService.prefetchContent(cid);
+      
+      console.log(`DownloadService: Prefetch initiated for ${cid}`);
+    } catch (error) {
+      console.warn(`DownloadService: Error prefetching content: ${error}`);
     }
   }
 }

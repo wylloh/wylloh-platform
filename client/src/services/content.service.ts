@@ -3,6 +3,8 @@ import { API_BASE_URL } from '../config';
 import { ethers } from 'ethers';
 import { blockchainService } from './blockchain.service';
 import { keyManagementService } from './keyManagement.service';
+import { cdnService } from './cdn.service';
+import { getIpfsUrl, getProjectIpfsUrl, getStreamUrl, getThumbnailUrl as getOriginalThumbnailUrl } from '../utils/ipfs';
 
 // Add custom type declarations for window.ethereum
 declare global {
@@ -1121,6 +1123,81 @@ class ContentService {
     } catch (error) {
       console.error('Error verifying token:', error);
       throw error;
+    }
+  }
+
+  // Get content streaming URL with CDN optimization
+  getContentStreamingUrl(cid: string): string {
+    if (!cid) return '';
+    
+    // Use CDN service for optimized streaming URL
+    return cdnService.getStreamingUrl(cid);
+  }
+  
+  // Get content thumbnail URL with CDN optimization
+  getContentThumbnailUrl(cid: string, fallbackCid?: string): string {
+    if (!cid && !fallbackCid) {
+      // If no CID is provided, return a placeholder
+      return 'https://via.placeholder.com/400x300?text=No+Thumbnail';
+    }
+    
+    // Use CDN service for optimized thumbnail URL
+    return cdnService.getThumbnailUrl(cid || fallbackCid || '');
+  }
+  
+  // Get content preview URL with CDN optimization
+  getContentPreviewUrl(cid: string): string {
+    if (!cid) return '';
+    
+    // Use CDN service for optimized URL
+    return cdnService.getOptimizedUrl(cid);
+  }
+  
+  // Prefetch content for faster access
+  async prefetchContent(contentId: string): Promise<void> {
+    try {
+      const content = await this.getContentById(contentId);
+      if (!content) return;
+      
+      // Prefetch thumbnail for immediate display
+      if (content.thumbnailCid) {
+        cdnService.prefetchContent(content.thumbnailCid);
+      }
+      
+      // Prefetch preview if available
+      if (content.previewCid) {
+        cdnService.prefetchContent(content.previewCid);
+      }
+      
+      // For main content, only prefetch if user has permission
+      const ownership = await this.checkContentOwnership(contentId, false);
+      if (ownership.owned && content.mainFileCid) {
+        cdnService.prefetchContent(content.mainFileCid);
+      }
+    } catch (error) {
+      console.warn(`Error prefetching content ${contentId}:`, error);
+    }
+  }
+  
+  // Initialize the CDN service and prefetch popular content
+  async initializeContentDelivery(): Promise<void> {
+    try {
+      // Initialize the CDN service
+      await cdnService.initialize();
+      
+      // Prefetch popular content thumbnails
+      const popularContent = await this.getMarketplaceContent();
+      
+      // Prefetch thumbnails for top 5 popular items
+      popularContent.slice(0, 5).forEach(content => {
+        if (content.thumbnailCid) {
+          cdnService.prefetchContent(content.thumbnailCid);
+        }
+      });
+      
+      console.log('Content delivery system initialized');
+    } catch (error) {
+      console.error('Error initializing content delivery:', error);
     }
   }
 }
