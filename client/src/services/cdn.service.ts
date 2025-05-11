@@ -14,6 +14,9 @@ const PUBLIC_GATEWAYS = [
 // Project's own gateway (will be the preferred option when available)
 const PROJECT_GATEWAY = process.env.REACT_APP_IPFS_GATEWAY || '/api/ipfs';
 
+// Edge server for adaptive streaming
+const EDGE_SERVER = process.env.REACT_APP_EDGE_SERVER || 'https://stream.wylloh.io';
+
 // Demo mode local gateway
 const LOCAL_GATEWAY = 'http://localhost:8080/ipfs';
 
@@ -478,6 +481,69 @@ class CdnService {
     setInterval(() => {
       this.updateGatewayPerformance();
     }, 5 * 60 * 1000);
+  }
+
+  /**
+   * Get the URL of the edge streaming server
+   * @returns Edge server URL
+   */
+  getEdgeServerUrl(): string {
+    // In demo mode, return local development stream server
+    if (this.isDemoMode) {
+      return 'http://localhost:3001';
+    }
+    
+    return EDGE_SERVER;
+  }
+  
+  /**
+   * Get a fallback gateway URL for a content URL that failed
+   * 
+   * @param originalUrl The original URL that failed
+   * @returns Fallback gateway URL
+   */
+  getFallbackGatewayUrl(originalUrl: string): string {
+    // Extract the CID from the original URL
+    const parts = originalUrl.split('/');
+    let cid = '';
+    
+    // Find the IPFS CID in the URL
+    for (let i = 0; i < parts.length; i++) {
+      if (parts[i] === 'ipfs' && i < parts.length - 1) {
+        cid = parts[i + 1];
+        break;
+      }
+    }
+    
+    if (!cid) {
+      // If we can't extract a CID, return original URL
+      return originalUrl;
+    }
+    
+    // Get a different gateway than the one in the original URL
+    const availableGateways = PUBLIC_GATEWAYS.filter(
+      gateway => !originalUrl.includes(gateway) && 
+                this.gatewayPerformance.get(gateway)?.available
+    );
+    
+    if (availableGateways.length === 0) {
+      // If no alternative gateways, use the first public gateway
+      return `${PUBLIC_GATEWAYS[0]}/${cid}`;
+    }
+    
+    // Find the fastest available alternative gateway
+    const fastestGateway = availableGateways.reduce((best, current) => {
+      const bestMetrics = this.gatewayPerformance.get(best);
+      const currentMetrics = this.gatewayPerformance.get(current);
+      
+      if (!bestMetrics || !currentMetrics) {
+        return best;
+      }
+      
+      return currentMetrics.latency < bestMetrics.latency ? current : best;
+    }, availableGateways[0]);
+    
+    return `${fastestGateway}/${cid}`;
   }
 }
 
