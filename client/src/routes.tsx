@@ -17,6 +17,8 @@ import StoragePage from './pages/StoragePage';
 import ContentMediaPage from './pages/ContentMediaPage';
 import SearchPage from './pages/SearchPage';
 import NetworkPage from './pages/NetworkPage';
+import AdaptiveStreamTestPage from './pages/player/AdaptiveStreamTestPage';
+import MetadataTestPage from './pages/metadata/MetadataTestPage';
 
 // Pro pages
 import ProDashboardPage from './pages/pro/DashboardPage';
@@ -49,6 +51,8 @@ const AppRoutes = () => {
         <Route path="content/:contentId" element={<ContentDetailsPage />} />
         <Route path="content/:contentId/media" element={<ContentMediaPage />} />
         <Route path="library/:libraryId" element={<LibraryPage />} />
+        <Route path="adaptive-streaming-test" element={<AdaptiveStreamTestPage />} />
+        <Route path="metadata-test" element={<MetadataTestPage />} />
 
         {/* Protected routes for all users */}
         <Route

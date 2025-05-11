@@ -1,10 +1,28 @@
 import React from 'react';
-import { Routes, Route } from 'react-router-dom';
+import { Routes, Route, Navigate } from 'react-router-dom';
+
+// Layout components
+import AppLayout from './layouts/AppLayout';
+import AdminLayout from './layouts/AdminLayout';
+
+// Pages
+import HomePage from './pages/HomePage';
+import LoginPage from './pages/LoginPage';
+import RegisterPage from './pages/RegisterPage';
+import DashboardPage from './pages/DashboardPage';
+import StorePage from './pages/StorePage';
+import ContentDetailsPage from './pages/ContentDetailsPage';
+import TokenizeTestPage from './pages/TokenizeTestPage';
+import StoragePage from './pages/StoragePage';
+import ContentMediaPage from './pages/ContentMediaPage';
+import SearchPage from './pages/SearchPage';
+import NetworkPage from './pages/NetworkPage';
+import AdaptiveStreamTestPage from './pages/player/AdaptiveStreamTestPage';
+import MetadataTestPage from './pages/metadata/MetadataTestPage';
+import DiscoverPage from './pages/DiscoverPage';
 
 // Import pages that we know exist
-import HomePage from '../pages/HomePage';
 import MarketplacePage from '../pages/marketplace/MarketplacePage';
-import ContentDetailsPage from '../pages/marketplace/ContentDetailsPage';
 import PlayerPage from '../pages/player/PlayerPage';
 import ContentStreamPage from '../pages/player/ContentStreamPage';
 import ProfilePage from '../pages/ProfilePage';
@@ -23,21 +41,43 @@ const ContentStreamPlaceholder = () => (
   </div>
 );
 
-const AppRoutes: React.FC = () => {
+const AppRoutes = () => {
   return (
     <Routes>
-      <Route path="/" element={<HomePage />} />
-      <Route path="/marketplace" element={<MarketplacePage />} />
-      <Route path="/marketplace/details/:id" element={<ContentDetailsPage />} />
-      <Route path="/marketplace/content/:id" element={<ContentDetailsPage />} />
-      <Route path="/player/:id" element={<PlayerPage />} />
-      <Route path="/profile" element={<ProfilePage />} />
-      <Route path="/collection" element={<MyCollectionPage />} />
-      
-      {/* Fixed route for content streaming */}
-      <Route path="/stream/:contentId/:walletAddress" element={<ContentStreamPage />} />
-      
-      <Route path="*" element={<NotFoundPage />} />
+      <Route path="/" element={<AppLayout />}>
+        {/* Public routes */}
+        <Route index element={<HomePage />} />
+        <Route path="login" element={<LoginPage />} />
+        <Route path="register" element={<RegisterPage />} />
+        <Route path="store" element={<StorePage />} />
+        <Route path="search" element={<SearchPage />} />
+        <Route path="discover" element={<DiscoverPage />} />
+        <Route path="content/:contentId" element={<ContentDetailsPage />} />
+        <Route path="content/:contentId/media" element={<ContentMediaPage />} />
+        <Route path="library/:libraryId" element={<LibraryPage />} />
+        <Route path="adaptive-streaming-test" element={<AdaptiveStreamTestPage />} />
+        <Route path="metadata-test" element={<MetadataTestPage />} />
+
+        {/* Marketplace routes */}
+        <Route path="marketplace" element={<MarketplacePage />} />
+        <Route path="marketplace/details/:id" element={<ContentDetailsPage />} />
+        <Route path="marketplace/content/:id" element={<ContentDetailsPage />} />
+
+        {/* Player routes */}
+        <Route path="player/:id" element={<PlayerPage />} />
+
+        {/* Profile routes */}
+        <Route path="profile" element={<ProfilePage />} />
+
+        {/* Collection routes */}
+        <Route path="collection" element={<MyCollectionPage />} />
+
+        {/* Fixed route for content streaming */}
+        <Route path="stream/:contentId/:walletAddress" element={<ContentStreamPage />} />
+
+        {/* 404 route */}
+        <Route path="*" element={<NotFoundPage />} />
+      </Route>
     </Routes>
   );
 };
