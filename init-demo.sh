@@ -305,7 +305,7 @@ start_ganache() {
       echo "Creator address: $CREATOR_ADDRESS"
       echo "Consumer address: $CONSUMER_ADDRESS"
       TEST_ACCOUNT=$CONSUMER_ADDRESS
-      TEST_PRIVATE_KEY="0x6370fd033278c143179d81c5526140625662b8daa446c22ee2d73db3707e620c"  # Second account private key
+      TEST_PRIVATE_KEY="YOUR_PRIVATE_KEY_HERE"  # Second account private key
       
       echo "Test account: $TEST_ACCOUNT"
       
@@ -321,7 +321,7 @@ start_ganache() {
   else
     echo -e "${YELLOW}In dry-run mode - would start Ganache on port $PORT_GANACHE${NC}"
     TEST_ACCOUNT="0x8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC"  # Consumer wallet address
-    TEST_PRIVATE_KEY="0x6cbed15c793ce57650b9877cf6fa156fbef513c4e6134f022a85b1ffdd59b2a1"  # Consumer wallet private key
+    TEST_PRIVATE_KEY="YOUR_PRIVATE_KEY_HERE"  # Consumer wallet private key
     echo "Test account would be: $TEST_ACCOUNT"
   fi
 }
@@ -685,7 +685,7 @@ update_configuration() {
     sed -i '' "s|REACT_APP_LOCAL_IP=.*|REACT_APP_LOCAL_IP=\"$LOCAL_IP\"|g" "$CLIENT_ENV_FILE"
     
     # Update API environment values
-    sed -i '' "s|JWT_SECRET=.*|JWT_SECRET=\"wylloh-demo-secret\"|g" "$API_ENV_FILE"
+    sed -i '' "s|JWT_SECRET=.*|JWT_SECRET=\"your-jwt-secret-here\"|g" "$API_ENV_FILE"
     sed -i '' "s|MONGODB_URI=.*|MONGODB_URI=\"mongodb://localhost:27017/wylloh-demo\"|g" "$API_ENV_FILE"
     sed -i '' "s|API_PORT=.*|API_PORT=4000|g" "$API_ENV_FILE"
     sed -i '' "s|TOKEN_CONTRACT_ADDRESS=.*|TOKEN_CONTRACT_ADDRESS=\"$contract_address\"|g" "$API_ENV_FILE"
