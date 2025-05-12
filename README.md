@@ -2,6 +2,14 @@
 
 An open protocol for movie tokenization and distribution, enabling cross-platform interoperability and direct relationships between creators and audiences.
 
+## 🚀 Project Status
+
+**Current Status:** Active Development
+
+The Wylloh Platform is currently in active development. We're working on building a decentralized ecosystem for film distribution with blockchain-based licensing and rights management. This repository is now open to community contributors who want to help shape the future of digital media distribution.
+
+**[Read our complete Product Requirements Document (PRD)](PRD.md)**
+
 ## Vision
 
 Wylloh aims to create a decentralized ecosystem for film distribution, where:
@@ -168,7 +176,24 @@ See [INTEGRATION.md](docs/INTEGRATION.md) for detailed integration instructions.
 
 ## Contributing
 
-We welcome contributions! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
+We welcome contributions from the community! Please see [README-OPEN-SOURCE.md](README-OPEN-SOURCE.md) for detailed guidelines on how to contribute to the project.
+
+### Development Focus Areas
+
+1. **Search/Blockchain Crawler Integration**
+   - Advanced filtering for movie Store
+   - Blockchain explorer for token ownership visibility
+   - Intuitive discovery experience
+
+2. **Pro User Experience**
+   - Content management interface improvements
+   - Robust tagging system
+   - Streamlined movie tokenization process
+
+3. **Storage and Content Delivery System**
+   - User-powered IPFS node network with incentives
+   - Progressive decentralization strategy
+   - Browser-based content sharing with DRM protection
 
 ## License
 
