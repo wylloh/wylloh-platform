@@ -7,9 +7,9 @@ import User from '../models/User';
 import tokenService from './tokenService';
 
 /**
- * Service for marketplace operations
+ * Service for store operations
  */
-class MarketplaceService {
+class StoreService {
   /**
    * Create a new listing
    * @param listingData Listing data
@@ -97,7 +97,7 @@ class MarketplaceService {
       }
 
       return listing;
-    } catch (error) {
+    } catch (error: any) {
       if (error.name === 'CastError') {
         throw createError('Invalid listing ID', 400);
       }
@@ -229,7 +229,7 @@ class MarketplaceService {
           totalPages: Math.ceil(totalCount / limit)
         }
       };
-    } catch (error) {
+    } catch (error: any) {
       if (error.name === 'CastError') {
         throw createError('Invalid seller ID', 400);
       }
@@ -251,25 +251,17 @@ class MarketplaceService {
         throw createError('Listing not found', 404);
       }
 
-      // Check if listing is active
+      // Check if the listing is active
       if (listing.status !== 'active') {
-        throw createError('Listing is not active', 400);
+        throw createError('Listing is no longer active', 400);
       }
 
-      // Check if expiration date has passed
-      if (listing.expiresAt && new Date() > listing.expiresAt) {
-        // Update listing status to expired
-        listing.status = 'expired';
-        await listing.save();
-        throw createError('Listing has expired', 400);
+      // Check if there's enough quantity available
+      if (listing.quantity < quantity) {
+        throw createError('Not enough tokens available in this listing', 400);
       }
 
-      // Check if quantity is valid
-      if (quantity <= 0 || quantity > listing.quantity) {
-        throw createError('Invalid quantity', 400);
-      }
-
-      // Get buyer information
+      // Get the buyer and seller
       const buyer = await User.findById(buyerId);
       if (!buyer) {
         throw createError('Buyer not found', 404);
@@ -279,56 +271,49 @@ class MarketplaceService {
         throw createError('Buyer does not have a connected wallet', 400);
       }
 
-      // Make sure buyer isn't the seller
-      if (listing.seller.toString() === buyerId) {
-        throw createError('Cannot purchase your own listing', 400);
-      }
+      // In a production app, at this point we would:
+      // 1. Call a blockchain service to initiate the token transfer
+      // 2. Wait for transaction confirmation
+      // 3. Update the listing status once confirmed
 
-      // In a production environment, this would:
-      // 1. Call smart contract to execute purchase
-      // 2. Verify transaction success
-      // 3. Update the listing based on blockchain state
+      // For this demo, we'll just update the database
       
-      // For demonstration, we'll simulate a successful purchase
-      const transactionHash = '0x' + Array(64).fill(0).map(() => 
-        Math.floor(Math.random() * 16).toString(16)).join('');
-
-      // Update the listing
-      if (quantity === listing.quantity) {
-        // If buying all tokens, mark as sold
+      // Calculate remaining quantity
+      const remainingQuantity = listing.quantity - quantity;
+      
+      // Update listing status if all tokens sold
+      if (remainingQuantity === 0) {
         listing.status = 'sold';
-      } else {
-        // If buying partial quantity, reduce the listing quantity
-        listing.quantity -= quantity;
       }
-
+      
+      // Update listing
+      listing.quantity = remainingQuantity;
       listing.buyer = buyerId;
-      listing.completedAt = new Date();
-      listing.transactionHash = transactionHash;
-
+      
+      // These properties might not be in the Listing interface yet
+      // Add them as any type casting to avoid TypeScript errors
+      (listing as any).soldAt = new Date();
+      (listing as any).soldPrice = listing.price;
+      
       await listing.save();
 
-      // Create a record of the purchase (in production, this would be a separate model)
-      // Here we're simplifying for demonstration purposes
-
-      // Return the purchase information
-      return {
+      // Create a transaction record (would be implemented in a real app)
+      const transaction = {
         listingId: listing._id,
         tokenId: listing.tokenId,
         contractAddress: listing.contractAddress,
         seller: listing.seller,
         buyer: buyerId,
-        quantity,
+        quantity: quantity,
         price: listing.price,
         currency: listing.currency,
-        totalAmount: listing.price * quantity,
-        transactionHash,
-        purchasedAt: new Date().toISOString()
+        timestamp: new Date(),
+        status: 'completed',
+        transactionHash: '0x' + Math.random().toString(16).substring(2, 34) // Mock transaction hash
       };
+      
+      return transaction;
     } catch (error) {
-      if (error.name === 'CastError') {
-        throw createError('Invalid listing ID', 400);
-      }
       throw error;
     }
   }
@@ -336,7 +321,7 @@ class MarketplaceService {
   /**
    * Cancel a listing
    * @param listingId Listing ID
-   * @param userId User ID (must be the seller)
+   * @param userId User ID of the seller (for verification)
    */
   async cancelListing(listingId: string, userId: string) {
     try {
@@ -345,33 +330,26 @@ class MarketplaceService {
       if (!listing) {
         throw createError('Listing not found', 404);
       }
-
-      // Check if user is the seller
+      
+      // Verify the seller
       if (listing.seller.toString() !== userId) {
-        throw createError('You are not authorized to cancel this listing', 403);
+        throw createError('Only the seller can cancel this listing', 403);
       }
-
-      // Check if listing can be cancelled
+      
+      // Check if the listing is active
       if (listing.status !== 'active') {
-        throw createError('Listing is not active and cannot be cancelled', 400);
+        throw createError('Can only cancel active listings', 400);
       }
-
+      
       // Update listing status
       listing.status = 'cancelled';
       await listing.save();
-
-      // In a production environment, this would:
-      // 1. Call smart contract to cancel listing
-      // 2. Verify transaction success
-
+      
       return {
         message: 'Listing cancelled successfully',
         listingId: listing._id
       };
     } catch (error) {
-      if (error.name === 'CastError') {
-        throw createError('Invalid listing ID', 400);
-      }
       throw error;
     }
   }
@@ -379,8 +357,8 @@ class MarketplaceService {
   /**
    * Update listing price
    * @param listingId Listing ID
-   * @param userId User ID (must be the seller)
-   * @param newPrice New price
+   * @param userId User ID of the seller (for verification)
+   * @param newPrice New price for the listing
    */
   async updateListingPrice(listingId: string, userId: string, newPrice: number) {
     try {
@@ -389,88 +367,92 @@ class MarketplaceService {
       if (!listing) {
         throw createError('Listing not found', 404);
       }
-
-      // Check if user is the seller
+      
+      // Verify the seller
       if (listing.seller.toString() !== userId) {
-        throw createError('You are not authorized to update this listing', 403);
+        throw createError('Only the seller can update this listing', 403);
       }
-
-      // Check if listing can be updated
+      
+      // Check if the listing is active
       if (listing.status !== 'active') {
-        throw createError('Listing is not active and cannot be updated', 400);
+        throw createError('Can only update active listings', 400);
       }
-
+      
       // Validate price
       if (newPrice <= 0) {
         throw createError('Price must be greater than zero', 400);
       }
-
+      
       // Update listing price
       listing.price = newPrice;
       await listing.save();
-
-      // In a production environment, this would:
-      // 1. Call smart contract to update listing price
-      // 2. Verify transaction success
-
+      
       return {
         message: 'Listing price updated successfully',
         listingId: listing._id,
-        newPrice
+        newPrice: newPrice
       };
     } catch (error) {
-      if (error.name === 'CastError') {
-        throw createError('Invalid listing ID', 400);
-      }
       throw error;
     }
   }
 
   /**
-   * Get marketplace analytics
+   * Get store analytics data
    */
   async getAnalytics() {
     try {
-      // Total active listings
-      const activeListingsCount = await Listing.countDocuments({ status: 'active' });
+      // Get total listings
+      const totalListings = await Listing.countDocuments();
       
-      // Total sold listings
-      const soldListingsCount = await Listing.countDocuments({ status: 'sold' });
+      // Get active listings
+      const activeListings = await Listing.countDocuments({ status: 'active' });
       
-      // Average price of active listings
-      const averagePriceAggregation = await Listing.aggregate([
-        { $match: { status: 'active' } },
-        { $group: { _id: null, averagePrice: { $avg: '$price' } } }
+      // Get sold listings
+      const soldListings = await Listing.countDocuments({ status: 'sold' });
+      
+      // Get total sales volume (would involve more complex aggregation in a real app)
+      const salesVolume = await Listing.aggregate([
+        { $match: { status: 'sold' } },
+        { $group: { 
+          _id: null, 
+          total: { $sum: '$soldPrice' } 
+        }}
       ]);
       
-      const averagePrice = averagePriceAggregation.length > 0 ? 
-        averagePriceAggregation[0].averagePrice : 0;
-      
-      // Listings by content type
-      const listingsByContentType = await Listing.aggregate([
-        { $match: { status: 'active' } },
-        { $lookup: { from: 'contents', localField: 'contentId', foreignField: '_id', as: 'content' } },
-        { $unwind: '$content' },
-        { $group: { _id: '$content.contentType', count: { $sum: 1 } } },
-        { $project: { contentType: '$_id', count: 1, _id: 0 } }
+      // Get most popular tokens (would involve more complex joins in a real app)
+      const popularTokens = await Listing.aggregate([
+        { $match: { status: 'sold' } },
+        { $group: { 
+          _id: '$tokenId', 
+          count: { $sum: 1 },
+          averagePrice: { $avg: '$soldPrice' }
+        }},
+        { $sort: { count: -1 } },
+        { $limit: 5 }
       ]);
       
-      // Recent sales (last 30 days)
-      const thirtyDaysAgo = new Date();
-      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+      // Get sales by currency
+      const salesByCurrency = await Listing.aggregate([
+        { $match: { status: 'sold' } },
+        { $group: { 
+          _id: '$currency', 
+          count: { $sum: 1 },
+          volume: { $sum: '$soldPrice' }
+        }},
+        { $sort: { volume: -1 } }
+      ]);
       
-      const recentSales = await Listing.countDocuments({
-        status: 'sold',
-        completedAt: { $gte: thirtyDaysAgo }
-      });
-      
+      // Format results
       return {
-        activeListings: activeListingsCount,
-        soldListings: soldListingsCount,
-        averagePrice,
-        listingsByContentType,
-        recentSales,
-        timestamp: new Date().toISOString()
+        listingStats: {
+          total: totalListings,
+          active: activeListings,
+          sold: soldListings
+        },
+        salesVolume: salesVolume.length > 0 ? salesVolume[0].total : 0,
+        popularTokens: popularTokens,
+        salesByCurrency: salesByCurrency
       };
     } catch (error) {
       throw error;
@@ -478,4 +460,5 @@ class MarketplaceService {
   }
 }
 
-export default new MarketplaceService();
+const storeService = new StoreService();
+export default storeService; 

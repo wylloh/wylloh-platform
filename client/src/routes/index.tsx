@@ -59,9 +59,9 @@ const AppRoutes = () => {
         <Route path="metadata-test" element={<MetadataTestPage />} />
 
         {/* Store routes */}
-        <Route path="marketplace" element={<Navigate to="/store" replace />} /> {/* Redirect for backward compatibility */}
-        <Route path="marketplace/details/:id" element={<Navigate to={`/content/:id`} replace />} /> {/* Redirect for backward compatibility */}
-        <Route path="marketplace/content/:id" element={<Navigate to={`/content/:id`} replace />} /> {/* Redirect for backward compatibility */}
+        <Route path="marketplace" element={<Navigate to="/store" replace />} /> {/* Legacy redirect */}
+        <Route path="marketplace/details/:id" element={<Navigate to="/store/details/:id" replace />} /> {/* Legacy redirect */}
+        <Route path="marketplace/content/:id" element={<Navigate to="/store/content/:id" replace />} /> {/* Legacy redirect */}
         <Route path="store/details/:id" element={<ContentDetailsPage />} />
         <Route path="store/content/:id" element={<ContentDetailsPage />} />
 

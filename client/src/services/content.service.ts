@@ -298,37 +298,23 @@ class ContentService {
     }
   }
 
+  /**
+   * Get content available in the store
+   */
   async getStoreContent(): Promise<Content[]> {
     try {
-      // Get content from API
-      const apiContent = await this.getAllContent();
-      
-      // Filter for store (public, active, tokenized)
-      const storeContent = apiContent.filter(content => {
-        // Check if content has a tokenization failure flag in localStorage
-        const tokenizationFailed = localStorage.getItem(`tokenization_failed_${content.id}`) === 'true';
-        
-        // Skip content that has failed tokenization
-        if (tokenizationFailed) {
-          console.log(`Filtering out content with ID ${content.id} due to tokenization failure`);
-          return false;
-        }
-        
-        return content.status === 'active' && 
-               content.visibility === 'public' && 
-               content.tokenized === true;
-      });
-      
-      // Get mock content for demo mode - filter for store items
-      const filteredMockContent = mockContent.filter(
-        item => item.visibility === 'public' && item.status === 'active'
-      );
-      
-      // Combine and deduplicate
-      return this.deduplicateContent([...storeContent, ...filteredMockContent]);
+      // Attempt to get data from API
+      const response = await axios.get(`${this.baseUrl}/store`);
+      return response.data.data;
     } catch (error) {
-      console.error('Error getting store content:', error);
-      return [];
+      console.warn('API unavailable, using local content for store:', error);
+      
+      // Filter local content to only show active, public content
+      const localContent = this.getLocalContent();
+      return localContent.filter(item => 
+        item.status === 'active' && 
+        item.visibility === 'public'
+      );
     }
   }
 

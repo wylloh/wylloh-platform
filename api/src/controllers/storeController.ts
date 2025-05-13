@@ -1,10 +1,14 @@
 import { Request, Response } from 'express';
 import { asyncHandler } from '../middleware/errorHandler';
-import marketplaceService from '../services/marketplaceService';
+
+// Forward declaration for storeService
+// This will be properly imported once the service is updated
+// @ts-ignore
+import storeService from '../services/storeService';
 
 /**
- * Get all marketplace listings
- * @route GET /api/marketplace/listings
+ * Get all store listings
+ * @route GET /api/store/listings
  */
 export const getListings = asyncHandler(async (req: Request, res: Response) => {
   // Get pagination parameters
@@ -34,7 +38,7 @@ export const getListings = asyncHandler(async (req: Request, res: Response) => {
     filters.currency = currency;
   }
 
-  const result = await marketplaceService.getListings(filters, page, limit);
+  const result = await storeService.getListings(filters, page, limit);
 
   res.status(200).json({
     message: 'Listings retrieved successfully',
@@ -46,7 +50,7 @@ export const getListings = asyncHandler(async (req: Request, res: Response) => {
 
 /**
  * Create a new listing
- * @route POST /api/marketplace/list
+ * @route POST /api/store/list
  */
 export const createListing = asyncHandler(async (req: Request, res: Response) => {
   const listingData = req.body;
@@ -61,7 +65,7 @@ export const createListing = asyncHandler(async (req: Request, res: Response) =>
     });
   }
 
-  const listing = await marketplaceService.createListing(listingData, userId);
+  const listing = await storeService.createListing(listingData, userId);
 
   res.status(201).json({
     message: 'Listing created successfully',
@@ -71,13 +75,13 @@ export const createListing = asyncHandler(async (req: Request, res: Response) =>
 
 /**
  * Remove a listing
- * @route DELETE /api/marketplace/listings/:listingId
+ * @route DELETE /api/store/listings/:listingId
  */
 export const removeListing = asyncHandler(async (req: Request, res: Response) => {
   const listingId = req.params.listingId;
   const userId = req.user.id;
 
-  const result = await marketplaceService.cancelListing(listingId, userId);
+  const result = await storeService.cancelListing(listingId, userId);
 
   res.status(200).json({
     message: result.message
@@ -86,7 +90,7 @@ export const removeListing = asyncHandler(async (req: Request, res: Response) =>
 
 /**
  * Purchase a listed token
- * @route POST /api/marketplace/purchase
+ * @route POST /api/store/purchase
  */
 export const purchaseListing = asyncHandler(async (req: Request, res: Response) => {
   const { listingId, quantity } = req.body;
@@ -100,7 +104,7 @@ export const purchaseListing = asyncHandler(async (req: Request, res: Response) 
     });
   }
 
-  const result = await marketplaceService.purchaseListing(
+  const result = await storeService.purchaseListing(
     listingId,
     userId,
     quantity || 1
@@ -114,14 +118,14 @@ export const purchaseListing = asyncHandler(async (req: Request, res: Response) 
 
 /**
  * Get listings for a specific token
- * @route GET /api/marketplace/listings/:tokenId
+ * @route GET /api/store/listings/:tokenId
  */
 export const getListingsByToken = asyncHandler(async (req: Request, res: Response) => {
   const tokenId = req.params.tokenId;
   const page = parseInt(req.query.page as string) || 1;
   const limit = parseInt(req.query.limit as string) || 10;
 
-  const result = await marketplaceService.getListingsByToken(tokenId, page, limit);
+  const result = await storeService.getListingsByToken(tokenId, page, limit);
 
   res.status(200).json({
     message: 'Token listings retrieved successfully',
@@ -133,7 +137,7 @@ export const getListingsByToken = asyncHandler(async (req: Request, res: Respons
 
 /**
  * Get listings by seller address
- * @route GET /api/marketplace/seller/:address
+ * @route GET /api/store/seller/:address
  */
 export const getListingsBySeller = asyncHandler(async (req: Request, res: Response) => {
   const sellerId = req.params.address;
@@ -141,7 +145,7 @@ export const getListingsBySeller = asyncHandler(async (req: Request, res: Respon
   const limit = parseInt(req.query.limit as string) || 10;
   const showAll = req.query.showAll === 'true';
 
-  const result = await marketplaceService.getListingsBySeller(sellerId, page, limit, showAll);
+  const result = await storeService.getListingsBySeller(sellerId, page, limit, showAll);
 
   res.status(200).json({
     message: 'Seller listings retrieved successfully',
@@ -153,7 +157,7 @@ export const getListingsBySeller = asyncHandler(async (req: Request, res: Respon
 
 /**
  * Make an offer on a token
- * @route POST /api/marketplace/offer
+ * @route POST /api/store/offer
  */
 export const createOffer = asyncHandler(async (req: Request, res: Response) => {
   // This would be implemented in a production environment
@@ -167,7 +171,7 @@ export const createOffer = asyncHandler(async (req: Request, res: Response) => {
 
 /**
  * Respond to an offer (accept/reject)
- * @route PUT /api/marketplace/offer/:offerId
+ * @route PUT /api/store/offer/:offerId
  */
 export const respondToOffer = asyncHandler(async (req: Request, res: Response) => {
   // This would be implemented in a production environment
@@ -180,21 +184,21 @@ export const respondToOffer = asyncHandler(async (req: Request, res: Response) =
 });
 
 /**
- * Get marketplace analytics
- * @route GET /api/marketplace/analytics
+ * Get store analytics
+ * @route GET /api/store/analytics
  */
 export const getAnalytics = asyncHandler(async (req: Request, res: Response) => {
-  const analytics = await marketplaceService.getAnalytics();
+  const analytics = await storeService.getAnalytics();
 
   res.status(200).json({
-    message: 'Marketplace analytics retrieved successfully',
+    message: 'Store analytics retrieved successfully',
     analytics
   });
 });
 
 /**
  * Update listing price
- * @route PUT /api/marketplace/listings/:listingId/price
+ * @route PUT /api/store/listings/:listingId/price
  */
 export const updateListingPrice = asyncHandler(async (req: Request, res: Response) => {
   const listingId = req.params.listingId;
@@ -209,7 +213,7 @@ export const updateListingPrice = asyncHandler(async (req: Request, res: Respons
     });
   }
 
-  const result = await marketplaceService.updateListingPrice(listingId, userId, parseFloat(price));
+  const result = await storeService.updateListingPrice(listingId, userId, parseFloat(price));
 
   res.status(200).json({
     message: result.message,
@@ -218,4 +222,4 @@ export const updateListingPrice = asyncHandler(async (req: Request, res: Respons
       price: result.newPrice
     }
   });
-});
+}); 
