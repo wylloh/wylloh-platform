@@ -36,6 +36,7 @@ import { generatePlaceholderImage } from '../../utils/placeholders';
 import { contentService, Content } from '../../services/content.service';
 import { getProjectIpfsUrl } from '../../utils/ipfs';
 import ContentStatusBadge from '../../components/common/ContentStatusBadge';
+import EnhancedContentCard from '../../components/common/EnhancedContentCard';
 
 // Content type options
 const contentTypes = [
@@ -138,48 +139,6 @@ const EnhancedStorePage: React.FC = () => {
   );
   const totalPages = Math.ceil(filteredContent.length / itemsPerPage);
 
-  if (loading) {
-    return (
-      <Container maxWidth="lg">
-        <Box sx={{ py: 4 }}>
-          <Typography variant="h4" gutterBottom>Store</Typography>
-          <Grid container spacing={4}>
-            {[...Array(4)].map((_, index) => (
-              <Grid item key={index} xs={12} sm={6} md={3}>
-                <Card>
-                  <Skeleton variant="rectangular" height={140} />
-                  <CardContent>
-                    <Skeleton variant="text" />
-                    <Skeleton variant="text" />
-                    <Skeleton variant="text" width="60%" />
-                  </CardContent>
-                </Card>
-              </Grid>
-            ))}
-          </Grid>
-        </Box>
-      </Container>
-    );
-  }
-
-  if (error) {
-    return (
-      <Container maxWidth="lg">
-        <Box sx={{ py: 4, textAlign: 'center' }}>
-          <Typography variant="h5" color="error" gutterBottom>
-            {error}
-          </Typography>
-          <Button 
-            variant="contained" 
-            onClick={() => window.location.reload()}
-          >
-            Retry
-          </Button>
-        </Box>
-      </Container>
-    );
-  }
-
   const handleContentTypeChange = (event: SelectChangeEvent<string>) => {
     setContentType(event.target.value);
     setPage(1); // Reset to first page on filter change
@@ -203,11 +162,33 @@ const EnhancedStorePage: React.FC = () => {
   };
 
   const renderContent = () => {
-    if (paginatedContent.length === 0) {
+    if (loading) {
       return (
-        <Box sx={{ textAlign: 'center', py: 4 }}>
-          <Typography variant="h6" color="text.secondary">
-            No content found matching your criteria
+        <Grid container spacing={4}>
+          {[1, 2, 3, 4, 5, 6, 7, 8].map((item) => (
+            <Grid item key={item} xs={12} sm={6} md={3}>
+              <Skeleton variant="rectangular" height={300} />
+            </Grid>
+          ))}
+        </Grid>
+      );
+    }
+
+    if (error) {
+      return (
+        <Box>
+          <Typography color="error" align="center">
+            {error}
+          </Typography>
+        </Box>
+      );
+    }
+
+    if (filteredContent.length === 0) {
+      return (
+        <Box>
+          <Typography align="center">
+            No content matches your criteria. Try changing your filters.
           </Typography>
         </Box>
       );
@@ -217,104 +198,20 @@ const EnhancedStorePage: React.FC = () => {
       <Grid container spacing={4}>
         {paginatedContent.map((item) => (
           <Grid item key={item.id} xs={12} sm={6} md={3}>
-            <Card 
-              sx={{ 
-                height: '100%', 
-                display: 'flex', 
-                flexDirection: 'column',
-                position: 'relative' 
+            <EnhancedContentCard
+              content={item}
+              context="store"
+              onFavorite={(id) => toggleFavorite(id)}
+              isFavorite={favorites.includes(item.id)}
+              onBuy={(id) => {
+                console.log('Buy clicked for', id);
+                // Add purchase logic here
               }}
-            >
-              {/* Favorite button */}
-              <IconButton 
-                sx={{ 
-                  position: 'absolute', 
-                  top: 8, 
-                  right: 8,
-                  bgcolor: 'rgba(255, 255, 255, 0.7)',
-                  '&:hover': { bgcolor: 'rgba(255, 255, 255, 0.9)' }
-                }}
-                onClick={() => toggleFavorite(item.id)}
-              >
-                {favorites.includes(item.id) ? 
-                  <Favorite color="error" /> : 
-                  <FavoriteBorder />}
-              </IconButton>
-              
-              {/* Content image */}
-              <CardMedia
-                component="img"
-                height="140"
-                image={
-                  item.thumbnailCid 
-                    ? getProjectIpfsUrl(item.thumbnailCid) 
-                    : item.image || generatePlaceholderImage(item.title)
-                }
-                alt={item.title}
-              />
-              
-              <CardContent sx={{ flexGrow: 1 }}>
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 1 }}>
-                  <Typography gutterBottom variant="h6" component="h2" noWrap sx={{ flex: 1, mr: 1 }}>
-                    {item.title}
-                  </Typography>
-                  
-                  {/* Add status badge - only show tokenization status in store context */}
-                  <Box sx={{ flexShrink: 0 }}>
-                    <ContentStatusBadge
-                      status="active"
-                      tokenized={item.tokenized}
-                      showLabel={false}
-                      size="small"
-                      context="store"
-                    />
-                  </Box>
-                </Box>
-                
-                <Typography variant="body2" color="text.secondary" sx={{ 
-                  display: '-webkit-box',
-                  WebkitLineClamp: 2,
-                  WebkitBoxOrient: 'vertical',
-                  overflow: 'hidden',
-                  mb: 1
-                }}>
-                  {item.description}
-                </Typography>
-                
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mt: 1 }}>
-                  <Typography variant="body2" color="text.secondary">
-                    by {item.creator}
-                  </Typography>
-                  
-                  <Chip 
-                    label={item.contentType} 
-                    size="small" 
-                    sx={{ fontSize: '0.7rem' }}
-                  />
-                </Box>
-              </CardContent>
-              
-              <CardActions sx={{ mt: 'auto', justifyContent: 'space-between' }}>
-                <Box>
-                  <Typography variant="h6" color="primary.main" sx={{ fontWeight: 'bold' }}>
-                    {item.price} ETH
-                  </Typography>
-                  <Typography variant="caption" color="text.secondary">
-                    {item.available}/{item.totalSupply} available
-                  </Typography>
-                </Box>
-                
-                <Button 
-                  component={Link} 
-                  to={`/content/${item.id}`}
-                  variant="contained" 
-                  size="small"
-                  startIcon={<Info />}
-                >
-                  Details
-                </Button>
-              </CardActions>
-            </Card>
+              onView={(id) => {
+                console.log('View details for', id);
+                // Navigation handled by link in the component
+              }}
+            />
           </Grid>
         ))}
       </Grid>

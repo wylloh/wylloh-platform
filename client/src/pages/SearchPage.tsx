@@ -48,6 +48,7 @@ import {
   Clear as ClearIcon,
 } from '@mui/icons-material';
 import { searchService, SearchFilters, SearchResult, SearchResponse } from '../services/search.service';
+import EnhancedContentCard from '../components/common/EnhancedContentCard';
 
 const SearchPage: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -221,12 +222,9 @@ const SearchPage: React.FC = () => {
     setPriceRange([priceBounds.min, priceBounds.max]);
   };
   
-  // Format currency for display
+  // Format currency
   const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-    }).format(value);
+    return `${value.toFixed(3)} ETH`;
   };
   
   // Filter drawer for mobile view
@@ -607,115 +605,50 @@ const SearchPage: React.FC = () => {
             <Grid container spacing={3}>
               {searchResults.results.map((result) => (
                 <Grid item xs={12} sm={6} md={4} lg={3} key={result.contentId}>
-                  <Card 
-                    sx={{ 
-                      height: '100%', 
-                      display: 'flex', 
-                      flexDirection: 'column',
-                      transition: 'transform 0.2s, box-shadow 0.2s',
-                      '&:hover': {
-                        transform: 'translateY(-4px)',
-                        boxShadow: 6,
-                      }
+                  <EnhancedContentCard
+                    content={{
+                      id: result.contentId,
+                      title: result.title,
+                      description: result.description,
+                      contentType: result.genre[0] || 'Unknown',
+                      creator: result.creator,
+                      creatorAddress: '',
+                      mainFileCid: '',
+                      image: result.thumbnailUrl,
+                      tokenized: !!result.token,
+                      tokenId: result.token?.tokenId,
+                      price: result.price,
+                      available: 1,
+                      totalSupply: 10,
+                      metadata: {
+                        genres: result.genre,
+                        releaseYear: result.releaseYear,
+                        duration: '120 min'
+                      },
+                      createdAt: new Date().toISOString(),
+                      status: 'active',
+                      visibility: 'public',
+                      views: result.totalReviews * 10,
+                      sales: Math.floor(result.totalReviews / 2)
                     }}
-                  >
-                    <CardMedia
-                      component="img"
-                      height="200"
-                      image={result.thumbnailUrl}
-                      alt={result.title}
-                    />
-                    <CardContent sx={{ flexGrow: 1 }}>
-                      <Box display="flex" justifyContent="space-between" alignItems="flex-start" mb={1}>
-                        <Typography variant="h6" component="div" gutterBottom noWrap>
-                          {result.title}
-                        </Typography>
-                        {result.token && (
-                          <Tooltip title={`${result.token.standard} on ${result.token.chain}`}>
-                            <Chip 
-                              label={result.token.chain.substring(0, 3)} 
-                              size="small" 
-                              color="primary"
-                              variant="outlined"
-                            />
-                          </Tooltip>
-                        )}
-                      </Box>
-                      
-                      <Typography variant="body2" color="text.secondary" mb={1}>
-                        {result.creator}
-                      </Typography>
-                      
-                      <Box display="flex" alignItems="center" mb={1}>
-                        <Rating value={result.averageRating} precision={0.5} readOnly size="small" />
-                        <Typography variant="body2" color="text.secondary" ml={0.5}>
-                          ({result.totalReviews})
-                        </Typography>
-                      </Box>
-                      
-                      <Box display="flex" flexWrap="wrap" gap={0.5} mb={2}>
-                        {result.genre.map((g) => (
-                          <Chip key={g} label={g} size="small" onClick={() => handleFilterChange({ genre: [g] })} />
-                        ))}
-                      </Box>
-                      
-                      <Typography variant="body2" color="text.secondary" gutterBottom>
-                        Released: {result.releaseYear}
-                      </Typography>
-                      
-                      {result.availability === 'forSale' && result.price && (
-                        <Typography variant="h6" color="primary" gutterBottom>
-                          {formatCurrency(result.price)}
-                        </Typography>
-                      )}
-                      
-                      <Chip 
-                        label={
-                          result.availability === 'forSale' ? 'For Sale' : 
-                          result.availability === 'forLending' ? 'Available for Rent' :
-                          result.availability === 'owned' ? 'In Your Library' :
-                          'Currently Unavailable'
-                        }
-                        color={
-                          result.availability === 'forSale' ? 'success' :
-                          result.availability === 'forLending' ? 'info' :
-                          result.availability === 'owned' ? 'secondary' :
-                          'default'
-                        }
-                        size="small"
-                        sx={{ mt: 1 }}
-                      />
-                    </CardContent>
-                    <CardActions>
-                      <IconButton>
-                        <PlayArrowIcon />
-                      </IconButton>
-                      <IconButton>
-                        <InfoIcon />
-                      </IconButton>
-                      <Box flexGrow={1} />
-                      <IconButton>
-                        <FavoriteBorderIcon />
-                      </IconButton>
-                      {result.availability === 'forSale' && (
-                        <Button
-                          size="small"
-                          variant="contained"
-                          startIcon={<MonetizationOnIcon />}
-                        >
-                          Buy
-                        </Button>
-                      )}
-                      {result.availability === 'forLending' && (
-                        <Button
-                          size="small"
-                          variant="outlined"
-                        >
-                          Rent
-                        </Button>
-                      )}
-                    </CardActions>
-                  </Card>
+                    context="search"
+                    onFavorite={(id) => {
+                      console.log('Favorite toggled for', id);
+                      // Add your favorite toggle logic here
+                    }}
+                    onPlay={result.availability === 'owned' ? (id) => {
+                      console.log('Play clicked for', id);
+                      // Add your play logic here
+                    } : undefined}
+                    onBuy={result.availability === 'forSale' ? (id) => {
+                      console.log('Buy clicked for', id);
+                      // Add your buy logic here
+                    } : undefined}
+                    onRent={result.availability === 'forLending' ? (id) => {
+                      console.log('Rent clicked for', id);
+                      // Add your rent logic here
+                    } : undefined}
+                  />
                 </Grid>
               ))}
             </Grid>

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Box,
   Grid,
@@ -21,6 +21,7 @@ import {
   Checkbox,
   ListItemText,
   Divider,
+  CircularProgress,
 } from '@mui/material';
 import {
   Search as SearchIcon,
@@ -33,7 +34,7 @@ import {
   Apps as AppsIcon,
 } from '@mui/icons-material';
 import { Content } from '../../services/content.service';
-import EnhancedContentCard from './EnhancedContentCard';
+import EnhancedContentCard from '../common/EnhancedContentCard';
 
 interface ContentGridProps {
   items: Content[];
@@ -523,13 +524,7 @@ const ContentGrid: React.FC<ContentGridProps> = ({
                 <Grid item key={item.id} xs={12}>
                   <EnhancedContentCard
                     content={item}
-                    loading={loading}
-                    onDelete={onDelete}
-                    onTokenize={onTokenize}
-                    onSetVisibility={onSetVisibility}
-                    onSetStatus={onSetStatus}
-                    onShare={onShare}
-                    onDuplicate={onDuplicate}
+                    context="pro"
                     onView={onView}
                     variant={getCardVariant()}
                   />
@@ -541,13 +536,7 @@ const ContentGrid: React.FC<ContentGridProps> = ({
                 <Grid item key={item.id} xs={12} sm={6} md={4} lg={3}>
                   <EnhancedContentCard
                     content={item}
-                    loading={loading}
-                    onDelete={onDelete}
-                    onTokenize={onTokenize}
-                    onSetVisibility={onSetVisibility}
-                    onSetStatus={onSetStatus}
-                    onShare={onShare}
-                    onDuplicate={onDuplicate}
+                    context="pro"
                     onView={onView}
                     variant={getCardVariant()}
                   />
