@@ -725,9 +725,9 @@ const ContentDetailsPage: React.FC = () => {
           </Typography>
           <Button 
             variant="contained" 
-            onClick={() => navigate('/marketplace')}
+            onClick={() => navigate('/store')}
           >
-            Back to Marketplace
+            Back to Store
           </Button>
         </Box>
       </Container>
@@ -741,11 +741,11 @@ const ContentDetailsPage: React.FC = () => {
         <Box sx={{ mb: 3, display: 'flex', alignItems: 'center' }}>
           <Button
             component={Link}
-            to="/marketplace"
+            to="/store"
             startIcon={<ArrowBack />}
             sx={{ mr: 2 }}
           >
-            Back to Marketplace
+            Back to Store
           </Button>
           <Box sx={{ flexGrow: 1 }} />
           <Tooltip title={isFavorite ? "Remove from favorites" : "Add to favorites"}>

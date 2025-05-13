@@ -2,27 +2,27 @@ import React from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 
 // Layout components
-import AppLayout from './layouts/AppLayout';
-import AdminLayout from './layouts/AdminLayout';
+import AppLayout from '../layouts/AppLayout';
+import AdminLayout from '../layouts/AdminLayout';
 
 // Pages
-import HomePage from './pages/HomePage';
-import LoginPage from './pages/LoginPage';
-import RegisterPage from './pages/RegisterPage';
-import DashboardPage from './pages/DashboardPage';
-import StorePage from './pages/StorePage';
-import ContentDetailsPage from './pages/ContentDetailsPage';
-import TokenizeTestPage from './pages/TokenizeTestPage';
-import StoragePage from './pages/StoragePage';
-import ContentMediaPage from './pages/ContentMediaPage';
-import SearchPage from './pages/SearchPage';
-import NetworkPage from './pages/NetworkPage';
-import AdaptiveStreamTestPage from './pages/player/AdaptiveStreamTestPage';
-import MetadataTestPage from './pages/metadata/MetadataTestPage';
-import DiscoverPage from './pages/DiscoverPage';
+import HomePage from '../pages/HomePage';
+import LoginPage from '../pages/LoginPage';
+import RegisterPage from '../pages/RegisterPage';
+import DashboardPage from '../pages/DashboardPage';
+import StorePage from '../pages/StorePage';
+import ContentDetailsPage from '../pages/ContentDetailsPage';
+import TokenizeTestPage from '../pages/TokenizeTestPage';
+import StoragePage from '../pages/StoragePage';
+import ContentMediaPage from '../pages/ContentMediaPage';
+import SearchPage from '../pages/SearchPage';
+import NetworkPage from '../pages/NetworkPage';
+import AdaptiveStreamTestPage from '../pages/player/AdaptiveStreamTestPage';
+import MetadataTestPage from '../pages/metadata/MetadataTestPage';
+import DiscoverPage from '../pages/DiscoverPage';
+import LibraryPage from '../pages/library/LibraryPage';
 
 // Import pages that we know exist
-import MarketplacePage from '../pages/marketplace/MarketplacePage';
 import PlayerPage from '../pages/player/PlayerPage';
 import ContentStreamPage from '../pages/player/ContentStreamPage';
 import ProfilePage from '../pages/ProfilePage';
@@ -58,10 +58,12 @@ const AppRoutes = () => {
         <Route path="adaptive-streaming-test" element={<AdaptiveStreamTestPage />} />
         <Route path="metadata-test" element={<MetadataTestPage />} />
 
-        {/* Marketplace routes */}
-        <Route path="marketplace" element={<MarketplacePage />} />
-        <Route path="marketplace/details/:id" element={<ContentDetailsPage />} />
-        <Route path="marketplace/content/:id" element={<ContentDetailsPage />} />
+        {/* Store routes */}
+        <Route path="marketplace" element={<Navigate to="/store" replace />} /> {/* Redirect for backward compatibility */}
+        <Route path="marketplace/details/:id" element={<Navigate to={`/content/:id`} replace />} /> {/* Redirect for backward compatibility */}
+        <Route path="marketplace/content/:id" element={<Navigate to={`/content/:id`} replace />} /> {/* Redirect for backward compatibility */}
+        <Route path="store/details/:id" element={<ContentDetailsPage />} />
+        <Route path="store/content/:id" element={<ContentDetailsPage />} />
 
         {/* Player routes */}
         <Route path="player/:id" element={<PlayerPage />} />

@@ -22,6 +22,7 @@ import MetadataTestPage from './pages/metadata/MetadataTestPage';
 
 // Pro pages
 import ProDashboardPage from './pages/pro/DashboardPage';
+import EnhancedDashboardPage from './pages/pro/EnhancedDashboardPage';
 import ProUploadPage from './pages/pro/UploadPage';
 import ProTokenizePublishPage from './pages/pro/TokenizePublishPage';
 import ProEditContentPage from './pages/pro/EditContentPage';
@@ -99,6 +100,14 @@ const AppRoutes = () => {
         />
         <Route
           path="pro/dashboard"
+          element={
+            <RequireAuth requireProStatus>
+              <EnhancedDashboardPage />
+            </RequireAuth>
+          }
+        />
+        <Route
+          path="pro/dashboard-legacy"
           element={
             <RequireAuth requireProStatus>
               <ProDashboardPage />

@@ -151,7 +151,7 @@ const HomePage: React.FC = () => {
                       variant="contained" 
                       size="large"
                       component={Link} 
-                      to="/marketplace"
+                      to="/store"
                       endIcon={<ArrowForward />}
                       sx={{ 
                         py: 1.5,
@@ -211,7 +211,7 @@ const HomePage: React.FC = () => {
                 >
                   <CardActionArea 
                     component={Link} 
-                    to={`/marketplace/${content.id}`}
+                    to={`/store/${content.id}`}
                     sx={{ height: '100%' }}
                   >
                     <CardMedia
@@ -300,7 +300,7 @@ const HomePage: React.FC = () => {
                 variant="contained"
                 size="large"
                 component={Link}
-                to="/marketplace"
+                to="/store"
                 sx={{
                   bgcolor: 'white',
                   color: 'primary.main',
@@ -343,7 +343,7 @@ const HomePage: React.FC = () => {
                   Connect your wallet to get started
                 </Typography>
                 <Typography variant="body2" sx={{ opacity: 0.9 }}>
-                  Access your film library and discover new titles on the marketplace.
+                  Access your film library and discover new titles on the store.
                 </Typography>
               </Box>
               <Button 

@@ -298,13 +298,13 @@ class ContentService {
     }
   }
 
-  async getMarketplaceContent(): Promise<Content[]> {
+  async getStoreContent(): Promise<Content[]> {
     try {
       // Get content from API
       const apiContent = await this.getAllContent();
       
-      // Filter for marketplace (public, active, tokenized)
-      const marketplaceContent = apiContent.filter(content => {
+      // Filter for store (public, active, tokenized)
+      const storeContent = apiContent.filter(content => {
         // Check if content has a tokenization failure flag in localStorage
         const tokenizationFailed = localStorage.getItem(`tokenization_failed_${content.id}`) === 'true';
         
@@ -319,17 +319,24 @@ class ContentService {
                content.tokenized === true;
       });
       
-      // Get mock content for demo mode - filter for marketplace items
+      // Get mock content for demo mode - filter for store items
       const filteredMockContent = mockContent.filter(
         item => item.visibility === 'public' && item.status === 'active'
       );
       
       // Combine and deduplicate
-      return this.deduplicateContent([...marketplaceContent, ...filteredMockContent]);
+      return this.deduplicateContent([...storeContent, ...filteredMockContent]);
     } catch (error) {
-      console.error('Error getting marketplace content:', error);
+      console.error('Error getting store content:', error);
       return [];
     }
+  }
+
+  /**
+   * @deprecated Use getStoreContent() instead
+   */
+  async getMarketplaceContent(): Promise<Content[]> {
+    return this.getStoreContent();
   }
 
   async updateContentStatus(id: string, status: Content['status']): Promise<void> {
@@ -1186,7 +1193,7 @@ class ContentService {
       await cdnService.initialize();
       
       // Prefetch popular content thumbnails
-      const popularContent = await this.getMarketplaceContent();
+      const popularContent = await this.getStoreContent();
       
       // Prefetch thumbnails for top 5 popular items
       popularContent.slice(0, 5).forEach(content => {
