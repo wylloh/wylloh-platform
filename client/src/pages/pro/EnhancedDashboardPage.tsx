@@ -283,8 +283,8 @@ const EnhancedDashboardPage: React.FC = () => {
 
   return (
     <Container maxWidth="xl">
-      <Box sx={{ pt: 4, pb: 8 }}>
-        {/* Breadcrumbs */}
+      {/* Page header */}
+      <Box sx={{ pt: 4, pb: 2 }}>
         <Breadcrumbs aria-label="breadcrumb" sx={{ mb: 2 }}>
           <MuiLink component={Link} to="/" underline="hover" color="inherit">
             Home
@@ -292,7 +292,6 @@ const EnhancedDashboardPage: React.FC = () => {
           <Typography color="text.primary">Pro Dashboard</Typography>
         </Breadcrumbs>
         
-        {/* Page header */}
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 4 }}>
           <Box sx={{ display: 'flex', alignItems: 'center' }}>
             <DashboardIcon sx={{ fontSize: 32, mr: 2, color: 'primary.main' }} />
@@ -301,196 +300,206 @@ const EnhancedDashboardPage: React.FC = () => {
             </Typography>
           </Box>
           
-          <Button
-            variant="contained"
-            startIcon={<AddIcon />}
-            component={Link}
-            to="/pro/upload"
-          >
-            Upload New Content
-          </Button>
-        </Box>
-        
-        {/* Error alert */}
-        {error && (
-          <Alert severity="error" sx={{ mb: 3 }}>
-            {error}
-          </Alert>
-        )}
-        
-        {/* Success message */}
-        <Snackbar
-          open={Boolean(successMessage)}
-          autoHideDuration={6000}
-          onClose={() => setSuccessMessage(null)}
-          anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
-        >
-          <Alert 
-            onClose={() => setSuccessMessage(null)} 
-            severity="success"
-            sx={{ width: '100%' }}
-          >
-            {successMessage}
-          </Alert>
-        </Snackbar>
-        
-        {/* Dashboard overview */}
-        <DashboardOverview 
-          content={content}
-          loading={loading}
-          period={analyticsTimePeriod}
-          onPeriodChange={handleAnalyticsPeriodChange}
-        />
-        
-        {/* Tabs navigation */}
-        <Box sx={{ borderBottom: 1, borderColor: 'divider', mt: 5 }}>
-          <Tabs 
-            value={tabValue} 
-            onChange={handleTabChange} 
-            aria-label="dashboard tabs"
-            indicatorColor="primary"
-            textColor="primary"
-          >
-            <Tab 
-              label="All Content" 
-              icon={<MovieIcon />} 
-              iconPosition="start" 
-              {...a11yProps(0)} 
-            />
-            <Tab 
-              label={`Active (${activeContent.length})`} 
-              icon={<CheckCircleIcon />} 
-              iconPosition="start" 
-              {...a11yProps(1)} 
-            />
-            <Tab 
-              label={`Drafts (${draftContent.length})`} 
-              icon={<EditIcon />} 
-              iconPosition="start" 
-              {...a11yProps(2)} 
-            />
-            <Tab 
-              label={`Pending (${pendingContent.length})`} 
-              icon={<PendingIcon />} 
-              iconPosition="start" 
-              {...a11yProps(3)} 
-            />
-            <Tab 
-              label="Libraries" 
-              icon={<LibraryIcon />} 
-              iconPosition="start" 
-              {...a11yProps(4)} 
-            />
-            <Tab 
-              label="Analytics" 
-              icon={<AnalyticsIcon />} 
-              iconPosition="start" 
-              {...a11yProps(5)} 
-            />
-          </Tabs>
-        </Box>
-        
-        {/* All Content tab */}
-        <TabPanel value={tabValue} index={0}>
-          <ContentGrid
-            items={content}
-            loading={loading}
-            onDelete={handleDeleteContent}
-            onTokenize={handleTokenizeContent}
-            onSetVisibility={handleSetVisibility}
-            onSetStatus={handleSetStatus}
-            onShare={handleShareContent}
-            onDuplicate={handleDuplicateContent}
-            onView={handleViewContent}
-            title="All Content"
-            emptyMessage="You haven't created any content yet. Click 'Upload New Content' to get started."
-          />
-        </TabPanel>
-        
-        {/* Active Content tab */}
-        <TabPanel value={tabValue} index={1}>
-          <ContentGrid
-            items={activeContent}
-            loading={loading}
-            onDelete={handleDeleteContent}
-            onTokenize={handleTokenizeContent}
-            onSetVisibility={handleSetVisibility}
-            onSetStatus={handleSetStatus}
-            onShare={handleShareContent}
-            onDuplicate={handleDuplicateContent}
-            onView={handleViewContent}
-            title="Active Content"
-            emptyMessage="You don't have any active content. Publish your drafts to make them active."
-          />
-        </TabPanel>
-        
-        {/* Drafts tab */}
-        <TabPanel value={tabValue} index={2}>
-          <ContentGrid
-            items={draftContent}
-            loading={loading}
-            onDelete={handleDeleteContent}
-            onTokenize={handleTokenizeContent}
-            onSetVisibility={handleSetVisibility}
-            onSetStatus={handleSetStatus}
-            onShare={handleShareContent}
-            onDuplicate={handleDuplicateContent}
-            onView={handleViewContent}
-            title="Draft Content"
-            emptyMessage="You don't have any draft content. Upload content to get started."
-          />
-        </TabPanel>
-        
-        {/* Pending tab */}
-        <TabPanel value={tabValue} index={3}>
-          <ContentGrid
-            items={pendingContent}
-            loading={loading}
-            onDelete={handleDeleteContent}
-            onTokenize={handleTokenizeContent}
-            onSetVisibility={handleSetVisibility}
-            onSetStatus={handleSetStatus}
-            onShare={handleShareContent}
-            onDuplicate={handleDuplicateContent}
-            onView={handleViewContent}
-            title="Pending Content"
-            emptyMessage="You don't have any pending content."
-          />
-        </TabPanel>
-        
-        {/* Libraries tab */}
-        <TabPanel value={tabValue} index={4}>
-          <Box sx={{ textAlign: 'center', py: 4 }}>
-            <Typography variant="h6" gutterBottom>
-              Manage Your Content Libraries
-            </Typography>
-            <Typography variant="body1" paragraph color="text.secondary">
-              Organize your content into libraries for easier management and sharing.
-            </Typography>
+          <Box sx={{ display: 'flex', gap: 2 }}>
+            <Button
+              component={Link}
+              to="/pro/analytics"
+              variant="outlined"
+              startIcon={<AnalyticsIcon />}
+            >
+              Analytics
+            </Button>
             <Button
               variant="contained"
+              startIcon={<AddIcon />}
               component={Link}
-              to="/pro/libraries"
-              size="large"
-              sx={{ mt: 2 }}
+              to="/pro/upload"
             >
-              Go to Libraries
+              Upload New Content
             </Button>
           </Box>
-        </TabPanel>
-        
-        {/* Analytics tab */}
-        <TabPanel value={tabValue} index={5}>
-          <Box sx={{ textAlign: 'center', py: 4 }}>
-            <Typography variant="h6" gutterBottom>
-              Detailed Analytics Coming Soon
-            </Typography>
-            <Typography variant="body1" paragraph color="text.secondary">
-              We're working on advanced analytics to help you track performance and audience engagement.
-            </Typography>
-          </Box>
-        </TabPanel>
+        </Box>
       </Box>
+
+      {/* Error alert */}
+      {error && (
+        <Alert severity="error" sx={{ mb: 3 }}>
+          {error}
+        </Alert>
+      )}
+      
+      {/* Success message */}
+      <Snackbar
+        open={Boolean(successMessage)}
+        autoHideDuration={6000}
+        onClose={() => setSuccessMessage(null)}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+      >
+        <Alert 
+          onClose={() => setSuccessMessage(null)} 
+          severity="success"
+          sx={{ width: '100%' }}
+        >
+          {successMessage}
+        </Alert>
+      </Snackbar>
+      
+      {/* Dashboard overview */}
+      <DashboardOverview 
+        content={content}
+        loading={loading}
+        period={analyticsTimePeriod}
+        onPeriodChange={handleAnalyticsPeriodChange}
+      />
+      
+      {/* Tabs navigation */}
+      <Box sx={{ borderBottom: 1, borderColor: 'divider', mt: 5 }}>
+        <Tabs 
+          value={tabValue} 
+          onChange={handleTabChange} 
+          aria-label="dashboard tabs"
+          indicatorColor="primary"
+          textColor="primary"
+        >
+          <Tab 
+            label="All Content" 
+            icon={<MovieIcon />} 
+            iconPosition="start" 
+            {...a11yProps(0)} 
+          />
+          <Tab 
+            label={`Active (${activeContent.length})`} 
+            icon={<CheckCircleIcon />} 
+            iconPosition="start" 
+            {...a11yProps(1)} 
+          />
+          <Tab 
+            label={`Drafts (${draftContent.length})`} 
+            icon={<EditIcon />} 
+            iconPosition="start" 
+            {...a11yProps(2)} 
+          />
+          <Tab 
+            label={`Pending (${pendingContent.length})`} 
+            icon={<PendingIcon />} 
+            iconPosition="start" 
+            {...a11yProps(3)} 
+          />
+          <Tab 
+            label="Libraries" 
+            icon={<LibraryIcon />} 
+            iconPosition="start" 
+            {...a11yProps(4)} 
+          />
+          <Tab 
+            label="Analytics" 
+            icon={<AnalyticsIcon />} 
+            iconPosition="start" 
+            {...a11yProps(5)} 
+          />
+        </Tabs>
+      </Box>
+      
+      {/* All Content tab */}
+      <TabPanel value={tabValue} index={0}>
+        <ContentGrid
+          items={content}
+          loading={loading}
+          onDelete={handleDeleteContent}
+          onTokenize={handleTokenizeContent}
+          onSetVisibility={handleSetVisibility}
+          onSetStatus={handleSetStatus}
+          onShare={handleShareContent}
+          onDuplicate={handleDuplicateContent}
+          onView={handleViewContent}
+          title="All Content"
+          emptyMessage="You haven't created any content yet. Click 'Upload New Content' to get started."
+        />
+      </TabPanel>
+      
+      {/* Active Content tab */}
+      <TabPanel value={tabValue} index={1}>
+        <ContentGrid
+          items={activeContent}
+          loading={loading}
+          onDelete={handleDeleteContent}
+          onTokenize={handleTokenizeContent}
+          onSetVisibility={handleSetVisibility}
+          onSetStatus={handleSetStatus}
+          onShare={handleShareContent}
+          onDuplicate={handleDuplicateContent}
+          onView={handleViewContent}
+          title="Active Content"
+          emptyMessage="You don't have any active content. Publish your drafts to make them active."
+        />
+      </TabPanel>
+      
+      {/* Drafts tab */}
+      <TabPanel value={tabValue} index={2}>
+        <ContentGrid
+          items={draftContent}
+          loading={loading}
+          onDelete={handleDeleteContent}
+          onTokenize={handleTokenizeContent}
+          onSetVisibility={handleSetVisibility}
+          onSetStatus={handleSetStatus}
+          onShare={handleShareContent}
+          onDuplicate={handleDuplicateContent}
+          onView={handleViewContent}
+          title="Draft Content"
+          emptyMessage="You don't have any draft content. Upload content to get started."
+        />
+      </TabPanel>
+      
+      {/* Pending tab */}
+      <TabPanel value={tabValue} index={3}>
+        <ContentGrid
+          items={pendingContent}
+          loading={loading}
+          onDelete={handleDeleteContent}
+          onTokenize={handleTokenizeContent}
+          onSetVisibility={handleSetVisibility}
+          onSetStatus={handleSetStatus}
+          onShare={handleShareContent}
+          onDuplicate={handleDuplicateContent}
+          onView={handleViewContent}
+          title="Pending Content"
+          emptyMessage="You don't have any pending content."
+        />
+      </TabPanel>
+      
+      {/* Libraries tab */}
+      <TabPanel value={tabValue} index={4}>
+        <Box sx={{ textAlign: 'center', py: 4 }}>
+          <Typography variant="h6" gutterBottom>
+            Manage Your Content Libraries
+          </Typography>
+          <Typography variant="body1" paragraph color="text.secondary">
+            Organize your content into libraries for easier management and sharing.
+          </Typography>
+          <Button
+            variant="contained"
+            component={Link}
+            to="/pro/libraries"
+            size="large"
+            sx={{ mt: 2 }}
+          >
+            Go to Libraries
+          </Button>
+        </Box>
+      </TabPanel>
+      
+      {/* Analytics tab */}
+      <TabPanel value={tabValue} index={5}>
+        <Box sx={{ textAlign: 'center', py: 4 }}>
+          <Typography variant="h6" gutterBottom>
+            Detailed Analytics Coming Soon
+          </Typography>
+          <Typography variant="body1" paragraph color="text.secondary">
+            We're working on advanced analytics to help you track performance and audience engagement.
+          </Typography>
+        </Box>
+      </TabPanel>
     </Container>
   );
 };

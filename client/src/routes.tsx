@@ -19,6 +19,7 @@ import SearchPage from './pages/SearchPage';
 import NetworkPage from './pages/NetworkPage';
 import AdaptiveStreamTestPage from './pages/player/AdaptiveStreamTestPage';
 import MetadataTestPage from './pages/metadata/MetadataTestPage';
+import AnalyticsDashboardPage from './pages/AnalyticsDashboardPage';
 
 // Pro pages
 import ProDashboardPage from './pages/pro/DashboardPage';
@@ -111,6 +112,14 @@ const AppRoutes = () => {
           element={
             <RequireAuth requireProStatus>
               <ProDashboardPage />
+            </RequireAuth>
+          }
+        />
+        <Route
+          path="pro/analytics"
+          element={
+            <RequireAuth requireProStatus>
+              <AnalyticsDashboardPage />
             </RequireAuth>
           }
         />

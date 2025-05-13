@@ -29,6 +29,15 @@ Wylloh aims to create a decentralized ecosystem for film distribution, where:
 - **Royalty Distribution**: EIP-2981 compliant royalty system
 - **Content Lending**: Secure token-based lending with blockchain verification
 
+### Privacy-First Analytics
+- **"Movies That Don't Watch You Back"**: Unlike traditional streaming platforms, Wylloh doesn't collect personal user data
+- **Blockchain-Native Insights**: Analytics based on public blockchain data rather than invasive tracking
+- **Wallet Behavior Patterns**: Analyze token holder distribution and transaction patterns without compromising privacy
+- **Token Economics**: Track token velocity, distribution, and market activity through on-chain data
+- **Holder Categories**: Identify patterns between personal viewers and commercial exhibitors while preserving anonymity
+- **Creator-Focused Metrics**: Provide valuable insights to creators without sacrificing user privacy
+- **Transparent Methodology**: Open approach to data collection with no hidden tracking
+
 ### Content Lending System
 - **Smart Contract Verification**: Secure lending through blockchain-verified transactions
 - **Lending Agreements**: Customizable lending terms including duration and price

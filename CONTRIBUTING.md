@@ -79,6 +79,32 @@ Branch naming conventions:
    - Consistent styling
    - Clear error messages
 
+#### Analytics and Privacy
+
+1. Privacy-first principles:
+   - No collection of personal user data
+   - No tracking pixels or third-party analytics
+   - No cookies for tracking purposes
+   - No fingerprinting or device identification
+
+2. Blockchain-native analytics:
+   - Use only public on-chain data
+   - Implement pattern analysis rather than individual tracking
+   - Focus on token metrics and distribution patterns
+   - Maintain wallet address anonymity
+
+3. Implementation guidelines:
+   - Analytics should work without requiring user opt-in
+   - Clearly document data sources for all metrics
+   - Provide transparent methodology descriptions
+   - Ensure analytics features align with "Movies That Don't Watch You Back" philosophy
+
+4. Testing considerations:
+   - Verify no personal data is collected
+   - Test analytics with various blockchain data patterns
+   - Ensure analytics remain functional without user-specific data
+   - Validate that insights are valuable despite privacy constraints
+
 ### 5. Testing
 
 1. Run tests:

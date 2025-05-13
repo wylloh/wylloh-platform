@@ -49,6 +49,7 @@ Wylloh transforms media licensing through on-chain rights management with built-
 5. **Verifiable Ownership:** On-chain verification of legitimate access rights
 6. **Community-Driven Economics:** Future potential for decentralized film financing through tokenized pre-sales
 7. **Hardware Integration:** Purpose-built Seed One player provides secure playback environment with wallet integration
+8. **Privacy-First Analytics:** "Movies That Don't Watch You Back" - unlike traditional streaming platforms that collect extensive personal data, Wylloh provides analytics based solely on blockchain data, respecting user privacy while still offering valuable insights to creators
 
 ## 2. Product Overview
 

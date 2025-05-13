@@ -152,6 +152,58 @@ The platform implements a multi-layered security approach:
 5. **HTTPS**: All API communication over secure channels
 6. **Periodic Verification**: Regular re-verification of license during playback
 
+## Analytics Architecture
+
+Wylloh implements a privacy-first analytics architecture that provides valuable insights to content creators without compromising user privacy. Unlike traditional streaming platforms that collect extensive personal data, Wylloh's analytics are built entirely on blockchain data.
+
+```
+┌───────────┐     ┌───────────┐     ┌───────────┐
+│ Blockchain │────►│ Analytics │────►│  Creator  │
+│ Indexer   │     │  Service  │     │ Dashboard │
+└───────────┘     └───────────┘     └───────────┘
+       │                │                 ▲
+       │                ▼                 │
+       │          ┌───────────┐          │
+       └─────────►│  Pattern  │──────────┘
+                  │ Analysis  │
+                  └───────────┘
+```
+
+### Privacy-First Principles
+
+1. **No Personal Data Collection**: The platform does not collect personal viewing habits, demographics, or behavioral data
+2. **Blockchain-Native Insights**: All analytics are derived from public blockchain data
+3. **Pattern Analysis**: Focuses on token distribution, velocity, and holder categories
+4. **Anonymized Data**: All wallet addresses are treated as anonymous entities
+5. **Transparent Methodology**: Open approach to data collection with no hidden tracking
+
+### Analytics Components
+
+1. **Blockchain Indexer**:
+   - Monitors on-chain events related to content tokens
+   - Tracks token transfers, sales, and ownership changes
+   - Indexes holder information without personal identification
+
+2. **Analytics Service**:
+   - Processes blockchain data into meaningful insights
+   - Identifies patterns in token distribution and market activity
+   - Categorizes wallet behavior (e.g., personal viewers vs. commercial exhibitors)
+   - Calculates token economics metrics like velocity and liquidity
+
+3. **Pattern Analysis**:
+   - Applies algorithms to detect meaningful patterns in token data
+   - Identifies potential market opportunities based on holder behavior
+   - Analyzes token concentration and distribution health
+   - Provides insights without compromising individual privacy
+
+4. **Creator Dashboard**:
+   - Visualizes analytics data for content creators
+   - Shows token performance metrics and distribution patterns
+   - Provides revenue breakdowns and holder analytics
+   - Offers insights while maintaining the privacy-first approach
+
+This "Movies That Don't Watch You Back" approach represents a fundamental shift from traditional streaming analytics, focusing on blockchain-native metrics that respect user privacy while still providing valuable insights to creators.
+
 ## Network Architecture
 
 - **Frontend**: Deployed on CDN for global distribution
