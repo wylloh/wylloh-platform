@@ -5,6 +5,7 @@ import { SnackbarProvider } from 'notistack';
 import { AuthProvider } from './contexts/AuthContext';
 import { WalletProvider } from './contexts/WalletContext';
 import { PlatformProvider } from './contexts/PlatformContext';
+import { UserProvider } from './contexts/UserContext';
 import theme from './theme';
 import Layout from './components/layout/Layout';
 import AppRoutes from './routes';
@@ -16,11 +17,13 @@ function App() {
       <SnackbarProvider maxSnack={3}>
         <AuthProvider>
           <WalletProvider>
-            <PlatformProvider>
-              <Layout>
-                <AppRoutes />
-              </Layout>
-            </PlatformProvider>
+            <UserProvider>
+              <PlatformProvider>
+                <Layout>
+                  <AppRoutes />
+                </Layout>
+              </PlatformProvider>
+            </UserProvider>
           </WalletProvider>
         </AuthProvider>
       </SnackbarProvider>

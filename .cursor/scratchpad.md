@@ -148,7 +148,7 @@ A key challenge for our analytics approach is that as an inter-platform protocol
 - [x] Update consumer interfaces with shared components
   - [x] Refactor SearchPage to use shared components
   - [x] Refactor StorePage to use shared components
-  - [ ] Refactor LibraryPage to use shared components
+  - [x] Refactor LibraryPage to use shared components
   - [ ] Refactor user profile pages to use shared components
   - Success criteria: All major interfaces use shared components with consistent styling
 
@@ -171,14 +171,17 @@ A key challenge for our analytics approach is that as an inter-platform protocol
 - [x] Update SearchPage to use shared components
 - [x] Update StorePage to use shared components
 - [x] Rebrand references from "Marketplace" to "Store"
-- [ ] Update LibraryPage to use shared components
+- [x] Update LibraryPage to use shared components
 - [x] Implement ContentPerformanceChart component
 - [x] Implement AudienceAnalytics component (renamed to TokenHolderAnalytics)
 - [x] Implement RevenueBreakdown component
 - [x] Create AnalyticsDashboardPage component
 - [x] Add route for analytics dashboard
 - [x] Add link to analytics dashboard from Pro Dashboard
-- [ ] ContentSelectionToolbar implementation
+- [x] ContentSelectionToolbar implementation
+- [x] CollectionCard implementation
+- [x] Token collection detection implementation
+- [ ] Integrate batch selection in LibraryPage
 - [ ] BatchActionModals implementation
 - [ ] Background task progress tracking implementation
 - [ ] TagManagementInterface implementation
@@ -195,6 +198,7 @@ We've successfully enhanced platform parity by:
 2. Refactoring existing implementation to use the shared components:
    - Updated SearchPage to use EnhancedContentCard for search results
    - Updated StorePage (formerly MarketplacePage) to use shared components
+   - Updated LibraryPage to use shared components for both Pro and Standard users
    - Created compatibility wrappers for Pro dashboard components
    - Modified ContentGrid to use the shared components
 
@@ -211,9 +215,77 @@ We've successfully enhanced platform parity by:
    - Built AnalyticsDashboardPage to integrate all analytics components
    - Added routing and navigation to the analytics dashboard
 
-These changes have significantly improved platform parity by ensuring consistent visual styling and behavior across different parts of the application. Users will now experience the same look and feel whether they're browsing the store, searching for content, or managing their own content in the Pro dashboard.
+5. Enhanced LibraryPage with user type differentiation:
+   - Added support for different user types (Pro vs Standard)
+   - Retained resale functionality for Standard users' tokens
+   - Implemented proper content information display
+   - Added token lending and selling capabilities for tokenized content
+   - Used shared EnhancedContentCard to ensure visual consistency
+   - Created detailed content information dialog with token details
+
+6. Implemented batch operations for content management:
+   - Created ContentSelectionToolbar with collection-aware selection
+   - Added support for selecting items by collection, token status, etc.
+   - Implemented batch actions (lend, sell, tag, etc.) based on user type permissions
+   - Added UI for displaying collection statistics
+   - Created selection visualization for large token collections
+   - Ensured compatibility with admin approval workflows
+
+These changes have significantly improved platform parity by ensuring consistent visual styling and behavior across different parts of the application. Users will now experience the same look and feel whether they're browsing the store, searching for content, or managing their own content in the Pro dashboard or personal library.
 
 The new Pro Analytics Dashboard provides content creators with valuable blockchain-specific insights into their content performance, token holder distribution, and revenue streams while respecting the privacy-first nature of blockchain technology.
+
+## Strategic Assessment
+
+### Progress Against Core Objectives
+
+Looking at our original three main objectives from the "Immediate Next Steps" section, let's evaluate our progress:
+
+1. **Complete Search/Blockchain Crawler Integration**
+   - ✅ Improved search experience through shared components
+   - ✅ Enhanced content discovery with consistent UI across Store and Search
+   - ⚠️ Still need to implement blockchain explorer for token ownership visibility
+   - ⚠️ Need to test search performance with various content library sizes
+
+2. **Enhance Pro User Experience**
+   - ✅ Improved content management interface with better organization and visuals
+   - ✅ Implemented Pro Analytics Dashboard for content creators
+   - ⚠️ Still need to implement batch operations for efficient catalog management
+   - ⚠️ Still need to implement advanced tagging system
+
+3. **Storage and Content Delivery System**
+   - ❌ Haven't started work on IPFS node network
+   - ❌ Haven't begun progressive decentralization strategy
+   - ❌ Content streaming solution for decentralized assets not yet addressed
+
+### Current Strategic Position
+
+We've made significant progress on platform parity and the Pro user experience, which builds a strong foundation for content creators to trust and effectively use the platform. This is aligned with our strategy of focusing on the content creator side before expanding marketplace features.
+
+The implementation of the Pro Analytics Dashboard is a major achievement that provides value to professional filmmakers by giving them blockchain-specific insights into their content performance. This addresses a key differentiator for our platform in the competitive landscape.
+
+However, we have not yet started work on the decentralized storage and content delivery aspects, which are crucial for the platform's scalability and true blockchain integration. These features will be essential for creating a robust, decentralized content infrastructure.
+
+### Strategic Priorities Going Forward
+
+Based on our progress and remaining objectives, I recommend the following strategic priorities:
+
+1. **Complete Pro User Experience Enhancement** (Current Focus)
+   - Finish LibraryPage with shared components for full platform parity
+   - Implement batch operations for efficient content management
+   - Develop advanced tagging system for better content organization
+
+2. **Begin Storage and Content Delivery System Work** (Next Major Phase)
+   - Research and design IPFS node network with incentive structure
+   - Develop prototype for progressive decentralization of content
+   - Create content streaming solution compatible with decentralized storage
+
+3. **Complete Blockchain Crawler/Explorer** (Parallel Track)
+   - Implement blockchain explorer for token ownership visibility
+   - Create tools for users to view transaction history
+   - Develop on-chain analytics for public consumption
+
+This approach keeps us aligned with the original objectives while recognizing that the Pro user experience improvements should be completed before moving to the more complex decentralized storage system. This sequencing allows us to deliver continuous value to filmmakers while building toward our long-term decentralized vision.
 
 ## Pro Analytics Dashboard Implementation Plan
 
@@ -374,7 +446,35 @@ Create reusable chart components in the common directory:
   - [x] Deleted `cleanup-demo-content.ts.bak` script (vestigial demo script)
 
 ## Executor's Feedback or Assistance Requests
-No current assistance requests.
+We've made significant progress on implementing batch operations for content management in the library, with a focus on token collection handling:
+
+1. Created ContentSelectionToolbar component that:
+   - Supports selecting individual items or entire collections at once
+   - Provides aggregate statistics for selected items (token counts, values)
+   - Shows appropriate actions based on user type (Pro vs Standard)
+   - Integrates with administrative approval workflows
+
+2. Implemented a token collection detection system that:
+   - Groups tokens by their underlying content/film
+   - Shows aggregate information about token collections
+   - Prevents UI clutter with large token collections
+   - Supports both individual and batch operations
+
+3. Started implementing a collection-based display approach with CollectionCard component that:
+   - Shows a summary view of tokens from the same content
+   - Provides expandable details to see individual tokens
+   - Supports collection-level operations
+   - Displays aggregate metrics (token count, total value)
+
+This collection-aware approach addresses the concern about libraries with large quantities of tokens for the same film title (like "Transformers"), making the library interface clean and manageable even for users with thousands of tokens.
+
+We're still working on the integration of these components with the LibraryPage. The next steps are to:
+
+1. Complete the LibraryPage update to use ContentSelectionToolbar and CollectionCard
+2. Implement BatchActionModals component for collection-aware batch operations
+3. Add background task progress tracking for operations that may take time (bulk transfers, etc.)
+
+We're also ensuring that all components respect the admin approval workflows for Pro users and content tokenization, by checking appropriate status flags and displaying pending approval states where relevant.
 
 ## Lessons
 1. Maintain consistent naming conventions across the platform
@@ -384,3 +484,140 @@ No current assistance requests.
 5. Leverage existing libraries like Recharts for data visualization rather than building from scratch
 6. Focus on blockchain-specific metrics rather than traditional user data for analytics
 7. Respect privacy while still providing valuable insights through pattern analysis 
+8. Create type extensions for missing properties when working with existing interfaces
+9. Use type assertions carefully when dealing with extended interfaces
+10. Design UIs with collection-based views for managing large token sets efficiently
+
+## Enhanced Token Collection Management Plan
+
+### Background and Challenge
+A significant challenge we need to address is efficiently handling large collections of tokens in the Library interface. Users (both Pro and Standard) may own multiple tokens for the same film or content item (e.g., 1000 tokens for "Transformers"). The current LibraryPage implementation displays each token individually, which would create a cluttered and unmanageable interface.
+
+### Approach to Token Collection Management
+We will implement a collection-based display approach in the library that:
+
+1. Groups tokens by their underlying content (film/title)
+2. Shows aggregate information (total quantity, value) for each collection
+3. Provides batch operations for token management
+4. Integrates with existing admin approval workflows
+
+### Implementation Plan
+
+#### 1. Content Collection Model Enhancements
+- Extend the LibraryItem interface to support token collections
+- Add collection metadata including:
+  - Total token quantity for the same content
+  - Reference to master content item
+  - Collection status (complete/partial)
+  - Collection-level permissions
+
+#### 2. Collection-based UI
+- Create CollectionCard component that shows:
+  - Film/content details (title, thumbnail, etc.)
+  - Token quantity badge (e.g., "x250 tokens")
+  - Aggregated value information
+  - Rights threshold indicators
+- Implement expandable view to see individual tokens when needed
+- Add collection filtering and sorting options
+
+#### 3. Collection-Aware Batch Operations
+The batch operations we're implementing will be collection-aware, enabling:
+- Selection of entire collections or individual tokens
+- Batch operations across collection boundaries
+- Collection-level operations (lend/sell entire collection)
+- Token grouping operations (create subcollections)
+
+#### 4. Admin Integration
+We will ensure our implementations work seamlessly with:
+- Pro user approval workflow in UsersPage
+- Content tokenization approval in ContentModerationPage
+- Maintain approval history tracking for tokens and collections
+
+### Key Components to Implement
+
+1. **ContentCollectionCard**
+   - Displays collection information rather than individual tokens
+   - Shows collection metrics (token count, total value, etc.)
+   - Provides collection-level actions
+
+2. **ContentSelectionToolbar** (with collection enhancements)
+   - Allows selection of collections and individual tokens
+   - Supports filtering and grouping by collection
+   - Shows aggregated information for selected items
+
+3. **CollectionManagementInterface**
+   - Provides tools to create, modify, and manage collections
+   - Supports splitting and merging collections
+   - Handles token transfers between collections
+
+4. **BatchActionModals** (collection-aware)
+   - Supports operations on collections and individual tokens
+   - Provides collection-level confirmation dialogs
+   - Shows impact of operations on collection integrity
+
+## ContentSelectionToolbar Implementation Plan
+
+### Overview
+The ContentSelectionToolbar will be our first component in implementing batch operations, with special consideration for token collections. This component will enable users to select multiple content items or entire collections for batch actions.
+
+### Component Requirements
+1. **Collection-aware selection**
+   - Select individual items
+   - Select entire collections
+   - Select all items matching criteria
+
+2. **Selection feedback**
+   - Clear indication of selected items
+   - Count of selected items/collections
+   - Aggregate data for selection (total value, etc.)
+
+3. **Action availability**
+   - Context-specific action buttons
+   - Support for Pro vs Standard user distinctions
+   - Integration with admin approval status
+
+4. **Performance considerations**
+   - Efficient handling of large collections
+   - Lazy loading for expanded collection views
+   - Optimized rendering for large libraries
+
+### Implementation Approach
+
+1. Create a new component in `client/src/components/library/ContentSelectionToolbar.tsx`
+2. Implement selection state management
+3. Create collection-aware selection logic
+4. Build the toolbar UI with action buttons
+5. Implement integration with parent components
+
+### Detailed Tasks
+
+1. **Selection State Management**
+   - Implement selection tracking by ID
+   - Create special handling for collection selection
+   - Track partial collection selections
+   - Support inversion of selection
+
+2. **Toolbar UI**
+   - Design clean, accessible toolbar interface
+   - Show selection count and aggregate metrics
+   - Provide contextual action buttons
+   - Include selection helpers (select all, none, invert)
+
+3. **Performance Optimization**
+   - Implement virtualized rendering for large libraries
+   - Use memo and callback optimizations
+   - Create efficient collection expansion handling
+
+4. **Action Button Integration**
+   - Connect to batch action handlers
+   - Support multiple action types (lend, sell, organize)
+   - Implement permission checks based on user type and token status
+
+### Integration with Admin Workflows
+The ContentSelectionToolbar will respect admin approval status:
+- Only approved Pro users can access certain batch features
+- Only approved content can be tokenized
+- Pending approvals will be clearly indicated
+- Admin decisions will be reflected immediately in the UI
+
+This comprehensive approach ensures that our library interface will remain clean and manageable even for users with large token collections, while maintaining support for powerful batch operations and respecting the admin approval workflows. 
