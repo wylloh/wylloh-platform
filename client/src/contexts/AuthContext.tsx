@@ -6,10 +6,11 @@ interface AuthContextType {
   user: User | null;
   login: (email: string, password: string) => Promise<boolean>;
   logout: () => void;
-  register: (username: string, email: string, password: string) => Promise<boolean>;
+  register: (data: RegistrationData) => Promise<boolean>;
   requestProStatus: (proData: ProVerificationData) => Promise<boolean>;
   loading: boolean;
   error: string | null;
+  getDisplayName: () => string;
 }
 
 interface User {
@@ -22,6 +23,7 @@ interface User {
   proVerificationData?: ProVerificationData;
   dateProRequested?: string;
   dateProVerified?: string;
+  isWalletOnlyAccount?: boolean;
 }
 
 // Export the interface to make it available to other components
@@ -43,6 +45,14 @@ interface AuthState {
   loading: boolean;
   error: string | null;
   isAuthenticated: boolean;
+}
+
+// Registration data interface for both email and wallet-based registration
+export interface RegistrationData {
+  username: string;
+  email?: string;
+  password?: string;
+  walletAddress?: string;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -340,63 +350,59 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   // Register function
-  const register = async (username: string, email: string, password: string): Promise<boolean> => {
-    setState({
-      ...state,
-      loading: true,
-      error: null,
-    });
-    
+  const register = async (data: RegistrationData): Promise<boolean> => {
     try {
-      // In a real app, this would be an API call
-      // Simulating API call for development
-      
-      // Create roles array with default user role
-      const roles = ['user'];
-      
-      // For demo purposes, add admin role for specific test email
-      if (email === 'admin@example.com') {
-        roles.push('admin');
+      setState(prevState => ({
+        ...prevState,
+        loading: true,
+        error: null
+      }));
+
+      // In a real app, send registration data to server
+      // For demo, we'll simulate this with a delay
+      await new Promise(resolve => setTimeout(resolve, 1000));
+
+      // Validate input
+      if (!data.username) {
+        throw new Error('Username is required');
       }
       
-      // Mock successful registration
-      const mockResponse = {
-        success: true,
-        data: {
-          token: 'mock-jwt-token',
-          user: {
-            id: Date.now().toString(),
-            username,
-            email,
-            roles,
-            // Explicitly set walletAddress using the *current* account from the hook
-            walletAddress: account || undefined
-          }
-        }
+      // For wallet-based registration, require wallet address
+      if (!data.walletAddress) {
+        throw new Error('Wallet address is required for wallet-based registration');
+      }
+
+      // Create a demo user with a token
+      const newUser: User = {
+        id: `user_${Date.now()}`,
+        username: data.username,
+        email: data.email || `wallet_user_${Date.now().toString(36)}@example.com`, // Generate temp email if not provided
+        roles: ['user'],
+        walletAddress: data.walletAddress,
+        isWalletOnlyAccount: !data.email // Flag to indicate this is a wallet-only account
       };
-      
-      if (mockResponse.success) {
-        const { token, user } = mockResponse.data;
-        
-        localStorage.setItem('token', token);
-        localStorage.setItem('user', JSON.stringify(user));
-        
-        setState({
-          user,
-          loading: false,
-          error: null,
-          isAuthenticated: true,
-        });
-        return true;
-      } else {
-        throw new Error('Registration failed');
-      }
-    } catch (err: any) {
+
+      // Store token and user in localStorage
+      localStorage.setItem('token', `demo_token_${Date.now()}`);
+      localStorage.setItem('user', JSON.stringify(newUser));
+
+      // Update state
       setState({
-        ...state,
-        error: err.message || 'Registration failed',
+        user: newUser,
         loading: false,
+        error: null,
+        isAuthenticated: true
       });
+
+      console.log(`User registered successfully: ${data.username} with wallet ${data.walletAddress}`);
+      return true;
+    } catch (err) {
+      console.error('Registration error:', err);
+      setState(prevState => ({
+        ...prevState,
+        loading: false,
+        error: 'Registration failed. Please try again.'
+      }));
       return false;
     }
   };
@@ -535,6 +541,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [attemptAutoLoginWithWallet]);
 
+  // Helper function to get user display name
+  const getDisplayName = (): string => {
+    if (!state.user) return 'Guest';
+    
+    // If user has a username, use that
+    if (state.user.username) {
+      return state.user.username;
+    }
+    
+    // If this is a wallet-only account, use a shortened wallet address
+    if (state.user.walletAddress) {
+      const addr = state.user.walletAddress;
+      return `${addr.slice(0, 6)}...${addr.slice(-4)}`;
+    }
+    
+    // Fallback to email or generic name
+    return state.user.email || 'User';
+  };
+
   const value = {
     isAuthenticated: state.isAuthenticated,
     user: state.user,
@@ -543,7 +568,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     register,
     requestProStatus,
     loading: state.loading,
-    error: state.error
+    error: state.error,
+    getDisplayName
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

@@ -61,6 +61,9 @@ interface WalletContextType {
   setWalletModalOpen: (open: boolean) => void;
   setSkipAutoConnect: (skip: boolean) => void;
   skipAutoConnect: boolean;
+  isMetaMaskInstalled: boolean;
+  shouldShowAutoConnectPrompt: boolean;
+  setShouldShowAutoConnectPrompt: (show: boolean) => void;
 }
 
 const WalletContext = createContext<WalletContextType>({
@@ -78,6 +81,9 @@ const WalletContext = createContext<WalletContextType>({
   setWalletModalOpen: () => {},
   setSkipAutoConnect: () => {},
   skipAutoConnect: false,
+  isMetaMaskInstalled: false,
+  shouldShowAutoConnectPrompt: false,
+  setShouldShowAutoConnectPrompt: () => {},
 });
 
 export function WalletProvider({ children }: { children: ReactNode }) {
@@ -85,6 +91,8 @@ export function WalletProvider({ children }: { children: ReactNode }) {
   const [connecting, setConnecting] = useState(false);
   const [walletModalOpen, setWalletModalOpen] = useState(false);
   const [skipAutoConnect, setSkipAutoConnect] = useState(false);
+  const [shouldShowAutoConnectPrompt, setShouldShowAutoConnectPrompt] = useState(false);
+  const [isMetaMaskInstalled, setIsMetaMaskInstalled] = useState(false);
   
   // Notification states
   const [notification, setNotification] = useState<{
@@ -144,6 +152,25 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       console.log('WalletContext: Wallet inactive, service state preserved.');
     }
   }, [active, provider, account]); // Dependencies include active, provider, account
+
+  // Check if MetaMask is installed on component mount
+  useEffect(() => {
+    const checkMetaMaskInstalled = () => {
+      const { ethereum } = window as any;
+      const installed = !!ethereum && !!ethereum.isMetaMask;
+      console.log('WalletContext - MetaMask installed check:', installed);
+      setIsMetaMaskInstalled(installed);
+      
+      // Set flag to show auto-connect prompt for users with MetaMask
+      // Only if they haven't seen the modal before and we're not already connected
+      if (installed && !active && !localStorage.getItem('hasSeenWalletModal') && !skipAutoConnect) {
+        console.log('WalletContext - Should show auto-connect prompt:', true);
+        setShouldShowAutoConnectPrompt(true);
+      }
+    };
+    
+    checkMetaMaskInstalled();
+  }, [active, skipAutoConnect]);
 
   // Connect wallet
   const connect = async () => {
@@ -470,6 +497,9 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     setWalletModalOpen,
     skipAutoConnect,
     setSkipAutoConnect,
+    isMetaMaskInstalled,
+    shouldShowAutoConnectPrompt,
+    setShouldShowAutoConnectPrompt,
   };
 
   // Return context provider with notifications and dialogs
@@ -536,6 +566,9 @@ export function useWallet() {
       setWalletModalOpen: () => {},
       skipAutoConnect: false,
       setSkipAutoConnect: () => {},
+      isMetaMaskInstalled: false,
+      shouldShowAutoConnectPrompt: false,
+      setShouldShowAutoConnectPrompt: () => {},
     };
   }
   

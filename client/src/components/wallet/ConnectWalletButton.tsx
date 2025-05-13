@@ -25,6 +25,7 @@ import {
 import { useWallet } from '../../contexts/WalletContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { ethers } from 'ethers';
+import EnhancedWalletModal from './EnhancedWalletModal';
 
 const shortenAddress = (address: string) => {
   if (!address) return '';
@@ -32,7 +33,20 @@ const shortenAddress = (address: string) => {
 };
 
 const ConnectWalletButton: React.FC = () => {
-  const { connect, disconnect, account, active, chainId, isCorrectNetwork, switchNetwork, connecting, provider } = useWallet();
+  const { 
+    connect, 
+    disconnect, 
+    account, 
+    active, 
+    chainId, 
+    isCorrectNetwork, 
+    switchNetwork, 
+    connecting, 
+    provider,
+    isMetaMaskInstalled: contextIsMetaMaskInstalled,
+    shouldShowAutoConnectPrompt,
+    setShouldShowAutoConnectPrompt
+  } = useWallet();
   const { isAuthenticated, login } = useAuth();
   const [open, setOpen] = useState(false);
   const [balance, setBalance] = useState<string | null>(null);
@@ -43,9 +57,13 @@ const ConnectWalletButton: React.FC = () => {
     message: '',
     type: 'info' as 'info' | 'warning' | 'error' | 'success'
   });
+  const [walletModalOpen, setWalletModalOpen] = useState(false);
   
   // Flag to prevent multiple auto-connect attempts
   const autoConnectAttemptedRef = useRef<boolean>(false);
+  
+  // Flag to track whether user has seen the modal
+  const hasSeenModalRef = useRef<boolean>(false);
 
   // Debug logs
   console.log('ConnectWalletButton rendered with:', { 
@@ -55,20 +73,38 @@ const ConnectWalletButton: React.FC = () => {
     isCorrectNetwork,
     connecting, 
     provider: provider ? 'Provider exists' : 'No provider',
-    window: typeof window !== 'undefined' ? 'Window exists' : 'No window'
+    window: typeof window !== 'undefined' ? 'Window exists' : 'No window',
+    contextIsMetaMaskInstalled,
+    shouldShowAutoConnectPrompt
   });
 
-  // Check if MetaMask is installed
+  // Show auto-connect modal when shouldShowAutoConnectPrompt changes
   useEffect(() => {
-    const checkMetaMaskInstalled = () => {
-      const { ethereum } = window as any;
-      const isInstalled = !!ethereum && !!ethereum.isMetaMask;
-      console.log('MetaMask installed:', isInstalled, ethereum);
-      setIsMetaMaskInstalled(isInstalled);
-    };
+    if (shouldShowAutoConnectPrompt && !active && !hasSeenModalRef.current) {
+      console.log('ConnectWalletButton - Auto-showing wallet modal based on WalletContext flag');
+      setWalletModalOpen(true);
+      hasSeenModalRef.current = true;
+      // Mark flag as seen in WalletContext
+      setShouldShowAutoConnectPrompt(false);
+      // Set flag in localStorage to avoid showing modal again
+      localStorage.setItem('hasSeenWalletModal', 'true');
+    }
+  }, [shouldShowAutoConnectPrompt, active, setShouldShowAutoConnectPrompt]);
 
-    checkMetaMaskInstalled();
-  }, []);
+  // Check if MetaMask is installed - use value from context if available
+  useEffect(() => {
+    if (contextIsMetaMaskInstalled !== undefined) {
+      setIsMetaMaskInstalled(contextIsMetaMaskInstalled);
+    } else {
+      const checkMetaMaskInstalled = () => {
+        const { ethereum } = window as any;
+        const isInstalled = !!ethereum && !!ethereum.isMetaMask;
+        console.log('MetaMask installed check in button:', isInstalled);
+        setIsMetaMaskInstalled(isInstalled);
+      };
+      checkMetaMaskInstalled();
+    }
+  }, [contextIsMetaMaskInstalled]);
 
   // Get balance when connected
   useEffect(() => {
@@ -109,22 +145,7 @@ const ConnectWalletButton: React.FC = () => {
       setWalletDebugInfo(JSON.stringify(info, null, 2));
       console.log('Wallet Button Debug:', info);
     }
-    
-    // // Auto-connect if MetaMask is detected and not already connected,
-    // // but only do this once to prevent infinite popups
-    // const { ethereum } = window as any;
-    // if (ethereum && ethereum.isMetaMask && !active && !autoConnectAttemptedRef.current && !connecting) {
-    //   console.log('ConnectWalletButton - MetaMask detected but not connected, auto-connecting...');
-    //   autoConnectAttemptedRef.current = true;
-    //   connect().catch(err => {
-    //     console.error('Auto connect error:', err);
-    //     // Reset the flag after a timeout to allow a retry later
-    //     setTimeout(() => {
-    //       autoConnectAttemptedRef.current = false;
-    //     }, 5000);
-    //   });
-    // }
-  }, [active, connect, connecting]);
+  }, [active, account]);
 
   // Direct login attempt for recognized wallets - this is actually a good pattern for production
   useEffect(() => {
@@ -304,173 +325,88 @@ const ConnectWalletButton: React.FC = () => {
   // Reference to track previous active state
   const previousActive = useRef(active);
 
-  // Render Dialog content
-  return (
-    <>
-      <Button
-        variant="contained"
-        color="primary"
-        startIcon={<WalletIcon />}
-        onClick={handleClickOpen}
-        sx={{ position: 'relative' }}
-      >
-        {active && account ? (
-          <Box sx={{ display: 'flex', alignItems: 'center' }}>
-            <Box sx={{ display: 'flex', alignItems: 'center' }}>
-              {isCorrectNetwork ? (
-                <CheckCircleIcon sx={{ fontSize: 16, mr: 0.5 }} />
-              ) : (
-                <WarningIcon sx={{ fontSize: 16, mr: 0.5, color: 'error.main' }} />
-              )}
-              {shortenAddress(account)}
-            </Box>
-          </Box>
-        ) : (
-          'Connect Wallet'
-        )}
-        
-        {/* Connection indicator */}
-        {connectionIndicator.show && (
+  // Handler for opening the wallet modal
+  const handleOpenWalletModal = () => {
+    setWalletModalOpen(true);
+    hasSeenModalRef.current = true;
+    // Once user manually opens modal, we shouldn't show the auto-connect prompt
+    setShouldShowAutoConnectPrompt(false);
+    localStorage.setItem('hasSeenWalletModal', 'true');
+  };
+
+  // Handler for closing the wallet modal
+  const handleCloseWalletModal = () => {
+    setWalletModalOpen(false);
+  };
+
+  // Show different button states based on connection status
+  const renderButton = () => {
+    if (active && account) {
+      // Connected state
+      return (
+        <Box sx={{ display: 'flex', alignItems: 'center' }}>
           <Chip
-            label={connectionIndicator.message}
-            color={
-              connectionIndicator.type === 'success' ? 'success' :
-              connectionIndicator.type === 'warning' ? 'warning' :
-              connectionIndicator.type === 'error' ? 'error' : 'info'
-            }
-            size="small"
-            sx={{
-              position: 'absolute',
-              top: '-20px',
-              left: '50%',
-              transform: 'translateX(-50%)',
-              zIndex: 2,
-              whiteSpace: 'nowrap'
+            icon={<WalletIcon />}
+            label={shortenAddress(account)}
+            variant="outlined"
+            onClick={handleDisconnect}
+            color={isCorrectNetwork ? 'primary' : 'error'}
+            sx={{ 
+              borderRadius: '16px',
+              '&:hover': {
+                backgroundColor: 'rgba(25, 118, 210, 0.08)',
+              },
             }}
           />
-        )}
-      </Button>
-      <Dialog open={open} onClose={handleClose} maxWidth="sm" fullWidth>
-        <DialogTitle>
-          Wallet Connection
-          {account && (
-            <Chip 
-              label={getWalletDisplayName(account)} 
-              color={getWalletDisplayName(account).includes('Pro') ? "success" : "primary"}
-              size="small" 
-              sx={{ ml: 1 }} 
-            />
-          )}
-        </DialogTitle>
-        <DialogContent>
-          {!isMetaMaskInstalled && (
-            <DialogContentText>
-              You need to install MetaMask to connect your wallet.
-              <Button
-                variant="outlined"
-                color="primary"
-                startIcon={<OpenInNewIcon />}
-                onClick={() => window.open('https://metamask.io/download/', '_blank')}
-                sx={{ ml: 2 }}
-              >
-                Install MetaMask
-              </Button>
-            </DialogContentText>
-          )}
+        </Box>
+      );
+    } else {
+      // Not connected state
+      return (
+        <Button
+          variant="outlined"
+          startIcon={<WalletIcon />}
+          onClick={handleOpenWalletModal}
+          sx={{ borderRadius: '16px' }}
+        >
+          Connect
+        </Button>
+      );
+    }
+  };
 
-          {isMetaMaskInstalled && !active && (
-            <DialogContentText>
-              Connect your wallet to access the platform features.
-            </DialogContentText>
-          )}
-
-          {active && account && (
-            <>
-              <Box sx={{ mb: 2 }}>
-                <Typography variant="subtitle1">Connected Wallet</Typography>
-                <Typography variant="body1" sx={{ wordBreak: 'break-all' }}>
-                  {account}
-                </Typography>
-                {balance && (
-                  <Typography variant="body2" color="textSecondary">
-                    Balance: {balance} ETH
-                  </Typography>
-                )}
-              </Box>
-
-              {!isCorrectNetwork && (
-                <Paper elevation={0} sx={{ p: 2, bgcolor: 'warning.light', mb: 2 }}>
-                  <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                    <WarningIcon color="warning" sx={{ mr: 1 }} />
-                    <Typography variant="body2">
-                      You're on the wrong network. Please switch to connect to this application.
-                    </Typography>
-                  </Box>
-                  <Button
-                    variant="outlined"
-                    color="warning"
-                    onClick={handleSwitchNetwork}
-                    sx={{ mt: 1 }}
-                  >
-                    Switch Network
-                  </Button>
-                </Paper>
-              )}
-
-              {/* Debug info - only shown in development if explicitly enabled */}
-              {process.env.NODE_ENV === 'development' && process.env.REACT_APP_SHOW_DEBUG === 'true' && (
-                <Box sx={{ mt: 2 }}>
-                  <Divider sx={{ my: 1 }} />
-                  <Typography variant="caption" component="pre" sx={{ 
-                    fontSize: '0.7rem', 
-                    bgcolor: 'grey.100', 
-                    p: 1, 
-                    borderRadius: 1,
-                    overflow: 'auto',
-                    maxHeight: '150px'
-                  }}>
-                    {walletDebugInfo}
-                  </Typography>
-                </Box>
-              )}
-            </>
-          )}
-        </DialogContent>
-        <DialogActions>
-          {active && account ? (
-            <Button onClick={handleDisconnect} color="error">
-              Disconnect
-            </Button>
-          ) : (
-            <Button 
-              onClick={handleConnect} 
-              color="primary" 
-              disabled={!isMetaMaskInstalled || connecting}
-              sx={{ 
-                minWidth: '100px',
-                position: 'relative'
-              }}
-            >
-              {connecting ? (
-                <>
-                  <CircularProgress 
-                    size={16} 
-                    sx={{ 
-                      position: 'absolute',
-                      left: 10,
-                      color: 'inherit'
-                    }} 
-                  />
-                  <span style={{ marginLeft: '8px' }}>Connecting...</span>
-                </>
-              ) : 'Connect'}
-            </Button>
-          )}
-          <Button onClick={handleClose} color="inherit">
-            Close
-          </Button>
-        </DialogActions>
-      </Dialog>
+  return (
+    <>
+      {renderButton()}
+      
+      {connectionIndicator.show && (
+        <Box 
+          sx={{
+            position: 'fixed',
+            bottom: 16,
+            right: 16,
+            zIndex: 2000,
+            backgroundColor: connectionIndicator.type === 'success' ? 'success.light' : 
+                          connectionIndicator.type === 'warning' ? 'warning.light' : 
+                          connectionIndicator.type === 'error' ? 'error.light' : 'info.light',
+            color: '#fff',
+            padding: '8px 16px',
+            borderRadius: '4px',
+            boxShadow: '0 2px 10px rgba(0,0,0,0.1)',
+            display: 'flex',
+            alignItems: 'center',
+          }}
+        >
+          {connectionIndicator.type === 'success' && <CheckCircleIcon sx={{ mr: 1 }} />}
+          {connectionIndicator.type === 'warning' && <WarningIcon sx={{ mr: 1 }} />}
+          <Typography variant="body2">{connectionIndicator.message}</Typography>
+        </Box>
+      )}
+      
+      <EnhancedWalletModal
+        open={walletModalOpen}
+        onClose={handleCloseWalletModal}
+      />
     </>
   );
 };
