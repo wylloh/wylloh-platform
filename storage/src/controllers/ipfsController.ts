@@ -6,7 +6,12 @@ import {
   uploadMetadata, 
   pinContent, 
   checkContentExists,
-  getGatewayUrl
+  getGatewayUrl,
+  createUploadJob,
+  uploadChunk,
+  completeUpload,
+  getUploadStatus,
+  getPinningInfo
 } from '../ipfs/ipfsService';
 
 /**
@@ -49,8 +54,8 @@ export const getContentByCid = asyncHandler(async (req: Request, res: Response) 
       // and not include content directly in JSON for large files
       sampleContent: content.slice(0, 100).toString('base64')
     });
-  } catch (error) {
-    if (error.message.includes('not found')) {
+  } catch (error: any) {
+    if (error.message?.includes('not found')) {
       throw createError('Content not found on IPFS', 404);
     }
     throw error;
@@ -79,12 +84,16 @@ export const pinContentToIPFS = asyncHandler(async (req: Request, res: Response)
     // Pin content
     await pinContent(cid);
 
+    // Get pinning info including external services
+    const pinningInfo = await getPinningInfo(cid);
+
     res.status(200).json({
       message: 'Content pinned successfully',
-      cid
+      cid,
+      pinningInfo
     });
-  } catch (error) {
-    if (error.message.includes('not found')) {
+  } catch (error: any) {
+    if (error.message?.includes('not found')) {
       throw createError('Content not found on IPFS', 404);
     }
     throw error;
@@ -111,8 +120,8 @@ export const unpinContent = asyncHandler(async (req: Request, res: Response) => 
       message: 'Content unpinned successfully',
       cid
     });
-  } catch (error) {
-    if (error.message.includes('not found')) {
+  } catch (error: any) {
+    if (error.message?.includes('not found')) {
       throw createError('Content not found on IPFS', 404);
     }
     throw error;
@@ -138,19 +147,18 @@ export const getContentStatus = asyncHandler(async (req: Request, res: Response)
       throw createError('Content not found on IPFS', 404);
     }
 
-    // In a real implementation, we would get detailed status info
-    // For this placeholder, we'll return basic info
+    // Get pinning information
+    const pinningInfo = await getPinningInfo(cid);
 
     res.status(200).json({
       message: 'Content status retrieved successfully',
       cid,
       exists,
-      pinned: true, // Placeholder
-      size: 1024, // Placeholder
-      createdAt: new Date().toISOString() // Placeholder
+      pinningInfo,
+      createdAt: pinningInfo.timestamp ? new Date(pinningInfo.timestamp).toISOString() : new Date().toISOString()
     });
-  } catch (error) {
-    if (error.message.includes('not found')) {
+  } catch (error: any) {
+    if (error.message?.includes('not found')) {
       throw createError('Content not found on IPFS', 404);
     }
     throw error;
@@ -199,67 +207,174 @@ export const getMetadata = asyncHandler(async (req: Request, res: Response) => {
     // Check if content exists
     const exists = await checkContentExists(cid);
     if (!exists) {
-      throw createError('Metadata not found on IPFS', 404);
+      throw createError('Content not found on IPFS', 404);
     }
 
     // Get metadata from IPFS
-    const contentBuffer = await retrieveFromIPFS(cid);
-    const metadata = JSON.parse(contentBuffer.toString());
+    const content = await retrieveFromIPFS(cid);
+    
+    // Parse JSON metadata
+    let metadata;
+    try {
+      metadata = JSON.parse(content.toString());
+    } catch (err) {
+      throw createError('Invalid metadata format', 400);
+    }
 
     res.status(200).json({
       message: 'Metadata retrieved successfully',
       cid,
       metadata
     });
-  } catch (error) {
-    if (error.message.includes('not found')) {
-      throw createError('Metadata not found on IPFS', 404);
-    } else if (error instanceof SyntaxError) {
-      throw createError('Invalid metadata format', 400);
+  } catch (error: any) {
+    if (error.message?.includes('not found')) {
+      throw createError('Content not found on IPFS', 404);
     }
     throw error;
   }
 });
 
 /**
- * Request additional replication of content
- * @route POST /api/ipfs/replicate/:cid
+ * Initialize a chunked upload
+ * @route POST /api/ipfs/uploads/init
  */
-export const replicateContent = asyncHandler(async (req: Request, res: Response) => {
-  const { cid } = req.params;
-  const { replicationFactor } = req.body;
+export const initChunkedUpload = asyncHandler(async (req: Request, res: Response) => {
+  const { filename, mimeType, totalChunks, totalSize } = req.body;
 
-  // Validate CID
-  if (!cid) {
-    throw createError('CID is required', 400);
+  // Validate request
+  if (!filename) {
+    throw createError('Filename is required', 400);
   }
-
-  // Validate replication factor
-  const factor = replicationFactor ? parseInt(replicationFactor as string) : 3;
-  if (isNaN(factor) || factor < 1 || factor > 10) {
-    throw createError('Replication factor must be between 1 and 10', 400);
+  
+  if (!mimeType) {
+    throw createError('MIME type is required', 400);
+  }
+  
+  if (!totalChunks || !Number.isInteger(totalChunks) || totalChunks <= 0) {
+    throw createError('Valid total chunks count is required', 400);
+  }
+  
+  if (!totalSize || !Number.isInteger(totalSize) || totalSize <= 0) {
+    throw createError('Valid total size is required', 400);
   }
 
   try {
-    // Check if content exists
-    const exists = await checkContentExists(cid);
-    if (!exists) {
-      throw createError('Content not found on IPFS', 404);
-    }
+    // Create upload job
+    const uploadId = createUploadJob(filename, mimeType, totalChunks, totalSize);
 
-    // In a real implementation, we would request additional replication
-    // For this placeholder, we'll just return success
+    res.status(201).json({
+      message: 'Upload initialized successfully',
+      uploadId,
+      filename,
+      totalChunks,
+      totalSize
+    });
+  } catch (error: any) {
+    throw createError(`Failed to initialize upload: ${error.message}`, 500);
+  }
+});
+
+/**
+ * Upload a chunk
+ * @route POST /api/ipfs/uploads/:uploadId/chunks/:chunkIndex
+ */
+export const uploadChunkToIPFS = asyncHandler(async (req: Request, res: Response) => {
+  const { uploadId, chunkIndex } = req.params;
+  const chunkData = req.body;
+
+  // Validate upload ID
+  if (!uploadId) {
+    throw createError('Upload ID is required', 400);
+  }
+
+  // Validate chunk index
+  const parsedChunkIndex = parseInt(chunkIndex, 10);
+  if (isNaN(parsedChunkIndex) || parsedChunkIndex < 0) {
+    throw createError('Valid chunk index is required', 400);
+  }
+
+  // Validate chunk data
+  if (!chunkData || !Buffer.isBuffer(chunkData)) {
+    throw createError('Valid chunk data is required', 400);
+  }
+
+  try {
+    // Process chunk
+    const result = await uploadChunk(uploadId, parsedChunkIndex, chunkData);
+
+    // Get updated upload status
+    const status = getUploadStatus(uploadId);
 
     res.status(200).json({
-      message: 'Replication requested successfully',
-      cid,
-      replicationFactor: factor,
-      status: 'processing'
+      message: 'Chunk uploaded successfully',
+      uploadId,
+      chunkIndex: parsedChunkIndex,
+      receivedChunks: status.receivedChunks,
+      totalChunks: status.totalChunks,
+      progress: status.progress
     });
-  } catch (error) {
-    if (error.message.includes('not found')) {
-      throw createError('Content not found on IPFS', 404);
-    }
-    throw error;
+  } catch (error: any) {
+    throw createError(`Failed to upload chunk: ${error.message}`, 500);
+  }
+});
+
+/**
+ * Complete chunked upload
+ * @route POST /api/ipfs/uploads/:uploadId/complete
+ */
+export const completeChunkedUpload = asyncHandler(async (req: Request, res: Response) => {
+  const { uploadId } = req.params;
+  const { encrypt, encryptionKey } = req.body;
+
+  // Validate upload ID
+  if (!uploadId) {
+    throw createError('Upload ID is required', 400);
+  }
+
+  // Validate encryption key if encryption is requested
+  if (encrypt && !encryptionKey) {
+    throw createError('Encryption key is required when encryption is enabled', 400);
+  }
+
+  try {
+    // Complete upload and get CID
+    const result = await completeUpload(uploadId, encrypt ? encryptionKey : undefined);
+
+    res.status(200).json({
+      message: 'Upload completed successfully',
+      uploadId,
+      cid: result.cid,
+      size: result.size,
+      path: result.path,
+      gatewayUrl: getGatewayUrl(result.cid),
+      encrypted: !!encrypt
+    });
+  } catch (error: any) {
+    throw createError(`Failed to complete upload: ${error.message}`, 500);
+  }
+});
+
+/**
+ * Get upload status
+ * @route GET /api/ipfs/uploads/:uploadId/status
+ */
+export const getUploadJobStatus = asyncHandler(async (req: Request, res: Response) => {
+  const { uploadId } = req.params;
+
+  // Validate upload ID
+  if (!uploadId) {
+    throw createError('Upload ID is required', 400);
+  }
+
+  try {
+    // Get upload status
+    const status = getUploadStatus(uploadId);
+
+    res.status(200).json({
+      message: 'Upload status retrieved successfully',
+      ...status
+    });
+  } catch (error: any) {
+    throw createError(`Failed to get upload status: ${error.message}`, 500);
   }
 });

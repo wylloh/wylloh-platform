@@ -79,6 +79,7 @@
     "helia": "^5.3.0",
     "joi": "^17.13.3",
     "jsonwebtoken": "^9.0.2",
-    "mongoose": "^8.14.1"
+    "mongoose": "^8.14.1",
+    "node-cache": "^5.1.2"
   }
 }
