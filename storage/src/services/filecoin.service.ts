@@ -6,7 +6,7 @@ import fs from 'fs';
 import path from 'path';
 import { logger } from '../utils/logger';
 import { config } from '../config';
-import { ipfsService } from '../ipfs/ipfsService';
+import * as ipfsServices from '../ipfs/ipfsService';
 
 // Constants
 const FILECOIN_API_URL = process.env.FILECOIN_API_URL || 'http://127.0.0.1:1234/rpc/v0';
@@ -57,7 +57,7 @@ interface DealStatus {
  * Service for interacting with Filecoin for long-term storage
  */
 class FilecoinService {
-  private client: LotusRPC;
+  private client!: LotusRPC;
   private deals: Map<string, FilecoinDeal> = new Map();
   private initialized: boolean = false;
   private miners: string[] = [];
@@ -142,7 +142,7 @@ class FilecoinService {
       if (process.env.NODE_ENV === 'production') {
         // Query the Filecoin network for active miners
         // This is simplified - in production would need more complex miner selection
-        const miners = await this.client.StateListMiners();
+        const miners = await this.client.stateListMiners();
         // Filter to active miners with enough storage
         return miners.slice(0, 5); // Just take first 5 for simplicity
       } else {
@@ -238,7 +238,7 @@ class FilecoinService {
       for (const deal of scheduledDeals) {
         try {
           // Check if content is on IPFS
-          const exists = await ipfsService.checkContentExists(deal.cid);
+          const exists = await ipfsServices.checkContentExists(deal.cid);
           if (!exists) {
             logger.warn(`Content CID ${deal.cid} not found on IPFS, skipping deal`);
             deal.status = 'failed';
@@ -453,7 +453,7 @@ class FilecoinService {
       }
       
       // Check if content is already on IPFS
-      const exists = await ipfsService.checkContentExists(cid);
+      const exists = await ipfsServices.checkContentExists(cid);
       if (exists) {
         logger.info(`Content CID ${cid} already exists on IPFS`);
         return true;
@@ -482,7 +482,7 @@ class FilecoinService {
       } else {
         // Development mode - simulate retrieval by pinning to IPFS
         // In real implementation, would actually retrieve from Filecoin
-        await ipfsService.pinContent(cid);
+        await ipfsServices.pinContent(cid);
         logger.info(`Simulated retrieval of CID ${cid} from Filecoin`);
         return true;
       }
@@ -493,6 +493,7 @@ class FilecoinService {
   }
 }
 
-// Create and export singleton instance
+// Create and export the service instance
 export const filecoinService = new FilecoinService();
-export default filecoinService; 
+
+export default FilecoinService; 
