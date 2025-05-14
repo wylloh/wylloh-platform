@@ -22,6 +22,8 @@ import {
   Select,
   MenuItem,
   Divider,
+  Snackbar,
+  Alert,
 } from '@mui/material';
 import {
   ArrowBack as ArrowBackIcon,
@@ -32,6 +34,8 @@ import {
   ErrorOutline as ErrorOutlineIcon,
   AccessTime as AccessTimeIcon,
   Info as InfoIcon,
+  ViewModule as ViewModuleIcon,
+  ViewList as ViewListIcon,
 } from '@mui/icons-material';
 import { format } from 'date-fns';
 import { WalletContext } from '../../contexts/WalletContext';
@@ -39,6 +43,10 @@ import { libraryService, LibraryItem } from '../../services/library.service';
 import { ownershipVerificationService, type VerificationResult } from '../../services/ownershipVerification.service';
 import LibraryAnalytics from '../../components/library/LibraryAnalytics';
 import EnhancedContentCard from '../../components/common/EnhancedContentCard';
+import ContentSelectionToolbar, { TokenCollection } from '../../components/library/ContentSelectionToolbar';
+import BatchActionModals from '../../components/library/BatchActionModals';
+import { organizeTokenCollections, updateCollectionSelections } from '../../components/library/ContentCollectionHelper';
+import CollectionCard from '../../components/library/CollectionCard';
 
 interface TabPanelProps {
   children?: React.ReactNode;
@@ -104,6 +112,34 @@ const EnhancedLibraryPage: React.FC = () => {
   // Form states for selling
   const [sellPrice, setSellPrice] = useState(0);
   const [buyerEmail, setBuyerEmail] = useState('');
+
+  // Batch operation state
+  const [selectedItems, setSelectedItems] = useState<string[]>([]);
+  const [collections, setCollections] = useState<TokenCollection[]>([]);
+  const [collectionView, setCollectionView] = useState(false);
+  
+  // Batch operation dialog state
+  const [batchLendOpen, setBatchLendOpen] = useState(false);
+  const [batchSellOpen, setBatchSellOpen] = useState(false);
+  const [batchTagOpen, setBatchTagOpen] = useState(false);
+  const [batchCreateCollectionOpen, setBatchCreateCollectionOpen] = useState(false);
+  const [batchDeleteOpen, setBatchDeleteOpen] = useState(false);
+  
+  // Batch operation processing state
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [processingProgress, setProcessingProgress] = useState(0);
+  const [processingMessage, setProcessingMessage] = useState('Processing...');
+  
+  // Snackbar for notifications
+  const [snackbar, setSnackbar] = useState<{
+    open: boolean;
+    message: string;
+    severity: 'success' | 'info' | 'warning' | 'error';
+  }>({
+    open: false,
+    message: '',
+    severity: 'info',
+  });
 
   // Set provider when it's available
   useEffect(() => {
@@ -401,6 +437,392 @@ const EnhancedLibraryPage: React.FC = () => {
     setSellPrice(0);
   };
 
+  // Effect to organize tokens into collections when content changes
+  useEffect(() => {
+    if (content.length > 0) {
+      const tokenCollections = organizeTokenCollections(content);
+      setCollections(tokenCollections);
+    }
+  }, [content]);
+
+  // Update collections when selection changes
+  useEffect(() => {
+    if (collections.length > 0) {
+      const updatedCollections = updateCollectionSelections(collections, selectedItems);
+      setCollections(updatedCollections);
+    }
+  }, [selectedItems, collections.length]);
+
+  // Handle selection change
+  const handleSelectionChange = (selectedIds: string[]) => {
+    setSelectedItems(selectedIds);
+  };
+
+  // Toggle collection view
+  const handleToggleCollectionView = () => {
+    setCollectionView(!collectionView);
+  };
+
+  // Batch action handlers
+  const handleBatchLend = () => {
+    setBatchLendOpen(true);
+  };
+
+  const handleBatchSell = () => {
+    setBatchSellOpen(true);
+  };
+
+  const handleBatchTag = () => {
+    setBatchTagOpen(true);
+  };
+
+  const handleBatchCreateCollection = () => {
+    setBatchCreateCollectionOpen(true);
+  };
+
+  const handleBatchDelete = () => {
+    setBatchDeleteOpen(true);
+  };
+
+  // Batch action submission handlers
+  const handleSubmitBatchLend = async (email: string, duration: number, price: number) => {
+    try {
+      setIsProcessing(true);
+      setProcessingMessage('Sending lending offers...');
+      
+      // Filter out non-tokenized content
+      const tokenizedItems = content
+        .filter(item => item.tokenData && selectedItems.includes(item.contentId));
+      
+      // Simulate batch operation with progress
+      for (let i = 0; i < tokenizedItems.length; i++) {
+        // Update progress
+        setProcessingProgress(Math.round(((i + 1) / tokenizedItems.length) * 100));
+        setProcessingMessage(`Processing item ${i + 1} of ${tokenizedItems.length}...`);
+        
+        // Simulate API call (would be a real API call in production)
+        await new Promise(resolve => setTimeout(resolve, 500));
+      }
+      
+      // Show success message
+      setSnackbar({
+        open: true,
+        message: `Successfully sent lending offers for ${tokenizedItems.length} items`,
+        severity: 'success',
+      });
+      
+      // Close dialog and reset selection
+      setBatchLendOpen(false);
+      setSelectedItems([]);
+    } catch (error) {
+      console.error('Error in batch lend:', error);
+      setSnackbar({
+        open: true,
+        message: 'Failed to process lending offers',
+        severity: 'error',
+      });
+    } finally {
+      setIsProcessing(false);
+      setProcessingProgress(0);
+    }
+  };
+
+  const handleSubmitBatchSell = async (price: number, buyerEmail?: string) => {
+    try {
+      setIsProcessing(true);
+      setProcessingMessage('Listing items for sale...');
+      
+      // Filter out non-tokenized content
+      const tokenizedItems = content
+        .filter(item => item.tokenData && selectedItems.includes(item.contentId));
+      
+      // Simulate batch operation with progress
+      for (let i = 0; i < tokenizedItems.length; i++) {
+        // Update progress
+        setProcessingProgress(Math.round(((i + 1) / tokenizedItems.length) * 100));
+        setProcessingMessage(`Processing item ${i + 1} of ${tokenizedItems.length}...`);
+        
+        // Simulate API call (would be a real API call in production)
+        await new Promise(resolve => setTimeout(resolve, 500));
+      }
+      
+      // Show success message
+      setSnackbar({
+        open: true,
+        message: `Successfully listed ${tokenizedItems.length} items for sale`,
+        severity: 'success',
+      });
+      
+      // Close dialog and reset selection
+      setBatchSellOpen(false);
+      setSelectedItems([]);
+    } catch (error) {
+      console.error('Error in batch sell:', error);
+      setSnackbar({
+        open: true,
+        message: 'Failed to list items for sale',
+        severity: 'error',
+      });
+    } finally {
+      setIsProcessing(false);
+      setProcessingProgress(0);
+    }
+  };
+
+  const handleSubmitBatchTag = async (tags: string[]) => {
+    try {
+      setIsProcessing(true);
+      setProcessingMessage('Applying tags...');
+      
+      // Simulate batch operation with progress
+      for (let i = 0; i < selectedItems.length; i++) {
+        // Update progress
+        setProcessingProgress(Math.round(((i + 1) / selectedItems.length) * 100));
+        setProcessingMessage(`Tagging item ${i + 1} of ${selectedItems.length}...`);
+        
+        // Simulate API call (would be a real API call in production)
+        await new Promise(resolve => setTimeout(resolve, 300));
+      }
+      
+      // Show success message
+      setSnackbar({
+        open: true,
+        message: `Successfully applied tags to ${selectedItems.length} items`,
+        severity: 'success',
+      });
+      
+      // Close dialog and reset selection
+      setBatchTagOpen(false);
+      setSelectedItems([]);
+    } catch (error) {
+      console.error('Error in batch tag:', error);
+      setSnackbar({
+        open: true,
+        message: 'Failed to apply tags',
+        severity: 'error',
+      });
+    } finally {
+      setIsProcessing(false);
+      setProcessingProgress(0);
+    }
+  };
+
+  const handleSubmitBatchCreateCollection = async (name: string, description: string) => {
+    try {
+      setIsProcessing(true);
+      setProcessingMessage('Creating collection...');
+      
+      // Simulate collection creation
+      await new Promise(resolve => setTimeout(resolve, 1500));
+      
+      // Show success message
+      setSnackbar({
+        open: true,
+        message: `Successfully created collection "${name}" with ${selectedItems.length} items`,
+        severity: 'success',
+      });
+      
+      // Close dialog and reset selection
+      setBatchCreateCollectionOpen(false);
+      setSelectedItems([]);
+    } catch (error) {
+      console.error('Error in batch create collection:', error);
+      setSnackbar({
+        open: true,
+        message: 'Failed to create collection',
+        severity: 'error',
+      });
+    } finally {
+      setIsProcessing(false);
+      setProcessingProgress(0);
+    }
+  };
+
+  const handleSubmitBatchDelete = async () => {
+    try {
+      setIsProcessing(true);
+      setProcessingMessage('Removing items from library...');
+      
+      // Simulate batch operation with progress
+      for (let i = 0; i < selectedItems.length; i++) {
+        // Update progress
+        setProcessingProgress(Math.round(((i + 1) / selectedItems.length) * 100));
+        setProcessingMessage(`Removing item ${i + 1} of ${selectedItems.length}...`);
+        
+        // Simulate API call (would be a real API call in production)
+        await new Promise(resolve => setTimeout(resolve, 200));
+      }
+      
+      // Show success message
+      setSnackbar({
+        open: true,
+        message: `Successfully removed ${selectedItems.length} items from library`,
+        severity: 'success',
+      });
+      
+      // In a real app, we would update the content state here
+      // For now, let's just simulate it
+      setContent(content.filter(item => !selectedItems.includes(item.contentId)));
+      
+      // Close dialog and reset selection
+      setBatchDeleteOpen(false);
+      setSelectedItems([]);
+    } catch (error) {
+      console.error('Error in batch delete:', error);
+      setSnackbar({
+        open: true,
+        message: 'Failed to remove items',
+        severity: 'error',
+      });
+    } finally {
+      setIsProcessing(false);
+      setProcessingProgress(0);
+    }
+  };
+
+  // Handle snackbar close
+  const handleSnackbarClose = () => {
+    setSnackbar({
+      ...snackbar,
+      open: false,
+    });
+  };
+
+  // Handle collection selection
+  const handleSelectCollection = (collectionId: string, selected: boolean) => {
+    const collection = collections.find(c => c.contentId === collectionId);
+    if (!collection) return;
+    
+    const collectionItemIds = collection.items.map(item => item.contentId);
+    
+    if (selected) {
+      // Add all collection items to selection
+      setSelectedItems(prev => [...prev, ...collectionItemIds.filter(id => !prev.includes(id))]);
+    } else {
+      // Remove all collection items from selection
+      setSelectedItems(prev => prev.filter(id => !collectionItemIds.includes(id)));
+    }
+  };
+
+  // Render helper for collection view
+  const renderCollectionView = () => (
+    <Grid container spacing={3} sx={{ mt: 1 }}>
+      {collections.map(collection => (
+        <Grid item xs={12} sm={6} md={4} key={collection.contentId}>
+          <CollectionCard
+            collection={collection}
+            onLend={(id) => handleLendContent(id)}
+            onSell={(id) => handleSellContent(id)}
+            onInfo={(id) => handleInfoContent(id)}
+            onPlay={collection.items[0] && !collection.items[0].isLent ? (id) => handlePlayContent(id) : undefined}
+            onSelect={handleSelectCollection}
+            selected={collection.selectedTokens > 0}
+            userIsPro={true}
+            context="consumer"
+          />
+        </Grid>
+      ))}
+    </Grid>
+  );
+
+  // Render helper for regular item view
+  const renderItemView = () => (
+    <Grid container spacing={3} sx={{ mt: 1 }}>
+      {content.map(item => (
+        <Grid item xs={12} sm={6} md={4} key={item.contentId}>
+          <EnhancedContentCard
+            content={{
+              id: item.contentId,
+              title: item.title,
+              description: item.description || '',
+              contentType: item.contentType || 'movie',
+              creator: item.creator || item.director || '',
+              creatorAddress: '',
+              mainFileCid: '',
+              image: item.thumbnailUrl,
+              tokenized: !!item.tokenData,
+              tokenId: item.tokenData?.tokenId,
+              price: item.currentValue || 0,
+              available: 1,
+              totalSupply: 1,
+              metadata: {
+                genres: item.genre ? [item.genre] : [],
+                releaseYear: item.year,
+                duration: '120 min'
+              },
+              createdAt: item.purchaseDate,
+              status: 'active',
+              visibility: 'public',
+              views: Math.floor(Math.random() * 100),
+              sales: 0
+            }}
+            context="consumer"
+            onPlay={!item.isLent ? (id) => handlePlayContent(id) : undefined}
+            onFavorite={(id) => console.log('Toggle favorite:', id)}
+            hideStatus={false}
+            showPrice={false}
+            variant="standard"
+            elevation={2}
+            isSelected={selectedItems.includes(item.contentId)}
+            onSelect={(id, selected) => {
+              if (selected) {
+                setSelectedItems(prev => [...prev, id]);
+              } else {
+                setSelectedItems(prev => prev.filter(i => i !== id));
+              }
+            }}
+          />
+          
+          {/* Custom action buttons for library context */}
+          <Box sx={{ mt: 1, display: 'flex', justifyContent: 'center', gap: 1 }}>
+            {item.tokenData && (
+              <Tooltip title={item.tokenData.ownershipVerified ? "Ownership verified" : "Verify ownership"}>
+                <IconButton
+                  color={item.tokenData.ownershipVerified ? "success" : "warning"}
+                  size="small"
+                >
+                  {item.tokenData.ownershipVerified ? <VerifiedIcon /> : <ErrorOutlineIcon />}
+                </IconButton>
+              </Tooltip>
+            )}
+            
+            <Tooltip title="Lend">
+              <IconButton
+                color="primary" 
+                size="small"
+                onClick={() => handleLendContent(item.contentId)}
+                disabled={item.isLent}
+              >
+                <SendIcon />
+              </IconButton>
+            </Tooltip>
+            
+            <Tooltip title="Sell">
+              <IconButton 
+                color="primary" 
+                size="small"
+                onClick={() => handleSellContent(item.contentId)}
+                disabled={item.isLent}
+              >
+                <AttachMoneyIcon />
+              </IconButton>
+            </Tooltip>
+            
+            <Tooltip title="Details">
+              <IconButton 
+                color="primary" 
+                size="small"
+                onClick={() => handleInfoContent(item.contentId)}
+              >
+                <InfoIcon />
+              </IconButton>
+            </Tooltip>
+          </Box>
+        </Grid>
+      ))}
+    </Grid>
+  );
+
   if (loading) {
     return (
       <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
@@ -448,6 +870,31 @@ const EnhancedLibraryPage: React.FC = () => {
       </Box>
 
       <TabPanel value={tabValue} index={0}>
+        {/* Selection toolbar */}
+        <ContentSelectionToolbar
+          items={content}
+          collections={collections}
+          selectedItems={selectedItems}
+          onSelectionChange={handleSelectionChange}
+          onBatchLend={handleBatchLend}
+          onBatchSell={handleBatchSell}
+          onBatchTag={handleBatchTag}
+          onBatchCreateCollection={handleBatchCreateCollection}
+          onBatchDelete={handleBatchDelete}
+          userIsPro={true}
+          collectionView={collectionView}
+          onToggleCollectionView={handleToggleCollectionView}
+        />
+        
+        {/* View toggle */}
+        <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 2 }}>
+          <Tooltip title={collectionView ? "Show individual items" : "Show collections"}>
+            <IconButton onClick={handleToggleCollectionView}>
+              {collectionView ? <ViewListIcon /> : <ViewModuleIcon />}
+            </IconButton>
+          </Tooltip>
+        </Box>
+        
         {content.length === 0 ? (
           <Box sx={{ textAlign: 'center', py: 4 }}>
             <Typography variant="h6" gutterBottom>
@@ -465,92 +912,7 @@ const EnhancedLibraryPage: React.FC = () => {
             </Button>
           </Box>
         ) : (
-          <Grid container spacing={3} sx={{ mt: 1 }}>
-            {content.map(item => (
-              <Grid item xs={12} sm={6} md={4} key={item.contentId}>
-                <EnhancedContentCard
-                  content={{
-                    id: item.contentId,
-                    title: item.title,
-                    description: item.description || '',
-                    contentType: item.contentType || 'movie',
-                    creator: item.creator || item.director || '',
-                    creatorAddress: '',
-                    mainFileCid: '',
-                    image: item.thumbnailUrl,
-                    tokenized: !!item.tokenData,
-                    tokenId: item.tokenData?.tokenId,
-                    price: item.currentValue || 0,
-                    available: 1,
-                    totalSupply: 1,
-                    metadata: {
-                      genres: item.genre ? [item.genre] : [],
-                      releaseYear: item.year,
-                      duration: '120 min'
-                    },
-                    createdAt: item.purchaseDate,
-                    status: 'active',
-                    visibility: 'public',
-                    views: Math.floor(Math.random() * 100),
-                    sales: 0
-                  }}
-                  context="consumer"
-                  onPlay={!item.isLent ? (id) => handlePlayContent(id) : undefined}
-                  onFavorite={(id) => console.log('Toggle favorite:', id)}
-                  hideStatus={false}
-                  showPrice={false}
-                  variant="standard"
-                  elevation={2}
-                />
-                
-                {/* Custom action buttons for library context */}
-                <Box sx={{ mt: 1, display: 'flex', justifyContent: 'center', gap: 1 }}>
-                  {item.tokenData && (
-                    <Tooltip title={item.tokenData.ownershipVerified ? "Ownership verified" : "Verify ownership"}>
-                      <IconButton
-                        color={item.tokenData.ownershipVerified ? "success" : "warning"}
-                        size="small"
-                      >
-                        {item.tokenData.ownershipVerified ? <VerifiedIcon /> : <ErrorOutlineIcon />}
-                      </IconButton>
-                    </Tooltip>
-                  )}
-                  
-                  <Tooltip title="Lend">
-                    <IconButton
-                      color="primary" 
-                      size="small"
-                      onClick={() => handleLendContent(item.contentId)}
-                      disabled={item.isLent}
-                    >
-                      <SendIcon />
-                    </IconButton>
-                  </Tooltip>
-                  
-                  <Tooltip title="Sell">
-                    <IconButton 
-                      color="primary" 
-                      size="small"
-                      onClick={() => handleSellContent(item.contentId)}
-                      disabled={item.isLent}
-                    >
-                      <AttachMoneyIcon />
-                    </IconButton>
-                  </Tooltip>
-                  
-                  <Tooltip title="Details">
-                    <IconButton 
-                      color="primary" 
-                      size="small"
-                      onClick={() => handleInfoContent(item.contentId)}
-                    >
-                      <InfoIcon />
-                    </IconButton>
-                  </Tooltip>
-                </Box>
-              </Grid>
-            ))}
-          </Grid>
+          collectionView ? renderCollectionView() : renderItemView()
         )}
       </TabPanel>
 
@@ -558,7 +920,7 @@ const EnhancedLibraryPage: React.FC = () => {
         <LibraryAnalytics libraryId={libraryId!} />
       </TabPanel>
       
-      {/* Lending Dialog */}
+      {/* Individual action dialogs */}
       <Dialog open={lendDialogOpen} onClose={() => setLendDialogOpen(false)}>
         <DialogTitle>Lend Content</DialogTitle>
         <DialogContent>
@@ -611,7 +973,6 @@ const EnhancedLibraryPage: React.FC = () => {
         </DialogActions>
       </Dialog>
       
-      {/* Selling Dialog */}
       <Dialog open={sellDialogOpen} onClose={() => setSellDialogOpen(false)}>
         <DialogTitle>Sell Content</DialogTitle>
         <DialogContent>
@@ -651,7 +1012,6 @@ const EnhancedLibraryPage: React.FC = () => {
         </DialogActions>
       </Dialog>
       
-      {/* Info Dialog */}
       <Dialog 
         open={infoDialogOpen} 
         onClose={() => setInfoDialogOpen(false)}
@@ -770,6 +1130,54 @@ const EnhancedLibraryPage: React.FC = () => {
           <Button onClick={() => setInfoDialogOpen(false)}>Close</Button>
         </DialogActions>
       </Dialog>
+      
+      {/* Batch action modals */}
+      <BatchActionModals
+        selectedItems={selectedItems}
+        items={content}
+        collections={collections}
+        
+        batchLendOpen={batchLendOpen}
+        onCloseBatchLend={() => setBatchLendOpen(false)}
+        onSubmitBatchLend={handleSubmitBatchLend}
+        
+        batchSellOpen={batchSellOpen}
+        onCloseBatchSell={() => setBatchSellOpen(false)}
+        onSubmitBatchSell={handleSubmitBatchSell}
+        
+        batchTagOpen={batchTagOpen}
+        onCloseBatchTag={() => setBatchTagOpen(false)}
+        onSubmitBatchTag={handleSubmitBatchTag}
+        
+        batchCreateCollectionOpen={batchCreateCollectionOpen}
+        onCloseBatchCreateCollection={() => setBatchCreateCollectionOpen(false)}
+        onSubmitBatchCreateCollection={handleSubmitBatchCreateCollection}
+        
+        batchDeleteOpen={batchDeleteOpen}
+        onCloseBatchDelete={() => setBatchDeleteOpen(false)}
+        onSubmitBatchDelete={handleSubmitBatchDelete}
+        
+        isProcessing={isProcessing}
+        processingProgress={processingProgress}
+        processingMessage={processingMessage}
+        availableTags={['Action', 'Drama', 'Sci-Fi', 'Comedy', 'Documentary', 'Horror', 'Indie', 'Foreign']}
+      />
+      
+      {/* Snackbar for notifications */}
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={6000}
+        onClose={handleSnackbarClose}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+      >
+        <Alert 
+          onClose={handleSnackbarClose} 
+          severity={snackbar.severity}
+          variant="filled"
+        >
+          {snackbar.message}
+        </Alert>
+      </Snackbar>
     </Container>
   );
 };

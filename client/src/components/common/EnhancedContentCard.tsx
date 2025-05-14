@@ -13,6 +13,7 @@ import {
   Tooltip,
   Button,
   IconButton,
+  Checkbox,
 } from '@mui/material';
 import {
   Movie as MovieIcon,
@@ -48,6 +49,9 @@ interface EnhancedContentCardProps {
   variant?: 'compact' | 'standard' | 'detailed';
   hideStatus?: boolean;
   showPrice?: boolean;
+  // Selection props for batch operations
+  isSelected?: boolean;
+  onSelect?: (contentId: string, selected: boolean) => void;
 }
 
 /**
@@ -67,6 +71,8 @@ const EnhancedContentCard: React.FC<EnhancedContentCardProps> = ({
   variant = 'standard',
   hideStatus = false,
   showPrice = true,
+  isSelected = false,
+  onSelect,
 }) => {
   // Helper function to get content type icon
   const getContentTypeIcon = () => {
@@ -211,90 +217,106 @@ const EnhancedContentCard: React.FC<EnhancedContentCardProps> = ({
         height: '100%', 
         display: 'flex', 
         flexDirection: 'column',
+        position: 'relative',
         transition: 'transform 0.2s, box-shadow 0.2s',
         '&:hover': {
           transform: 'translateY(-4px)',
           boxShadow: 6,
-        }
+        },
+        border: isSelected ? 2 : 0,
+        borderColor: 'primary.main',
       }}
     >
-      <Box sx={{ position: 'relative' }}>
-        <CardMedia
-          component="img"
-          height={180}
-          image={getThumbnailUrl()}
-          alt={content.title}
-        />
-        
-        {/* Favorite button overlay */}
-        {onFavorite && (
-          <IconButton
-            onClick={() => onFavorite(content.id)}
-            sx={{
-              position: 'absolute',
-              top: 8,
-              right: 8,
+      {/* Selection checkbox */}
+      {onSelect && (
+        <Box sx={{ position: 'absolute', top: 8, right: 8, zIndex: 1 }}>
+          <Checkbox 
+            checked={isSelected}
+            onChange={(e) => onSelect(content.id, e.target.checked)}
+            sx={{ 
               bgcolor: 'rgba(255, 255, 255, 0.7)',
-              '&:hover': { bgcolor: 'rgba(255, 255, 255, 0.9)' },
+              borderRadius: '50%',
+              '&:hover': { bgcolor: 'rgba(255, 255, 255, 0.9)' } 
             }}
-          >
-            {isFavorite ? (
-              <FavoriteIcon color="error" />
-            ) : (
-              <FavoriteBorderIcon />
-            )}
-          </IconButton>
-        )}
-        
-        {/* Play button overlay */}
-        {onPlay && (
-          <IconButton
-            onClick={() => onPlay(content.id)}
-            sx={{
-              position: 'absolute',
-              top: '50%',
-              left: '50%',
-              transform: 'translate(-50%, -50%)',
-              bgcolor: 'rgba(0, 0, 0, 0.6)',
-              color: 'white',
-              '&:hover': { bgcolor: 'rgba(0, 0, 0, 0.8)' },
-            }}
-          >
-            <PlayArrowIcon fontSize="large" />
-          </IconButton>
-        )}
-      </Box>
-      
-      <CardContent sx={{ flexGrow: 1 }}>
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 1 }}>
-          <Typography variant="h6" component="h2" gutterBottom noWrap sx={{ flexGrow: 1, mr: 1 }}>
-            {content.title}
-          </Typography>
-          
-          {!hideStatus && (
-            <ContentStatusBadge
-              status={context === 'pro' ? content.status : 'active'}
-              visibility={context === 'pro' ? content.visibility : undefined}
-              tokenized={content.tokenized}
-              showLabel={false}
-              size="small"
-              context={context}
-            />
-          )}
+          />
         </Box>
-        
-        <Typography variant="body2" color="text.secondary" gutterBottom>
-          by {content.creator}
+      )}
+      
+      {/* Status badge */}
+      {!hideStatus && (
+        <Box sx={{ position: 'absolute', top: 8, left: 8, zIndex: 1 }}>
+          <ContentStatusBadge status={content.status} context={context} />
+        </Box>
+      )}
+      
+      {/* Content thumbnail */}
+      <CardMedia
+        component="img"
+        sx={{ height: variant === 'compact' ? 120 : 200 }}
+        image={getThumbnailUrl()}
+        alt={content.title}
+      />
+      
+      <CardContent sx={{ flexGrow: 1, pt: 2 }}>
+        {/* Content title */}
+        <Typography 
+          gutterBottom 
+          variant={variant === 'compact' ? 'subtitle1' : 'h6'} 
+          component="div"
+          sx={{ 
+            display: '-webkit-box',
+            WebkitLineClamp: 2,
+            WebkitBoxOrient: 'vertical',
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            minHeight: variant === 'compact' ? '2.5em' : '3em'
+          }}
+        >
+          {content.title}
         </Typography>
         
-        {content.description && (
+        {/* Creator */}
+        <Typography 
+          variant="body2" 
+          color="text.secondary"
+          gutterBottom
+        >
+          {content.creator}
+        </Typography>
+        
+        {/* Price/availability */}
+        {showPrice && context !== 'pro' && (
+          <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+            {content.price !== undefined && content.price > 0 ? (
+              <Typography variant="body2" fontWeight="bold" color="primary">
+                {formatCurrency(content.price)}
+              </Typography>
+            ) : (
+              <Typography variant="body2" color="success.main" fontWeight="bold">
+                Free
+              </Typography>
+            )}
+            
+            {content.available !== undefined && content.totalSupply !== undefined && (
+              <Typography variant="body2" color="text.secondary" sx={{ ml: 1 }}>
+                {content.available} of {content.totalSupply} available
+              </Typography>
+            )}
+          </Box>
+        )}
+      
+        {/* Metadata */}
+        {variant !== 'compact' && renderMetadataTags()}
+        
+        {/* Description */}
+        {variant === 'detailed' && content.description && (
           <Typography 
             variant="body2" 
-            color="text.secondary" 
+            color="text.secondary"
             sx={{ 
-              mb: 2, 
+              mt: 1,
               display: '-webkit-box',
-              WebkitLineClamp: 2,
+              WebkitLineClamp: 3,
               WebkitBoxOrient: 'vertical',
               overflow: 'hidden'
             }}
@@ -302,68 +324,58 @@ const EnhancedContentCard: React.FC<EnhancedContentCardProps> = ({
             {content.description}
           </Typography>
         )}
-        
-        {/* Content type chip */}
-        <Chip 
-          icon={getContentTypeIcon()} 
-          label={content.contentType} 
-          size="small"
-          sx={{ mb: 1 }}
-        />
-        
-        {/* Show price if available and requested */}
-        {showPrice && content.price !== undefined && (
-          <Typography variant="h6" color="primary.main" sx={{ mt: 1, fontWeight: 'bold' }}>
-            {formatCurrency(content.price)}
-            {content.available !== undefined && content.totalSupply !== undefined && (
-              <Typography component="span" variant="caption" color="text.secondary" sx={{ ml: 1 }}>
-                ({content.available}/{content.totalSupply} available)
-              </Typography>
-            )}
-          </Typography>
-        )}
       </CardContent>
       
-      <CardActions sx={{ justifyContent: 'space-between', p: 2, pt: 0 }}>
-        <Button
-          size="small"
-          startIcon={<InfoIcon />}
-          component={Link}
-          to={`/content/${content.id}`}
-        >
-          Details
-        </Button>
+      {/* Actions */}
+      <CardActions sx={{ padding: '8px 16px', justifyContent: 'space-between' }}>
+        <Box>
+          {onFavorite && (
+            <IconButton 
+              size="small" 
+              onClick={() => onFavorite(content.id)}
+              color={isFavorite ? "primary" : "default"}
+            >
+              {isFavorite ? <FavoriteIcon /> : <FavoriteBorderIcon />}
+            </IconButton>
+          )}
+          
+          {onView && (
+            <IconButton size="small" onClick={() => onView(content.id)}>
+              <InfoIcon />
+            </IconButton>
+          )}
+        </Box>
         
         <Box>
           {onPlay && (
-            <Button
-              size="small"
+            <Button 
+              variant="contained" 
+              size="small" 
               startIcon={<PlayArrowIcon />}
               onClick={() => onPlay(content.id)}
-              sx={{ mr: 1 }}
             >
               Play
             </Button>
           )}
           
-          {onBuy && (
-            <Button
-              size="small"
-              color="primary"
-              variant="contained"
+          {onBuy && context === 'store' && (
+            <Button 
+              variant="outlined" 
+              size="small" 
               startIcon={<ShoppingCartIcon />}
               onClick={() => onBuy(content.id)}
+              sx={{ ml: 1 }}
             >
-              Buy
+              {content.price !== undefined && content.price > 0 ? 'Buy' : 'Claim'}
             </Button>
           )}
           
-          {onRent && !onBuy && (
-            <Button
+          {onRent && (
+            <Button 
+              variant="outlined" 
               size="small"
-              color="secondary"
-              variant="outlined"
               onClick={() => onRent(content.id)}
+              sx={{ ml: 1 }}
             >
               Rent
             </Button>
