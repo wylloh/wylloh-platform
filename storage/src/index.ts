@@ -13,6 +13,7 @@ dotenv.config();
 import contentRoutes from './routes/contentRoutes';
 import ipfsRoutes from './routes/ipfsRoutes';
 import encryptionRoutes from './routes/encryptionRoutes';
+import gatewayRoutes from './routes/gatewayRoutes';
 
 // Import middleware
 import { errorHandler } from './middleware/errorHandler';
@@ -55,6 +56,7 @@ app.get('/health', (req, res) => {
 app.use('/api/content', contentRoutes);
 app.use('/api/ipfs', ipfsRoutes);
 app.use('/api/encryption', encryptionRoutes);
+app.use('/api/gateways', gatewayRoutes);
 
 // Apply error handling middleware
 app.use(errorHandler);
