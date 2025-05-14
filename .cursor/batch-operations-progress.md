@@ -38,6 +38,21 @@ We've integrated batch operations into the EnhancedLibraryPage:
 - Created simulated progress tracking for operations
 - Added notification system for operation results
 
+## Important Reminder
+
+⚠️ **Before starting the next tasks, test the application using our new port management scripts:**
+
+```bash
+# Kill any process running on port 3000
+cd client
+npm run kill-port
+
+# Or use the restart script to kill the port and start the app
+npm run restart
+```
+
+This will help avoid the "Something is already running on port 3000" issue we encountered. Always ensure no previous instances of the development server are running before starting a new one.
+
 ## Next Steps: Background Task Progress Tracking
 
 The current implementation simulates progress tracking within the component, but we need a more robust system that can:
