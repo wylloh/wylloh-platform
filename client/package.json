@@ -51,7 +51,9 @@
     "test": "react-scripts test",
     "eject": "react-scripts eject",
     "lint": "eslint src",
-    "cleanup-demo-content": "echo 'Demo content cleanup is disabled for better demo reliability'"
+    "cleanup-demo-content": "echo 'Demo content cleanup is disabled for better demo reliability'",
+    "kill-port": "lsof -ti:3000 | xargs kill -9 || echo 'No process running on port 3000'",
+    "restart": "npm run kill-port && npm run start"
   },
   "eslintConfig": {
     "extends": [
