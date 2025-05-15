@@ -1,0 +1,79 @@
+name: Security Scanning
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+  schedule:
+    - cron: '0 0 * * 1' # Run weekly on Mondays
+
+jobs:
+  security-scan:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v3
+      
+    - name: Setup Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: '18'
+        cache: 'npm'
+        
+    - name: Install dependencies
+      run: |
+        npm ci
+        cd client && npm ci
+        cd ../api && npm ci
+        
+    - name: Run npm audit
+      run: |
+        echo "Root project audit:"
+        npm audit --json > npm-audit-root.json || true
+        echo "Client project audit:"
+        cd client && npm audit --json > ../npm-audit-client.json || true
+        echo "API project audit:"
+        cd ../api && npm audit --json > ../npm-audit-api.json || true
+        
+    - name: Generate security report
+      run: |
+        echo "# Security Audit Report" > security-report.md
+        echo "Generated on: $(date)" >> security-report.md
+        echo "" >> security-report.md
+        
+        echo "## Root Project" >> security-report.md
+        echo '```' >> security-report.md
+        cat npm-audit-root.json | jq -r '.metadata.vulnerabilities | "Critical: \(.critical), High: \(.high), Moderate: \(.moderate), Low: \(.low)"' >> security-report.md || echo "No vulnerabilities found or parsing error" >> security-report.md
+        echo '```' >> security-report.md
+        echo "" >> security-report.md
+        
+        echo "## Client Project" >> security-report.md
+        echo '```' >> security-report.md
+        cat npm-audit-client.json | jq -r '.metadata.vulnerabilities | "Critical: \(.critical), High: \(.high), Moderate: \(.moderate), Low: \(.low)"' >> security-report.md || echo "No vulnerabilities found or parsing error" >> security-report.md
+        echo '```' >> security-report.md
+        echo "" >> security-report.md
+        
+        echo "## API Project" >> security-report.md
+        echo '```' >> security-report.md
+        cat npm-audit-api.json | jq -r '.metadata.vulnerabilities | "Critical: \(.critical), High: \(.high), Moderate: \(.moderate), Low: \(.low)"' >> security-report.md || echo "No vulnerabilities found or parsing error" >> security-report.md
+        echo '```' >> security-report.md
+      
+    - name: Upload security report
+      uses: actions/upload-artifact@v3
+      with:
+        name: security-report
+        path: security-report.md
+        
+    # This step is informational only and won't fail the build
+    - name: Security notification
+      run: |
+        echo "Security scan completed. Check the security-report artifact for details."
+        if [ -f npm-audit-root.json ]; then
+          HIGH_VULNS=$(cat npm-audit-root.json | jq -r '.metadata.vulnerabilities.high // 0')
+          CRITICAL_VULNS=$(cat npm-audit-root.json | jq -r '.metadata.vulnerabilities.critical // 0')
+          if [ "$HIGH_VULNS" -gt 0 ] || [ "$CRITICAL_VULNS" -gt 0 ]; then
+            echo "⚠️ WARNING: High or critical vulnerabilities found in dependencies!"
+            echo "Review the security report for details. These will need to be addressed before launch."
+          fi
+        fi 

@@ -64,6 +64,15 @@ Wylloh aims to create a decentralized ecosystem for film distribution, where:
 - **Wallet Authentication**: Secure wallet-based access
 - **Anti-Piracy**: Forensic watermarking and content fingerprinting
 - **Lending Protection**: Blockchain-enforced content return with automatic license revocation
+- **Regular Security Scanning**: Regular security scanning through automated CI/CD processes
+- **Pre-Launch Security Verification**: A detailed pre-launch security verification plan
+- **Ongoing Security Maintenance**: Ongoing security maintenance and monitoring
+
+For developers:
+- See `.github/security-plan.md` for our detailed security approach
+- Run `./scripts/security-check.sh` to run a comprehensive security scan locally
+- Run `npm audit` to check for dependency vulnerabilities
+- Follow secure coding practices detailed in our development guidelines
 
 ### Integration
 - **Cross-Platform**: Interoperable marketplace protocol

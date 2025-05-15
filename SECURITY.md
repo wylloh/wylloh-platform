@@ -58,7 +58,9 @@ When contributing to the Wylloh platform, please follow these security best prac
 ### Dependency Management
 
 - Regularly update dependencies to patch security vulnerabilities
+- Use our security script `./scripts/security-check.sh` to perform a comprehensive vulnerability scan
 - Use `npm audit` or `yarn audit` to check for known vulnerabilities
+- Follow the security remediation plan in `.github/security-plan.md` when addressing issues
 - Minimize the use of unnecessary dependencies
 
 ## Bug Bounty Program
