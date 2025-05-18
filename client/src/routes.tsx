@@ -28,6 +28,7 @@ import ProUploadPage from './pages/pro/UploadPage';
 import ProTokenizePublishPage from './pages/pro/TokenizePublishPage';
 import ProEditContentPage from './pages/pro/EditContentPage';
 import ProLibrariesPage from './pages/pro/LibrariesPage';
+import TagManagementPage from './pages/pro/TagManagementPage';
 
 // Admin pages
 import AdminDashboardPage from './pages/admin/DashboardPage';
@@ -152,6 +153,14 @@ const AppRoutes = () => {
           element={
             <RequireAuth requireProStatus>
               <ProLibrariesPage />
+            </RequireAuth>
+          }
+        />
+        <Route
+          path="pro/tags"
+          element={
+            <RequireAuth requireProStatus>
+              <TagManagementPage />
             </RequireAuth>
           }
         />
