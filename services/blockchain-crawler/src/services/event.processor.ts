@@ -3,6 +3,7 @@ import Redis from 'ioredis';
 import { TokenService } from './token.service';
 import { WalletRegistry } from '../models/wallet.registry';
 import { Logger, createLogger } from '../utils/logger';
+import { DatabaseService } from './database.service';
 
 // Define event types
 export interface TransferEvent {
@@ -58,6 +59,7 @@ export class EventProcessor extends EventEmitter {
   private readonly redis: Redis;
   private readonly tokenService: TokenService;
   private readonly walletRegistry: WalletRegistry;
+  private readonly databaseService: DatabaseService;
   private readonly logger: Logger;
   private readonly processingStatus: ProcessingStatus;
   private readonly retryLimit: number = 3;
@@ -66,12 +68,14 @@ export class EventProcessor extends EventEmitter {
   constructor(
     redis: Redis,
     tokenService: TokenService,
-    walletRegistry: WalletRegistry
+    walletRegistry: WalletRegistry,
+    databaseService: DatabaseService
   ) {
     super();
     this.redis = redis;
     this.tokenService = tokenService;
     this.walletRegistry = walletRegistry;
+    this.databaseService = databaseService;
     this.logger = createLogger('event-processor');
     this.processingStatus = {
       success: 0,
@@ -128,10 +132,25 @@ export class EventProcessor extends EventEmitter {
         update.tokenId,
         update.tokenInfo?.tokenAddress || 'unknown',
         update.chain,
-        update.walletAddress === update.to ? '0x0000000000000000000000000000000000000000' : update.from,
+        update.walletAddress === update.from ? '0x0000000000000000000000000000000000000000' : update.from,
         update.walletAddress,
         parseInt(update.amount)
       );
+      
+      // Store wallet activity in database
+      await this.databaseService.storeWalletActivity({
+        walletAddress: update.walletAddress,
+        userId: update.userId,
+        chain: update.chain,
+        activityType: 'receive',
+        timestamp: update.timestamp || Date.now(),
+        transactionHash: update.tokenInfo?.transactionHash || 'unknown',
+        tokenId: update.tokenId,
+        tokenAddress: update.tokenInfo?.tokenAddress || 'unknown',
+        value: update.amount,
+        status: 'confirmed',
+        metadata: update.tokenInfo
+      });
       
       // Emit event for WebSocket notifications
       this.emit('libraryUpdated', {
@@ -199,6 +218,23 @@ export class EventProcessor extends EventEmitter {
         await this.handleTokenTransfer(update);
       }
       
+      // Store transaction in database
+      await this.databaseService.storeTransaction({
+        transactionHash: update.tokenInfo?.transactionHash || 'unknown',
+        chain: update.chain,
+        blockNumber: update.tokenInfo?.blockNumber || 0,
+        timestamp: update.timestamp || Date.now(),
+        from: update.from,
+        to: update.to,
+        tokenId: update.tokenId,
+        tokenAddress: update.tokenInfo?.tokenAddress || 'unknown',
+        value: update.amount,
+        eventType: update.tokenInfo?.forSale ? 'list' : 'transfer',
+        status: 'confirmed',
+        metadata: update.tokenInfo,
+        processingStatus: 'processed'
+      });
+      
       // Emit event for WebSocket notifications
       this.emit('storeUpdated', {
         tokenId: update.tokenId,
@@ -256,6 +292,23 @@ export class EventProcessor extends EventEmitter {
     // This would integrate with your marketplace service
     // For now, we'll just log it
     this.logger.info(`Token ${update.tokenId} listed in marketplace`);
+    
+    // Store wallet activity for the seller
+    await this.databaseService.storeWalletActivity({
+      walletAddress: update.from,
+      chain: update.chain,
+      activityType: 'listing',
+      timestamp: update.timestamp || Date.now(),
+      transactionHash: update.tokenInfo?.transactionHash || 'unknown',
+      tokenId: update.tokenId,
+      tokenAddress: update.tokenInfo?.tokenAddress || 'unknown',
+      value: update.amount,
+      status: 'confirmed',
+      metadata: {
+        ...update.tokenInfo,
+        price: update.tokenInfo?.price || '0'
+      }
+    });
   }
 
   /**
@@ -274,6 +327,38 @@ export class EventProcessor extends EventEmitter {
       update.to,
       parseInt(update.amount)
     );
+    
+    // Store wallet activity for sender
+    await this.databaseService.storeWalletActivity({
+      walletAddress: update.from,
+      chain: update.chain,
+      activityType: 'send',
+      timestamp: update.timestamp || Date.now(),
+      transactionHash: update.tokenInfo?.transactionHash || 'unknown',
+      tokenId: update.tokenId,
+      tokenAddress: update.tokenInfo?.tokenAddress || 'unknown',
+      value: update.amount,
+      counterpartyAddress: update.to,
+      status: 'confirmed',
+      metadata: update.tokenInfo
+    });
+    
+    // Store wallet activity for receiver
+    const userId = await this.walletRegistry.getUserIdForWallet(update.to);
+    await this.databaseService.storeWalletActivity({
+      walletAddress: update.to,
+      userId,
+      chain: update.chain,
+      activityType: 'receive',
+      timestamp: update.timestamp || Date.now(),
+      transactionHash: update.tokenInfo?.transactionHash || 'unknown',
+      tokenId: update.tokenId,
+      tokenAddress: update.tokenInfo?.tokenAddress || 'unknown',
+      value: update.amount,
+      counterpartyAddress: update.from,
+      status: 'confirmed',
+      metadata: update.tokenInfo
+    });
   }
 
   /**
@@ -295,6 +380,21 @@ export class EventProcessor extends EventEmitter {
   public async processTransferEvent(event: TransferEvent): Promise<void> {
     try {
       this.logger.info(`Processing transfer event: Token ${event.tokenId} from ${event.from} to ${event.to}`);
+      
+      // Store transaction in database
+      await this.databaseService.storeTransaction({
+        transactionHash: event.transactionHash,
+        chain: event.chain,
+        blockNumber: 0, // Would be populated in real implementation
+        timestamp: event.timestamp,
+        from: event.from,
+        to: event.to,
+        tokenId: event.tokenId,
+        value: event.value,
+        eventType: 'transfer',
+        status: 'confirmed',
+        processingStatus: 'new'
+      });
       
       // Determine the user ID for the recipient wallet
       const toUserId = await this.walletRegistry.getUserIdForWallet(event.to);
@@ -349,6 +449,21 @@ export class EventProcessor extends EventEmitter {
       if (userId) {
         // If wallet belongs to a registered user, update their library
         const tokenInfo = await this.tokenService.getTokenInfo(event.tokenId, event.chain);
+        
+        // Store wallet activity
+        await this.databaseService.storeWalletActivity({
+          walletAddress: event.account,
+          userId,
+          chain: event.chain,
+          activityType: 'receive', // This is a simplification
+          timestamp: event.timestamp,
+          transactionHash: 'balance-update', // Not a real transaction hash
+          tokenId: event.tokenId,
+          tokenAddress: tokenInfo?.tokenAddress || 'unknown',
+          value: event.newBalance,
+          status: 'confirmed',
+          metadata: tokenInfo
+        });
         
         const libraryUpdate: LibraryUpdate = {
           userId,
@@ -408,6 +523,49 @@ export class EventProcessor extends EventEmitter {
           } catch (error) {
             this.logger.error(`Failed to process failed store update ${key}: ${error.message}`);
           }
+        }
+      }
+      
+      // Process pending database transactions
+      this.logger.info('Processing pending database transactions');
+      const pendingTransactions = await this.databaseService.getPendingTransactions();
+      this.logger.info(`Found ${pendingTransactions.length} pending transactions`);
+      
+      for (const transaction of pendingTransactions) {
+        try {
+          // Create a transfer event from the transaction
+          const transferEvent: TransferEvent = {
+            chain: transaction.chain,
+            from: transaction.from,
+            to: transaction.to,
+            tokenId: transaction.tokenId || '0',
+            value: transaction.value || '0',
+            timestamp: transaction.timestamp,
+            transactionHash: transaction.transactionHash
+          };
+          
+          // Process the transfer event
+          await this.processTransferEvent(transferEvent);
+          
+          // Update the transaction status
+          transaction.processingStatus = 'processed';
+          await transaction.save();
+          
+          this.logger.info(`Successfully processed pending transaction ${transaction.transactionHash}`);
+        } catch (error) {
+          // Update processing attempts
+          transaction.processingAttempts += 1;
+          transaction.processingError = error.message;
+          
+          if (transaction.processingAttempts >= this.retryLimit) {
+            transaction.processingStatus = 'failed';
+          } else {
+            transaction.processingStatus = 'retrying';
+          }
+          
+          await transaction.save();
+          
+          this.logger.error(`Error processing pending transaction ${transaction.transactionHash}: ${error.message}`);
         }
       }
     } catch (error) {

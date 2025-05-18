@@ -5,6 +5,7 @@ import { TokenService } from './services/token.service';
 import { ChainAdapterFactory } from './adapters/chain.adapter.factory';
 import { WalletRegistry } from './models/wallet.registry';
 import { WalletController } from './api/wallet.controller';
+import { DatabaseService } from './services/database.service';
 import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
@@ -13,18 +14,25 @@ import morgan from 'morgan';
 // Initialize logger
 const logger = createLogger('main');
 
+// Load environment variables
+const REDIS_HOST = process.env.REDIS_HOST || 'localhost';
+const REDIS_PORT = parseInt(process.env.REDIS_PORT || '6379');
+const REDIS_PASSWORD = process.env.REDIS_PASSWORD;
+const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/wylloh-blockchain';
+const PORT = process.env.PORT || 3001;
+
 // Initialize Redis client
 const redis = new Redis({
-  host: process.env.REDIS_HOST || 'localhost',
-  port: parseInt(process.env.REDIS_PORT || '6379'),
-  password: process.env.REDIS_PASSWORD,
+  host: REDIS_HOST,
+  port: REDIS_PORT,
+  password: REDIS_PASSWORD,
 });
 
 // Initialize services
 const chainAdapterFactory = ChainAdapterFactory.getInstance();
 const tokenService = new TokenService();
 const walletRegistry = new WalletRegistry(redis, logger);
-const crawlerService = new CrawlerService(chainAdapterFactory, redis, tokenService);
+const databaseService = new DatabaseService();
 
 // Initialize Express app
 const app = express();
@@ -33,53 +41,71 @@ app.use(express.json());
 app.use(helmet());
 app.use(morgan('combined'));
 
-// Initialize controllers
-const walletController = new WalletController(crawlerService, walletRegistry);
-
-// Setup routes
-app.use('/api/wallet', walletController.getRouter());
-
-// Root health check
-app.get('/', (req, res) => {
-  res.json({ status: 'ok', service: 'blockchain-crawler' });
-});
-
-// Error handling middleware
-app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
-  logger.error(`Error handling request: ${err.message}`);
-  res.status(err.status || 500).json({
-    error: err.message || 'Internal Server Error',
-    status: err.status || 500
-  });
-});
-
-// Start server
-const PORT = process.env.PORT || 3001;
-app.listen(PORT, () => {
-  logger.info(`Server started on port ${PORT}`);
-});
-
-// Start the crawler service
-crawlerService.start()
+// Initialize the database connection
+databaseService.initialize(MONGODB_URI)
   .then(() => {
-    logger.info('Crawler service started successfully');
+    logger.info('Database connection established');
+    
+    // Initialize crawler service after database is connected
+    const crawlerService = new CrawlerService(
+      chainAdapterFactory,
+      redis,
+      tokenService,
+      databaseService,
+      MONGODB_URI
+    );
+
+    // Initialize controllers
+    const walletController = new WalletController(crawlerService, walletRegistry);
+
+    // Setup routes
+    app.use('/api/wallet', walletController.getRouter());
+
+    // Root health check
+    app.get('/', (req, res) => {
+      res.json({ status: 'ok', service: 'blockchain-crawler' });
+    });
+
+    // Start the crawler service
+    crawlerService.start()
+      .then(() => {
+        logger.info('Crawler service started successfully');
+      })
+      .catch(error => {
+        logger.error(`Error starting crawler service: ${error.message}`);
+        process.exit(1);
+      });
+
+    // Error handling middleware
+    app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
+      logger.error(`Error handling request: ${err.message}`);
+      res.status(err.status || 500).json({
+        error: err.message || 'Internal Server Error',
+        status: err.status || 500
+      });
+    });
+
+    // Start server
+    app.listen(PORT, () => {
+      logger.info(`Server started on port ${PORT}`);
+    });
+
+    // Handle process termination
+    process.on('SIGINT', async () => {
+      logger.info('Shutting down...');
+      
+      try {
+        await crawlerService.stop();
+        logger.info('Crawler service stopped successfully');
+        
+        process.exit(0);
+      } catch (error) {
+        logger.error(`Error stopping crawler service: ${error.message}`);
+        process.exit(1);
+      }
+    });
   })
   .catch(error => {
-    logger.error(`Error starting crawler service: ${error.message}`);
+    logger.error(`Error initializing database: ${error.message}`);
     process.exit(1);
-  });
-
-// Handle process termination
-process.on('SIGINT', async () => {
-  logger.info('Shutting down...');
-  
-  try {
-    await crawlerService.stop();
-    logger.info('Crawler service stopped successfully');
-    
-    process.exit(0);
-  } catch (error) {
-    logger.error(`Error stopping crawler service: ${error.message}`);
-    process.exit(1);
-  }
-}); 
+  }); 

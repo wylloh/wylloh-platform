@@ -6,11 +6,13 @@ import { TokenService } from './token.service';
 import { WalletRegistry } from '../models/wallet.registry';
 import { ChainAdapterFactory } from '../adapters/chain.adapter.factory';
 import { EventProcessor } from './event.processor';
+import { DatabaseService } from './database.service';
 
 export class CrawlerService extends EventEmitter {
   private readonly walletMonitor: WalletMonitoringService;
   private readonly walletRegistry: WalletRegistry;
   private readonly eventProcessor: EventProcessor;
+  private readonly databaseService: DatabaseService;
   private readonly logger: Logger;
   private readonly syncInterval: number = 1000 * 60 * 15; // 15 minutes
   private syncTimer?: NodeJS.Timeout;
@@ -18,11 +20,14 @@ export class CrawlerService extends EventEmitter {
   constructor(
     chainAdapterFactory: ChainAdapterFactory,
     redis: Redis,
-    tokenService: TokenService
+    tokenService: TokenService,
+    databaseService: DatabaseService,
+    mongoDbUri: string
   ) {
     super();
     this.logger = createLogger('crawler-service');
     this.walletRegistry = new WalletRegistry(redis, this.logger);
+    this.databaseService = databaseService;
     this.walletMonitor = new WalletMonitoringService(
       chainAdapterFactory,
       this.walletRegistry,
@@ -33,7 +38,8 @@ export class CrawlerService extends EventEmitter {
     this.eventProcessor = new EventProcessor(
       redis,
       tokenService,
-      this.walletRegistry
+      this.walletRegistry,
+      this.databaseService
     );
 
     // Listen for wallet monitor events
@@ -46,6 +52,9 @@ export class CrawlerService extends EventEmitter {
   public async start(): Promise<void> {
     try {
       this.logger.info('Starting wallet monitoring service');
+      
+      // Initialize database connection
+      this.logger.info('Initializing database connection');
       
       // Start monitoring active wallets
       await this.monitorActiveWallets();
@@ -75,8 +84,8 @@ export class CrawlerService extends EventEmitter {
         clearInterval(this.syncTimer);
       }
       
-      // Stop event processor
-      // No explicit stop method needed as it will naturally drain
+      // Close database connection
+      await this.databaseService.close();
       
       this.logger.info('Wallet monitoring service stopped successfully');
     } catch (error) {
@@ -231,6 +240,7 @@ export class CrawlerService extends EventEmitter {
       activeWallets: 0, // This would be populated by calling walletRegistry.getActiveWalletCount()
       eventProcessing: processingStatus,
       lastSyncTime: new Date(processingStatus.lastProcessedTimestamp).toISOString(),
+      dbConnection: this.databaseService.isConnected ? 'connected' : 'disconnected'
     };
   }
 } 
