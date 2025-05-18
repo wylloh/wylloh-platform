@@ -5,10 +5,12 @@ import { WalletMonitoringService } from './wallet.service';
 import { TokenService } from './token.service';
 import { WalletRegistry } from '../models/wallet.registry';
 import { ChainAdapterFactory } from '../adapters/chain.adapter.factory';
+import { EventProcessor } from './event.processor';
 
 export class CrawlerService extends EventEmitter {
   private readonly walletMonitor: WalletMonitoringService;
   private readonly walletRegistry: WalletRegistry;
+  private readonly eventProcessor: EventProcessor;
   private readonly logger: Logger;
   private readonly syncInterval: number = 1000 * 60 * 15; // 15 minutes
   private syncTimer?: NodeJS.Timeout;
@@ -28,80 +30,83 @@ export class CrawlerService extends EventEmitter {
       redis,
       this.logger
     );
+    this.eventProcessor = new EventProcessor(
+      redis,
+      tokenService,
+      this.walletRegistry
+    );
 
     // Listen for wallet monitor events
     this.setupEventListeners();
   }
 
   /**
-   * Start the crawler service
+   * Start monitoring service
    */
   public async start(): Promise<void> {
     try {
-      this.logger.info('Starting crawler service');
-
-      // Start periodic sync
-      this.startPeriodicSync();
-
-      // Start monitoring all active wallets
+      this.logger.info('Starting wallet monitoring service');
+      
+      // Start monitoring active wallets
       await this.monitorActiveWallets();
-
-      this.logger.info('Crawler service started successfully');
+      
+      // Setup periodic sync for inactive wallets
+      this.startPeriodicSync();
+      
+      // Process any failed events
+      await this.eventProcessor.processFailedUpdates();
+      
+      this.logger.info('Wallet monitoring service started successfully');
     } catch (error) {
-      this.logger.error(`Error starting crawler service: ${error.message}`);
+      this.logger.error(`Error starting monitoring service: ${error.message}`);
       throw error;
     }
   }
 
   /**
-   * Stop the crawler service
+   * Stop monitoring service
    */
   public async stop(): Promise<void> {
     try {
-      this.logger.info('Stopping crawler service');
-
-      // Stop periodic sync
+      this.logger.info('Stopping wallet monitoring service');
+      
+      // Clear sync timer
       if (this.syncTimer) {
         clearInterval(this.syncTimer);
       }
-
-      // Get all active wallets
-      const activeWallets = await this.walletRegistry.getAllActiveWallets();
-
-      // Stop monitoring each wallet
-      for (const wallet of activeWallets) {
-        await this.walletMonitor.stopWalletMonitoring(wallet);
-      }
-
-      this.logger.info('Crawler service stopped successfully');
+      
+      // Stop event processor
+      // No explicit stop method needed as it will naturally drain
+      
+      this.logger.info('Wallet monitoring service stopped successfully');
     } catch (error) {
-      this.logger.error(`Error stopping crawler service: ${error.message}`);
+      this.logger.error(`Error stopping monitoring service: ${error.message}`);
       throw error;
     }
   }
 
   /**
-   * Start monitoring a specific wallet
+   * Register a wallet for monitoring
    */
-  public async startWalletMonitoring(walletAddress: string, userId: string): Promise<void> {
+  public async registerWallet(walletAddress: string, userId: string): Promise<void> {
     try {
+      this.logger.info(`Registering wallet ${walletAddress} for user ${userId}`);
       await this.walletMonitor.startWalletMonitoring(walletAddress, userId);
-      this.logger.info(`Started monitoring wallet ${walletAddress} for user ${userId}`);
     } catch (error) {
-      this.logger.error(`Error starting wallet monitoring: ${error.message}`);
+      this.logger.error(`Error registering wallet: ${error.message}`);
       throw error;
     }
   }
 
   /**
-   * Stop monitoring a specific wallet
+   * Deregister a wallet from monitoring
    */
-  public async stopWalletMonitoring(walletAddress: string): Promise<void> {
+  public async deregisterWallet(walletAddress: string): Promise<void> {
     try {
+      this.logger.info(`Deregistering wallet ${walletAddress}`);
       await this.walletMonitor.stopWalletMonitoring(walletAddress);
-      this.logger.info(`Stopped monitoring wallet ${walletAddress}`);
     } catch (error) {
-      this.logger.error(`Error stopping wallet monitoring: ${error.message}`);
+      this.logger.error(`Error deregistering wallet: ${error.message}`);
       throw error;
     }
   }
@@ -112,18 +117,53 @@ export class CrawlerService extends EventEmitter {
   private startPeriodicSync(): void {
     this.syncTimer = setInterval(async () => {
       try {
-        const outdatedWallets = await this.walletRegistry.getWalletsNeedingSync(this.syncInterval);
-        
-        for (const wallet of outdatedWallets) {
-          const userId = await this.walletRegistry.getUserIdForWallet(wallet);
-          if (userId) {
-            await this.walletMonitor.startWalletMonitoring(wallet, userId);
-          }
-        }
+        await this.syncInactiveWallets();
       } catch (error) {
         this.logger.error(`Error in periodic sync: ${error.message}`);
       }
     }, this.syncInterval);
+  }
+
+  /**
+   * Sync inactive wallets
+   */
+  private async syncInactiveWallets(): Promise<void> {
+    try {
+      this.logger.info('Syncing inactive wallets');
+      
+      const walletsToSync = await this.walletRegistry.getWalletsNeedingSync(this.syncInterval);
+      
+      this.logger.info(`Found ${walletsToSync.length} wallets needing sync`);
+      
+      for (const wallet of walletsToSync) {
+        try {
+          const userId = await this.walletRegistry.getUserIdForWallet(wallet);
+          if (userId) {
+            this.logger.info(`Syncing wallet ${wallet} for user ${userId}`);
+            // Perform a full sync of the wallet's tokens
+            await this.syncWalletData(wallet, userId);
+          }
+        } catch (error) {
+          this.logger.error(`Error syncing wallet ${wallet}: ${error.message}`);
+        }
+      }
+      
+      this.logger.info('Finished syncing inactive wallets');
+    } catch (error) {
+      this.logger.error(`Error syncing inactive wallets: ${error.message}`);
+      throw error;
+    }
+  }
+
+  /**
+   * Sync wallet data for a specific wallet
+   */
+  private async syncWalletData(walletAddress: string, userId: string): Promise<void> {
+    // This would typically query the blockchain for the wallet's current tokens
+    // and update the database accordingly
+    
+    // For now, just update the sync timestamp
+    await this.walletRegistry.updateLastSyncTimestamp(walletAddress, Date.now());
   }
 
   /**
@@ -149,12 +189,48 @@ export class CrawlerService extends EventEmitter {
    * Setup event listeners for wallet monitor events
    */
   private setupEventListeners(): void {
+    // Listen for transfer events
     this.walletMonitor.on('transfer', (event) => {
+      this.eventProcessor.processTransferEvent(event)
+        .catch(error => this.logger.error(`Error forwarding transfer event: ${error.message}`));
+      
+      // Forward the event to external listeners
       this.emit('transfer', event);
     });
 
+    // Listen for balance change events
     this.walletMonitor.on('balanceChanged', (event) => {
+      this.eventProcessor.processBalanceEvent(event)
+        .catch(error => this.logger.error(`Error forwarding balance event: ${error.message}`));
+      
+      // Forward the event to external listeners
       this.emit('balanceChanged', event);
     });
+    
+    // Listen for library update events
+    this.eventProcessor.on('libraryUpdated', (event) => {
+      // Forward the event to external listeners
+      this.emit('libraryUpdated', event);
+    });
+    
+    // Listen for store update events
+    this.eventProcessor.on('storeUpdated', (event) => {
+      // Forward the event to external listeners
+      this.emit('storeUpdated', event);
+    });
+  }
+  
+  /**
+   * Get health status of the crawler service
+   */
+  public getHealthStatus(): any {
+    const processingStatus = this.eventProcessor.getStatus();
+    
+    return {
+      status: 'healthy',
+      activeWallets: 0, // This would be populated by calling walletRegistry.getActiveWalletCount()
+      eventProcessing: processingStatus,
+      lastSyncTime: new Date(processingStatus.lastProcessedTimestamp).toISOString(),
+    };
   }
 } 

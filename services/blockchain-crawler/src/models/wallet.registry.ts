@@ -127,14 +127,29 @@ export class WalletRegistry {
   }
 
   /**
+   * Get the last sync timestamp for a wallet
+   */
+  public async getLastSyncTimestamp(walletAddress: string): Promise<number> {
+    try {
+      const timestamp = await this.redis.hget(this.getWalletKey(walletAddress), 'lastSyncTimestamp');
+      return timestamp ? parseInt(timestamp) : 0;
+    } catch (error) {
+      this.logger.error(`Error getting last sync timestamp: ${error.message}`);
+      throw error;
+    }
+  }
+
+  /**
    * Update last sync timestamp for a wallet
    */
-  public async updateLastSyncTimestamp(walletAddress: string): Promise<void> {
+  public async updateLastSyncTimestamp(walletAddress: string, timestamp: number): Promise<void> {
     try {
       const walletKey = this.getWalletKey(walletAddress);
-      await this.redis.hset(walletKey, 'lastSyncTimestamp', Date.now());
+      await this.redis.hset(walletKey, 'lastSyncTimestamp', timestamp.toString());
+      this.logger.info(`Updated last sync timestamp for wallet ${walletAddress}`);
     } catch (error) {
-      this.logger.error(`Error updating sync timestamp: ${error.message}`);
+      this.logger.error(`Error updating last sync timestamp: ${error.message}`);
+      throw error;
     }
   }
 

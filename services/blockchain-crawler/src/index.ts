@@ -3,8 +3,12 @@ import { createLogger } from './utils/logger';
 import { CrawlerService } from './services/crawler.service';
 import { TokenService } from './services/token.service';
 import { ChainAdapterFactory } from './adapters/chain.adapter.factory';
+import { WalletRegistry } from './models/wallet.registry';
+import { WalletController } from './api/wallet.controller';
 import express from 'express';
 import cors from 'cors';
+import helmet from 'helmet';
+import morgan from 'morgan';
 
 // Initialize logger
 const logger = createLogger('main');
@@ -19,79 +23,63 @@ const redis = new Redis({
 // Initialize services
 const chainAdapterFactory = ChainAdapterFactory.getInstance();
 const tokenService = new TokenService();
+const walletRegistry = new WalletRegistry(redis, logger);
 const crawlerService = new CrawlerService(chainAdapterFactory, redis, tokenService);
 
 // Initialize Express app
 const app = express();
 app.use(cors());
 app.use(express.json());
+app.use(helmet());
+app.use(morgan('combined'));
 
-// Health check endpoint
-app.get('/health', (req, res) => {
-  res.json({ status: 'ok' });
+// Initialize controllers
+const walletController = new WalletController(crawlerService, walletRegistry);
+
+// Setup routes
+app.use('/api/wallet', walletController.getRouter());
+
+// Root health check
+app.get('/', (req, res) => {
+  res.json({ status: 'ok', service: 'blockchain-crawler' });
 });
 
-// Start monitoring a wallet
-app.post('/wallets/:address/monitor', async (req, res) => {
-  try {
-    const { address } = req.params;
-    const { userId } = req.body;
-
-    if (!userId) {
-      res.status(400).json({ error: 'userId is required' });
-      return;
-    }
-
-    await crawlerService.startWalletMonitoring(address, userId);
-    res.json({ message: `Started monitoring wallet ${address}` });
-  } catch (error) {
-    logger.error(`Error starting wallet monitoring: ${error.message}`);
-    res.status(500).json({ error: error.message });
-  }
+// Error handling middleware
+app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
+  logger.error(`Error handling request: ${err.message}`);
+  res.status(err.status || 500).json({
+    error: err.message || 'Internal Server Error',
+    status: err.status || 500
+  });
 });
 
-// Stop monitoring a wallet
-app.post('/wallets/:address/stop', async (req, res) => {
-  try {
-    const { address } = req.params;
-    await crawlerService.stopWalletMonitoring(address);
-    res.json({ message: `Stopped monitoring wallet ${address}` });
-  } catch (error) {
-    logger.error(`Error stopping wallet monitoring: ${error.message}`);
-    res.status(500).json({ error: error.message });
-  }
+// Start server
+const PORT = process.env.PORT || 3001;
+app.listen(PORT, () => {
+  logger.info(`Server started on port ${PORT}`);
 });
 
-// Start the service
-const PORT = process.env.PORT || 3000;
-
-async function start() {
-  try {
-    // Start the crawler service
-    await crawlerService.start();
+// Start the crawler service
+crawlerService.start()
+  .then(() => {
     logger.info('Crawler service started successfully');
+  })
+  .catch(error => {
+    logger.error(`Error starting crawler service: ${error.message}`);
+    process.exit(1);
+  });
 
-    // Start the HTTP server
-    app.listen(PORT, () => {
-      logger.info(`Server is running on port ${PORT}`);
-    });
-
-    // Handle shutdown gracefully
-    process.on('SIGTERM', async () => {
-      logger.info('Received SIGTERM signal. Shutting down gracefully...');
-      await crawlerService.stop();
-      process.exit(0);
-    });
-
-    process.on('SIGINT', async () => {
-      logger.info('Received SIGINT signal. Shutting down gracefully...');
-      await crawlerService.stop();
-      process.exit(0);
-    });
+// Handle process termination
+process.on('SIGINT', async () => {
+  logger.info('Shutting down...');
+  
+  try {
+    await crawlerService.stop();
+    logger.info('Crawler service stopped successfully');
+    
+    process.exit(0);
   } catch (error) {
-    logger.error(`Failed to start service: ${error.message}`);
+    logger.error(`Error stopping crawler service: ${error.message}`);
     process.exit(1);
   }
-}
-
-start(); 
+}); 
