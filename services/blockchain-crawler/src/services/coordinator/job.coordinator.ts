@@ -3,6 +3,7 @@ import { BlockWorker } from '../worker/block.worker';
 import { WorkerManager } from '../worker/worker.manager';
 import { workerConfig } from '../../config/worker';
 import { logger } from '../../utils/logger';
+import { EventEmitter } from 'events';
 
 interface ChainProgress {
   lastProcessedBlock: number;
@@ -15,40 +16,236 @@ interface ChainProgress {
   errorRate: number;
   totalProcessed: number;
   totalFailed: number;
+  lastVerifiedBlock: number; // For reorg detection
+  pendingBlocks: Set<number>; // For backpressure handling
 }
 
 interface ChainPriority {
   chainId: string;
   priority: number;
   lastProcessTime: number;
+  healthScore: number; // For worker health tracking
 }
 
-export class JobCoordinator {
+interface WorkerHealth {
+  lastActiveTime: number;
+  successRate: number;
+  responseTime: number;
+  activeJobs: number;
+}
+
+export class JobCoordinator extends EventEmitter {
   private static instance: JobCoordinator;
   private readonly chainProgress: Map<string, ChainProgress> = new Map();
   private readonly adapterFactory: ChainAdapterFactory;
   private readonly workerManager: WorkerManager;
   private coordinationInterval: NodeJS.Timeout | null = null;
+  private healthCheckInterval: NodeJS.Timeout | null = null;
   private chainPriorities: ChainPriority[] = [];
+  private workerHealth: Map<string, WorkerHealth> = new Map();
   private readonly maxConcurrentChains: number;
   private readonly maxBlocksPerBatch: number;
   private readonly minBlocksPerBatch: number;
   private readonly targetProcessingRate: number;
+  private readonly maxPendingBlocks: number;
+  private readonly reorgThreshold: number;
 
   private constructor() {
+    super();
     this.adapterFactory = ChainAdapterFactory.getInstance();
     this.workerManager = new WorkerManager();
     this.maxConcurrentChains = Math.max(1, Math.floor(workerConfig.worker.concurrency / 2));
     this.maxBlocksPerBatch = workerConfig.worker.concurrency * 2;
     this.minBlocksPerBatch = Math.max(1, Math.floor(workerConfig.worker.concurrency / 2));
     this.targetProcessingRate = 10; // Target blocks per second
+    this.maxPendingBlocks = this.maxBlocksPerBatch * 3; // Maximum blocks in processing
+    this.reorgThreshold = 12; // Number of confirmations to consider a block final
+    
+    this.setupEventHandlers();
   }
 
-  public static getInstance(): JobCoordinator {
-    if (!JobCoordinator.instance) {
-      JobCoordinator.instance = new JobCoordinator();
+  private setupEventHandlers(): void {
+    this.workerManager.on('workerError', ({ worker, error }) => {
+      this.handleWorkerError(worker, error);
+    });
+
+    this.workerManager.on('jobCompleted', ({ worker, blockNumber, chainId }) => {
+      this.handleJobCompletion(worker, blockNumber, chainId);
+    });
+
+    this.workerManager.on('jobFailed', ({ worker, job, error }) => {
+      this.handleJobFailure(worker, job, error);
+    });
+  }
+
+  private async handleWorkerError(workerId: string, error: Error): Promise<void> {
+    const health = this.workerHealth.get(workerId) || this.initializeWorkerHealth();
+    health.successRate *= 0.9; // Decay success rate on error
+    this.workerHealth.set(workerId, health);
+    
+    logger.error(`Worker ${workerId} error:`, error);
+    this.emit('workerError', { workerId, error });
+  }
+
+  private async handleJobCompletion(workerId: string, blockNumber: number, chainId: string): Promise<void> {
+    const health = this.workerHealth.get(workerId) || this.initializeWorkerHealth();
+    health.successRate = health.successRate * 0.9 + 0.1; // Exponential moving average
+    health.activeJobs--;
+    this.workerHealth.set(workerId, health);
+
+    const progress = this.chainProgress.get(chainId);
+    if (progress) {
+      progress.pendingBlocks.delete(blockNumber);
+      await this.verifyBlockAndUpdateProgress(chainId, blockNumber);
     }
-    return JobCoordinator.instance;
+  }
+
+  private async handleJobFailure(workerId: string, job: any, error: Error): Promise<void> {
+    const health = this.workerHealth.get(workerId) || this.initializeWorkerHealth();
+    health.successRate *= 0.8; // Significant decay on failure
+    health.activeJobs--;
+    this.workerHealth.set(workerId, health);
+
+    if (job.data.chainId && job.data.blockNumber) {
+      await this.handleFailedBlock(job.data.chainId, job.data.blockNumber);
+    }
+  }
+
+  private initializeWorkerHealth(): WorkerHealth {
+    return {
+      lastActiveTime: Date.now(),
+      successRate: 1,
+      responseTime: 0,
+      activeJobs: 0,
+    };
+  }
+
+  private async verifyBlockAndUpdateProgress(chainId: string, blockNumber: number): Promise<void> {
+    const progress = this.chainProgress.get(chainId);
+    if (!progress) return;
+
+    const adapter = await this.adapterFactory.getAdapter(chainId);
+    if (!adapter) return;
+
+    try {
+      // Verify block is still valid (no reorg)
+      const block = await adapter.getBlock(blockNumber);
+      if (!block) {
+        logger.warn(`Block ${blockNumber} on chain ${chainId} no longer exists (possible reorg)`);
+        await this.handleChainReorg(chainId, blockNumber);
+        return;
+      }
+
+      // Update progress
+      progress.lastVerifiedBlock = Math.max(progress.lastVerifiedBlock, blockNumber);
+      progress.lastProcessedBlock = Math.max(progress.lastProcessedBlock, blockNumber);
+      progress.totalProcessed++;
+    } catch (error) {
+      logger.error(`Error verifying block ${blockNumber} on chain ${chainId}:`, error);
+      await this.handleFailedBlock(chainId, blockNumber);
+    }
+  }
+
+  private async handleChainReorg(chainId: string, blockNumber: number): Promise<void> {
+    const progress = this.chainProgress.get(chainId);
+    if (!progress) return;
+
+    // Find the last valid block
+    const adapter = await this.adapterFactory.getAdapter(chainId);
+    if (!adapter) return;
+
+    try {
+      let lastValidBlock = blockNumber - 1;
+      while (lastValidBlock > progress.lastVerifiedBlock - this.reorgThreshold) {
+        const block = await adapter.getBlock(lastValidBlock);
+        if (block) break;
+        lastValidBlock--;
+      }
+
+      // Reset progress to last valid block
+      progress.lastProcessedBlock = lastValidBlock;
+      progress.lastVerifiedBlock = lastValidBlock;
+      progress.pendingBlocks.clear();
+      
+      logger.warn(`Chain reorg detected on ${chainId}, reset to block ${lastValidBlock}`);
+      this.emit('chainReorg', { chainId, lastValidBlock, reorgDepth: blockNumber - lastValidBlock });
+    } catch (error) {
+      logger.error(`Error handling chain reorg for ${chainId}:`, error);
+    }
+  }
+
+  private startHealthCheck(): void {
+    this.healthCheckInterval = setInterval(
+      () => this.checkWorkersHealth(),
+      workerConfig.monitoring.healthCheckInterval
+    );
+  }
+
+  private async checkWorkersHealth(): Promise<void> {
+    const now = Date.now();
+    const deadWorkers = new Set<string>();
+
+    // Check each worker's health
+    for (const [workerId, health] of this.workerHealth.entries()) {
+      const timeSinceActive = now - health.lastActiveTime;
+      const isHealthy = health.successRate > 0.7 && timeSinceActive < 60000;
+
+      if (!isHealthy) {
+        deadWorkers.add(workerId);
+        logger.warn(`Worker ${workerId} appears unhealthy:`, {
+          successRate: health.successRate,
+          timeSinceActive,
+          activeJobs: health.activeJobs,
+        });
+      }
+    }
+
+    // Handle dead workers
+    if (deadWorkers.size > 0) {
+      await this.handleDeadWorkers(deadWorkers);
+    }
+  }
+
+  private async handleDeadWorkers(deadWorkers: Set<string>): Promise<void> {
+    try {
+      // Restart dead workers
+      for (const workerId of deadWorkers) {
+        await this.workerManager.restartWorker(workerId);
+        this.workerHealth.set(workerId, this.initializeWorkerHealth());
+      }
+
+      // Requeue jobs from dead workers
+      for (const progress of this.chainProgress.values()) {
+        for (const blockNumber of progress.pendingBlocks) {
+          progress.pendingBlocks.delete(blockNumber);
+          progress.failedBlocks.add(blockNumber);
+        }
+      }
+    } catch (error) {
+      logger.error('Error handling dead workers:', error);
+    }
+  }
+
+  private calculateOptimalBatchSize(progress: ChainProgress): number {
+    // Start with base batch size based on processing rate
+    let batchSize = Math.ceil(progress.processingRate * workerConfig.worker.backoffDelay / 1000);
+    
+    // Adjust for error rate
+    if (progress.errorRate > 0.1) {
+      batchSize = Math.max(this.minBlocksPerBatch, Math.floor(batchSize * 0.8));
+    }
+
+    // Adjust for pending blocks (backpressure)
+    const pendingRatio = progress.pendingBlocks.size / this.maxPendingBlocks;
+    if (pendingRatio > 0.8) {
+      batchSize = Math.max(this.minBlocksPerBatch, Math.floor(batchSize * 0.5));
+    }
+
+    // Ensure within bounds
+    return Math.max(
+      this.minBlocksPerBatch,
+      Math.min(this.maxBlocksPerBatch, batchSize)
+    );
   }
 
   public async start(): Promise<void> {
@@ -76,12 +273,15 @@ export class JobCoordinator {
           errorRate: 0,
           totalProcessed: 0,
           totalFailed: 0,
+          lastVerifiedBlock: startBlock - 1,
+          pendingBlocks: new Set(),
         });
 
         this.chainPriorities.push({
           chainId,
           priority: 1,
           lastProcessTime: Date.now(),
+          healthScore: 1,
         });
 
         logger.info(`Initialized chain ${chainId} progress: ${startBlock} -> ${latestBlock}`);
@@ -90,8 +290,9 @@ export class JobCoordinator {
       // Start the worker manager
       await this.workerManager.start();
 
-      // Start coordination loop
+      // Start coordination loop and health checks
       this.startCoordinationLoop();
+      this.startHealthCheck();
 
       logger.info('Job coordinator started successfully');
     } catch (error) {
@@ -104,10 +305,14 @@ export class JobCoordinator {
     try {
       logger.info('Stopping job coordinator...');
 
-      // Stop coordination loop
+      // Stop coordination loop and health checks
       if (this.coordinationInterval) {
         clearInterval(this.coordinationInterval);
         this.coordinationInterval = null;
+      }
+      if (this.healthCheckInterval) {
+        clearInterval(this.healthCheckInterval);
+        this.healthCheckInterval = null;
       }
 
       // Stop worker manager
@@ -250,13 +455,17 @@ export class JobCoordinator {
 
   private async processNextBatch(chainId: string, progress: ChainProgress): Promise<void> {
     try {
+      // Check backpressure
+      if (progress.pendingBlocks.size >= this.maxPendingBlocks) {
+        logger.warn(`Skipping batch for chain ${chainId} due to backpressure`);
+        return;
+      }
+
       progress.isProcessing = true;
       const now = Date.now();
 
-      // Calculate optimal batch size based on processing rate
-      let batchSize = Math.floor(progress.processingRate * workerConfig.worker.backoffDelay / 1000);
-      batchSize = Math.max(this.minBlocksPerBatch, Math.min(this.maxBlocksPerBatch, batchSize));
-
+      // Calculate optimal batch size
+      const batchSize = this.calculateOptimalBatchSize(progress);
       const startBlock = progress.lastProcessedBlock + 1;
       const endBlock = Math.min(startBlock + batchSize - 1, progress.targetBlock);
 
@@ -266,6 +475,17 @@ export class JobCoordinator {
       const jobs = [];
       for (let blockNumber = startBlock; blockNumber <= endBlock; blockNumber++) {
         const worker = await this.workerManager.getBlockWorker();
+        const workerId = worker.getId();
+        const health = this.workerHealth.get(workerId) || this.initializeWorkerHealth();
+        
+        // Update worker health
+        health.lastActiveTime = now;
+        health.activeJobs++;
+        this.workerHealth.set(workerId, health);
+
+        // Track pending block
+        progress.pendingBlocks.add(blockNumber);
+
         jobs.push(
           worker.addBlockJob({
             chainId,
@@ -278,9 +498,7 @@ export class JobCoordinator {
 
       // Wait for all jobs to be created
       await Promise.all(jobs);
-      progress.lastProcessedBlock = endBlock;
       progress.isProcessing = false;
-      progress.totalProcessed += (endBlock - startBlock + 1);
 
       // Update chain priority
       const chainPriority = this.chainPriorities.find(chain => chain.chainId === chainId);

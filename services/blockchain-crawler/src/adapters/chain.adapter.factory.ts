@@ -1,7 +1,7 @@
 import { JsonRpcProvider } from 'ethers';
 import { ChainAdapter, ChainConfig } from '../interfaces/chain.adapter';
-import { workerConfig } from '../../config/worker';
-import { logger } from '../../utils/logger';
+import { workerConfig } from '../config/worker';
+import { logger } from '../utils/logger';
 
 export class ChainAdapterFactory {
   private static instance: ChainAdapterFactory;
@@ -86,15 +86,18 @@ export class ChainAdapterFactory {
 
     // Create and return chain-specific adapter
     switch (config.chainId) {
-      case 'ethereum':
-        const { EthereumChainAdapter } = await import('./ethereum.chain.adapter');
-        return new EthereumChainAdapter(provider, config);
-      case 'polygon':
-        const { PolygonChainAdapter } = await import('./polygon.chain.adapter');
-        return new PolygonChainAdapter(provider, config);
-      case 'bsc':
-        const { BSCChainAdapter } = await import('./bsc.chain.adapter');
-        return new BSCChainAdapter(provider, config);
+      case 'ethereum': {
+        const { EthereumAdapter } = await import('./ethereum.adapter');
+        return new EthereumAdapter(provider, config);
+      }
+      case 'polygon': {
+        const { PolygonAdapter } = await import('./polygon.adapter');
+        return new PolygonAdapter(provider, config);
+      }
+      case 'bsc': {
+        const { BscAdapter } = await import('./bsc.adapter');
+        return new BscAdapter(provider, config);
+      }
       default:
         throw new Error(`Unsupported chain: ${config.chainId}`);
     }

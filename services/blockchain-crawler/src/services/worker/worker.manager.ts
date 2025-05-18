@@ -17,7 +17,7 @@ export class WorkerManager extends EventEmitter {
     const workerCount = workerConfig.worker.concurrency;
     for (let i = 0; i < workerCount; i++) {
       const workerId = `block-worker-${i + 1}`;
-      const worker = new BlockWorker();
+      const worker = new BlockWorker(workerId);
 
       // Set up worker event handlers
       worker.on('error', (error) => {
@@ -33,6 +33,14 @@ export class WorkerManager extends EventEmitter {
       worker.on('jobStalled', (job) => {
         logger.warn(`Job ${job.id} stalled in worker ${workerId}`);
         this.emit('jobStalled', { worker: workerId, job });
+      });
+
+      worker.on('jobCompleted', (job) => {
+        this.emit('jobCompleted', {
+          worker: workerId,
+          blockNumber: job.data.blockNumber,
+          chainId: job.data.chainId,
+        });
       });
 
       this.workers.set(workerId, worker);
@@ -135,5 +143,51 @@ export class WorkerManager extends EventEmitter {
     }
 
     return metrics;
+  }
+
+  public async restartWorker(workerId: string): Promise<void> {
+    try {
+      // Stop the existing worker
+      const worker = this.workers.get(workerId);
+      if (worker) {
+        await worker.stop();
+        this.workers.delete(workerId);
+      }
+
+      // Create and start a new worker
+      const newWorker = new BlockWorker(workerId);
+      
+      // Set up worker event handlers
+      newWorker.on('error', (error) => {
+        logger.error(`Error in worker ${workerId}:`, error);
+        this.emit('workerError', { worker: workerId, error });
+      });
+
+      newWorker.on('jobFailed', (job, error) => {
+        logger.error(`Job ${job.id} failed in worker ${workerId}:`, error);
+        this.emit('jobFailed', { worker: workerId, job, error });
+      });
+
+      newWorker.on('jobStalled', (job) => {
+        logger.warn(`Job ${job.id} stalled in worker ${workerId}`);
+        this.emit('jobStalled', { worker: workerId, job });
+      });
+
+      newWorker.on('jobCompleted', (job) => {
+        this.emit('jobCompleted', {
+          worker: workerId,
+          blockNumber: job.data.blockNumber,
+          chainId: job.data.chainId,
+        });
+      });
+
+      await newWorker.start();
+      this.workers.set(workerId, newWorker);
+      
+      logger.info(`Successfully restarted worker ${workerId}`);
+    } catch (error) {
+      logger.error(`Failed to restart worker ${workerId}:`, error);
+      throw error;
+    }
   }
 } 

@@ -1,10 +1,9 @@
-import { Job } from 'bull';
-import { Contract } from 'ethers';
-import { BaseWorker } from './base.worker';
+import { EventEmitter } from 'events';
 import { ChainAdapterFactory } from '../../adapters/chain.adapter.factory';
 import { TokenService } from '../token.service';
 import { workerConfig } from '../../config/worker';
 import { logger } from '../../utils/logger';
+import { TransactionResponse, Block } from 'ethers';
 
 interface BlockJob {
   chainId: string;
@@ -13,176 +12,115 @@ interface BlockJob {
   priority?: number;
 }
 
-export class BlockWorker extends BaseWorker {
+interface JobResult {
+  success: boolean;
+  error?: Error;
+}
+
+interface BlockWithTransactions extends Block {
+  transactions: Array<TransactionResponse | string>;
+}
+
+export class BlockWorker extends EventEmitter {
+  private readonly workerId: string;
   private readonly tokenService: TokenService;
   private readonly adapterFactory: ChainAdapterFactory;
 
-  constructor() {
-    super(workerConfig.queues.blockProcessing, {
-      concurrency: workerConfig.worker.concurrency,
-    });
-    
+  constructor(workerId: string) {
+    super();
+    this.workerId = workerId;
     this.tokenService = new TokenService();
     this.adapterFactory = ChainAdapterFactory.getInstance();
+    this.setupEventHandlers();
   }
 
-  protected async processJob(job: Job<BlockJob>): Promise<void> {
-    const { chainId, blockNumber, timestamp } = job.data;
-    
-    try {
-      logger.info(`Processing block ${blockNumber} for chain ${chainId}`);
-      
-      const adapter = await this.adapterFactory.getAdapter(chainId);
-      if (!adapter) {
-        throw new Error(`No adapter found for chain ${chainId}`);
-      }
-
-      // Get block with transactions
-      const block = await adapter.getBlock(blockNumber);
-      if (!block) {
-        throw new Error(`Block ${blockNumber} not found on chain ${chainId}`);
-      }
-
-      // Process all transactions in the block
-      const txHashes = block.transactions;
-      await Promise.all(
-        txHashes.map(async (txHash) => {
-          try {
-            const tx = await adapter.getTransaction(txHash);
-            if (tx) {
-              await this.processTransaction(chainId, tx, timestamp);
-            }
-          } catch (error) {
-            logger.error(`Error processing transaction ${txHash}:`, error);
-            // Continue processing other transactions
-          }
-        })
-      );
-
-      logger.info(`Successfully processed block ${blockNumber} for chain ${chainId}`);
-    } catch (error) {
-      logger.error(`Failed to process block ${blockNumber} for chain ${chainId}:`, error);
-      throw error;
-    }
+  private setupEventHandlers(): void {
+    // Event handlers will be set up by the worker manager
   }
 
-  private async processTransaction(
-    chainId: string,
-    tx: any,
-    timestamp: number
-  ): Promise<void> {
-    try {
-      const adapter = await this.adapterFactory.getAdapter(chainId);
-      const receipt = await adapter.provider.getTransactionReceipt(tx.hash);
-      if (!receipt) return;
-
-      // Process logs for token transfers and listings
-      for (const log of receipt.logs) {
-        try {
-          const contract = new Contract(log.address, adapter.wyllohAbi, adapter.provider);
-          const parsedLog = contract.interface.parseLog(log);
-          if (!parsedLog) continue;
-
-          switch (parsedLog.name) {
-            case 'Transfer':
-              const transferEvent = await adapter.processTransferEvent({
-                ...parsedLog,
-                transactionHash: tx.hash,
-                blockNumber: tx.blockNumber,
-                address: log.address,
-              });
-              await this.tokenService.handleTransfer(
-                transferEvent.tokenId,
-                transferEvent.tokenAddress,
-                chainId,
-                transferEvent.from,
-                transferEvent.to,
-                transferEvent.amount
-              );
-              break;
-
-            case 'TokenListed':
-              const listingEvent = await adapter.processListingEvent({
-                ...parsedLog,
-                transactionHash: tx.hash,
-                blockNumber: tx.blockNumber,
-                address: log.address,
-              });
-              await this.tokenService.handleListing(
-                listingEvent.tokenId,
-                listingEvent.tokenAddress,
-                chainId,
-                listingEvent.seller,
-                listingEvent.price,
-                listingEvent.quantity,
-                listingEvent.transactionHash
-              );
-              break;
-
-            case 'TokenPurchased':
-              const purchaseEvent = await adapter.processPurchaseEvent({
-                ...parsedLog,
-                transactionHash: tx.hash,
-                blockNumber: tx.blockNumber,
-                address: log.address,
-              });
-              await this.tokenService.handlePurchase(
-                purchaseEvent.tokenId,
-                purchaseEvent.tokenAddress,
-                chainId,
-                purchaseEvent.buyer,
-                purchaseEvent.seller,
-                purchaseEvent.quantity,
-                purchaseEvent.transactionHash
-              );
-              break;
-          }
-        } catch (error) {
-          logger.error(`Error processing log in transaction ${tx.hash}:`, error);
-          // Continue processing other logs
-        }
-      }
-    } catch (error) {
-      logger.error(`Error processing transaction ${tx.hash}:`, error);
-      throw error;
-    }
-  }
-
-  public async addBlockJob(data: BlockJob): Promise<Job<BlockJob>> {
-    return this.addJob(data, {
-      priority: data.priority || 0,
-      timeout: workerConfig.worker.stalledTimeout,
-      removeOnComplete: true,
-      removeOnFail: false,
-      attempts: workerConfig.worker.retryLimit,
-      backoff: {
-        type: 'exponential',
-        delay: workerConfig.worker.backoffDelay,
-      },
-    });
+  public getId(): string {
+    return this.workerId;
   }
 
   public async start(): Promise<void> {
     try {
       // Initialize chain adapters before starting the worker
       await this.adapterFactory.initializeAllAdapters();
-      logger.info('Chain adapters initialized successfully');
-
-      // Start processing jobs
-      await super.start();
+      logger.info(`Worker ${this.workerId} started`);
     } catch (error) {
-      logger.error('Failed to start block worker:', error);
+      logger.error(`Failed to start worker ${this.workerId}:`, error);
       throw error;
     }
   }
 
   public async stop(): Promise<void> {
     try {
-      await super.stop();
-      logger.info('Block worker stopped successfully');
+      logger.info(`Worker ${this.workerId} stopped`);
     } catch (error) {
-      logger.error('Error stopping block worker:', error);
+      logger.error(`Failed to stop worker ${this.workerId}:`, error);
       throw error;
     }
+  }
+
+  public async addBlockJob(job: BlockJob): Promise<void> {
+    try {
+      await this.processBlock(job);
+    } catch (error) {
+      logger.error(`Failed to process block in worker ${this.workerId}:`, error);
+      throw error;
+    }
+  }
+
+  private async processBlock(job: BlockJob): Promise<JobResult> {
+    try {
+      const adapter = await this.adapterFactory.getAdapter(job.chainId);
+      if (!adapter) {
+        throw new Error(`No adapter found for chain ${job.chainId}`);
+      }
+
+      const block = await adapter.getBlock(job.blockNumber);
+      if (!block) {
+        throw new Error(`Block ${job.blockNumber} not found on chain ${job.chainId}`);
+      }
+
+      // Process transactions in the block
+      const blockWithTx = block as BlockWithTransactions;
+      for (const tx of blockWithTx.transactions || []) {
+        const txHash = typeof tx === 'string' ? tx : tx.hash;
+        const transaction = await adapter.getTransaction(txHash);
+        if (!transaction) continue;
+
+        // Process transaction events
+        // This is a placeholder for now - will be implemented in the next phase
+        await this.processTransaction(transaction, adapter);
+      }
+
+      return { success: true };
+    } catch (error) {
+      logger.error(`Error processing block in worker ${this.workerId}:`, error);
+      return { success: false, error: error instanceof Error ? error : new Error(String(error)) };
+    }
+  }
+
+  private async processTransaction(transaction: TransactionResponse, adapter: any): Promise<void> {
+    // Transaction processing logic will be implemented in the next phase
+    await new Promise(resolve => setTimeout(resolve, 100));
+  }
+
+  public async getQueueMetrics(): Promise<{
+    waiting: number;
+    active: number;
+    completed: number;
+    failed: number;
+    delayed: number;
+  }> {
+    // This is a placeholder until we implement the actual queue
+    return {
+      waiting: 0,
+      active: 0,
+      completed: 0,
+      failed: 0,
+      delayed: 0,
+    };
   }
 } 

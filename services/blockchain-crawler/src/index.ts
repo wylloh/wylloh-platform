@@ -1,99 +1,97 @@
-import { BlockWorker } from './services/worker/block.worker';
-import { HealthMonitor } from './services/monitoring/health.service';
-import { logger } from './utils/logger';
-import { workerConfig } from './config/worker';
+import Redis from 'ioredis';
+import { createLogger } from './utils/logger';
+import { CrawlerService } from './services/crawler.service';
+import { TokenService } from './services/token.service';
+import { ChainAdapterFactory } from './adapters/chain.adapter.factory';
+import express from 'express';
+import cors from 'cors';
 
-class BlockchainCrawler {
-  private blockWorker: BlockWorker;
-  private healthMonitor: HealthMonitor;
+// Initialize logger
+const logger = createLogger('main');
 
-  constructor() {
-    this.blockWorker = new BlockWorker();
-    this.healthMonitor = new HealthMonitor();
+// Initialize Redis client
+const redis = new Redis({
+  host: process.env.REDIS_HOST || 'localhost',
+  port: parseInt(process.env.REDIS_PORT || '6379'),
+  password: process.env.REDIS_PASSWORD,
+});
 
-    // Register workers with health monitor
-    this.healthMonitor.registerWorker('block-worker', this.blockWorker);
+// Initialize services
+const chainAdapterFactory = ChainAdapterFactory.getInstance();
+const tokenService = new TokenService();
+const crawlerService = new CrawlerService(chainAdapterFactory, redis, tokenService);
 
-    // Set up health monitoring events
-    this.healthMonitor.on('health', (metrics) => {
-      logger.debug('Worker health metrics:', metrics);
-    });
+// Initialize Express app
+const app = express();
+app.use(cors());
+app.use(express.json());
 
-    this.healthMonitor.on('healthError', (error) => {
-      logger.error('Health monitoring error:', error);
-    });
-  }
+// Health check endpoint
+app.get('/health', (req, res) => {
+  res.json({ status: 'ok' });
+});
 
-  public async start(): Promise<void> {
-    try {
-      logger.info('Starting blockchain crawler service...');
+// Start monitoring a wallet
+app.post('/wallets/:address/monitor', async (req, res) => {
+  try {
+    const { address } = req.params;
+    const { userId } = req.body;
 
-      // Start workers
-      await this.blockWorker.start();
-      logger.info('Block worker started successfully');
-
-      // Start health monitoring
-      await this.healthMonitor.start();
-      logger.info('Health monitoring started successfully');
-
-      // Handle process termination
-      this.setupGracefulShutdown();
-
-      logger.info('Blockchain crawler service is running');
-    } catch (error) {
-      logger.error('Failed to start blockchain crawler service:', error);
-      await this.stop();
-      process.exit(1);
+    if (!userId) {
+      res.status(400).json({ error: 'userId is required' });
+      return;
     }
+
+    await crawlerService.startWalletMonitoring(address, userId);
+    res.json({ message: `Started monitoring wallet ${address}` });
+  } catch (error) {
+    logger.error(`Error starting wallet monitoring: ${error.message}`);
+    res.status(500).json({ error: error.message });
   }
+});
 
-  public async stop(): Promise<void> {
-    logger.info('Stopping blockchain crawler service...');
-
-    try {
-      // Stop health monitoring first
-      await this.healthMonitor.stop();
-      logger.info('Health monitoring stopped');
-
-      // Stop workers
-      await this.blockWorker.stop();
-      logger.info('Block worker stopped');
-
-      logger.info('Blockchain crawler service stopped successfully');
-    } catch (error) {
-      logger.error('Error stopping blockchain crawler service:', error);
-      process.exit(1);
-    }
+// Stop monitoring a wallet
+app.post('/wallets/:address/stop', async (req, res) => {
+  try {
+    const { address } = req.params;
+    await crawlerService.stopWalletMonitoring(address);
+    res.json({ message: `Stopped monitoring wallet ${address}` });
+  } catch (error) {
+    logger.error(`Error stopping wallet monitoring: ${error.message}`);
+    res.status(500).json({ error: error.message });
   }
+});
 
-  private setupGracefulShutdown(): void {
-    const signals = ['SIGTERM', 'SIGINT', 'SIGUSR2'];
+// Start the service
+const PORT = process.env.PORT || 3000;
 
-    signals.forEach((signal) => {
-      process.on(signal, async () => {
-        logger.info(`Received ${signal}, starting graceful shutdown...`);
-        await this.stop();
-        process.exit(0);
-      });
+async function start() {
+  try {
+    // Start the crawler service
+    await crawlerService.start();
+    logger.info('Crawler service started successfully');
+
+    // Start the HTTP server
+    app.listen(PORT, () => {
+      logger.info(`Server is running on port ${PORT}`);
     });
 
-    process.on('uncaughtException', async (error) => {
-      logger.error('Uncaught exception:', error);
-      await this.stop();
-      process.exit(1);
+    // Handle shutdown gracefully
+    process.on('SIGTERM', async () => {
+      logger.info('Received SIGTERM signal. Shutting down gracefully...');
+      await crawlerService.stop();
+      process.exit(0);
     });
 
-    process.on('unhandledRejection', async (reason) => {
-      logger.error('Unhandled rejection:', reason);
-      await this.stop();
-      process.exit(1);
+    process.on('SIGINT', async () => {
+      logger.info('Received SIGINT signal. Shutting down gracefully...');
+      await crawlerService.stop();
+      process.exit(0);
     });
+  } catch (error) {
+    logger.error(`Failed to start service: ${error.message}`);
+    process.exit(1);
   }
 }
 
-// Start the crawler service
-const crawler = new BlockchainCrawler();
-crawler.start().catch((error) => {
-  logger.error('Failed to start crawler:', error);
-  process.exit(1);
-}); 
+start(); 

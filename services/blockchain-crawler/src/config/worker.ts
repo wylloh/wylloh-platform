@@ -21,23 +21,33 @@ export const workerConfig = {
   },
   chains: {
     ethereum: {
-      rpcUrl: process.env.ETH_RPC_URL || 'https://mainnet.infura.io/v3/YOUR_INFURA_KEY',
-      startBlock: parseInt(process.env.ETH_START_BLOCK || '0', 10),
-      confirmations: parseInt(process.env.ETH_CONFIRMATIONS || '12', 10),
+      rpcUrl: process.env.ETH_RPC_URL || 'https://eth-mainnet.g.alchemy.com/v2/your-api-key',
+      startBlock: parseInt(process.env.ETH_START_BLOCK || '0'),
+      confirmations: parseInt(process.env.ETH_CONFIRMATIONS || '12'),
+      contracts: {
+        wylloh: process.env.ETH_WYLLOH_CONTRACT || '0x...'
+      }
     },
     polygon: {
-      rpcUrl: process.env.POLYGON_RPC_URL || 'https://polygon-rpc.com',
-      startBlock: parseInt(process.env.POLYGON_START_BLOCK || '0', 10),
-      confirmations: parseInt(process.env.POLYGON_CONFIRMATIONS || '256', 10),
+      rpcUrl: process.env.POLYGON_RPC_URL || 'https://polygon-mainnet.g.alchemy.com/v2/your-api-key',
+      startBlock: parseInt(process.env.POLYGON_START_BLOCK || '0'),
+      confirmations: parseInt(process.env.POLYGON_CONFIRMATIONS || '64'),
+      contracts: {
+        wylloh: process.env.POLYGON_WYLLOH_CONTRACT || '0x...'
+      }
     },
     bsc: {
       rpcUrl: process.env.BSC_RPC_URL || 'https://bsc-dataseed.binance.org',
-      startBlock: parseInt(process.env.BSC_START_BLOCK || '0', 10),
-      confirmations: parseInt(process.env.BSC_CONFIRMATIONS || '12', 10),
+      startBlock: parseInt(process.env.BSC_START_BLOCK || '0'),
+      confirmations: parseInt(process.env.BSC_CONFIRMATIONS || '15'),
+      contracts: {
+        wylloh: process.env.BSC_WYLLOH_CONTRACT || '0x...'
+      }
     },
   },
   monitoring: {
-    healthCheckInterval: parseInt(process.env.HEALTH_CHECK_INTERVAL || '60000', 10), // 1 minute
-    metricsPort: parseInt(process.env.METRICS_PORT || '9090', 10),
+    healthCheckInterval: parseInt(process.env.HEALTH_CHECK_INTERVAL || '30000'),
+    errorThreshold: parseInt(process.env.ERROR_THRESHOLD || '5'),
+    syncInterval: parseInt(process.env.SYNC_INTERVAL || '900000') // 15 minutes
   },
 } as const; 

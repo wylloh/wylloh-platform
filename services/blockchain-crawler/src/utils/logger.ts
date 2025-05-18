@@ -1,27 +1,44 @@
 import winston from 'winston';
 
-const logFormat = winston.format.combine(
-  winston.format.timestamp(),
-  winston.format.errors({ stack: true }),
-  winston.format.json()
-);
+export interface Logger {
+  info(message: string, meta?: any): void;
+  error(message: string, meta?: any): void;
+  warn(message: string, meta?: any): void;
+  debug(message: string, meta?: any): void;
+}
 
-export const logger = winston.createLogger({
-  level: process.env.LOG_LEVEL || 'info',
-  format: logFormat,
-  defaultMeta: { service: 'blockchain-crawler' },
-  transports: [
-    new winston.transports.File({ filename: 'logs/error.log', level: 'error' }),
-    new winston.transports.File({ filename: 'logs/combined.log' }),
-  ],
-});
-
-// If we're not in production, also log to the console
-if (process.env.NODE_ENV !== 'production') {
-  logger.add(new winston.transports.Console({
+const createLogger = (service: string): Logger => {
+  return winston.createLogger({
+    level: process.env.LOG_LEVEL || 'info',
     format: winston.format.combine(
-      winston.format.colorize(),
-      winston.format.simple()
+      winston.format.timestamp(),
+      winston.format.json(),
+      winston.format.printf(({ timestamp, level, message, ...meta }) => {
+        return JSON.stringify({
+          timestamp,
+          level,
+          service,
+          message,
+          ...meta
+        });
+      })
     ),
-  }));
-} 
+    transports: [
+      new winston.transports.Console({
+        format: winston.format.combine(
+          winston.format.colorize(),
+          winston.format.simple()
+        )
+      }),
+      new winston.transports.File({
+        filename: `logs/${service}-error.log`,
+        level: 'error'
+      }),
+      new winston.transports.File({
+        filename: `logs/${service}-combined.log`
+      })
+    ]
+  });
+};
+
+export { createLogger }; 

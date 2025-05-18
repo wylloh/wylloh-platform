@@ -1,9 +1,36 @@
 import { ethers } from 'ethers';
 import { createError } from '../middleware/errorHandler';
+// @ts-ignore - Contract ABI JSON import
 import WyllohToken from '../contracts/WyllohToken.json';
-import ipfsService from './ipfsService';
+import { IpfsService } from './ipfsService';
 
-// Define token data interface
+// Define token data interfaces
+interface RightsThreshold {
+  quantity: number;
+  rightsType: number;
+  description: string;
+}
+
+interface AccessRights {
+  type: 'perpetual';
+  features: {
+    download: boolean;
+    streaming: boolean;
+    offline: boolean;
+  };
+}
+
+interface DistributionTerms {
+  duration?: number;  // Optional duration for distribution rights (not access rights)
+  territories?: string[];
+  channels?: string[];
+  restrictions?: string[];
+  stackingThresholds?: {
+    quantity: number;
+    rights: string[];
+  }[];
+}
+
 interface TokenCreationData {
   contentId: string;
   contentCid: string;
@@ -12,13 +39,38 @@ interface TokenCreationData {
   description: string;
   contentType: string;
   creator: string;
-  rightsThresholds: Array<{
-    quantity: number;
-    rightsType: number;
-    description: string;
-  }>;
+  rightsThresholds: RightsThreshold[];
   totalSupply: number;
   royaltyPercentage: number;
+  distributionTerms?: DistributionTerms;
+}
+
+interface TokenMetadataProperties {
+  contentType: string;
+  contentId: string;
+  contentCid: string;
+  metadataCid: string;
+  accessRights: AccessRights;
+  distributionRights: {
+    terms: DistributionTerms;
+    disclaimer: string;
+  };
+}
+
+interface TokenRight {
+  quantity: number;
+  rightsType: number;
+  description: string;
+  isDistributionRight: boolean;
+}
+
+interface TokenMetadata {
+  [key: string]: unknown;
+  name: string;
+  description: string;
+  image: string;
+  properties: TokenMetadataProperties;
+  rights: TokenRight[];
 }
 
 /**
@@ -29,6 +81,7 @@ class TokenService {
   private wallet: ethers.Wallet;
   private tokenContract: ethers.Contract;
   private contractAddress: string;
+  private ipfsService: IpfsService;
 
   constructor() {
     // Initialize blockchain connection
@@ -38,7 +91,6 @@ class TokenService {
     // Set up wallet with private key
     const privateKey = process.env.PRIVATE_KEY;
     if (!privateKey) {
-      console.error('Private key is not defined');
       throw new Error('Private key is not defined');
     }
     
@@ -47,7 +99,6 @@ class TokenService {
     // Set up contract instance
     this.contractAddress = process.env.TOKEN_CONTRACT_ADDRESS || '';
     if (!this.contractAddress) {
-      console.error('Token contract address is not defined');
       throw new Error('Token contract address is not defined');
     }
     
@@ -56,23 +107,18 @@ class TokenService {
       WyllohToken.abi,
       this.wallet
     );
+
+    this.ipfsService = new IpfsService();
   }
 
   /**
    * Create a new token for content
    * @param tokenData Token creation data
    */
-  async createToken(tokenData: TokenCreationData) {
+  async createToken(tokenData: TokenCreationData): Promise<{ tokenId: string; transactionHash: string }> {
     try {
-      // Generate a unique token ID based on content
-      const tokenIdBytes = ethers.utils.solidityKeccak256(
-        ['string', 'string', 'uint256'],
-        [tokenData.contentId, tokenData.contentCid, Date.now()]
-      );
-      const tokenId = ethers.BigNumber.from(tokenIdBytes);
-
       // Create token metadata
-      const metadata = {
+      const metadata: TokenMetadata = {
         name: tokenData.title,
         description: tokenData.description,
         image: `ipfs://${tokenData.metadataCid}`, // Thumbnail or poster image
@@ -80,67 +126,59 @@ class TokenService {
           contentType: tokenData.contentType,
           contentId: tokenData.contentId,
           contentCid: tokenData.contentCid,
-          metadataCid: tokenData.metadataCid
+          metadataCid: tokenData.metadataCid,
+          accessRights: {
+            type: 'perpetual',
+            features: {
+              download: true,
+              streaming: true,
+              offline: true
+            }
+          },
+          distributionRights: {
+            terms: tokenData.distributionTerms || {},
+            disclaimer: "This token grants perpetual access rights to the content (similar to owning a DVD/Blu-ray) and can be stacked for commercial distribution rights. Copyright and intellectual property rights remain with the content creator/studio."
+          }
         },
-        rights: tokenData.rightsThresholds.map(threshold => ({
+        rights: tokenData.rightsThresholds.map((threshold: RightsThreshold): TokenRight => ({
           quantity: threshold.quantity,
           rightsType: threshold.rightsType,
-          description: threshold.description
+          description: threshold.description,
+          isDistributionRight: true
         }))
       };
 
       // Upload metadata to IPFS
-      const metadataCid = await ipfsService.uploadMetadata(metadata);
+      const metadataCid = await this.ipfsService.uploadMetadata(metadata);
       const tokenURI = `ipfs://${metadataCid}`;
 
-      // Convert thresholds to contract format
-      const quantities = tokenData.rightsThresholds.map(t => t.quantity);
-      const rightsTypes = tokenData.rightsThresholds.map(t => t.rightsType);
+      // Generate token ID from content ID
+      const tokenId = ethers.utils.id(tokenData.contentId);
 
-      // Get creator's wallet address (this would come from your user management system)
-      const creatorAddress = await this.getUserWalletAddress(tokenData.creator);
-      
       // Create token transaction
       const tx = await this.tokenContract.create(
-        creatorAddress, // initial token recipient (creator)
-        tokenId, // token ID
-        tokenData.totalSupply, // initial supply
-        tokenData.contentId, // content ID
-        ethers.utils.keccak256(ethers.utils.toUtf8Bytes(tokenData.contentCid)), // content hash
-        tokenData.contentType, // content type
-        tokenURI, // token URI
-        creatorAddress, // royalty recipient (creator)
-        tokenData.royaltyPercentage // royalty percentage in basis points
+        tokenData.creator,
+        tokenId,
+        tokenData.totalSupply,
+        tokenData.contentId,
+        ethers.utils.id(tokenData.contentCid),
+        tokenData.contentType,
+        tokenURI,
+        tokenData.creator,
+        tokenData.royaltyPercentage * 100 // Convert to basis points
       );
 
-      // Wait for transaction to be mined
       const receipt = await tx.wait();
 
-      // Set rights thresholds
-      if (tokenData.rightsThresholds.length > 0) {
-        const quantities = tokenData.rightsThresholds.map(t => t.quantity);
-        const rightsTypes = tokenData.rightsThresholds.map(t => t.rightsType);
-        
-        const rightsTx = await this.tokenContract.setRightsThresholds(
-          tokenId,
-          quantities,
-          rightsTypes
-        );
-        
-        await rightsTx.wait();
-      }
-
       return {
-        tokenId: tokenId.toString(),
-        contractAddress: this.contractAddress,
-        owner: creatorAddress,
-        totalSupply: tokenData.totalSupply,
-        transactionHash: receipt.transactionHash,
-        tokenURI
+        tokenId,
+        transactionHash: receipt.transactionHash
       };
-    } catch (error) {
-      console.error('Error creating token:', error);
-      throw createError(`Failed to create token: ${error.message}`, 500);
+    } catch (error: unknown) {
+      if (error instanceof Error) {
+        throw createError(`Failed to create token: ${error.message}`, 500);
+      }
+      throw createError('Failed to create token: Unknown error', 500);
     }
   }
 
@@ -148,7 +186,22 @@ class TokenService {
    * Get token details by ID
    * @param tokenId Token ID
    */
-  async getTokenById(tokenId: string) {
+  async getTokenById(tokenId: string): Promise<{
+    tokenId: string;
+    contractAddress: string;
+    tokenURI: string;
+    totalSupply: string;
+    contentId: string;
+    contentType: string;
+    creator: string;
+    rightsThresholds: Array<{
+      quantity: string;
+      rightsType: number;
+      enabled: boolean;
+    }>;
+    royaltyRecipient: string;
+    royaltyPercentage: number;
+  }> {
     try {
       // Get token URI
       const tokenURI = await this.tokenContract.uri(tokenId);
@@ -173,7 +226,7 @@ class TokenService {
         contentId: contentMetadata.contentId,
         contentType: contentMetadata.contentType,
         creator: contentMetadata.creator,
-        rightsThresholds: rightsThresholds.map((threshold) => ({
+        rightsThresholds: rightsThresholds.map((threshold: { quantity: ethers.BigNumber; rightsType: number; enabled: boolean }) => ({
           quantity: threshold.quantity.toString(),
           rightsType: threshold.rightsType,
           enabled: threshold.enabled
@@ -181,9 +234,11 @@ class TokenService {
         royaltyRecipient: royaltyInfo[0],
         royaltyPercentage: (royaltyInfo[1].toNumber() / 100)
       };
-    } catch (error) {
-      console.error('Error getting token details:', error);
-      throw createError(`Failed to get token details: ${error.message}`, 500);
+    } catch (error: unknown) {
+      if (error instanceof Error) {
+        throw createError(`Failed to get token details: ${error.message}`, 500);
+      }
+      throw createError('Failed to get token details: Unknown error', 500);
     }
   }
 
@@ -191,15 +246,30 @@ class TokenService {
    * Verify if a wallet has specific rights for a token
    * @param tokenId Token ID
    * @param walletAddress Wallet address to check
-   * @param rightsType Rights type to check for
+   * @param rightsType Rights type to check for (0 for basic access, 1+ for distribution rights)
    */
-  async verifyTokenRights(tokenId: string, walletAddress: string, rightsType: number) {
+  async verifyTokenRights(tokenId: string, walletAddress: string, rightsType: number): Promise<boolean> {
     try {
-      const hasRights = await this.tokenContract.hasRights(walletAddress, tokenId, rightsType);
-      return hasRights;
-    } catch (error) {
-      console.error('Error verifying token rights:', error);
-      throw createError(`Failed to verify token rights: ${error.message}`, 500);
+      // First check if the wallet owns any tokens (grants basic access rights)
+      const balance = await this.tokenContract.balanceOf(walletAddress, tokenId);
+      
+      // If checking for basic access rights (rightsType = 0) and has balance, return true
+      if (rightsType === 0 && balance.gt(0)) {
+        return true;
+      }
+      
+      // For distribution rights, check if they meet the stacking threshold
+      if (rightsType > 0) {
+        const hasRights = await this.tokenContract.hasRights(walletAddress, tokenId, rightsType);
+        return hasRights;
+      }
+
+      return false;
+    } catch (error: unknown) {
+      if (error instanceof Error) {
+        throw createError(`Failed to verify token rights: ${error.message}`, 500);
+      }
+      throw createError('Failed to verify token rights: Unknown error', 500);
     }
   }
 
@@ -226,9 +296,11 @@ class TokenService {
         },
         message: 'Implementation requires an indexer service for efficient querying'
       };
-    } catch (error) {
-      console.error('Error getting tokens by owner:', error);
-      throw createError(`Failed to get tokens by owner: ${error.message}`, 500);
+    } catch (error: unknown) {
+      if (error instanceof Error) {
+        throw createError(`Failed to get tokens by owner: ${error.message}`, 500);
+      }
+      throw createError('Failed to get tokens by owner: Unknown error', 500);
     }
   }
 
@@ -240,7 +312,22 @@ class TokenService {
    * @param price Price per token
    * @param currency Currency for the transaction
    */
-  async listToken(tokenId: string, sellerAddress: string, quantity: number, price: number, currency: string = 'MATIC') {
+  async listToken(
+    tokenId: string,
+    sellerAddress: string,
+    quantity: number,
+    price: number,
+    currency: string = 'MATIC'
+  ): Promise<{
+    listingId: string;
+    tokenId: string;
+    sellerAddress: string;
+    quantity: number;
+    price: number;
+    currency: string;
+    status: string;
+    message: string;
+  }> {
     try {
       // This would integrate with your marketplace smart contract
       // For now, we'll return a stub response
@@ -254,9 +341,11 @@ class TokenService {
         status: 'active',
         message: 'Implementation requires marketplace smart contract integration'
       };
-    } catch (error) {
-      console.error('Error listing token:', error);
-      throw createError(`Failed to list token: ${error.message}`, 500);
+    } catch (error: unknown) {
+      if (error instanceof Error) {
+        throw createError(`Failed to list token: ${error.message}`, 500);
+      }
+      throw createError('Failed to list token: Unknown error', 500);
     }
   }
 

@@ -1,94 +1,160 @@
 import { EventEmitter } from 'events';
-import { WorkerManager } from './worker/worker.manager';
-import { JobCoordinator } from './coordinator/job.coordinator';
-import { logger } from '../utils/logger';
+import Redis from 'ioredis';
+import { createLogger, Logger } from '../utils/logger';
+import { WalletMonitoringService } from './wallet.service';
+import { TokenService } from './token.service';
+import { WalletRegistry } from '../models/wallet.registry';
+import { ChainAdapterFactory } from '../adapters/chain.adapter.factory';
 
-export class BlockchainCrawlerService extends EventEmitter {
-  private workerManager: WorkerManager;
-  private jobCoordinator: JobCoordinator;
-  private isRunning: boolean = false;
+export class CrawlerService extends EventEmitter {
+  private readonly walletMonitor: WalletMonitoringService;
+  private readonly walletRegistry: WalletRegistry;
+  private readonly logger: Logger;
+  private readonly syncInterval: number = 1000 * 60 * 15; // 15 minutes
+  private syncTimer?: NodeJS.Timeout;
 
-  constructor() {
+  constructor(
+    chainAdapterFactory: ChainAdapterFactory,
+    redis: Redis,
+    tokenService: TokenService
+  ) {
     super();
-    this.workerManager = new WorkerManager();
-    this.jobCoordinator = JobCoordinator.getInstance();
-    this.setupEventHandlers();
+    this.logger = createLogger('crawler-service');
+    this.walletRegistry = new WalletRegistry(redis, this.logger);
+    this.walletMonitor = new WalletMonitoringService(
+      chainAdapterFactory,
+      this.walletRegistry,
+      tokenService,
+      redis,
+      this.logger
+    );
+
+    // Listen for wallet monitor events
+    this.setupEventListeners();
   }
 
-  private setupEventHandlers(): void {
-    this.workerManager.on('workerError', ({ worker, error }) => {
-      logger.error(`Worker error in ${worker}:`, error);
-      this.emit('error', { component: worker, error });
-    });
-
-    this.workerManager.on('jobFailed', ({ worker, job, error }) => {
-      logger.error(`Job failed in ${worker}:`, { jobId: job.id, error });
-      this.emit('jobFailed', { component: worker, jobId: job.id, error });
-      
-      // Add failed block to retry queue
-      if (job.data.chainId && job.data.blockNumber) {
-        this.jobCoordinator.handleFailedBlock(job.data.chainId, job.data.blockNumber);
-      }
-    });
-  }
-
+  /**
+   * Start the crawler service
+   */
   public async start(): Promise<void> {
-    if (this.isRunning) {
-      logger.warn('Blockchain crawler service is already running');
-      return;
-    }
-
     try {
-      this.isRunning = true;
+      this.logger.info('Starting crawler service');
 
-      // Start the worker manager
-      await this.workerManager.start();
-      
-      // Start the job coordinator
-      await this.jobCoordinator.start();
+      // Start periodic sync
+      this.startPeriodicSync();
 
-      logger.info('Blockchain crawler service started successfully');
+      // Start monitoring all active wallets
+      await this.monitorActiveWallets();
+
+      this.logger.info('Crawler service started successfully');
     } catch (error) {
-      this.isRunning = false;
-      logger.error('Failed to start blockchain crawler service:', error);
+      this.logger.error(`Error starting crawler service: ${error.message}`);
       throw error;
     }
   }
 
+  /**
+   * Stop the crawler service
+   */
   public async stop(): Promise<void> {
-    if (!this.isRunning) {
-      return;
-    }
-
     try {
-      // Stop the job coordinator
-      await this.jobCoordinator.stop();
+      this.logger.info('Stopping crawler service');
 
-      // Stop the worker manager
-      await this.workerManager.stop();
-      this.isRunning = false;
-      logger.info('Blockchain crawler service stopped successfully');
+      // Stop periodic sync
+      if (this.syncTimer) {
+        clearInterval(this.syncTimer);
+      }
+
+      // Get all active wallets
+      const activeWallets = await this.walletRegistry.getAllActiveWallets();
+
+      // Stop monitoring each wallet
+      for (const wallet of activeWallets) {
+        await this.walletMonitor.stopWalletMonitoring(wallet);
+      }
+
+      this.logger.info('Crawler service stopped successfully');
     } catch (error) {
-      logger.error('Failed to stop blockchain crawler service:', error);
+      this.logger.error(`Error stopping crawler service: ${error.message}`);
       throw error;
     }
   }
 
-  public async getMetrics(): Promise<Record<string, any>> {
+  /**
+   * Start monitoring a specific wallet
+   */
+  public async startWalletMonitoring(walletAddress: string, userId: string): Promise<void> {
     try {
-      const [workerMetrics, chainProgress] = await Promise.all([
-        this.workerManager.getWorkerMetrics(),
-        this.jobCoordinator.getChainProgress(),
-      ]);
-
-      return {
-        status: this.isRunning ? 'running' : 'stopped',
-        workers: workerMetrics,
-        chains: chainProgress,
-      };
+      await this.walletMonitor.startWalletMonitoring(walletAddress, userId);
+      this.logger.info(`Started monitoring wallet ${walletAddress} for user ${userId}`);
     } catch (error) {
-      logger.error('Failed to get crawler metrics:', error);
+      this.logger.error(`Error starting wallet monitoring: ${error.message}`);
       throw error;
     }
+  }
+
+  /**
+   * Stop monitoring a specific wallet
+   */
+  public async stopWalletMonitoring(walletAddress: string): Promise<void> {
+    try {
+      await this.walletMonitor.stopWalletMonitoring(walletAddress);
+      this.logger.info(`Stopped monitoring wallet ${walletAddress}`);
+    } catch (error) {
+      this.logger.error(`Error stopping wallet monitoring: ${error.message}`);
+      throw error;
+    }
+  }
+
+  /**
+   * Start periodic sync for inactive wallets
+   */
+  private startPeriodicSync(): void {
+    this.syncTimer = setInterval(async () => {
+      try {
+        const outdatedWallets = await this.walletRegistry.getWalletsNeedingSync(this.syncInterval);
+        
+        for (const wallet of outdatedWallets) {
+          const userId = await this.walletRegistry.getUserIdForWallet(wallet);
+          if (userId) {
+            await this.walletMonitor.startWalletMonitoring(wallet, userId);
+          }
+        }
+      } catch (error) {
+        this.logger.error(`Error in periodic sync: ${error.message}`);
+      }
+    }, this.syncInterval);
+  }
+
+  /**
+   * Monitor all currently active wallets
+   */
+  private async monitorActiveWallets(): Promise<void> {
+    try {
+      const activeWallets = await this.walletRegistry.getAllActiveWallets();
+      
+      for (const wallet of activeWallets) {
+        const userId = await this.walletRegistry.getUserIdForWallet(wallet);
+        if (userId) {
+          await this.walletMonitor.startWalletMonitoring(wallet, userId);
+        }
+      }
+    } catch (error) {
+      this.logger.error(`Error monitoring active wallets: ${error.message}`);
+      throw error;
+    }
+  }
+
+  /**
+   * Setup event listeners for wallet monitor events
+   */
+  private setupEventListeners(): void {
+    this.walletMonitor.on('transfer', (event) => {
+      this.emit('transfer', event);
+    });
+
+    this.walletMonitor.on('balanceChanged', (event) => {
+      this.emit('balanceChanged', event);
+    });
   }
 } 
