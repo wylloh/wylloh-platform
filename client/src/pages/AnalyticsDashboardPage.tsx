@@ -23,6 +23,8 @@ import { Content, contentService } from '../services/content.service';
 import ContentPerformanceChart from '../components/analytics/ContentPerformanceChart';
 import TokenHolderAnalytics from '../components/analytics/TokenHolderAnalytics';
 import RevenueBreakdown from '../components/analytics/RevenueBreakdown';
+import WalletAnalyticsDashboard from '../components/analytics/WalletAnalyticsDashboard';
+import StorageAnalyticsDashboard from '../components/analytics/StorageAnalyticsDashboard';
 import { TimeRange } from '../components/analytics/TimeRangeSelector';
 import MetricCard from '../components/analytics/MetricCard';
 
@@ -116,8 +118,10 @@ const AnalyticsDashboardPage: React.FC = () => {
     return userContent.find(content => content.id === selectedContentId);
   };
 
-  // Render content selector
+  // Render content selector (only for content-specific tabs)
   const renderContentSelector = () => {
+    if (tabValue === 3 || tabValue === 4) return null; // Don't show for wallet/storage analytics tabs
+    
     return (
       <FormControl fullWidth sx={{ mb: 3 }}>
         <InputLabel id="content-select-label">Content</InputLabel>
@@ -140,7 +144,7 @@ const AnalyticsDashboardPage: React.FC = () => {
   };
 
   // Render loading state
-  if (loading) {
+  if (loading && tabValue !== 3 && tabValue !== 4) { // Don't show loading for wallet/storage analytics tabs
     return (
       <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
         <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '50vh' }}>
@@ -151,7 +155,7 @@ const AnalyticsDashboardPage: React.FC = () => {
   }
 
   // Render error state
-  if (error) {
+  if (error && tabValue !== 3 && tabValue !== 4) { // Don't show error for wallet/storage analytics tabs
     return (
       <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
         <Alert severity="error" sx={{ mb: 2 }}>
@@ -164,8 +168,8 @@ const AnalyticsDashboardPage: React.FC = () => {
     );
   }
 
-  // Render no content state
-  if (userContent.length === 0 || !userContent.some(item => item.tokenized)) {
+  // Render no content state (only for content-specific tabs)
+  if (userContent.length === 0 && !userContent.some(item => item.tokenized) && tabValue !== 3 && tabValue !== 4) {
     return (
       <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
         <Paper sx={{ p: 4, textAlign: 'center' }}>
@@ -189,7 +193,7 @@ const AnalyticsDashboardPage: React.FC = () => {
     <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
         <Typography variant="h4" component="h1">
-          Content Analytics
+          Analytics Dashboard
         </Typography>
         <Button
           variant="outlined"
@@ -202,7 +206,7 @@ const AnalyticsDashboardPage: React.FC = () => {
 
       {renderContentSelector()}
 
-      {selectedContent && (
+      {selectedContent && tabValue !== 3 && tabValue !== 4 && (
         <Box sx={{ mb: 4 }}>
           <Paper sx={{ p: 3 }}>
             <Grid container spacing={2} alignItems="center">
@@ -241,11 +245,14 @@ const AnalyticsDashboardPage: React.FC = () => {
           onChange={handleTabChange}
           indicatorColor="primary"
           textColor="primary"
-          variant="fullWidth"
+          variant="scrollable"
+          scrollButtons="auto"
         >
           <Tab label="Performance" {...a11yProps(0)} />
           <Tab label="Token Holders" {...a11yProps(1)} />
           <Tab label="Revenue" {...a11yProps(2)} />
+          <Tab label="Wallet Analytics" {...a11yProps(3)} />
+          <Tab label="Storage Analytics" {...a11yProps(4)} />
         </Tabs>
 
         <TabPanel value={tabValue} index={0}>
@@ -273,6 +280,14 @@ const AnalyticsDashboardPage: React.FC = () => {
               initialTimeRange={timeRange}
             />
           )}
+        </TabPanel>
+
+        <TabPanel value={tabValue} index={3}>
+          <WalletAnalyticsDashboard />
+        </TabPanel>
+
+        <TabPanel value={tabValue} index={4}>
+          <StorageAnalyticsDashboard />
         </TabPanel>
       </Paper>
     </Container>
