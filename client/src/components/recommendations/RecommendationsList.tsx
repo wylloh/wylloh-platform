@@ -67,9 +67,13 @@ const RecommendationsList: React.FC<RecommendationsListProps> = ({
 
   if (displayItems.length === 0) {
     return (
-      <Box sx={{ p: 3, textAlign: 'center' }}>
-        <Typography variant="h6" color="text.secondary">
-          No recommendations available
+      <Box sx={{ p: 6, textAlign: 'center' }}>
+        <Typography variant="h6" color="text.primary" gutterBottom>
+          Content Coming Soon
+        </Typography>
+        <Typography variant="body1" color="text.secondary" sx={{ maxWidth: 400, mx: 'auto' }}>
+          Professional filmmakers are uploading new content to the platform. 
+          Check back soon to discover amazing films and documentaries.
         </Typography>
       </Box>
     );

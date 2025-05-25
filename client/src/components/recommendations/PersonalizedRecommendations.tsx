@@ -48,120 +48,12 @@ const PersonalizedRecommendations: React.FC<PersonalizedRecommendationsProps> = 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Mock data for different recommendation categories
+  // Mock data for different recommendation categories - Production ready empty state
   const mockRecommendations: Record<string, RecommendationItem[]> = {
-    forYou: [
-      {
-        id: 'rec-1',
-        title: 'The Filmmaker\'s Journey',
-        description: 'An inspiring documentary about independent filmmakers breaking into Hollywood.',
-        thumbnail: 'https://via.placeholder.com/300x400/1976d2/ffffff?text=Filmmaker%27s+Journey',
-        genre: ['Documentary', 'Biography'],
-        rating: 4.7,
-        duration: '2h 15m',
-        year: 2023,
-        director: 'Sarah Chen',
-        type: 'documentary',
-        price: 12.99,
-      },
-      {
-        id: 'rec-2',
-        title: 'Digital Dreams',
-        description: 'A sci-fi thriller exploring the intersection of technology and creativity.',
-        thumbnail: 'https://via.placeholder.com/300x400/7c3aed/ffffff?text=Digital+Dreams',
-        genre: ['Sci-Fi', 'Thriller'],
-        rating: 4.3,
-        duration: '1h 58m',
-        year: 2024,
-        director: 'Marcus Rodriguez',
-        type: 'movie',
-        price: 15.99,
-      },
-    ],
-    trending: [
-      {
-        id: 'trend-1',
-        title: 'Blockchain Chronicles',
-        description: 'A deep dive into the world of decentralized technology and its impact on media.',
-        thumbnail: 'https://via.placeholder.com/300x400/059669/ffffff?text=Blockchain+Chronicles',
-        genre: ['Documentary', 'Technology'],
-        rating: 4.5,
-        duration: '1h 45m',
-        year: 2024,
-        director: 'Alex Thompson',
-        type: 'documentary',
-        price: 9.99,
-      },
-      {
-        id: 'trend-2',
-        title: 'The Creator\'s Dilemma',
-        description: 'A thought-provoking drama about artists navigating the digital age.',
-        thumbnail: 'https://via.placeholder.com/300x400/dc2626/ffffff?text=Creator%27s+Dilemma',
-        genre: ['Drama', 'Art'],
-        rating: 4.2,
-        duration: '2h 8m',
-        year: 2023,
-        director: 'Emma Wilson',
-        type: 'movie',
-        price: 14.99,
-      },
-    ],
-    newReleases: [
-      {
-        id: 'new-1',
-        title: 'Future of Film',
-        description: 'Exploring how emerging technologies are reshaping the film industry.',
-        thumbnail: 'https://via.placeholder.com/300x400/ea580c/ffffff?text=Future+of+Film',
-        genre: ['Documentary', 'Technology'],
-        rating: 4.6,
-        duration: '1h 52m',
-        year: 2024,
-        director: 'David Park',
-        type: 'documentary',
-        price: 11.99,
-      },
-      {
-        id: 'new-2',
-        title: 'Indie Revolution',
-        description: 'The story of how independent filmmakers are changing Hollywood.',
-        thumbnail: 'https://via.placeholder.com/300x400/7c2d12/ffffff?text=Indie+Revolution',
-        genre: ['Documentary', 'Biography'],
-        rating: 4.4,
-        duration: '2h 22m',
-        year: 2024,
-        director: 'Lisa Chang',
-        type: 'documentary',
-        price: 13.99,
-      },
-    ],
-    watchAgain: [
-      {
-        id: 'watch-1',
-        title: 'The Art of Storytelling',
-        description: 'A masterclass in narrative techniques from legendary filmmakers.',
-        thumbnail: 'https://via.placeholder.com/300x400/1e40af/ffffff?text=Art+of+Storytelling',
-        genre: ['Documentary', 'Education'],
-        rating: 4.8,
-        duration: '3h 15m',
-        year: 2022,
-        director: 'Robert Martinez',
-        type: 'documentary',
-        isOwned: true,
-      },
-      {
-        id: 'watch-2',
-        title: 'Cinema Verite',
-        description: 'An exploration of documentary filmmaking and its impact on society.',
-        thumbnail: 'https://via.placeholder.com/300x400/be185d/ffffff?text=Cinema+Verite',
-        genre: ['Documentary', 'History'],
-        rating: 4.5,
-        duration: '2h 35m',
-        year: 2021,
-        director: 'Jennifer Lee',
-        type: 'documentary',
-        isOwned: true,
-      },
-    ],
+    forYou: [],
+    trending: [],
+    newReleases: [],
+    watchAgain: [],
   };
 
   const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
@@ -172,6 +64,28 @@ const PersonalizedRecommendations: React.FC<PersonalizedRecommendationsProps> = 
     const categories = ['forYou', 'trending', 'newReleases', 'watchAgain'];
     const currentCategory = categories[tabValue];
     return mockRecommendations[currentCategory] || [];
+  };
+
+  const getEmptyStateMessage = (): { title: string; description: string } => {
+    const messages = [
+      {
+        title: "Discover Your Perfect Films",
+        description: "As you explore and collect films, we'll create personalized recommendations just for you."
+      },
+      {
+        title: "Trending Content Coming Soon",
+        description: "Professional filmmakers are uploading new content daily. Check back soon for trending films."
+      },
+      {
+        title: "New Releases on the Way",
+        description: "Fresh content from independent filmmakers and studios will appear here as it's published."
+      },
+      {
+        title: "Your Collection Awaits",
+        description: "Films you've collected will appear here for easy re-watching and sharing."
+      }
+    ];
+    return messages[tabValue] || messages[0];
   };
 
   if (loading) {

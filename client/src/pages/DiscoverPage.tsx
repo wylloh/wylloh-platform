@@ -289,51 +289,52 @@ const DiscoverPage: React.FC = () => {
           
           {/* Active filters summary */}
           {(searchQuery || contentType || selectedGenres.length > 0 || filterType !== 'popular') && (
-            <Box sx={{ mt: 2, display: 'flex', alignItems: 'center' }}>
-              <FilterIcon fontSize="small" sx={{ mr: 1, color: 'text.secondary' }} />
-              <Typography variant="body2" color="text.secondary" sx={{ mr: 2 }}>
-                Active filters:
-              </Typography>
-              {searchQuery && (
-                <Chip 
-                  label={`Search: ${searchQuery}`} 
+            <Box sx={{ mt: 2 }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+                <FilterIcon fontSize="small" sx={{ mr: 1, color: 'text.secondary' }} />
+                <Typography variant="body2" color="text.secondary">
+                  Active filters:
+                </Typography>
+              </Box>
+              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, alignItems: 'center' }}>
+                {searchQuery && (
+                  <Chip 
+                    label={`Search: ${searchQuery}`} 
+                    size="small" 
+                    onDelete={() => { setSearchQuery(''); updateUrlParams({ search: '' }); }}
+                  />
+                )}
+                {contentType && (
+                  <Chip 
+                    label={`Type: ${contentTypes.find(t => t.value === contentType)?.label}`} 
+                    size="small" 
+                    onDelete={() => { setContentType(''); updateUrlParams({ type: '' }); }}
+                  />
+                )}
+                {selectedGenres.map(genre => (
+                  <Chip 
+                    key={genre}
+                    label={`Genre: ${genre}`} 
+                    size="small" 
+                    onDelete={() => handleGenreClick(genre)}
+                  />
+                ))}
+                {filterType !== 'popular' && (
+                  <Chip 
+                    label={`Sort: ${filterOptions.find(f => f.value === filterType)?.label}`} 
+                    size="small" 
+                    onDelete={() => { setFilterType('popular'); updateUrlParams({ filter: 'popular' }); }}
+                  />
+                )}
+                <Button 
+                  variant="text" 
                   size="small" 
-                  onDelete={() => { setSearchQuery(''); updateUrlParams({ search: '' }); }}
-                  sx={{ mr: 1 }}
-                />
-              )}
-              {contentType && (
-                <Chip 
-                  label={`Type: ${contentTypes.find(t => t.value === contentType)?.label}`} 
-                  size="small" 
-                  onDelete={() => { setContentType(''); updateUrlParams({ type: '' }); }}
-                  sx={{ mr: 1 }}
-                />
-              )}
-              {selectedGenres.map(genre => (
-                <Chip 
-                  key={genre}
-                  label={`Genre: ${genre}`} 
-                  size="small" 
-                  onDelete={() => handleGenreClick(genre)}
-                  sx={{ mr: 1 }}
-                />
-              ))}
-              {filterType !== 'popular' && (
-                <Chip 
-                  label={`Sort: ${filterOptions.find(f => f.value === filterType)?.label}`} 
-                  size="small" 
-                  onDelete={() => { setFilterType('popular'); updateUrlParams({ filter: 'popular' }); }}
-                  sx={{ mr: 1 }}
-                />
-              )}
-              <Button 
-                variant="text" 
-                size="small" 
-                onClick={handleClearFilters}
-              >
-                Clear All
-              </Button>
+                  onClick={handleClearFilters}
+                  sx={{ ml: 1 }}
+                >
+                  Clear All
+                </Button>
+              </Box>
             </Box>
           )}
         </Paper>
