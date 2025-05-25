@@ -75,10 +75,10 @@ const Footer: React.FC = () => {
               component={RouterLink}
               to="/"
               sx={{
-                fontFamily: 'Playfair Display, serif',
-                fontWeight: 700,
-                letterSpacing: '.2rem',
-                color: 'primary.main',
+                fontFamily: '"Inter", sans-serif',
+                fontWeight: 600,
+                letterSpacing: '.1rem',
+                color: 'text.primary',
                 textDecoration: 'none',
                 mb: 2,
                 display: 'inline-block'
@@ -87,8 +87,8 @@ const Footer: React.FC = () => {
               WYLLOH
             </Typography>
             <Typography variant="body2" color="text.secondary" paragraph>
-              Your premium platform for blockchain-verified digital content.
-              Own, trade, and enjoy premium content with verifiable ownership.
+              Professional-grade platform for filmmakers. Premium experience for collectors.
+              Secure, permanent, and valuable digital film collection.
             </Typography>
             <Box sx={{ mt: 2 }}>
               <IconButton color="primary" aria-label="Twitter" component="a" href="https://twitter.com" target="_blank">
@@ -168,7 +168,7 @@ const Footer: React.FC = () => {
             © {new Date().getFullYear()} Wylloh. All rights reserved.
           </Typography>
           <Typography variant="body2" color="text.secondary">
-            Made with ❤️ for creators and consumers
+            Made with ❤️ for filmmakers and collectors
           </Typography>
         </Box>
       </Container>

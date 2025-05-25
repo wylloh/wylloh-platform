@@ -90,12 +90,6 @@ const TokenizePublishPage: React.FC = () => {
   // Check if user has verified Pro status
   const isProVerified = user?.proStatus === 'verified';
   
-  // Add forceRetokenize state for development mode
-  const [forceRetokenize, setForceRetokenize] = useState(false);
-  const isDevelopment = process.env.NODE_ENV === 'development';
-  const isDemoMode = process.env.REACT_APP_DEMO_MODE === 'true';
-  const showDevOptions = isDevelopment || isDemoMode;
-  
   // Load content details on mount
   useEffect(() => {
     async function loadContentDetails() {
@@ -219,8 +213,8 @@ const TokenizePublishPage: React.FC = () => {
       // Double-check if content is already tokenized to avoid duplicate tokenization
       const content = await contentService.getContentById(contentInfo.id);
       
-      // If content is already tokenized and not forcing retokenization, redirect to dashboard
-      if ((content?.tokenized || isAlreadyTokenized) && !(showDevOptions && forceRetokenize)) {
+      // If content is already tokenized, redirect to dashboard
+      if (content?.tokenized || isAlreadyTokenized) {
         console.log('Content is already tokenized, skipping tokenization');
         navigate('/creator/dashboard', {
           state: {
@@ -284,7 +278,6 @@ const TokenizePublishPage: React.FC = () => {
         royaltyPercentage: formData.royaltyPercentage,
         price: priceAsFloat,
         rightsThresholds: formData.rightsThresholds,
-        forceRetokenize: showDevOptions && forceRetokenize
       });
       
       // Show message that MetaMask will prompt for transaction approval
@@ -303,7 +296,6 @@ const TokenizePublishPage: React.FC = () => {
               quantity: rt.quantity,
               type: rt.type
             })),
-            forceRetokenize: showDevOptions && forceRetokenize
           }
         );
         
@@ -645,37 +637,6 @@ const TokenizePublishPage: React.FC = () => {
               </Typography>
             )}
           </Grid>
-          
-          {/* Development/Demo mode tools */}
-          {showDevOptions && (
-            <>
-              <Grid item xs={12}>
-                <Divider />
-              </Grid>
-              
-              <Grid item xs={12}>
-                <Paper sx={{ p: 2, bgcolor: 'info.light', color: 'info.contrastText', mb: 2 }}>
-                  <Typography variant="subtitle1" color="inherit" gutterBottom>
-                    Development Options
-                  </Typography>
-                  <FormControlLabel
-                    control={
-                      <Checkbox
-                        checked={forceRetokenize}
-                        onChange={(e) => setForceRetokenize(e.target.checked)}
-                        sx={{ color: 'inherit' }}
-                      />
-                    }
-                    label="Force Re-tokenization (Bypass 'already tokenized' check)"
-                  />
-                  <Typography variant="caption">
-                    This option is only available in development/demo mode and will allow you to re-tokenize content
-                    that has already been tokenized.
-                  </Typography>
-                </Paper>
-              </Grid>
-            </>
-          )}
         </Grid>
       </Paper>
       
@@ -704,10 +665,10 @@ const TokenizePublishPage: React.FC = () => {
         <Button
           variant="contained"
           onClick={handleSubmit}
-          disabled={submitting || (isAlreadyTokenized && !(showDevOptions && forceRetokenize))}
+          disabled={submitting || isAlreadyTokenized}
           startIcon={submitting ? <CircularProgress size={16} /> : null}
         >
-          {submitting ? 'Processing...' : (isAlreadyTokenized && !(showDevOptions && forceRetokenize) ? 'Already Tokenized' : 'Tokenize & Publish')}
+          {submitting ? 'Processing...' : (isAlreadyTokenized ? 'Already Tokenized' : 'Tokenize & Publish')}
         </Button>
       </Box>
     </Box>

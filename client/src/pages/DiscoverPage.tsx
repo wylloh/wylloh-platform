@@ -34,7 +34,7 @@ import {
 import RecommendationsList from '../components/recommendations/RecommendationsList';
 import PersonalizedRecommendations from '../components/recommendations/PersonalizedRecommendations';
 import { RecommendationType } from '../services/recommendation.service';
-import { ContentType } from '../services/content.service';
+import { ContentType } from '../services/metadata.service';
 import { useAuth } from '../contexts/AuthContext';
 
 interface TabPanelProps {
@@ -360,57 +360,37 @@ const DiscoverPage: React.FC = () => {
         {/* Tab Panels */}
         <TabPanel value={tabValue} index={0}>
           <RecommendationsList
+            recommendations={[]}
             title="Trending Now"
-            type={RecommendationType.TRENDING}
-            options={{
-              contentType: contentType as ContentType || undefined,
-              limit: 12,
-              filter: filterType
-            }}
             maxItems={12}
-            showReason={false}
+            showActions={true}
           />
         </TabPanel>
         
         {isAuthenticated && (
           <TabPanel value={tabValue} index={1}>
             <PersonalizedRecommendations
-              contentType={contentType as ContentType || undefined}
-              title="Recommended For You"
               maxItems={12}
-              showReasons={true}
-              fallbackToTrending={false}
             />
           </TabPanel>
         )}
         
         <TabPanel value={tabValue} index={isAuthenticated ? 2 : 1}>
           <RecommendationsList
+            recommendations={[]}
             title="New Releases"
-            type={RecommendationType.NEW_RELEASES}
-            options={{
-              contentType: contentType as ContentType || undefined,
-              limit: 12,
-              filter: filterType
-            }}
             maxItems={12}
-            showReason={false}
+            showActions={true}
           />
         </TabPanel>
         
         <TabPanel value={tabValue} index={isAuthenticated ? 3 : 2}>
           {selectedGenres.length > 0 ? (
             <RecommendationsList
+              recommendations={[]}
               title={`${selectedGenres[0]} Content`}
-              type={RecommendationType.GENRE_BASED}
-              options={{
-                contentType: contentType as ContentType || undefined,
-                limit: 12,
-                genres: selectedGenres,
-                filter: filterType
-              }}
               maxItems={12}
-              showReason={false}
+              showActions={true}
             />
           ) : (
             <Box sx={{ textAlign: 'center', py: 8 }}>

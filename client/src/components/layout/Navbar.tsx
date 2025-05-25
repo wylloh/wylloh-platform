@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Link as RouterLink, useNavigate } from 'react-router-dom';
 import {
   AppBar,
@@ -37,32 +37,49 @@ import {
 import { useWallet } from '../../contexts/WalletContext';
 import { useAuth } from '../../contexts/AuthContext';
 import ConnectWalletButton from '../wallet/ConnectWalletButton';
+import WyllohLogo from '../common/WyllohLogo';
 
-// Logo component
+// Logo component using the new WyllohLogo
 const Logo = () => (
-  <Typography
-    variant="h6"
-    noWrap
-    component={RouterLink}
-    to="/"
-    sx={{
-      fontFamily: 'Playfair Display, serif',
-      fontWeight: 700,
-      letterSpacing: '.2rem',
-      color: 'primary.main',
+  <Box 
+    component={RouterLink} 
+    to="/" 
+    sx={{ 
+      display: 'flex', 
+      alignItems: 'center',
       textDecoration: 'none',
-      display: 'flex',
-      alignItems: 'center'
+      '&:hover': {
+        opacity: 0.8,
+      }
     }}
   >
-    WYLLOH
-  </Typography>
+    <WyllohLogo 
+      variant="white" 
+      size="small" 
+      sx={{ 
+        mr: 1.5,
+        filter: 'brightness(1)',
+      }} 
+    />
+    <Typography
+      variant="h6"
+      noWrap
+      sx={{
+        fontFamily: '"Inter", sans-serif',
+        fontWeight: 600,
+        letterSpacing: '.1rem',
+        color: 'text.primary',
+        textDecoration: 'none',
+      }}
+    >
+      WYLLOH
+    </Typography>
+  </Box>
 );
 
 const Navbar: React.FC = () => {
   const [mobileMenuAnchorEl, setMobileMenuAnchorEl] = useState<null | HTMLElement>(null);
   const [userMenuAnchorEl, setUserMenuAnchorEl] = useState<null | HTMLElement>(null);
-  const [debugInfo, setDebugInfo] = useState<string>('');
   const { active, account, chainId, isCorrectNetwork, connect, disconnect } = useWallet();
   const { isAuthenticated, user, login, logout } = useAuth();
   const navigate = useNavigate();
@@ -120,7 +137,7 @@ const Navbar: React.FC = () => {
     { text: 'Discover', to: '/search', icon: <SearchIcon /> },
   ];
   
-  // Creator links (if authenticated)
+  // Pro links (if authenticated)
   const creatorLinks = isAuthenticated && user?.proStatus === 'verified' ? [
     { text: 'Dashboard', to: '/creator/dashboard', icon: <Dashboard /> },
     { text: 'Upload', to: '/creator/upload', icon: <FileUpload /> },
@@ -137,46 +154,6 @@ const Navbar: React.FC = () => {
   const adminMenuItems = isAdmin ? [
     { text: 'Pro Verification', to: '/admin/pro-verification', icon: <VerifiedUser /> },
   ] : [];
-  
-  // Add debug effect
-  useEffect(() => {
-    // Update debug info when relevant states change
-    const info = {
-      walletActive: active,
-      walletAccount: account,
-      walletChainId: chainId,
-      authAuthenticated: isAuthenticated,
-      authUser: user ? { email: user.email, status: user.proStatus } : null,
-      timestamp: new Date().toISOString()
-    };
-    
-    setDebugInfo(JSON.stringify(info, null, 2));
-    
-    // Also log to console for troubleshooting
-    console.log('Debug Info Updated:', info);
-    
-    // If wallet is connected but user isn't authenticated, try to match wallet
-    if (active && account && !isAuthenticated) {
-      console.log('Detected wallet connected but not authenticated, checking for matches');
-      // Map of demo wallet addresses to emails (lowercase for case-insensitive matching)
-      const demoWallets: Record<string, string> = {
-        '0x90f8bf6a479f320ead074411a4b0e7944ea8c9c1': 'pro@example.com',
-        '0x8db97c7cece249c2b98bdc0226cc4c2a57bf52fc': 'user@example.com',
-      };
-      
-      const accountLower = account.toLowerCase();
-      if (demoWallets[accountLower]) {
-        console.log(`Navbar attempting to login as ${demoWallets[accountLower]} with wallet ${account}`);
-        // Manually trigger login from here
-        login(demoWallets[accountLower], 'password')
-          .then(success => console.log('Manual login attempt result:', success))
-          .catch(err => console.error('Manual login error:', err));
-      } else {
-        console.log('Wallet not matched to demo account:', accountLower);
-        console.log('Available wallets:', Object.keys(demoWallets));
-      }
-    }
-  }, [active, account, chainId, isAuthenticated, user, login]);
   
   return (
     <>
@@ -210,7 +187,15 @@ const Navbar: React.FC = () => {
                   key={link.text}
                   component={RouterLink}
                   to={link.to}
-                  sx={{ mx: 1, color: 'white', display: 'block' }}
+                  sx={{ 
+                    mx: 1, 
+                    color: 'text.secondary', 
+                    display: 'block',
+                    '&:hover': {
+                      color: 'text.primary',
+                      backgroundColor: 'action.hover',
+                    }
+                  }}
                 >
                   {link.text}
                 </Button>
@@ -220,7 +205,15 @@ const Navbar: React.FC = () => {
                 <Button
                   component={RouterLink}
                   to="/collection"
-                  sx={{ mx: 1, color: 'white', display: 'block' }}
+                  sx={{ 
+                    mx: 1, 
+                    color: 'text.secondary', 
+                    display: 'block',
+                    '&:hover': {
+                      color: 'text.primary',
+                      backgroundColor: 'action.hover',
+                    }
+                  }}
                 >
                   My Collection
                 </Button>
@@ -231,7 +224,15 @@ const Navbar: React.FC = () => {
                   key={link.text}
                   component={RouterLink}
                   to={link.to}
-                  sx={{ mx: 1, color: 'white', display: 'block' }}
+                  sx={{ 
+                    mx: 1, 
+                    color: 'text.secondary', 
+                    display: 'block',
+                    '&:hover': {
+                      color: 'text.primary',
+                      backgroundColor: 'action.hover',
+                    }
+                  }}
                 >
                   {link.text}
                 </Button>
@@ -419,26 +420,6 @@ const Navbar: React.FC = () => {
           </MenuItem>
         </Menu>
       </AppBar>
-      
-      {/* Add debug section - only visible in development */}
-      {process.env.NODE_ENV === 'development' && (
-        <div style={{ 
-          position: 'fixed', 
-          bottom: 0, 
-          right: 0, 
-          backgroundColor: 'rgba(0,0,0,0.8)', 
-          color: 'white',
-          padding: '8px',
-          zIndex: 9999,
-          fontSize: '10px',
-          maxWidth: '300px',
-          maxHeight: '200px',
-          overflow: 'auto',
-          fontFamily: 'monospace'
-        }}>
-          <pre>{debugInfo}</pre>
-        </div>
-      )}
     </>
   );
 };

@@ -21,7 +21,10 @@ import {
   Movie, 
   Security, 
   MonetizationOn,
-  ArrowForward
+  ArrowForward,
+  Verified,
+  Collections,
+  Analytics
 } from '@mui/icons-material';
 import { Link } from 'react-router-dom';
 import { useWallet } from '../contexts/WalletContext';
@@ -78,19 +81,22 @@ const HomePage: React.FC = () => {
 
   const features = [
     {
-      icon: <Movie sx={{ fontSize: 40 }} />,
-      title: "True Ownership",
-      description: "Own your content rights through blockchain technology"
+      icon: <Verified sx={{ fontSize: 40, color: 'text.primary' }} />,
+      title: "Professional-Grade Security",
+      description: "Enterprise blockchain infrastructure with hardware-bound encryption for your valuable IP",
+      audience: "pros"
     },
     {
-      icon: <Security sx={{ fontSize: 40 }} />,
-      title: "Secure Distribution",
-      description: "Advanced DRM with hardware-bound encryption"
+      icon: <Collections sx={{ fontSize: 40, color: 'text.primary' }} />,
+      title: "Permanent Digital Ownership",
+      description: "Build a lasting collection with true ownership rights that can't be revoked",
+      audience: "collectors"
     },
     {
-      icon: <MonetizationOn sx={{ fontSize: 40 }} />,
-      title: "Fair Compensation",
-      description: "Direct revenue sharing with no intermediaries"
+      icon: <Analytics sx={{ fontSize: 40, color: 'text.primary' }} />,
+      title: "Transparent Analytics",
+      description: "Real-time insights into distribution, royalties, and audience engagement",
+      audience: "pros"
     }
   ];
 
@@ -98,85 +104,84 @@ const HomePage: React.FC = () => {
     <Box sx={{ overflow: 'hidden' }}>
       {/* Hero Section */}
       <Paper
+        elevation={0}
         sx={{
           position: 'relative',
-          backgroundColor: 'grey.900',
-          color: '#fff',
-          mb: 8,
-          backgroundSize: 'cover',
-          backgroundRepeat: 'no-repeat',
-          backgroundPosition: 'center',
-          backgroundImage: `linear-gradient(rgba(0, 0, 0, 0.8), rgba(0, 0, 0, 0.8)), url(/images/hero-background.jpg)`,
-          minHeight: '90vh',
+          backgroundColor: 'background.default',
+          color: 'text.primary',
+          mb: 12,
+          minHeight: '85vh',
           display: 'flex',
-          alignItems: 'center'
+          alignItems: 'center',
+          border: 'none',
+          borderRadius: 0,
         }}
       >
         <Container maxWidth="lg">
-          <Grid container spacing={4} alignItems="center">
-            <Grid item xs={12} md={6}>
+          <Grid container spacing={6} alignItems="center">
+            <Grid item xs={12} md={8}>
               <Fade in timeout={1000}>
                 <Box>
                   <Typography 
                     component="h1" 
-                    variant={isMobile ? "h3" : "h2"} 
-                    color="inherit" 
+                    variant={isMobile ? "h3" : "h1"} 
+                    color="text.primary" 
                     gutterBottom
                     sx={{ 
-                      fontWeight: 800,
-                      letterSpacing: '-0.5px',
-                      textShadow: '0 2px 4px rgba(0,0,0,0.3)'
+                      fontWeight: 600,
+                      letterSpacing: '-0.02em',
+                      mb: 3,
+                      lineHeight: 1.1,
                     }}
                   >
-                    Revolutionizing Film Distribution
+                    Hollywood distribution, reimagined.
                   </Typography>
                   <Typography 
                     variant="h5" 
-                    color="inherit" 
+                    color="text.secondary" 
                     paragraph
                     sx={{ 
                       mb: 4,
-                      opacity: 0.95,
-                      fontWeight: 300,
-                      textShadow: '0 1px 2px rgba(0,0,0,0.3)'
+                      fontWeight: 400,
+                      lineHeight: 1.5,
+                      maxWidth: '600px',
                     }}
                   >
-                    A decentralized platform where filmmakers and audiences connect directly, powered by blockchain technology.
+                    Open-source, decentralized license management and CDN with realtime utility.
                   </Typography>
                   <Stack 
                     direction={{ xs: 'column', sm: 'row' }} 
-                    spacing={2}
+                    spacing={3}
+                    sx={{ mt: 5 }}
                   >
                     <Button 
                       variant="contained" 
                       size="large"
                       component={Link} 
-                      to="/store"
+                      to="/marketplace"
                       endIcon={<ArrowForward />}
                       sx={{ 
                         py: 1.5,
                         px: 4,
-                        borderRadius: 2
+                        fontSize: '1rem',
+                        fontWeight: 500,
                       }}
                     >
-                      Explore Films
+                      Explore Collection
                     </Button>
                     <Button 
                       variant="outlined" 
                       size="large"
                       component={Link} 
-                      to="/about"
+                      to="/creator/upload"
                       sx={{ 
                         py: 1.5,
                         px: 4,
-                        borderRadius: 2,
-                        borderWidth: 2,
-                        '&:hover': {
-                          borderWidth: 2
-                        }
+                        fontSize: '1rem',
+                        fontWeight: 500,
                       }}
                     >
-                      Learn More
+                      For Pros
                     </Button>
                   </Stack>
                 </Box>
@@ -185,6 +190,152 @@ const HomePage: React.FC = () => {
           </Grid>
         </Container>
       </Paper>
+
+      {/* Features Section */}
+      <Container maxWidth="lg" sx={{ mb: 12 }}>
+        <Box sx={{ textAlign: 'center', mb: 8 }}>
+          <Typography 
+            variant="h2" 
+            gutterBottom 
+            sx={{ 
+              fontWeight: 600, 
+              mb: 2,
+              color: 'text.primary'
+            }}
+          >
+            Built for professionals, designed for everyone
+          </Typography>
+          <Typography 
+            variant="h6" 
+            color="text.secondary" 
+            sx={{ 
+              maxWidth: '600px', 
+              mx: 'auto',
+              fontWeight: 400,
+              lineHeight: 1.6,
+            }}
+          >
+            Industry-standard security meets consumer-friendly experience. 
+            Every feature serves both creators and collectors.
+          </Typography>
+        </Box>
+        
+        <Grid container spacing={6}>
+          {features.map((feature, index) => (
+            <Grid item xs={12} md={4} key={index}>
+              <Card 
+                elevation={0}
+                sx={{ 
+                  height: '100%',
+                  p: 4,
+                  textAlign: 'center',
+                  transition: 'all 0.2s ease-in-out',
+                  '&:hover': {
+                    borderColor: 'text.secondary',
+                  }
+                }}
+              >
+                <Box sx={{ mb: 3 }}>
+                  {feature.icon}
+                </Box>
+                <Typography 
+                  variant="h5" 
+                  gutterBottom 
+                  sx={{ 
+                    fontWeight: 600,
+                    mb: 2,
+                    color: 'text.primary'
+                  }}
+                >
+                  {feature.title}
+                </Typography>
+                <Typography 
+                  variant="body1" 
+                  color="text.secondary"
+                  sx={{ 
+                    lineHeight: 1.6,
+                    fontWeight: 400,
+                  }}
+                >
+                  {feature.description}
+                </Typography>
+              </Card>
+            </Grid>
+          ))}
+        </Grid>
+      </Container>
+
+      {/* CTA Section */}
+      <Container maxWidth="lg" sx={{ mb: 8 }}>
+        <Paper 
+          elevation={0}
+          sx={{ 
+            p: 8, 
+            textAlign: 'center',
+            backgroundColor: 'background.paper',
+          }}
+        >
+          <Typography 
+            variant="h3" 
+            gutterBottom 
+            sx={{ 
+              fontWeight: 600,
+              mb: 3,
+              color: 'text.primary'
+            }}
+          >
+            Ready to get started?
+          </Typography>
+          <Typography 
+            variant="h6" 
+            color="text.secondary" 
+            paragraph
+            sx={{ 
+              mb: 4,
+              maxWidth: '500px',
+              mx: 'auto',
+              fontWeight: 400,
+              lineHeight: 1.6,
+            }}
+          >
+            Join the platform where professional filmmakers maintain control and collectors build lasting value.
+          </Typography>
+          <Stack 
+            direction={{ xs: 'column', sm: 'row' }} 
+            spacing={3}
+            justifyContent="center"
+          >
+            <Button 
+              variant="contained" 
+              size="large"
+              component={Link} 
+              to="/register"
+              sx={{ 
+                py: 1.5,
+                px: 4,
+                fontSize: '1rem',
+                fontWeight: 500,
+              }}
+            >
+              Start Collecting
+            </Button>
+            <Button 
+              variant="outlined" 
+              size="large"
+              component={Link} 
+              to="/creator/register"
+              sx={{ 
+                py: 1.5,
+                px: 4,
+                fontSize: '1rem',
+                fontWeight: 500,
+              }}
+            >
+              Pro Access
+            </Button>
+          </Stack>
+        </Paper>
+      </Container>
 
       {/* Featured Content Section - Only shown when content is available */}
       {featuredContent.length > 0 && (
@@ -240,85 +391,6 @@ const HomePage: React.FC = () => {
         </Container>
       )}
 
-      {/* Features Section */}
-      <Container maxWidth="lg" sx={{ mb: 8 }}>
-        <Grid container spacing={4}>
-          {features.map((feature, index) => (
-            <Grid item xs={12} md={4} key={index}>
-              <Fade in timeout={1000} style={{ transitionDelay: `${index * 100}ms` }}>
-                <Paper 
-                  elevation={0}
-                  sx={{ 
-                    p: 4,
-                    height: '100%',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'center',
-                    textAlign: 'center',
-                    bgcolor: 'background.default',
-                    borderRadius: 2
-                  }}
-                >
-                  <Box sx={{ color: 'primary.main', mb: 2 }}>
-                    {feature.icon}
-                  </Box>
-                  <Typography variant="h5" gutterBottom sx={{ fontWeight: 600 }}>
-                    {feature.title}
-                  </Typography>
-                  <Typography variant="body1" color="text.secondary">
-                    {feature.description}
-                  </Typography>
-                </Paper>
-              </Fade>
-            </Grid>
-          ))}
-        </Grid>
-      </Container>
-
-      {/* CTA Section */}
-      <Paper
-        sx={{
-          position: 'relative',
-          backgroundColor: 'primary.main',
-          color: '#fff',
-          py: 8,
-          mb: 8
-        }}
-      >
-        <Container maxWidth="lg">
-          <Grid container spacing={4} alignItems="center">
-            <Grid item xs={12} md={8}>
-              <Typography variant="h4" gutterBottom sx={{ fontWeight: 600 }}>
-                Ready to Transform Film Distribution?
-              </Typography>
-              <Typography variant="h6" sx={{ opacity: 0.9, fontWeight: 300 }}>
-                Join the future of content ownership and distribution.
-              </Typography>
-            </Grid>
-            <Grid item xs={12} md={4} sx={{ textAlign: { xs: 'left', md: 'right' } }}>
-              <Button
-                variant="contained"
-                size="large"
-                component={Link}
-                to="/store"
-                sx={{
-                  bgcolor: 'white',
-                  color: 'primary.main',
-                  '&:hover': {
-                    bgcolor: 'grey.100'
-                  },
-                  py: 1.5,
-                  px: 4,
-                  borderRadius: 2
-                }}
-              >
-                Get Started
-              </Button>
-            </Grid>
-          </Grid>
-        </Container>
-      </Paper>
-
       {/* Wallet Connection Prompt */}
       {showConnectPrompt && !active && (
         <Fade in>
@@ -329,8 +401,7 @@ const HomePage: React.FC = () => {
               left: '50%',
               transform: 'translateX(-50%)',
               p: 3,
-              bgcolor: 'primary.main',
-              color: 'white',
+              bgcolor: 'background.paper',
               borderRadius: 2,
               maxWidth: 600,
               width: '90%',
@@ -339,16 +410,15 @@ const HomePage: React.FC = () => {
           >
             <Stack direction="row" spacing={2} alignItems="center">
               <Box sx={{ flexGrow: 1 }}>
-                <Typography variant="h6" gutterBottom>
+                <Typography variant="h6" gutterBottom color="text.primary">
                   Connect your wallet to get started
                 </Typography>
-                <Typography variant="body2" sx={{ opacity: 0.9 }}>
+                <Typography variant="body2" color="text.secondary">
                   Access your film library and discover new titles on the store.
                 </Typography>
               </Box>
               <Button 
                 variant="contained" 
-                color="secondary"
                 onClick={() => setShowConnectPrompt(false)}
                 sx={{ whiteSpace: 'nowrap' }}
               >

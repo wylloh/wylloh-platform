@@ -1292,37 +1292,6 @@ const UploadForm: React.FC = () => {
               </Grid>
             </Grid>
             
-            {/* Development/Demo Mode Options */}
-            {(process.env.NODE_ENV === 'development' || process.env.REACT_APP_DEMO_MODE === 'true') && (
-              <Box sx={{ mt: 3, mb: 2, p: 2, bgcolor: 'info.light', color: 'info.contrastText', borderRadius: 1 }}>
-                <Typography variant="subtitle2" gutterBottom>
-                  Development Mode Options
-                </Typography>
-                <FormControlLabel
-                  control={
-                    <Checkbox
-                      checked={formData.tokenization.forceRetokenize}
-                      onChange={(e) => {
-                        setFormData({
-                          ...formData,
-                          tokenization: {
-                            ...formData.tokenization,
-                            forceRetokenize: e.target.checked
-                          }
-                        });
-                      }}
-                      sx={{ color: 'inherit' }}
-                    />
-                  }
-                  label="Force Re-tokenization (Bypass 'already tokenized' check)"
-                />
-                <Typography variant="caption" sx={{ display: 'block', mt: 1 }}>
-                  This option is only available in development/demo mode and will allow you to re-tokenize content
-                  that has already been tokenized.
-                </Typography>
-              </Box>
-            )}
-            
             <Typography variant="subtitle1" sx={{ mt: 3, mb: 2 }}>
               License Rights Tiers
             </Typography>

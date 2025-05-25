@@ -28,6 +28,7 @@ import {
   Share as ShareIcon,
   ContentCopy as DuplicateIcon,
   Archive as ArchiveIcon,
+  Link as LinkIcon,
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { Content } from '../../services/content.service';

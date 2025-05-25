@@ -1,5 +1,5 @@
 import { ethers } from 'ethers';
-import { encryptContentKey, decryptContentKey } from './encryption';
+import { encryptContentKeyForUser, decryptContentKey, AccessLevel } from './encryption';
 
 interface DeviceInfo {
   deviceId: string;
@@ -70,9 +70,12 @@ export async function bindDeviceToContent(
   const deviceInfo = await getDeviceInfo();
   
   // Encrypt content key for this device
-  const encryptedKey = await encryptContentKey(
+  const encryptedKey = await encryptContentKeyForUser(
+    contentId,
     contentKey,
-    deviceInfo.publicKey
+    deviceInfo.deviceId,
+    deviceInfo.publicKey,
+    AccessLevel.VIEW
   );
 
   // Store encrypted key
