@@ -110,62 +110,9 @@ interface DetailedContent extends Content {
   encryptionKey?: string;
 }
 
-// Mock content data - in a real app, this would come from an API
-const mockContent: DetailedContent[] = [
-  {
-    id: '1',
-    title: 'The Digital Frontier',
-    description: 'A journey into the world of blockchain and digital ownership.',
-    longDescription: 'In "The Digital Frontier," we explore the revolutionary impact of blockchain technology on creative industries. This documentary takes viewers on a journey through the evolving landscape of digital ownership, interviewing pioneers who are redefining how content is created, distributed, and monetized.',
-    image: 'https://source.unsplash.com/random/1200x600/?technology',
-    contentType: 'documentary',
-    creator: 'Digital Studios',
-    creatorAddress: '0x1234...5678',
-    creatorAvatar: 'https://source.unsplash.com/random/100x100/?portrait',
-    price: 0.01,
-    available: 250,
-    totalSupply: 1000,
-    releaseDate: '2023-10-15',
-    duration: '84 minutes',
-    genre: ['Documentary', 'Technology', 'Finance'],
-    cast: ['John Smith', 'Jane Doe', 'David Johnson'],
-    director: 'Alexandra Rivera',
-    producer: 'Blockchain Media Productions',
-    ratings: { imdb: 8.2, metacritic: 85 },
-    trailerUrl: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
-    tokenized: true,
-    tokenId: '0x1234...5678',
-    rightsThresholds: [
-      { quantity: 1, type: 'Personal Viewing' },
-      { quantity: 100, type: 'Small Venue (50 seats)' },
-      { quantity: 5000, type: 'Streaming Platform' },
-      { quantity: 10000, type: 'Theatrical Exhibition' }
-    ],
-    transactionHistory: [
-      { date: '2023-10-15', type: 'Mint', quantity: 1000, price: 0.01 },
-      { date: '2023-10-16', type: 'Purchase', quantity: 5, price: 0.01 },
-      { date: '2023-10-17', type: 'Purchase', quantity: 10, price: 0.01 },
-      { date: '2023-10-18', type: 'Secondary Sale', quantity: 2, price: 0.015 }
-    ],
-    secondaryMarket: [
-      { seller: '0xabcd...efgh', quantity: 2, price: 0.015 },
-      { seller: '0xijkl...mnop', quantity: 1, price: 0.016 }
-    ],
-    mainFileCid: 'Qm...',
-    thumbnailCid: 'Qm...',
-    previewCid: 'Qm...',
-    metadata: {
-      cast: ['John Smith', 'Jane Doe', 'David Johnson'],
-      director: 'Alexandra Rivera',
-      producer: 'Blockchain Media Productions'
-    },
-    createdAt: '2023-10-15T00:00:00.000Z',
-    status: 'active',
-    visibility: 'public',
-    views: 245,
-    sales: 18
-  },
-  // Additional mock content would be here
+// Production content data - would be fetched from API in production
+const productionContent: DetailedContent[] = [
+  // Content would be populated from your backend API
 ];
 
 interface TabPanelProps {
@@ -222,21 +169,13 @@ const ContentDetailsPage: React.FC = () => {
     if (!id) return;
     
     try {
-      const contentData = await contentService.getContentById(id);
-      if (contentData) {
-        setContent(contentData);
-        
-        // Check ownership
-        try {
-          const ownershipStatus = await contentService.checkContentOwnership(id);
-          setUserOwnsContent(ownershipStatus.owned);
-          setOwnedTokens(ownershipStatus.quantity);
-          console.log('Ownership status:', ownershipStatus);
-        } catch (error) {
-          console.error('Error checking content ownership:', error);
-        }
+      // But for this demo, we'll use mock data
+      const foundContent = productionContent.find(item => item.id === id);
+      
+      if (foundContent) {
+        setContent(foundContent);
       } else {
-        setError('Content not found');
+        throw new Error("Content not found");
       }
     } catch (error) {
       console.error('Error fetching content:', error);

@@ -56,81 +56,10 @@ interface ApiResponse<T> {
   error?: string;
 }
 
-// Mock content data for demonstration
-const mockContent: Content[] = [
-  {
-    id: 'big-buck-bunny',
-    title: 'Big Buck Bunny',
-    description: 'A short film featuring a large rabbit dealing with three bullying rodents.',
-    contentType: 'short film',
-    creator: 'Pro Creator',
-    creatorAddress: '0x90F8bf6A479f320ead074411a4B0e7944Ea8c9C1',
-    // Using a public CID for the official Big Buck Bunny video
-    mainFileCid: 'QmVLEz2SxoNiFnuyLpbXsH6SvjPTrHNMU88vCQZyhgBzgw',
-    image: 'https://peach.blender.org/wp-content/uploads/bbb-splash.png',
-    metadata: { 
-      isDemo: true, 
-      demoVersion: '1.0',
-      rightsThresholds: [
-        { quantity: 1, type: 'Personal Viewing' },
-        { quantity: 100, type: 'Small Venue' },
-        { quantity: 500, type: 'Commercial Exhibition' },
-        { quantity: 1000, type: 'Broadcast Rights' }
-      ]
-    },
-    tokenized: true,
-    tokenId: '0x1234...5678',
-    price: 0.01,
-    available: 995,
-    totalSupply: 1000,
-    createdAt: new Date().toISOString(),
-    status: 'active',
-    visibility: 'public',
-    views: 0,
-    sales: 0
-  },
-  {
-    id: '1',
-    title: 'The Digital Frontier',
-    description: 'A journey into the world of blockchain and digital ownership.',
-    contentType: 'movie',
-    creator: 'Digital Studios',
-    creatorAddress: '0x1234...5678',
-    mainFileCid: '',
-    image: 'https://source.unsplash.com/random/400x300/?technology',
-    metadata: { isDemo: true },
-    tokenized: true,
-    tokenId: '0x1234...5678',
-    price: 0.01,
-    available: 250,
-    totalSupply: 1000,
-    createdAt: '2023-10-15',
-    status: 'active',
-    visibility: 'public',
-    views: 245,
-    sales: 18
-  },
-  {
-    id: '2',
-    title: 'Nature Unveiled',
-    description: 'A breathtaking documentary exploring the wonders of nature.',
-    contentType: 'documentary',
-    creator: 'EcoVision Films',
-    creatorAddress: '0x2345...6789',
-    mainFileCid: '',
-    image: 'https://source.unsplash.com/random/400x300/?nature',
-    metadata: { isDemo: true },
-    tokenized: true,
-    tokenId: '0x2345...6789',
-    price: 0.008,
-    available: 450,
-    totalSupply: 1000,
-    createdAt: '2023-09-22',
-    status: 'active',
-    visibility: 'public',
-    views: 189,
-    sales: 12
-  }
+// Production content data - minimal examples for demonstration
+const productionContent: Content[] = [
+  // This would typically be populated from your backend API
+  // For now, keeping empty for production
 ];
 
 // Local storage keys
@@ -256,13 +185,13 @@ class ContentService {
       const combinedContent = this.deduplicateContent([
         ...apiContent, 
         ...localContent,
-        ...mockContent
+        ...productionContent
       ]);
       
       return combinedContent;
     } catch (error) {
       console.warn('API unavailable, returning local and mock data:', error);
-      return this.deduplicateContent([...this.getLocalContent(), ...mockContent]);
+      return this.deduplicateContent([...this.getLocalContent(), ...productionContent]);
     }
   }
 
@@ -280,7 +209,7 @@ class ContentService {
       if (localMatch) return localMatch;
       
       // Then check mock content
-      return mockContent.find(content => content.id === id);
+      return productionContent.find(content => content.id === id);
     }
   }
 
@@ -291,10 +220,10 @@ class ContentService {
       const localContent = this.getLocalContent();
       
       // For demo purposes, include mock content in creator's content
-      return this.deduplicateContent([...apiContent, ...localContent, ...mockContent]);
+      return this.deduplicateContent([...apiContent, ...localContent, ...productionContent]);
     } catch (error) {
       console.warn('API unavailable, returning local and mock content:', error);
-      return this.deduplicateContent([...this.getLocalContent(), ...mockContent]);
+      return this.deduplicateContent([...this.getLocalContent(), ...productionContent]);
     }
   }
 
@@ -645,7 +574,7 @@ class ContentService {
         // For any content with the same ID as Big Buck Bunny but NOT from the mock list,
         // ensure it has a unique ID to prevent merging
         if (content.id === 'big-buck-bunny' && 
-            content.mainFileCid !== mockContent[0].mainFileCid) {
+            content.mainFileCid !== productionContent[0].mainFileCid) {
           content.id = `${content.id}-${Date.now()}`;
         }
         seen.set(content.id, content);

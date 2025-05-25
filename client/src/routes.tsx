@@ -1,210 +1,77 @@
-import React from 'react';
+import React, { Suspense } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
+import { CircularProgress, Box } from '@mui/material';
 
-// Layout components
-import AppLayout from './layouts/AppLayout';
-import AdminLayout from './layouts/AdminLayout';
+// Lazy load pages for better performance
+const HomePage = React.lazy(() => import('./pages/HomePage'));
+const StorePage = React.lazy(() => import('./pages/StorePage'));
+const SearchPage = React.lazy(() => import('./pages/SearchPage'));
+const DiscoverPage = React.lazy(() => import('./pages/DiscoverPage'));
+const NetworkPage = React.lazy(() => import('./pages/NetworkPage'));
+const ProfilePage = React.lazy(() => import('./pages/ProfilePage'));
+const NotFoundPage = React.lazy(() => import('./pages/NotFoundPage'));
+const TransactionHistoryPage = React.lazy(() => import('./pages/TransactionHistoryPage'));
+const AnalyticsDashboardPage = React.lazy(() => import('./pages/AnalyticsDashboardPage'));
 
-// Pages
-import HomePage from './pages/HomePage';
-import LoginPage from './pages/LoginPage';
-import RegisterPage from './pages/RegisterPage';
-import DashboardPage from './pages/DashboardPage';
-import StorePage from './pages/StorePage';
-import ContentDetailsPage from './pages/ContentDetailsPage';
-import TokenizeTestPage from './pages/TokenizeTestPage';
-import StoragePage from './pages/StoragePage';
-import ContentMediaPage from './pages/ContentMediaPage';
-import SearchPage from './pages/SearchPage';
-import NetworkPage from './pages/NetworkPage';
-import AdaptiveStreamTestPage from './pages/player/AdaptiveStreamTestPage';
-import MetadataTestPage from './pages/metadata/MetadataTestPage';
-import AnalyticsDashboardPage from './pages/AnalyticsDashboardPage';
+// Store pages
+const ContentDetailsPage = React.lazy(() => import('./pages/store/ContentDetailsPage'));
 
 // Pro pages
-import ProDashboardPage from './pages/pro/DashboardPage';
-import EnhancedDashboardPage from './pages/pro/EnhancedDashboardPage';
-import ProUploadPage from './pages/pro/UploadPage';
-import ProTokenizePublishPage from './pages/pro/TokenizePublishPage';
-import ProEditContentPage from './pages/pro/EditContentPage';
-import ProLibrariesPage from './pages/pro/LibrariesPage';
-import TagManagementPage from './pages/pro/TagManagementPage';
+const EnhancedDashboardPage = React.lazy(() => import('./pages/pro/EnhancedDashboardPage'));
+const TagManagementPage = React.lazy(() => import('./pages/pro/TagManagementPage'));
 
-// Admin pages
-import AdminDashboardPage from './pages/admin/DashboardPage';
-import AdminUsersPage from './pages/admin/UsersPage';
-import AdminContentPage from './pages/admin/ContentPage';
+// Library pages
+const LibraryPage = React.lazy(() => import('./pages/library/LibraryPage'));
 
-// Auth components
-import { RequireAuth } from './components/auth/RequireAuth';
+// Player pages
+const PlayerPage = React.lazy(() => import('./pages/player/PlayerPage'));
 
-// Library Pages
-import LibraryPage from './pages/library/LibraryPage';
+// Loading component
+const LoadingFallback = () => (
+  <Box 
+    display="flex" 
+    justifyContent="center" 
+    alignItems="center" 
+    minHeight="50vh"
+  >
+    <CircularProgress />
+  </Box>
+);
 
 const AppRoutes = () => {
   return (
-    <Routes>
-      <Route path="/" element={<AppLayout />}>
+    <Suspense fallback={<LoadingFallback />}>
+      <Routes>
         {/* Public routes */}
-        <Route index element={<HomePage />} />
-        <Route path="login" element={<LoginPage />} />
-        <Route path="register" element={<RegisterPage />} />
-        <Route path="store" element={<StorePage />} />
-        <Route path="search" element={<SearchPage />} />
-        <Route path="content/:contentId" element={<ContentDetailsPage />} />
-        <Route path="content/:contentId/media" element={<ContentMediaPage />} />
-        <Route path="library/:libraryId" element={<LibraryPage />} />
-        <Route path="adaptive-streaming-test" element={<AdaptiveStreamTestPage />} />
-        <Route path="metadata-test" element={<MetadataTestPage />} />
-
-        {/* Protected routes for all users */}
-        <Route
-          path="dashboard"
-          element={
-            <RequireAuth>
-              <DashboardPage />
-            </RequireAuth>
-          }
-        />
-        <Route
-          path="tokenize-test"
-          element={
-            <RequireAuth>
-              <TokenizeTestPage />
-            </RequireAuth>
-          }
-        />
-        <Route
-          path="storage"
-          element={
-            <RequireAuth>
-              <StoragePage />
-            </RequireAuth>
-          }
-        />
-        <Route
-          path="network"
-          element={
-            <RequireAuth>
-              <NetworkPage />
-            </RequireAuth>
-          }
-        />
-
+        <Route path="/" element={<HomePage />} />
+        <Route path="/store" element={<StorePage />} />
+        <Route path="/search" element={<SearchPage />} />
+        <Route path="/discover" element={<DiscoverPage />} />
+        <Route path="/network" element={<NetworkPage />} />
+        <Route path="/profile" element={<ProfilePage />} />
+        <Route path="/transactions" element={<TransactionHistoryPage />} />
+        
+        {/* Store routes */}
+        <Route path="/store/content/:id" element={<ContentDetailsPage />} />
+        <Route path="/marketplace" element={<Navigate to="/store" replace />} />
+        <Route path="/marketplace/content/:id" element={<Navigate to="/store/content/:id" replace />} />
+        
+        {/* Player routes */}
+        <Route path="/player/:id" element={<PlayerPage />} />
+        
+        {/* Library routes */}
+        <Route path="/library/:libraryId" element={<LibraryPage />} />
+        
         {/* Pro routes */}
-        <Route
-          path="pro"
-          element={
-            <RequireAuth requireProStatus>
-              <Navigate to="/pro/dashboard" replace />
-            </RequireAuth>
-          }
-        />
-        <Route
-          path="pro/dashboard"
-          element={
-            <RequireAuth requireProStatus>
-              <EnhancedDashboardPage />
-            </RequireAuth>
-          }
-        />
-        <Route
-          path="pro/dashboard-legacy"
-          element={
-            <RequireAuth requireProStatus>
-              <ProDashboardPage />
-            </RequireAuth>
-          }
-        />
-        <Route
-          path="pro/analytics"
-          element={
-            <RequireAuth requireProStatus>
-              <AnalyticsDashboardPage />
-            </RequireAuth>
-          }
-        />
-        <Route
-          path="pro/upload"
-          element={
-            <RequireAuth requireProStatus>
-              <ProUploadPage />
-            </RequireAuth>
-          }
-        />
-        <Route
-          path="pro/tokenize-publish"
-          element={
-            <RequireAuth requireProStatus>
-              <ProTokenizePublishPage />
-            </RequireAuth>
-          }
-        />
-        <Route
-          path="pro/edit/:contentId"
-          element={
-            <RequireAuth requireProStatus>
-              <ProEditContentPage />
-            </RequireAuth>
-          }
-        />
-        <Route
-          path="pro/libraries"
-          element={
-            <RequireAuth requireProStatus>
-              <ProLibrariesPage />
-            </RequireAuth>
-          }
-        />
-        <Route
-          path="pro/tags"
-          element={
-            <RequireAuth requireProStatus>
-              <TagManagementPage />
-            </RequireAuth>
-          }
-        />
-
-        {/* Admin routes */}
-        <Route path="admin" element={<AdminLayout />}>
-          <Route
-            index
-            element={
-              <RequireAuth requireAdmin>
-                <Navigate to="/admin/dashboard" replace />
-              </RequireAuth>
-            }
-          />
-          <Route
-            path="dashboard"
-            element={
-              <RequireAuth requireAdmin>
-                <AdminDashboardPage />
-              </RequireAuth>
-            }
-          />
-          <Route
-            path="users"
-            element={
-              <RequireAuth requireAdmin>
-                <AdminUsersPage />
-              </RequireAuth>
-            }
-          />
-          <Route
-            path="content"
-            element={
-              <RequireAuth requireAdmin>
-                <AdminContentPage />
-              </RequireAuth>
-            }
-          />
-        </Route>
-
-        {/* Catch all route */}
-        <Route path="*" element={<Navigate to="/" replace />} />
-      </Route>
-    </Routes>
+        <Route path="/pro/dashboard" element={<EnhancedDashboardPage />} />
+        <Route path="/pro/analytics" element={<AnalyticsDashboardPage />} />
+        <Route path="/pro/tags" element={<TagManagementPage />} />
+        <Route path="/pro" element={<Navigate to="/pro/dashboard" replace />} />
+        
+        {/* 404 route */}
+        <Route path="*" element={<NotFoundPage />} />
+      </Routes>
+    </Suspense>
   );
 };
 

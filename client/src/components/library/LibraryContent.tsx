@@ -47,48 +47,9 @@ import { userSettingsService } from '../../services/userSettings.service';
 import { filterWyllohMovieTokens } from '../../utils/tokenFilters';
 import { lendingService } from '../../services/lending.service';
 
-// Sample data for development
-const SAMPLE_CONTENT = [
-  {
-    contentId: '1',
-    title: 'The Silent Echo',
-    thumbnailUrl: 'https://images.unsplash.com/photo-1536440136628-849c177e76a1',
-    purchaseDate: new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString(),
-    purchasePrice: 250,
-    currentValue: 320,
-    licenseType: 'perpetual',
-    isLent: false,
-    genre: 'Drama',
-    director: 'Sarah Johnson',
-    year: 2022,
-  },
-  {
-    contentId: '2',
-    title: 'Digital Horizons',
-    thumbnailUrl: 'https://images.unsplash.com/photo-1605106702734-205df224ecce',
-    purchaseDate: new Date(Date.now() - 45 * 24 * 60 * 60 * 1000).toISOString(),
-    purchasePrice: 180,
-    currentValue: 195,
-    licenseType: 'limited',
-    isLent: true,
-    lentTo: 'alex@example.com',
-    genre: 'Sci-Fi',
-    director: 'Michael Chang',
-    year: 2021,
-  },
-  {
-    contentId: '3',
-    title: 'Nature\'s Symphony',
-    thumbnailUrl: 'https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05',
-    purchaseDate: new Date(Date.now() - 120 * 24 * 60 * 60 * 1000).toISOString(),
-    purchasePrice: 300,
-    currentValue: 275,
-    licenseType: 'personal',
-    isLent: false,
-    genre: 'Documentary',
-    director: 'Emily Roberts',
-    year: 2023,
-  },
+// Production content data - would be fetched from API in production
+const PRODUCTION_CONTENT: ContentItem[] = [
+  // Content would be populated from your backend API
 ];
 
 interface ContentItem extends LibraryItem {
@@ -199,7 +160,7 @@ const LibraryContent: React.FC<LibraryContentProps> = ({ libraryId }) => {
         // Fall back to sample data in development environment
         if (process.env.NODE_ENV === 'development') {
           console.log('Using sample data for library content due to error');
-          setContent(SAMPLE_CONTENT as unknown as ContentItem[]);
+          setContent(PRODUCTION_CONTENT as unknown as ContentItem[]);
           setError(null);
         }
       } finally {
@@ -210,7 +171,7 @@ const LibraryContent: React.FC<LibraryContentProps> = ({ libraryId }) => {
     // In development, use sample data if the environment flag is set
     if (process.env.NODE_ENV === 'development' && process.env.REACT_APP_USE_SAMPLE_DATA === 'true') {
       setTimeout(() => {
-        setContent(SAMPLE_CONTENT as unknown as ContentItem[]);
+        setContent(PRODUCTION_CONTENT as unknown as ContentItem[]);
         setLoading(false);
       }, 1000); // Simulate network delay
     } else {
