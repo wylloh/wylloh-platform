@@ -2,9 +2,11 @@ import Redis from 'ioredis';
 import { createLogger } from './utils/logger';
 import { CrawlerService } from './services/crawler.service';
 import { TokenService } from './services/token.service';
+import { AnalyticsService } from './services/analytics.service';
 import { ChainAdapterFactory } from './adapters/chain.adapter.factory';
 import { WalletRegistry } from './models/wallet.registry';
 import { WalletController } from './api/wallet.controller';
+import { AnalyticsController } from './api/analytics.controller';
 import { DatabaseService } from './services/database.service';
 import express from 'express';
 import cors from 'cors';
@@ -33,6 +35,7 @@ const chainAdapterFactory = ChainAdapterFactory.getInstance();
 const tokenService = new TokenService();
 const walletRegistry = new WalletRegistry(redis, logger);
 const databaseService = new DatabaseService();
+const analyticsService = new AnalyticsService(databaseService);
 
 // Initialize Express app
 const app = express();
@@ -57,13 +60,22 @@ databaseService.initialize(MONGODB_URI)
 
     // Initialize controllers
     const walletController = new WalletController(crawlerService, walletRegistry);
+    const analyticsController = new AnalyticsController(analyticsService);
 
     // Setup routes
     app.use('/api/wallet', walletController.getRouter());
+    app.use('/api/analytics', analyticsController.getRouter());
 
     // Root health check
     app.get('/', (req, res) => {
-      res.json({ status: 'ok', service: 'blockchain-crawler' });
+      res.json({ 
+        status: 'ok', 
+        service: 'blockchain-crawler',
+        endpoints: {
+          wallet: '/api/wallet',
+          analytics: '/api/analytics'
+        }
+      });
     });
 
     // Start the crawler service
@@ -88,6 +100,7 @@ databaseService.initialize(MONGODB_URI)
     // Start server
     app.listen(PORT, () => {
       logger.info(`Server started on port ${PORT}`);
+      logger.info(`Analytics API available at http://localhost:${PORT}/api/analytics`);
     });
 
     // Handle process termination
