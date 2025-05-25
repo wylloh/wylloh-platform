@@ -187,6 +187,6 @@ await lending.rentToken(
 ## Support
 
 For integration support:
-- GitHub Issues: [@Wy1bur/wylloh-platform](https://github.com/Wy1bur/wylloh-platform/issues)
+- GitHub Issues: [@wylloh/wylloh-platform](https://github.com/wylloh/wylloh-platform/issues)
 - Email: [contact@wylloh.com](mailto:contact@wylloh.com)
 - Discord: [Wylloh Protocol](https://discord.gg/wylloh) 

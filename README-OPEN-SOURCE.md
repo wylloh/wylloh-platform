@@ -36,7 +36,7 @@ The Wylloh Platform is currently in active development. We're working on buildin
 
 1. Clone the repository:
    ```bash
-   git clone https://github.com/Wy1bur/wylloh-platform.git
+   git clone https://github.com/wylloh/wylloh-platform.git
    cd wylloh-platform
    ```
 
@@ -98,7 +98,7 @@ This project is licensed under the Apache License 2.0 - see the [LICENSE](LICENS
 
 ## Contact
 
-- GitHub: [@Wy1bur](https://github.com/Wy1bur)
+- GitHub: [@wylloh](https://github.com/wylloh)
 - Email: [contact@wylloh.com](mailto:contact@wylloh.com)
 
 ## Additional Resources

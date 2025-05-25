@@ -33,7 +33,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/Wy1bur/wylloh-platform.git"
+    "url": "git+https://github.com/wylloh/wylloh-platform.git"
   },
   "keywords": [
     "blockchain",
@@ -46,9 +46,9 @@
   "author": "Wylloh Protocol",
   "license": "Apache-2.0",
   "bugs": {
-    "url": "https://github.com/Wy1bur/wylloh-platform/issues"
+    "url": "https://github.com/wylloh/wylloh-platform/issues"
   },
-  "homepage": "https://github.com/Wy1bur/wylloh-platform#readme",
+  "homepage": "https://github.com/wylloh/wylloh-platform#readme",
   "devDependencies": {
     "@commitlint/cli": "^17.0.0",
     "@commitlint/config-conventional": "^17.0.0",

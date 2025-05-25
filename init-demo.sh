@@ -786,7 +786,7 @@ setup_seed_one() {
   echo -e "\n${YELLOW}OPTION A: Wylloh Player (Recommended)${NC}"
   echo -e "Follow these steps to set up the Wylloh Player on your Seed One device:"
   echo "1. Clone the repository on your Seed One:"
-  echo "   git clone https://github.com/wy1bur/wylloh-platform.git"
+  echo "   git clone https://github.com/wylloh/wylloh-platform.git"
   echo "   cd wylloh-platform/seed-one"
   echo
   echo "2. Run the setup script as root:"

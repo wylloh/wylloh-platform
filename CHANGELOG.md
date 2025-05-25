@@ -38,5 +38,5 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Removed
 - N/A
 
-[Unreleased]: https://github.com/Wy1bur/wylloh-platform/compare/v0.1.0...HEAD
-[0.1.0]: https://github.com/Wy1bur/wylloh-platform/releases/tag/v0.1.0 
+[Unreleased]: https://github.com/wylloh/wylloh-platform/compare/v0.1.0...HEAD
+[0.1.0]: https://github.com/wylloh/wylloh-platform/releases/tag/v0.1.0 
