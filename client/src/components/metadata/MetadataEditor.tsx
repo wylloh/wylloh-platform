@@ -19,7 +19,8 @@ import {
   CircularProgress,
   Alert,
   IconButton,
-  Autocomplete
+  Autocomplete,
+  SelectChangeEvent
 } from '@mui/material';
 import {
   Add as AddIcon,
@@ -93,7 +94,7 @@ const MetadataEditor: React.FC<MetadataEditorProps> = ({
   };
   
   // Handle select field changes
-  const handleSelectChange = (e: React.ChangeEvent<{ name?: string; value: unknown }>) => {
+  const handleSelectChange = (e: SelectChangeEvent<any>) => {
     const name = e.target.name as string;
     const value = e.target.value;
     setLocalMetadata(prev => ({

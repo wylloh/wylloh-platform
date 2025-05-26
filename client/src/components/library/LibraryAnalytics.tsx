@@ -247,7 +247,7 @@ const LibraryAnalytics: React.FC<LibraryAnalyticsProps> = ({ libraryId }) => {
   // Filter value history based on selected period
   const getFilteredValueHistory = () => {
     const today = new Date();
-    let cutoffDate;
+    let cutoffDate: Date;
     
     switch (period) {
       case '7d':

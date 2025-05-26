@@ -26,7 +26,13 @@ import {
   List as ListIcon,
   Star as StarIcon,
   Timeline as TimelineIcon,
+  Add as AddIcon,
+  CheckCircle as CheckCircleIcon,
+  Edit as EditIcon,
+  Pending as PendingIcon,
+  Link as LinkIcon,
 } from '@mui/icons-material';
+import { Link } from 'react-router-dom';
 import { Content } from '../../services/content.service';
 
 interface DashboardOverviewProps {
@@ -391,14 +397,5 @@ const DashboardOverview: React.FC<DashboardOverviewProps> = ({
     </Box>
   );
 };
-
-import {
-  Add as AddIcon,
-  CheckCircle as CheckCircleIcon,
-  Edit as EditIcon,
-  Pending as PendingIcon,
-  Link as LinkIcon,
-} from '@mui/icons-material';
-import { Link } from 'react-router-dom';
 
 export default DashboardOverview; 

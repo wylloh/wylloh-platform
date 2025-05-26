@@ -7,7 +7,7 @@ const HomePage = React.lazy(() => import('./pages/HomePage'));
 const StorePage = React.lazy(() => import('./pages/StorePage'));
 const SearchPage = React.lazy(() => import('./pages/SearchPage'));
 const DiscoverPage = React.lazy(() => import('./pages/DiscoverPage'));
-const NetworkPage = React.lazy(() => import('./pages/NetworkPage'));
+// const NetworkPage = React.lazy(() => import('./pages/NetworkPage')); // Temporarily disabled due to Node.js dependencies
 const ProfilePage = React.lazy(() => import('./pages/ProfilePage'));
 const NotFoundPage = React.lazy(() => import('./pages/NotFoundPage'));
 const TransactionHistoryPage = React.lazy(() => import('./pages/TransactionHistoryPage'));
@@ -56,7 +56,7 @@ const AppRoutes = () => {
         <Route path="/store" element={<StorePage />} />
         <Route path="/search" element={<SearchPage />} />
         <Route path="/discover" element={<DiscoverPage />} />
-        <Route path="/network" element={<NetworkPage />} />
+        {/* <Route path="/network" element={<NetworkPage />} /> Temporarily disabled due to Node.js dependencies */}
         <Route path="/profile" element={<ProfilePage />} />
         <Route path="/transactions" element={<TransactionHistoryPage />} />
         

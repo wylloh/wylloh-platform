@@ -61,15 +61,12 @@ export const usePerformanceOptimization = () => {
    */
   const createMemoizedFilter = useCallback(<T>(
     items: T[],
-    filterFn: (item: T, query: string) => boolean,
-    dependencies: any[] = []
+    filterFn: (item: T, query: string) => boolean
   ) => {
-    return useMemo(() => {
-      return (query: string) => {
-        if (!query.trim()) return items;
-        return items.filter(item => filterFn(item, query.toLowerCase()));
-      };
-    }, [items, filterFn, ...dependencies]);
+    return (query: string) => {
+      if (!query.trim()) return items;
+      return items.filter(item => filterFn(item, query.toLowerCase()));
+    };
   }, []);
 
   /**
@@ -79,21 +76,19 @@ export const usePerformanceOptimization = () => {
     items: T[],
     pageSize: number = 12
   ) => {
-    return useMemo(() => {
-      const totalPages = Math.ceil(items.length / pageSize);
-      
-      return {
-        totalPages,
-        totalItems: items.length,
-        getPage: (page: number) => {
-          const startIndex = (page - 1) * pageSize;
-          const endIndex = startIndex + pageSize;
-          return items.slice(startIndex, endIndex);
-        },
-        hasNextPage: (page: number) => page < totalPages,
-        hasPrevPage: (page: number) => page > 1,
-      };
-    }, [items, pageSize]);
+    const totalPages = Math.ceil(items.length / pageSize);
+    
+    return {
+      totalPages,
+      totalItems: items.length,
+      getPage: (page: number) => {
+        const startIndex = (page - 1) * pageSize;
+        const endIndex = startIndex + pageSize;
+        return items.slice(startIndex, endIndex);
+      },
+      hasNextPage: (page: number) => page < totalPages,
+      hasPrevPage: (page: number) => page > 1,
+    };
   }, []);
 
   /**

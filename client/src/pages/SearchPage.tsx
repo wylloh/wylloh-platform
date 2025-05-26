@@ -491,7 +491,7 @@ const SearchPage: React.FC = () => {
       {/* Main Content */}
       <Grid container spacing={3}>
         {/* Filters - Desktop */}
-        {!isMobile && (
+        {!breakpoints.isMobile && (
           <Grid item xs={12} md={3}>
             {filtersOpen && (
               <Card>
@@ -502,7 +502,7 @@ const SearchPage: React.FC = () => {
         )}
         
         {/* Search Results */}
-        <Grid item xs={12} md={filtersOpen && !isMobile ? 9 : 12}>
+        <Grid item xs={12} md={filtersOpen && !breakpoints.isMobile ? 9 : 12}>
           {/* Toggle Filters Button */}
           <Box 
             display="flex" 
@@ -514,12 +514,12 @@ const SearchPage: React.FC = () => {
               <Button
                 startIcon={<FilterListIcon />}
                 onClick={() => {
-                  isMobile ? setFiltersOpen(true) : setFiltersOpen(!filtersOpen);
+                  breakpoints.isMobile ? setFiltersOpen(true) : setFiltersOpen(!filtersOpen);
                 }}
                 variant="outlined"
                 sx={{ mr: 2 }}
               >
-                {isMobile ? 'Filters' : (filtersOpen ? 'Hide Filters' : 'Show Filters')}
+                {breakpoints.isMobile ? 'Filters' : (filtersOpen ? 'Hide Filters' : 'Show Filters')}
               </Button>
               
               {/* Active Filter Chips */}
@@ -676,7 +676,7 @@ const SearchPage: React.FC = () => {
       </Grid>
       
       {/* Mobile Filter Drawer */}
-      {isMobile && (
+      {breakpoints.isMobile && (
         <Drawer
           anchor="right"
           open={filtersOpen}

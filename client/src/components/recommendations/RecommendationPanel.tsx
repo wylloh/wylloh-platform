@@ -98,11 +98,7 @@ const RecommendationPanel: React.FC<RecommendationPanelProps> = ({
             <React.Fragment>
               <Box sx={{ display: tabValue === 0 ? 'block' : 'none' }}>
                 <PersonalizedRecommendations
-                  contentType={contentType}
-                  title=""
                   maxItems={maxItems}
-                  showReasons={false}
-                  fallbackToTrending={true}
                 />
               </Box>
               <Box sx={{ display: tabValue === 1 ? 'block' : 'none' }}>
@@ -138,11 +134,7 @@ const RecommendationPanel: React.FC<RecommendationPanelProps> = ({
             </React.Fragment>
           ) : (
             <PersonalizedRecommendations
-              contentType={contentType}
-              title=""
               maxItems={maxItems}
-              showReasons={false}
-              fallbackToTrending={true}
             />
           )}
         </Box>

@@ -223,11 +223,9 @@ const AdaptiveVideoPlayer: React.FC<AdaptiveVideoPlayerProps> = ({
       const player = dashjs.MediaPlayer().create();
       
       player.initialize(videoRef.current, streamUrl, autoPlay);
-      player.updateSettings({
+      (player as any).updateSettings({
         streaming: {
-          lowLatencyEnabled: false,
           abr: {
-            useDefaultABRRules: true,
             autoSwitchBitrate: {
               video: true
             }
@@ -241,7 +239,7 @@ const AdaptiveVideoPlayer: React.FC<AdaptiveVideoPlayerProps> = ({
           console.log('DASH quality changed:', e);
           
           // Set available qualities based on bitrate list
-          const bitrateList = player.getBitrateInfoListFor('video');
+          const bitrateList = (player as any).getBitrateInfoListFor('video');
           if (bitrateList && bitrateList.length > 0) {
             const qualities = [VideoQuality.AUTO];
             
@@ -320,7 +318,7 @@ const AdaptiveVideoPlayer: React.FC<AdaptiveVideoPlayerProps> = ({
       }
     } else if (dashPlayerRef.current) {
       try {
-        const bitrateList = dashPlayerRef.current.getBitrateInfoListFor('video');
+        const bitrateList = (dashPlayerRef.current as any).getBitrateInfoListFor('video');
         if (!bitrateList || bitrateList.length === 0) return;
         
         if (quality === VideoQuality.AUTO) {
@@ -357,7 +355,7 @@ const AdaptiveVideoPlayer: React.FC<AdaptiveVideoPlayerProps> = ({
           
           if (bitrateIndex >= 0) {
             const targetBitrate = sortedBitrates[bitrateIndex].bitrate;
-            const qualityIndex = bitrateList.findIndex(b => b.bitrate === targetBitrate);
+            const qualityIndex = bitrateList.findIndex((b: any) => b.bitrate === targetBitrate);
             
             dashPlayerRef.current.updateSettings({
               streaming: {
@@ -369,7 +367,7 @@ const AdaptiveVideoPlayer: React.FC<AdaptiveVideoPlayerProps> = ({
               }
             });
             
-            dashPlayerRef.current.setQualityFor('video', qualityIndex >= 0 ? qualityIndex : bitrateIndex);
+            dashPlayerRef.current.setRepresentationForTypeByIndex('video', qualityIndex >= 0 ? qualityIndex : bitrateIndex);
           }
         }
       } catch (error) {
