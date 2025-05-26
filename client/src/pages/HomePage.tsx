@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, Suspense } from 'react';
 import { 
   Container, 
   Typography, 
@@ -30,6 +30,12 @@ import { Link } from 'react-router-dom';
 import { useWallet } from '../contexts/WalletContext';
 import { useSnackbar } from 'notistack';
 import ResponsiveBanner from '../components/common/ResponsiveBanner';
+import PageTransition from '../components/common/PageTransition';
+import LazyLoadWrapper from '../components/common/LazyLoadWrapper';
+import SkeletonLoader from '../components/common/SkeletonLoader';
+import ErrorBoundary from '../components/common/ErrorBoundary';
+import { useResponsiveDesign } from '../hooks/useResponsiveDesign';
+import { usePerformanceOptimization } from '../hooks/usePerformanceOptimization';
 
 interface FeaturedContent {
   id: string;
@@ -43,11 +49,15 @@ interface FeaturedContent {
 const HomePage: React.FC = () => {
   const { active } = useWallet();
   const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+  const { breakpoints, config, card } = useResponsiveDesign();
+  const { debounce, createPerformanceMonitor } = usePerformanceOptimization();
   const [showConnectPrompt, setShowConnectPrompt] = useState<boolean>(false);
   const [featuredContent, setFeaturedContent] = useState<FeaturedContent[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const { enqueueSnackbar } = useSnackbar();
+  
+  // Performance monitoring
+  const performanceMonitor = createPerformanceMonitor();
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -102,14 +112,16 @@ const HomePage: React.FC = () => {
   ];
 
   return (
-    <Box sx={{ overflow: 'hidden' }}>
-      {/* Hero Banner Section */}
-      <Box sx={{ position: 'relative', mb: 8 }}>
-        <ResponsiveBanner 
-          height="60vh"
-          priority={true}
-          alt="Wylloh Platform - Hollywood's Digital Content Hub"
-        />
+    <ErrorBoundary>
+      <PageTransition variant="fade" timeout={400}>
+        <Box sx={{ overflow: 'hidden' }}>
+          {/* Hero Banner Section */}
+          <Box sx={{ position: 'relative', mb: 8 }}>
+            <ResponsiveBanner 
+              height="60vh"
+              priority={true}
+              alt="Wylloh Platform - Hollywood's Digital Content Hub"
+            />
         
         {/* Overlay Content */}
         <Box
@@ -119,7 +131,7 @@ const HomePage: React.FC = () => {
             left: 0,
             right: 0,
             bottom: 0,
-            background: 'linear-gradient(45deg, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0.3) 50%, rgba(0,0,0,0.1) 100%)',
+            background: 'linear-gradient(135deg, rgba(0,0,0,0.8) 0%, rgba(0,0,0,0.4) 40%, rgba(0,0,0,0.2) 70%, rgba(0,0,0,0.1) 100%)',
             display: 'flex',
             alignItems: 'center',
             zIndex: 1,
@@ -132,7 +144,7 @@ const HomePage: React.FC = () => {
                   <Box>
                     <Typography 
                       component="h1" 
-                      variant={isMobile ? "h3" : "h1"} 
+                      variant={breakpoints.isMobile ? "h3" : "h1"} 
                       color="white" 
                       gutterBottom
                       sx={{ 
@@ -360,56 +372,59 @@ const HomePage: React.FC = () => {
 
       {/* Featured Content Section - Only shown when content is available */}
       {featuredContent.length > 0 && (
-        <Container maxWidth="lg" sx={{ mb: 8 }}>
-          <Typography variant="h4" gutterBottom sx={{ mb: 4, fontWeight: 600 }}>
-            Featured Films
-          </Typography>
-          <Grid container spacing={4}>
-            {featuredContent.map((content) => (
-              <Grid item xs={12} sm={6} md={4} key={content.id}>
-                <Card 
-                  elevation={0}
-                  sx={{ 
-                    height: '100%',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    borderRadius: 2,
-                    overflow: 'hidden',
-                    transition: 'transform 0.2s',
-                    '&:hover': {
-                      transform: 'translateY(-4px)'
-                    }
-                  }}
-                >
-                  <CardActionArea 
-                    component={Link} 
-                    to={`/store/${content.id}`}
-                    sx={{ height: '100%' }}
+        <LazyLoadWrapper height={400}>
+          <Container maxWidth="lg" sx={{ mb: 8 }}>
+            <Typography variant="h4" gutterBottom sx={{ mb: 4, fontWeight: 600 }}>
+              Featured Films
+            </Typography>
+            <Grid container spacing={4}>
+              {featuredContent.map((content) => (
+                <Grid item xs={12} sm={6} md={4} key={content.id}>
+                  <Card 
+                    elevation={card.elevation}
+                    variant={card.variant}
+                    sx={{ 
+                      height: '100%',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      borderRadius: 2,
+                      overflow: 'hidden',
+                      transition: 'transform 0.2s',
+                      '&:hover': {
+                        transform: 'translateY(-4px)'
+                      }
+                    }}
                   >
-                    <CardMedia
-                      component="img"
-                      height="300"
-                      image={content.imageUrl}
-                      alt={content.title}
-                      sx={{ objectFit: 'cover' }}
-                    />
-                    <CardContent>
-                      <Typography variant="h6" gutterBottom noWrap>
-                        {content.title}
-                      </Typography>
-                      <Typography variant="body2" color="text.secondary" gutterBottom>
-                        by {content.creator}
-                      </Typography>
-                      <Typography variant="h6" color="primary.main">
-                        {content.price}
-                      </Typography>
-                    </CardContent>
-                  </CardActionArea>
-                </Card>
-              </Grid>
-            ))}
-          </Grid>
-        </Container>
+                    <CardActionArea 
+                      component={Link} 
+                      to={`/store/${content.id}`}
+                      sx={{ height: '100%' }}
+                    >
+                      <CardMedia
+                        component="img"
+                        height={card.imageHeight}
+                        image={content.imageUrl}
+                        alt={content.title}
+                        sx={{ objectFit: 'cover' }}
+                      />
+                      <CardContent>
+                        <Typography variant="h6" gutterBottom noWrap>
+                          {content.title}
+                        </Typography>
+                        <Typography variant="body2" color="text.secondary" gutterBottom>
+                          by {content.creator}
+                        </Typography>
+                        <Typography variant="h6" color="primary.main">
+                          {content.price}
+                        </Typography>
+                      </CardContent>
+                    </CardActionArea>
+                  </Card>
+                </Grid>
+              ))}
+            </Grid>
+          </Container>
+        </LazyLoadWrapper>
       )}
 
       {/* Wallet Connection Prompt */}
@@ -449,7 +464,9 @@ const HomePage: React.FC = () => {
           </Paper>
         </Fade>
       )}
-    </Box>
+        </Box>
+      </PageTransition>
+    </ErrorBoundary>
   );
 };
 

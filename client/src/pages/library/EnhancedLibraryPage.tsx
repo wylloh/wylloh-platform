@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useContext } from 'react';
+import React, { useState, useEffect, useContext, Suspense, useMemo, useCallback } from 'react';
 import { useParams, useLocation, useNavigate } from 'react-router-dom';
 import {
   Box,
@@ -41,12 +41,18 @@ import { format } from 'date-fns';
 import { WalletContext } from '../../contexts/WalletContext';
 import { libraryService, LibraryItem } from '../../services/library.service';
 import { ownershipVerificationService, type VerificationResult } from '../../services/ownershipVerification.service';
-import LibraryAnalytics from '../../components/library/LibraryAnalytics';
-import EnhancedContentCard from '../../components/common/EnhancedContentCard';
-import ContentSelectionToolbar, { TokenCollection } from '../../components/library/ContentSelectionToolbar';
-import BatchActionModals from '../../components/library/BatchActionModals';
+import { usePerformanceOptimization } from '../../hooks/usePerformanceOptimization';
+import LazyLoadWrapper from '../../components/common/LazyLoadWrapper';
+import SkeletonLoader from '../../components/common/SkeletonLoader';
+import { TokenCollection } from '../../components/library/ContentSelectionToolbar';
 import { organizeTokenCollections, updateCollectionSelections } from '../../components/library/ContentCollectionHelper';
-import CollectionCard from '../../components/library/CollectionCard';
+
+// Lazy load heavy components
+const LibraryAnalytics = React.lazy(() => import('../../components/library/LibraryAnalytics'));
+const EnhancedContentCard = React.lazy(() => import('../../components/common/EnhancedContentCard'));
+const ContentSelectionToolbar = React.lazy(() => import('../../components/library/ContentSelectionToolbar'));
+const BatchActionModals = React.lazy(() => import('../../components/library/BatchActionModals'));
+const CollectionCard = React.lazy(() => import('../../components/library/CollectionCard'));
 
 interface TabPanelProps {
   children?: React.ReactNode;
@@ -88,6 +94,9 @@ const EnhancedLibraryPage: React.FC = () => {
   const queryParams = new URLSearchParams(location.search);
   const tabFromUrl = queryParams.get('tab');
   const { provider, account } = useContext(WalletContext);
+  
+  // Performance optimization hooks
+  const { debounce, createMemoizedFilter, createPagination, createPerformanceMonitor } = usePerformanceOptimization();
   
   // Set initial tab value based on URL query param
   const initialTabValue = tabFromUrl === 'analytics' ? 1 : 0;
@@ -704,124 +713,132 @@ const EnhancedLibraryPage: React.FC = () => {
     }
   };
 
-  // Render helper for collection view
-  const renderCollectionView = () => (
+  // Memoized render helper for collection view
+  const renderCollectionView = useCallback(() => (
     <Grid container spacing={3} sx={{ mt: 1 }}>
       {collections.map(collection => (
         <Grid item xs={12} sm={6} md={4} key={collection.contentId}>
-          <CollectionCard
-            collection={collection}
-            onLend={(id) => handleLendContent(id)}
-            onSell={(id) => handleSellContent(id)}
-            onInfo={(id) => handleInfoContent(id)}
-            onPlay={collection.items[0] && !collection.items[0].isLent ? (id) => handlePlayContent(id) : undefined}
-            onSelect={handleSelectCollection}
-            selected={collection.selectedTokens > 0}
-            userIsPro={true}
-            context="consumer"
-          />
+          <LazyLoadWrapper height={300}>
+            <Suspense fallback={<SkeletonLoader variant="content-card" />}>
+              <CollectionCard
+                collection={collection}
+                onLend={(id) => handleLendContent(id)}
+                onSell={(id) => handleSellContent(id)}
+                onInfo={(id) => handleInfoContent(id)}
+                onPlay={collection.items[0] && !collection.items[0].isLent ? (id) => handlePlayContent(id) : undefined}
+                onSelect={handleSelectCollection}
+                selected={collection.selectedTokens > 0}
+                userIsPro={true}
+                context="consumer"
+              />
+            </Suspense>
+          </LazyLoadWrapper>
         </Grid>
       ))}
     </Grid>
-  );
+  ), [collections, handleLendContent, handleSellContent, handleInfoContent, handlePlayContent, handleSelectCollection]);
 
-  // Render helper for regular item view
-  const renderItemView = () => (
+  // Memoized render helper for regular item view
+  const renderItemView = useCallback(() => (
     <Grid container spacing={3} sx={{ mt: 1 }}>
       {content.map(item => (
         <Grid item xs={12} sm={6} md={4} key={item.contentId}>
-          <EnhancedContentCard
-            content={{
-              id: item.contentId,
-              title: item.title,
-              description: item.description || '',
-              contentType: item.contentType || 'movie',
-              creator: item.creator || item.director || '',
-              creatorAddress: '',
-              mainFileCid: '',
-              image: item.thumbnailUrl,
-              tokenized: !!item.tokenData,
-              tokenId: item.tokenData?.tokenId,
-              price: item.currentValue || 0,
-              available: 1,
-              totalSupply: 1,
-              metadata: {
-                genres: item.genre ? [item.genre] : [],
-                releaseYear: item.year,
-                duration: '120 min'
-              },
-              createdAt: item.purchaseDate,
-              status: 'active',
-              visibility: 'public',
-              views: Math.floor(Math.random() * 100),
-              sales: 0
-            }}
-            context="consumer"
-            onPlay={!item.isLent ? (id) => handlePlayContent(id) : undefined}
-            onFavorite={(id) => console.log('Toggle favorite:', id)}
-            hideStatus={false}
-            showPrice={false}
-            variant="standard"
-            elevation={2}
-            isSelected={selectedItems.includes(item.contentId)}
-            onSelect={(id, selected) => {
-              if (selected) {
-                setSelectedItems(prev => [...prev, id]);
-              } else {
-                setSelectedItems(prev => prev.filter(i => i !== id));
-              }
-            }}
-          />
-          
-          {/* Custom action buttons for library context */}
-          <Box sx={{ mt: 1, display: 'flex', justifyContent: 'center', gap: 1 }}>
-            {item.tokenData && (
-              <Tooltip title={item.tokenData.ownershipVerified ? "Ownership verified" : "Verify ownership"}>
-                <IconButton
-                  color={item.tokenData.ownershipVerified ? "success" : "warning"}
-                  size="small"
-                >
-                  {item.tokenData.ownershipVerified ? <VerifiedIcon /> : <ErrorOutlineIcon />}
-                </IconButton>
-              </Tooltip>
-            )}
-            
-            <Tooltip title="Lend">
-              <IconButton
-                color="primary" 
-                size="small"
-                onClick={() => handleLendContent(item.contentId)}
-                disabled={item.isLent}
-              >
-                <SendIcon />
-              </IconButton>
-            </Tooltip>
-            
-            <Tooltip title="Sell">
-              <IconButton 
-                color="primary" 
-                size="small"
-                onClick={() => handleSellContent(item.contentId)}
-                disabled={item.isLent}
-              >
-                <AttachMoneyIcon />
-              </IconButton>
-            </Tooltip>
-            
-            <Tooltip title="Details">
-              <IconButton 
-                color="primary" 
-                size="small"
-                onClick={() => handleInfoContent(item.contentId)}
-              >
-                <InfoIcon />
-              </IconButton>
-            </Tooltip>
-          </Box>
+          <LazyLoadWrapper height={400}>
+            <Suspense fallback={<SkeletonLoader variant="content-card" />}>
+              <EnhancedContentCard
+                content={{
+                  id: item.contentId,
+                  title: item.title,
+                  description: item.description || '',
+                  contentType: item.contentType || 'movie',
+                  creator: item.creator || item.director || '',
+                  creatorAddress: '',
+                  mainFileCid: '',
+                  image: item.thumbnailUrl,
+                  tokenized: !!item.tokenData,
+                  tokenId: item.tokenData?.tokenId,
+                  price: item.currentValue || 0,
+                  available: 1,
+                  totalSupply: 1,
+                  metadata: {
+                    genres: item.genre ? [item.genre] : [],
+                    releaseYear: item.year,
+                    duration: '120 min'
+                  },
+                  createdAt: item.purchaseDate,
+                  status: 'active',
+                  visibility: 'public',
+                  views: Math.floor(Math.random() * 100),
+                  sales: 0
+                }}
+                context="consumer"
+                onPlay={!item.isLent ? (id) => handlePlayContent(id) : undefined}
+                onFavorite={(id) => console.log('Toggle favorite:', id)}
+                hideStatus={false}
+                showPrice={false}
+                variant="standard"
+                elevation={2}
+                isSelected={selectedItems.includes(item.contentId)}
+                onSelect={(id, selected) => {
+                  if (selected) {
+                    setSelectedItems(prev => [...prev, id]);
+                  } else {
+                    setSelectedItems(prev => prev.filter(i => i !== id));
+                  }
+                }}
+              />
+              
+              {/* Custom action buttons for library context */}
+              <Box sx={{ mt: 1, display: 'flex', justifyContent: 'center', gap: 1 }}>
+                {item.tokenData && (
+                  <Tooltip title={item.tokenData.ownershipVerified ? "Ownership verified" : "Verify ownership"}>
+                    <IconButton
+                      color={item.tokenData.ownershipVerified ? "success" : "warning"}
+                      size="small"
+                    >
+                      {item.tokenData.ownershipVerified ? <VerifiedIcon /> : <ErrorOutlineIcon />}
+                    </IconButton>
+                  </Tooltip>
+                )}
+                
+                <Tooltip title="Lend">
+                  <IconButton
+                    color="primary" 
+                    size="small"
+                    onClick={() => handleLendContent(item.contentId)}
+                    disabled={item.isLent}
+                  >
+                    <SendIcon />
+                  </IconButton>
+                </Tooltip>
+                
+                <Tooltip title="Sell">
+                  <IconButton 
+                    color="primary" 
+                    size="small"
+                    onClick={() => handleSellContent(item.contentId)}
+                    disabled={item.isLent}
+                  >
+                    <AttachMoneyIcon />
+                  </IconButton>
+                </Tooltip>
+                
+                <Tooltip title="Details">
+                  <IconButton 
+                    color="primary" 
+                    size="small"
+                    onClick={() => handleInfoContent(item.contentId)}
+                  >
+                    <InfoIcon />
+                  </IconButton>
+                </Tooltip>
+              </Box>
+            </Suspense>
+          </LazyLoadWrapper>
         </Grid>
       ))}
     </Grid>
-  );
+  ), [content, selectedItems, handleLendContent, handleSellContent, handleInfoContent, handlePlayContent]);
 
   if (loading) {
     return (
@@ -871,20 +888,22 @@ const EnhancedLibraryPage: React.FC = () => {
 
       <TabPanel value={tabValue} index={0}>
         {/* Selection toolbar */}
-        <ContentSelectionToolbar
-          items={content}
-          collections={collections}
-          selectedItems={selectedItems}
-          onSelectionChange={handleSelectionChange}
-          onBatchLend={handleBatchLend}
-          onBatchSell={handleBatchSell}
-          onBatchTag={handleBatchTag}
-          onBatchCreateCollection={handleBatchCreateCollection}
-          onBatchDelete={handleBatchDelete}
-          userIsPro={true}
-          collectionView={collectionView}
-          onToggleCollectionView={handleToggleCollectionView}
-        />
+        <Suspense fallback={<SkeletonLoader variant="content-card" />}>
+          <ContentSelectionToolbar
+            items={content}
+            collections={collections}
+            selectedItems={selectedItems}
+            onSelectionChange={handleSelectionChange}
+            onBatchLend={handleBatchLend}
+            onBatchSell={handleBatchSell}
+            onBatchTag={handleBatchTag}
+            onBatchCreateCollection={handleBatchCreateCollection}
+            onBatchDelete={handleBatchDelete}
+            userIsPro={true}
+            collectionView={collectionView}
+            onToggleCollectionView={handleToggleCollectionView}
+          />
+        </Suspense>
         
         {/* View toggle */}
         <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 2 }}>
@@ -917,7 +936,11 @@ const EnhancedLibraryPage: React.FC = () => {
       </TabPanel>
 
       <TabPanel value={tabValue} index={1}>
-        <LibraryAnalytics libraryId={libraryId!} />
+        <LazyLoadWrapper height={500}>
+          <Suspense fallback={<SkeletonLoader variant="analytics-chart" height={500} />}>
+            <LibraryAnalytics libraryId={libraryId!} />
+          </Suspense>
+        </LazyLoadWrapper>
       </TabPanel>
       
       {/* Individual action dialogs */}
@@ -1132,36 +1155,38 @@ const EnhancedLibraryPage: React.FC = () => {
       </Dialog>
       
       {/* Batch action modals */}
-      <BatchActionModals
-        selectedItems={selectedItems}
-        items={content}
-        collections={collections}
-        
-        batchLendOpen={batchLendOpen}
-        onCloseBatchLend={() => setBatchLendOpen(false)}
-        onSubmitBatchLend={handleSubmitBatchLend}
-        
-        batchSellOpen={batchSellOpen}
-        onCloseBatchSell={() => setBatchSellOpen(false)}
-        onSubmitBatchSell={handleSubmitBatchSell}
-        
-        batchTagOpen={batchTagOpen}
-        onCloseBatchTag={() => setBatchTagOpen(false)}
-        onSubmitBatchTag={handleSubmitBatchTag}
-        
-        batchCreateCollectionOpen={batchCreateCollectionOpen}
-        onCloseBatchCreateCollection={() => setBatchCreateCollectionOpen(false)}
-        onSubmitBatchCreateCollection={handleSubmitBatchCreateCollection}
-        
-        batchDeleteOpen={batchDeleteOpen}
-        onCloseBatchDelete={() => setBatchDeleteOpen(false)}
-        onSubmitBatchDelete={handleSubmitBatchDelete}
-        
-        isProcessing={isProcessing}
-        processingProgress={processingProgress}
-        processingMessage={processingMessage}
-        availableTags={['Action', 'Drama', 'Sci-Fi', 'Comedy', 'Documentary', 'Horror', 'Indie', 'Foreign']}
-      />
+      <Suspense fallback={null}>
+        <BatchActionModals
+          selectedItems={selectedItems}
+          items={content}
+          collections={collections}
+          
+          batchLendOpen={batchLendOpen}
+          onCloseBatchLend={() => setBatchLendOpen(false)}
+          onSubmitBatchLend={handleSubmitBatchLend}
+          
+          batchSellOpen={batchSellOpen}
+          onCloseBatchSell={() => setBatchSellOpen(false)}
+          onSubmitBatchSell={handleSubmitBatchSell}
+          
+          batchTagOpen={batchTagOpen}
+          onCloseBatchTag={() => setBatchTagOpen(false)}
+          onSubmitBatchTag={handleSubmitBatchTag}
+          
+          batchCreateCollectionOpen={batchCreateCollectionOpen}
+          onCloseBatchCreateCollection={() => setBatchCreateCollectionOpen(false)}
+          onSubmitBatchCreateCollection={handleSubmitBatchCreateCollection}
+          
+          batchDeleteOpen={batchDeleteOpen}
+          onCloseBatchDelete={() => setBatchDeleteOpen(false)}
+          onSubmitBatchDelete={handleSubmitBatchDelete}
+          
+          isProcessing={isProcessing}
+          processingProgress={processingProgress}
+          processingMessage={processingMessage}
+          availableTags={['Action', 'Drama', 'Sci-Fi', 'Comedy', 'Documentary', 'Horror', 'Indie', 'Foreign']}
+        />
+      </Suspense>
       
       {/* Snackbar for notifications */}
       <Snackbar

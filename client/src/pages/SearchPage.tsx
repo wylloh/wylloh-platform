@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense, useMemo, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import {
   Box,
@@ -49,11 +49,18 @@ import {
 } from '@mui/icons-material';
 import { searchService, SearchFilters, SearchResult, SearchResponse } from '../services/search.service';
 import EnhancedContentCard from '../components/common/EnhancedContentCard';
+import PageTransition from '../components/common/PageTransition';
+import LazyLoadWrapper from '../components/common/LazyLoadWrapper';
+import SkeletonLoader from '../components/common/SkeletonLoader';
+import ErrorBoundary from '../components/common/ErrorBoundary';
+import { useResponsiveDesign } from '../hooks/useResponsiveDesign';
+import { usePerformanceOptimization } from '../hooks/usePerformanceOptimization';
 
 const SearchPage: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+  const { breakpoints, config, card } = useResponsiveDesign();
+  const { debounce, createMemoizedFilter, createPagination } = usePerformanceOptimization();
   
   // Search state
   const [query, setQuery] = useState<string>(searchParams.get('q') || '');
@@ -63,7 +70,7 @@ const SearchPage: React.FC = () => {
   const [page, setPage] = useState<number>(parseInt(searchParams.get('page') || '1', 10));
   
   // Filter state
-  const [filtersOpen, setFiltersOpen] = useState<boolean>(!isMobile);
+  const [filtersOpen, setFiltersOpen] = useState<boolean>(!breakpoints.isMobile);
   const [filters, setFilters] = useState<SearchFilters>({
     genre: searchParams.getAll('genre') || [],
     releaseYear: { 
@@ -229,7 +236,7 @@ const SearchPage: React.FC = () => {
   
   // Filter drawer for mobile view
   const filterDrawer = (
-    <Box sx={{ width: isMobile ? 'auto' : 300, p: 2 }}>
+    <Box sx={{ width: breakpoints.isMobile ? 'auto' : 300, p: 2 }}>
       <Box 
         display="flex" 
         justifyContent="space-between" 
@@ -239,7 +246,7 @@ const SearchPage: React.FC = () => {
         <Typography variant="h6" component="h2">
           Filters
         </Typography>
-        {isMobile && (
+        {breakpoints.isMobile && (
           <IconButton onClick={() => setFiltersOpen(false)}>
             <CloseIcon />
           </IconButton>

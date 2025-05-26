@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import {
   Box,
   Container,
@@ -20,13 +20,17 @@ import {
 } from '@mui/material';
 import DownloadIcon from '@mui/icons-material/Download';
 import { Content, contentService } from '../services/content.service';
-import ContentPerformanceChart from '../components/analytics/ContentPerformanceChart';
-import TokenHolderAnalytics from '../components/analytics/TokenHolderAnalytics';
-import RevenueBreakdown from '../components/analytics/RevenueBreakdown';
-import WalletAnalyticsDashboard from '../components/analytics/WalletAnalyticsDashboard';
-import StorageAnalyticsDashboard from '../components/analytics/StorageAnalyticsDashboard';
 import { TimeRange } from '../components/analytics/TimeRangeSelector';
 import MetricCard from '../components/analytics/MetricCard';
+import LazyLoadWrapper from '../components/common/LazyLoadWrapper';
+import SkeletonLoader from '../components/common/SkeletonLoader';
+
+// Lazy load heavy analytics components
+const ContentPerformanceChart = React.lazy(() => import('../components/analytics/ContentPerformanceChart'));
+const TokenHolderAnalytics = React.lazy(() => import('../components/analytics/TokenHolderAnalytics'));
+const RevenueBreakdown = React.lazy(() => import('../components/analytics/RevenueBreakdown'));
+const WalletAnalyticsDashboard = React.lazy(() => import('../components/analytics/WalletAnalyticsDashboard'));
+const StorageAnalyticsDashboard = React.lazy(() => import('../components/analytics/StorageAnalyticsDashboard'));
 
 interface TabPanelProps {
   children?: React.ReactNode;
@@ -257,37 +261,57 @@ const AnalyticsDashboardPage: React.FC = () => {
 
         <TabPanel value={tabValue} index={0}>
           {selectedContentId && (
-            <ContentPerformanceChart 
-              contentId={selectedContentId} 
-              initialTimeRange={timeRange}
-            />
+            <LazyLoadWrapper height={400}>
+              <Suspense fallback={<SkeletonLoader variant="analytics-chart" height={400} />}>
+                <ContentPerformanceChart 
+                  contentId={selectedContentId} 
+                  initialTimeRange={timeRange}
+                />
+              </Suspense>
+            </LazyLoadWrapper>
           )}
         </TabPanel>
 
         <TabPanel value={tabValue} index={1}>
           {selectedContentId && (
-            <TokenHolderAnalytics 
-              contentId={selectedContentId}
-              initialTimeRange={timeRange}
-            />
+            <LazyLoadWrapper height={400}>
+              <Suspense fallback={<SkeletonLoader variant="analytics-chart" height={400} />}>
+                <TokenHolderAnalytics 
+                  contentId={selectedContentId}
+                  initialTimeRange={timeRange}
+                />
+              </Suspense>
+            </LazyLoadWrapper>
           )}
         </TabPanel>
 
         <TabPanel value={tabValue} index={2}>
           {selectedContentId && (
-            <RevenueBreakdown 
-              contentId={selectedContentId}
-              initialTimeRange={timeRange}
-            />
+            <LazyLoadWrapper height={400}>
+              <Suspense fallback={<SkeletonLoader variant="analytics-chart" height={400} />}>
+                <RevenueBreakdown 
+                  contentId={selectedContentId}
+                  initialTimeRange={timeRange}
+                />
+              </Suspense>
+            </LazyLoadWrapper>
           )}
         </TabPanel>
 
         <TabPanel value={tabValue} index={3}>
-          <WalletAnalyticsDashboard />
+          <LazyLoadWrapper height={500}>
+            <Suspense fallback={<SkeletonLoader variant="dashboard-overview" />}>
+              <WalletAnalyticsDashboard />
+            </Suspense>
+          </LazyLoadWrapper>
         </TabPanel>
 
         <TabPanel value={tabValue} index={4}>
-          <StorageAnalyticsDashboard />
+          <LazyLoadWrapper height={500}>
+            <Suspense fallback={<SkeletonLoader variant="dashboard-overview" />}>
+              <StorageAnalyticsDashboard />
+            </Suspense>
+          </LazyLoadWrapper>
         </TabPanel>
       </Paper>
     </Container>

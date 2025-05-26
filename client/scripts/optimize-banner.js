@@ -5,7 +5,7 @@ const fs = require('fs');
 const path = require('path');
 
 // Configuration
-const INPUT_FILE = path.join(__dirname, '../src/assets/Wylloh-Hero_upscaled.jpeg');
+const INPUT_FILE = path.join(__dirname, '../src/assets/Wylloh-Hero_reframe.jpeg');
 const OUTPUT_DIR = path.join(__dirname, '../src/assets/images');
 const BASE_NAME = 'wylloh-hero-banner';
 
@@ -14,7 +14,7 @@ if (!fs.existsSync(OUTPUT_DIR)) {
   fs.mkdirSync(OUTPUT_DIR, { recursive: true });
 }
 
-// Image configurations
+// Image configurations - using pre-cropped image, no additional cropping needed
 const configs = [
   // Desktop versions (1920x640 - 3:1 ratio)
   {
@@ -95,6 +95,7 @@ async function optimizeImage(config) {
   try {
     console.log(`🎬 Processing: ${config.description}...`);
     
+    // Simple resize of pre-cropped image - no additional cropping needed
     let pipeline = sharp(INPUT_FILE)
       .resize(config.width, config.height, {
         fit: 'cover',
@@ -136,8 +137,9 @@ async function optimizeImage(config) {
 }
 
 async function generateOptimizedImages() {
-  console.log('🎭 Wylloh Banner Optimization Script');
-  console.log('=====================================\n');
+  console.log('🎭 Wylloh Banner Optimization Script v3.0');
+  console.log('🎯 Using Pre-Cropped Image - Perfect Composition');
+  console.log('===============================================\n');
   
   // Check if input file exists
   if (!fs.existsSync(INPUT_FILE)) {
@@ -150,7 +152,8 @@ async function generateOptimizedImages() {
   const originalSizeMB = Math.round(originalStats.size / (1024 * 1024) * 10) / 10;
   
   console.log(`📁 Input: ${path.basename(INPUT_FILE)} (${originalSizeMB}MB)`);
-  console.log(`📂 Output: ${OUTPUT_DIR}\n`);
+  console.log(`📂 Output: ${OUTPUT_DIR}`);
+  console.log(`🎯 Strategy: Optimize your perfectly cropped composition\n`);
   
   // Process all configurations
   const results = [];
@@ -171,47 +174,33 @@ async function generateOptimizedImages() {
   
   console.log(`📊 Original: ${originalSizeMB}MB`);
   console.log(`📊 Optimized: ${Math.round(totalOptimizedSize / 1024 * 10) / 10}MB (${results.length} files)`);
-  console.log(`💾 Space savings: ${savings}%\n`);
+  console.log(`💾 Space savings: ${savings}%`);
+  console.log(`🎬 Perfect composition: Your cropping preserved across all sizes\n`);
   
   // Generate usage examples
-  console.log('🚀 Usage Examples:');
-  console.log('==================');
+  console.log('🚀 Implementation Notes:');
+  console.log('========================');
   console.log(`
-// React component with responsive images
-<picture>
-  <source 
-    media="(max-width: 768px)" 
-    srcSet="./assets/images/${BASE_NAME}-mobile.webp"
-    type="image/webp" 
-  />
-  <source 
-    media="(max-width: 768px)" 
-    srcSet="./assets/images/${BASE_NAME}-mobile.jpeg"
-    type="image/jpeg" 
-  />
-  <source 
-    media="(max-width: 1200px)" 
-    srcSet="./assets/images/${BASE_NAME}-tablet.webp"
-    type="image/webp" 
-  />
-  <source 
-    media="(max-width: 1200px)" 
-    srcSet="./assets/images/${BASE_NAME}-tablet.jpeg"
-    type="image/jpeg" 
-  />
-  <source 
-    srcSet="./assets/images/${BASE_NAME}.webp"
-    type="image/webp" 
-  />
-  <img 
-    src="./assets/images/${BASE_NAME}.jpeg" 
-    alt="Wylloh Platform - Hollywood's Digital Content Hub"
-    style={{ width: '100%', height: 'auto' }}
-  />
-</picture>
+🎯 Perfect Composition Preserved:
+- Your expertly cropped composition maintained across all sizes
+- WYLLOH sign positioned exactly where you want it
+- Optimal text space and visual balance preserved
+- Professional Hollywood aesthetic maintained
+
+📱 Responsive Breakpoints:
+- Mobile (≤768px): 800×267px - Your composition optimized for mobile
+- Tablet (≤1200px): 1200×400px - Perfect tablet viewing
+- Desktop (>1200px): 1920×640px - Full desktop impact
+- Retina (2x): 3840×1280px - Ultra-sharp for high-DPI displays
+
+🎨 Ready for Implementation:
+- No additional cropping or adjustments needed
+- Your composition works perfectly with existing text overlay
+- Optimized file sizes for fast loading
+- Modern WebP format with JPEG fallbacks
   `);
   
-  console.log('✨ Optimization complete! Your banner is now web-ready.');
+  console.log('✨ Optimization complete! Your perfect composition is web-ready.');
 }
 
 // Run the optimization
