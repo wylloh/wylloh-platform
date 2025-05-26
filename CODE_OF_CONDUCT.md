@@ -1,123 +1,119 @@
-# Code of Conduct
+# Community Guidelines: Be Kind, Rewind
 
 ## Our Pledge
 
-We as members, contributors, and leaders pledge to make participation in our
-community a harassment-free experience for everyone, regardless of age, body
-size, visible or invisible disability, ethnicity, sex characteristics, gender
-identity and expression, level of experience, education, socio-economic status,
-nationality, personal appearance, race, religion, or sexual identity
-and orientation.
+Just like the golden rule of video stores, "Be Kind, Rewind," we pledge to make participation in the Wylloh community a respectful, supportive experience for everyone. Whether you're a Hollywood professional, independent filmmaker, passionate collector, or film enthusiast, we're committed to fostering an environment where creativity, collaboration, and respect thrive.
 
-We pledge to act and interact in ways that contribute to an open, welcoming,
-diverse, inclusive, and healthy community.
+We pledge to act and interact in ways that contribute to an open, welcoming, diverse, inclusive, and healthy community that honors both the art of filmmaking and the joy of collecting.
 
-## Our Standards
+## Our Core Principles
 
-Examples of behavior that contributes to a positive environment for our
-community include:
+### 🎬 Be Kind, Rewind
+Just as you'd return a VHS tape in perfect condition for the next person, treat our community with the same consideration. Leave every interaction better than you found it.
 
-* Demonstrating empathy and kindness toward other people
-* Being respectful of differing opinions, viewpoints, and experiences
-* Giving and gracefully accepting constructive feedback
-* Accepting responsibility and apologizing to those affected by our mistakes,
-  and learning from the experience
-* Focusing on what is best not just for us as individuals, but for the
-  overall community
+### 🎭 Respect the Art
+Honor the filmmakers, creators, and collectors who make this platform possible. Every piece of content represents someone's passion, hard work, and creative vision.
+
+### 🤝 Build Together
+We're creating the future of film collecting and distribution together. Share knowledge, help newcomers, and contribute to a thriving community that benefits everyone.
+
+### 🔒 Protect & Preserve
+Help us maintain the integrity of the platform. Report issues, respect intellectual property, and keep our digital vault secure for current and future generations.
+
+## Community Standards
+
+Examples of behavior that contributes to a positive environment include:
+
+* **Authentic enthusiasm** for film, storytelling, and collecting
+* **Professional courtesy** in all interactions, befitting industry standards
+* **Generous knowledge sharing** and mentorship of newcomers
+* **Constructive feedback** that helps improve content and experiences
+* **Respect for intellectual property** and creators' rights
+* **Collaborative problem-solving** and community support
+* **Celebrating others' collections** and creative achievements
 
 Examples of unacceptable behavior include:
 
-* The use of sexualized language or imagery, and sexual attention or
-  advances of any kind
-* Trolling, insulting or derogatory comments, and personal or political attacks
-* Public or private harassment
-* Publishing others' private information, such as a physical or email
-  address, without their explicit permission
-* Other conduct which could reasonably be considered inappropriate in a
-  professional setting
+* **Disrespecting creators or collectors** through harassment or dismissive comments
+* **Sharing or distributing content** beyond granted access rights
+* **Posting inappropriate, offensive, or unprofessional content**
+* **Attempting to circumvent platform security** or blockchain systems
+* **Sharing private information** without explicit permission
+* **Engaging in fraudulent activities** or misrepresenting content ownership
+* **Disrupting community discussions** with spam, trolling, or off-topic content
 
-## Enforcement Responsibilities
+## Content & Collection Guidelines
 
-Community leaders are responsible for clarifying and enforcing our standards of
-acceptable behavior and will take appropriate and fair corrective action in
-response to any behavior that they deem inappropriate, threatening, offensive,
-or harmful.
+### For Content Creators
+* Provide accurate metadata and content descriptions
+* Respect licensing agreements and distribution terms
+* Maintain confidentiality of unreleased or sensitive material
+* Support fair compensation models for all contributors
 
-Community leaders have the right and responsibility to remove, edit, or reject
-comments, commits, code, wiki edits, issues, and other contributions that are
-not aligned to this Code of Conduct, and will communicate reasons for moderation
-decisions when appropriate.
+### For Collectors
+* Honor the terms of your token-based access rights
+* Share enthusiasm while respecting creators' intellectual property
+* Help preserve film history through thoughtful curation
+* Support the platform's professional reputation in the industry
 
-## Scope
+### For Community Members
+* Engage with kindness and professional courtesy
+* Report bugs, security issues, or inappropriate content promptly
+* Use the platform as intended for legitimate collecting and viewing
+* Maintain the professional standards expected by filmmakers
 
-This Code of Conduct applies within all community spaces, and also applies when
-an individual is officially representing the community in public spaces.
+## Enforcement Philosophy
 
-## Enforcement
+We believe in the power of self-regulation and community responsibility. Rather than imposing rigid rules, we trust our members to embody the spirit of "Be Kind, Rewind." Our approach emphasizes:
 
-Instances of abusive, harassing, or otherwise unacceptable behavior may be
-reported to the community leaders responsible for enforcement at
-contact@wylloh.com. All complaints will be reviewed and investigated promptly and
-fairly.
+* **Education over punishment** - helping members understand community expectations
+* **Restorative justice** - focusing on repairing harm and rebuilding trust
+* **Graduated responses** - escalating only when necessary to protect the community
+* **Transparency** - clear communication about decisions and their reasoning
 
-All community leaders are obligated to respect the privacy and security of the
-reporter of any incident.
+## Enforcement Process
 
-## Enforcement Guidelines
+### 1. Gentle Reminder
+**Community Impact**: Minor violations or misunderstandings about community expectations.
 
-Community leaders will follow these Community Impact Guidelines in determining
-the consequences for any action they deem in violation of this Code of Conduct:
+**Response**: A friendly, private message explaining community standards and offering guidance on better practices.
 
-### 1. Correction
+### 2. Community Guidance
+**Community Impact**: Behavior that doesn't align with our "Be Kind, Rewind" principles.
 
-**Community Impact**: Use of inappropriate language or other behavior deemed
-unprofessional or unwelcome in the community.
+**Response**: A more formal discussion about expectations, possibly including temporary restrictions on certain platform features while the member demonstrates understanding.
 
-**Consequence**: A private, written warning from community leaders, providing
-clarity around the nature of the violation and an explanation of why the
-behavior was inappropriate. A public apology may be requested.
+### 3. Temporary Timeout
+**Community Impact**: Serious violations that harm other community members or the platform's integrity.
 
-### 2. Warning
+**Response**: A temporary suspension from community interactions, with clear expectations for return and ongoing support to help the member succeed.
 
-**Community Impact**: A violation through a single incident or series of
-actions.
+### 4. Permanent Removal
+**Community Impact**: Sustained violations, serious harm to others, or behavior incompatible with our community values.
 
-**Consequence**: A warning with consequences for continued behavior. No
-interaction with the people involved, including unsolicited interaction with
-those enforcing the Code of Conduct, for a specified period of time. This
-includes avoiding interactions in community spaces as well as external channels
-like social media. Violating these terms may lead to a temporary or permanent
-ban.
+**Response**: Permanent removal from the community, with the possibility of appeal after a significant period and demonstrated change.
 
-### 3. Temporary Ban
+## Reporting and Support
 
-**Community Impact**: A serious violation of community standards, including
-sustained inappropriate behavior.
+If you experience or witness behavior that doesn't align with our "Be Kind, Rewind" principles, please reach out:
 
-**Consequence**: A temporary ban from any sort of interaction or public
-communication with the community for a specified period of time. No public or
-private interaction with the people involved, including unsolicited interaction
-with those enforcing the Code of Conduct, is allowed during this period.
-Violating these terms may lead to a permanent ban.
+* **Community concerns**: community@wylloh.com
+* **Security issues**: security@wylloh.com  
+* **Content violations**: copyright@wylloh.com
+* **General support**: support@wylloh.com
 
-### 4. Permanent Ban
+All reports will be reviewed promptly and handled with discretion. We're committed to protecting the privacy and security of those who report issues.
 
-**Community Impact**: Demonstrating a pattern of violation of community
-standards, including sustained inappropriate behavior, harassment of an
-individual, or aggression toward or disparagement of classes of individuals.
+## Our Commitment
 
-**Consequence**: A permanent ban from any sort of public interaction within the
-community.
+We're building something special together - a platform where Hollywood professionals can confidently share their work and collectors can build meaningful digital libraries. This requires trust, respect, and shared commitment to excellence.
 
-## Attribution
+Remember: we're all here because we love film. Whether you're creating the next blockbuster or building the perfect collection, you're part of a community that values both artistic achievement and the joy of discovery.
 
-This Code of Conduct is adapted from the [Contributor Covenant](https://www.contributor-covenant.org),
-version 2.0, available at
-https://www.contributor-covenant.org/version/2/0/code_of_conduct.html.
+**Be Kind, Rewind. Build together. Preserve forever.**
 
-Community Impact Guidelines were inspired by [Mozilla's code of conduct
-enforcement ladder](https://github.com/mozilla/diversity).
+---
 
-For answers to common questions about this code of conduct, see the FAQ at
-https://www.contributor-covenant.org/faq. Translations are available at
-https://www.contributor-covenant.org/translations. 
+*This Code of Conduct is inspired by the [Contributor Covenant](https://www.contributor-covenant.org) and adapted for the unique needs of the film industry and digital collecting community.*
+
+*Last updated: January 2024* 

@@ -26,6 +26,15 @@ const LibraryPage = React.lazy(() => import('./pages/library/LibraryPage'));
 // Player pages
 const PlayerPage = React.lazy(() => import('./pages/player/PlayerPage'));
 
+// Auth pages
+const LoginPage = React.lazy(() => import('./pages/auth/LoginPage'));
+
+// Essential pages
+const CommunityPage = React.lazy(() => import('./pages/CommunityPage'));
+const TermsPage = React.lazy(() => import('./pages/TermsPage'));
+const PrivacyPage = React.lazy(() => import('./pages/PrivacyPage'));
+const ContactPage = React.lazy(() => import('./pages/ContactPage'));
+
 // Loading component
 const LoadingFallback = () => (
   <Box 
@@ -67,6 +76,15 @@ const AppRoutes = () => {
         <Route path="/pro/analytics" element={<AnalyticsDashboardPage />} />
         <Route path="/pro/tags" element={<TagManagementPage />} />
         <Route path="/pro" element={<Navigate to="/pro/dashboard" replace />} />
+        
+        {/* Auth pages */}
+        <Route path="/login" element={<LoginPage />} />
+        
+        {/* Essential pages */}
+        <Route path="/community" element={<CommunityPage />} />
+        <Route path="/terms" element={<TermsPage />} />
+        <Route path="/privacy" element={<PrivacyPage />} />
+        <Route path="/contact" element={<ContactPage />} />
         
         {/* 404 route */}
         <Route path="*" element={<NotFoundPage />} />
