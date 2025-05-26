@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Box, Typography, Container, Button, CircularProgress } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
-import PlayerContainer from '../../components/player/PlayerContainer';
+import PlayerContainer from '../../../components/player/PlayerContainer';
 
 const SAMPLE_VIDEO = 'https://sample-videos.com/video123/mp4/720/big_buck_bunny_720p_1mb.mp4';
 

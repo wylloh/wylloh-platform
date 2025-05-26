@@ -222,7 +222,7 @@ const TagManagementInterface: React.FC<TagManagementInterfaceProps> = ({
     
     try {
       // Check if tag is in use
-      if (currentTag.usageCount > 0) {
+      if (currentTag.usageCount && currentTag.usageCount > 0) {
         showSnackbar(`Cannot delete tag "${currentTag.name}" as it is used by ${currentTag.usageCount} content items.`, 'error');
         setDeleteConfirmOpen(false);
         return;
@@ -387,7 +387,7 @@ const TagManagementInterface: React.FC<TagManagementInterfaceProps> = ({
                 <Typography variant="subtitle1">{tag.name}</Typography>
                 <Chip 
                   size="small" 
-                  label={`${tag.usageCount} ${tag.usageCount === 1 ? 'use' : 'uses'}`}
+                  label={`${tag.usageCount || 0} ${(tag.usageCount || 0) === 1 ? 'use' : 'uses'}`}
                   sx={{ ml: 1 }}
                 />
               </Box>
@@ -574,7 +574,7 @@ const TagManagementInterface: React.FC<TagManagementInterfaceProps> = ({
           Are you sure you want to delete the tag "{currentTag?.name}"?
           {currentTag?.usageCount ? (
             <Typography color="error" sx={{ mt: 1 }}>
-              This tag is used by {currentTag.usageCount} content items and cannot be deleted.
+              This tag is used by {currentTag.usageCount || 0} content items and cannot be deleted.
             </Typography>
           ) : (
             <Typography sx={{ mt: 1 }}>

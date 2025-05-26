@@ -417,10 +417,7 @@ class AdaptiveStreamingService {
           autoSwitchBitrate: {
             video: options.preferredQuality === StreamQuality.AUTO
           }
-        },
-        bufferToKeep: 30,
-        bufferPruningInterval: 30,
-        lowLatencyEnabled: options.lowLatency
+        }
       }
     });
     

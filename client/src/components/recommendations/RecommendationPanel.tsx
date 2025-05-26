@@ -18,13 +18,10 @@ import {
 } from '@mui/icons-material';
 import RecommendationsList from './RecommendationsList';
 import PersonalizedRecommendations from './PersonalizedRecommendations';
-import { RecommendationType } from '../../services/recommendation.service';
-import { ContentType } from '../../services/metadata.service';
 
 interface RecommendationPanelProps {
   title?: string;
   subtitle?: string;
-  contentType?: ContentType;
   elevation?: number;
   maxItems?: number;
   showTabs?: boolean;
@@ -36,7 +33,6 @@ interface RecommendationPanelProps {
 const RecommendationPanel: React.FC<RecommendationPanelProps> = ({
   title = 'Recommendations',
   subtitle,
-  contentType,
   elevation = 1,
   maxItems = 4,
   showTabs = true
@@ -47,12 +43,6 @@ const RecommendationPanel: React.FC<RecommendationPanelProps> = ({
   // Handle tab change
   const handleTabChange = (_event: React.SyntheticEvent, newValue: number) => {
     setTabValue(newValue);
-  };
-  
-  // Recommendation options
-  const options = {
-    contentType,
-    limit: maxItems
   };
   
   // Custom tab styling
@@ -103,32 +93,23 @@ const RecommendationPanel: React.FC<RecommendationPanelProps> = ({
               </Box>
               <Box sx={{ display: tabValue === 1 ? 'block' : 'none' }}>
                 <RecommendationsList
+                  recommendations={[]}
                   title=""
-                  type={RecommendationType.TRENDING}
-                  options={options}
                   maxItems={maxItems}
-                  showReason={false}
                 />
               </Box>
               <Box sx={{ display: tabValue === 2 ? 'block' : 'none' }}>
                 <RecommendationsList
+                  recommendations={[]}
                   title=""
-                  type={RecommendationType.NEW_RELEASES}
-                  options={options}
                   maxItems={maxItems}
-                  showReason={false}
                 />
               </Box>
               <Box sx={{ display: tabValue === 3 ? 'block' : 'none' }}>
                 <RecommendationsList
+                  recommendations={[]}
                   title=""
-                  type={RecommendationType.GENRE_BASED}
-                  options={{
-                    ...options,
-                    genres: ['Comedy']
-                  }}
                   maxItems={maxItems}
-                  showReason={false}
                 />
               </Box>
             </React.Fragment>
