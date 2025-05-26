@@ -29,6 +29,7 @@ import {
 import { Link } from 'react-router-dom';
 import { useWallet } from '../contexts/WalletContext';
 import { useSnackbar } from 'notistack';
+import ResponsiveBanner from '../components/common/ResponsiveBanner';
 
 interface FeaturedContent {
   id: string;
@@ -102,94 +103,114 @@ const HomePage: React.FC = () => {
 
   return (
     <Box sx={{ overflow: 'hidden' }}>
-      {/* Hero Section */}
-      <Paper
-        elevation={0}
-        sx={{
-          position: 'relative',
-          backgroundColor: 'background.default',
-          color: 'text.primary',
-          mb: 12,
-          minHeight: '85vh',
-          display: 'flex',
-          alignItems: 'center',
-          border: 'none',
-          borderRadius: 0,
-        }}
-      >
-        <Container maxWidth="lg">
-          <Grid container spacing={6} alignItems="center">
-            <Grid item xs={12} md={8}>
-              <Fade in timeout={1000}>
-                <Box>
-                  <Typography 
-                    component="h1" 
-                    variant={isMobile ? "h3" : "h1"} 
-                    color="text.primary" 
-                    gutterBottom
-                    sx={{ 
-                      fontWeight: 600,
-                      letterSpacing: '-0.02em',
-                      mb: 3,
-                      lineHeight: 1.1,
-                    }}
-                  >
-                    Hollywood distribution, reimagined.
-                  </Typography>
-                  <Typography 
-                    variant="h5" 
-                    color="text.secondary" 
-                    paragraph
-                    sx={{ 
-                      mb: 4,
-                      fontWeight: 400,
-                      lineHeight: 1.5,
-                      maxWidth: '600px',
-                    }}
-                  >
-                    Open-source, decentralized license management and CDN with realtime utility.
-                  </Typography>
-                  <Stack 
-                    direction={{ xs: 'column', sm: 'row' }} 
-                    spacing={3}
-                    sx={{ mt: 5 }}
-                  >
-                    <Button 
-                      variant="contained" 
-                      size="large"
-                      component={Link} 
-                      to="/marketplace"
-                      endIcon={<ArrowForward />}
+      {/* Hero Banner Section */}
+      <Box sx={{ position: 'relative', mb: 8 }}>
+        <ResponsiveBanner 
+          height="60vh"
+          priority={true}
+          alt="Wylloh Platform - Hollywood's Digital Content Hub"
+        />
+        
+        {/* Overlay Content */}
+        <Box
+          sx={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            background: 'linear-gradient(45deg, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0.3) 50%, rgba(0,0,0,0.1) 100%)',
+            display: 'flex',
+            alignItems: 'center',
+            zIndex: 1,
+          }}
+        >
+          <Container maxWidth="lg">
+            <Grid container spacing={6} alignItems="center">
+              <Grid item xs={12} md={8}>
+                <Fade in timeout={1000}>
+                  <Box>
+                    <Typography 
+                      component="h1" 
+                      variant={isMobile ? "h3" : "h1"} 
+                      color="white" 
+                      gutterBottom
                       sx={{ 
-                        py: 1.5,
-                        px: 4,
-                        fontSize: '1rem',
-                        fontWeight: 500,
+                        fontWeight: 600,
+                        letterSpacing: '-0.02em',
+                        mb: 3,
+                        lineHeight: 1.1,
+                        textShadow: '2px 2px 4px rgba(0,0,0,0.8)',
                       }}
                     >
-                      Explore Collection
-                    </Button>
-                    <Button 
-                      variant="outlined" 
-                      size="large"
-                      component={Link} 
-                      to="/creator/upload"
+                      Hollywood distribution, reimagined.
+                    </Typography>
+                    <Typography 
+                      variant="h5" 
+                      color="rgba(255,255,255,0.9)" 
+                      paragraph
                       sx={{ 
-                        py: 1.5,
-                        px: 4,
-                        fontSize: '1rem',
-                        fontWeight: 500,
+                        mb: 4,
+                        fontWeight: 400,
+                        lineHeight: 1.5,
+                        maxWidth: '600px',
+                        textShadow: '1px 1px 2px rgba(0,0,0,0.8)',
                       }}
                     >
-                      For Pros
-                    </Button>
-                  </Stack>
-                </Box>
-              </Fade>
+                      Open-source, decentralized license management and CDN with realtime utility.
+                    </Typography>
+                    <Stack 
+                      direction={{ xs: 'column', sm: 'row' }} 
+                      spacing={3}
+                      sx={{ mt: 5 }}
+                    >
+                      <Button 
+                        variant="contained" 
+                        size="large"
+                        component={Link} 
+                        to="/marketplace"
+                        endIcon={<ArrowForward />}
+                        sx={{ 
+                          py: 1.5,
+                          px: 4,
+                          fontSize: '1rem',
+                          fontWeight: 500,
+                          backgroundColor: 'primary.main',
+                          '&:hover': {
+                            backgroundColor: 'primary.dark',
+                          }
+                        }}
+                      >
+                        Explore Collection
+                      </Button>
+                      <Button 
+                        variant="outlined" 
+                        size="large"
+                        component={Link} 
+                        to="/creator/upload"
+                        sx={{ 
+                          py: 1.5,
+                          px: 4,
+                          fontSize: '1rem',
+                          fontWeight: 500,
+                          borderColor: 'white',
+                          color: 'white',
+                          '&:hover': {
+                            borderColor: 'white',
+                            backgroundColor: 'rgba(255,255,255,0.1)',
+                          }
+                        }}
+                      >
+                        For Pros
+                      </Button>
+                    </Stack>
+                  </Box>
+                </Fade>
+              </Grid>
             </Grid>
-          </Grid>
-        </Container>
-      </Paper>
+          </Container>
+        </Box>
+      </Box>
 
       {/* Features Section */}
       <Container maxWidth="lg" sx={{ mb: 12 }}>

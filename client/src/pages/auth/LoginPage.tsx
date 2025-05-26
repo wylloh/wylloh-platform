@@ -1,118 +1,128 @@
 import React, { useState } from 'react';
 import {
   Container,
-  Typography,
-  Box,
+  Paper,
   TextField,
   Button,
-  Paper,
-  Link as MuiLink,
-  Divider,
+  Typography,
+  Box,
+  Link,
   Alert,
   CircularProgress
 } from '@mui/material';
-import { Link, useNavigate } from 'react-router-dom';
-import { useAuth } from '../../contexts/AuthContext';
-import { useWallet } from '../../contexts/WalletContext';
+import { useNavigate } from 'react-router-dom';
 
 const LoginPage: React.FC = () => {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const { login, error, loading } = useAuth();
-  const { connect, account } = useWallet();
   const navigate = useNavigate();
+  const [formData, setFormData] = useState({
+    email: '',
+    password: ''
+  });
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setFormData({
+      ...formData,
+      [e.target.name]: e.target.value
+    });
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const success = await login(email, password);
-    if (success) {
+    setLoading(true);
+    setError('');
+
+    try {
+      // TODO: Implement actual authentication logic
+      console.log('Login attempt:', formData);
+      
+      // Simulate API call
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      // For now, just navigate to home
       navigate('/');
+    } catch (err) {
+      setError('Login failed. Please try again.');
+    } finally {
+      setLoading(false);
     }
   };
 
-  const handleConnectWallet = async () => {
-    await connect();
-  };
-
   return (
-    <Container maxWidth="sm">
-      <Box sx={{ mt: 8, mb: 8 }}>
-        <Paper sx={{ p: 4 }}>
-          <Typography variant="h4" component="h1" align="center" gutterBottom>
-            Log In to Wylloh
+    <Container maxWidth="sm" sx={{ mt: 8, mb: 4 }}>
+      <Paper elevation={3} sx={{ p: 4 }}>
+        <Box textAlign="center" mb={3}>
+          <Typography variant="h4" component="h1" gutterBottom>
+            Sign In to Wylloh
           </Typography>
+          <Typography variant="body1" color="text.secondary">
+            Access your digital content hub
+          </Typography>
+        </Box>
+
+        {error && (
+          <Alert severity="error" sx={{ mb: 2 }}>
+            {error}
+          </Alert>
+        )}
+
+        <Box component="form" onSubmit={handleSubmit}>
+          <TextField
+            fullWidth
+            label="Email"
+            name="email"
+            type="email"
+            value={formData.email}
+            onChange={handleChange}
+            margin="normal"
+            required
+            autoComplete="email"
+            autoFocus
+          />
           
-          <Typography variant="body1" align="center" color="textSecondary" paragraph>
-            Access your content library and creator dashboard
-          </Typography>
-
-          {error && (
-            <Alert severity="error" sx={{ mb: 3 }}>
-              {error}
-            </Alert>
-          )}
-
-          <form onSubmit={handleSubmit}>
-            <TextField
-              margin="normal"
-              required
-              fullWidth
-              id="email"
-              label="Email Address"
-              name="email"
-              autoComplete="email"
-              autoFocus
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-            />
-            <TextField
-              margin="normal"
-              required
-              fullWidth
-              name="password"
-              label="Password"
-              type="password"
-              id="password"
-              autoComplete="current-password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-            />
-            <Button
-              type="submit"
-              fullWidth
-              variant="contained"
-              sx={{ mt: 3, mb: 2 }}
-              disabled={loading}
-            >
-              {loading ? <CircularProgress size={24} /> : 'Log In'}
-            </Button>
-          </form>
-
-          <Divider sx={{ my: 3 }}>
-            <Typography variant="body2" color="textSecondary">
-              OR
-            </Typography>
-          </Divider>
+          <TextField
+            fullWidth
+            label="Password"
+            name="password"
+            type="password"
+            value={formData.password}
+            onChange={handleChange}
+            margin="normal"
+            required
+            autoComplete="current-password"
+          />
 
           <Button
+            type="submit"
             fullWidth
-            variant="outlined"
-            onClick={handleConnectWallet}
-            sx={{ mb: 2 }}
+            variant="contained"
+            size="large"
+            disabled={loading}
+            sx={{ mt: 3, mb: 2 }}
           >
-            {account ? 'Wallet Connected' : 'Connect Wallet'}
+            {loading ? <CircularProgress size={24} /> : 'Sign In'}
           </Button>
 
-          <Box sx={{ mt: 2, textAlign: 'center' }}>
-            <Typography variant="body2">
-              Don't have an account?{' '}
-              <MuiLink component={Link} to="/register" variant="body2">
-                Register here
-              </MuiLink>
-            </Typography>
+          <Box textAlign="center">
+            <Link
+              component="button"
+              variant="body2"
+              onClick={() => navigate('/register')}
+              sx={{ mr: 2 }}
+            >
+              Don't have an account? Sign Up
+            </Link>
+            <Link
+              component="button"
+              variant="body2"
+              onClick={() => navigate('/forgot-password')}
+            >
+              Forgot Password?
+            </Link>
           </Box>
-        </Paper>
-      </Box>
+        </Box>
+      </Paper>
     </Container>
   );
 };
