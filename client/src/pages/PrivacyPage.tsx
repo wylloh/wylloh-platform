@@ -20,122 +20,129 @@ import {
   Shield as PrivacyIcon,
   Visibility as DataIcon,
   Lock as SecurityIcon,
-  Public as BlockchainIcon
+  Public as BlockchainIcon,
+  AccountBalanceWallet as WalletIcon
 } from '@mui/icons-material';
 
 const PrivacyPage: React.FC = () => {
   const lastUpdated = "January 2024";
 
   const dataTypes = [
-    { type: "Account Information", description: "Email, wallet address, profile preferences" },
-    { type: "Usage Data", description: "Platform interactions, content views, transaction history" },
-    { type: "Technical Data", description: "IP address, browser type, device information" },
-    { type: "Blockchain Data", description: "Public wallet transactions, token ownership records" }
+    { type: "Wallet Address", description: "Public blockchain address (already public on-chain)" },
+    { type: "On-Chain Activity", description: "Token transactions and ownership (public blockchain data)" },
+    { type: "Platform Preferences", description: "Display settings and user interface preferences only" },
+    { type: "No Personal Data", description: "We do not collect names, emails, or personal information" }
   ];
 
   const sections = [
     {
-      title: "1. Information We Collect",
+      title: "1. Our Privacy-First Approach",
       content: [
-        "We collect information you provide directly, such as when you create an account, connect your wallet, or contact our support team.",
-        "We automatically collect certain information about your device and usage of the platform, including IP address, browser type, and interaction patterns.",
-        "Blockchain data is collected from public blockchain networks, including wallet addresses, transaction hashes, and token ownership records.",
-        "We may collect information from third-party services like wallet providers when you connect external services to your account.",
-        "Analytics data helps us understand platform usage patterns and improve user experience while maintaining privacy."
+        "Wylloh is built on blockchain-native principles that respect your privacy by design.",
+        "We do NOT collect personal information like names, emails, phone numbers, or addresses.",
+        "Our analytics are based solely on public blockchain data (wallet activity) that is already transparent.",
+        "No cookies, tracking pixels, or traditional web analytics are used to monitor your behavior.",
+        "Your privacy is protected through decentralization - we cannot access what we don't collect.",
+        "This approach makes Wylloh fundamentally more private than traditional web platforms."
       ]
     },
     {
-      title: "2. How We Use Your Information",
+      title: "2. What Information We Access",
       content: [
-        "To provide, maintain, and improve the Wylloh platform and its features.",
-        "To process transactions, verify token ownership, and manage your digital content library.",
-        "To communicate with you about your account, platform updates, and customer support.",
-        "To analyze platform usage and performance to enhance user experience and security.",
-        "To comply with legal obligations and protect against fraud or security threats.",
-        "To personalize your experience and provide relevant content recommendations."
+        "Wallet addresses: Public blockchain identifiers that you choose to connect to the platform.",
+        "On-chain transactions: Public blockchain records of token ownership and transfers.",
+        "Platform preferences: Settings you configure for your user interface experience.",
+        "No tracking data: We do not use cookies, analytics, or behavioral tracking technologies.",
+        "No personal identifiers: We cannot and do not link wallet addresses to real-world identities.",
+        "All data we access is either public (blockchain) or voluntarily provided (preferences)."
       ]
     },
     {
-      title: "3. Blockchain and Public Data",
+      title: "3. Blockchain Transparency & Privacy",
       content: [
-        "Blockchain transactions are public by nature and permanently recorded on distributed networks.",
-        "Your wallet address and token ownership may be visible to anyone with blockchain analysis tools.",
-        "We cannot modify or delete blockchain records, as they are maintained by decentralized networks.",
-        "Smart contract interactions and token transfers are publicly auditable and traceable.",
-        "Consider using privacy-focused wallets or techniques if you prefer enhanced transaction privacy."
+        "Blockchain transactions are public by design and provide transparency without compromising privacy.",
+        "Your wallet address is pseudonymous - it's public but not linked to your personal identity.",
+        "Token ownership and transfers are recorded on decentralized networks, not our servers.",
+        "We cannot modify, delete, or hide blockchain records as they exist on distributed networks.",
+        "This transparency enables trustless verification while maintaining pseudonymous privacy.",
+        "You control your privacy level by choosing which wallet addresses to use with the platform."
       ]
     },
     {
-      title: "4. Information Sharing and Disclosure",
+      title: "4. What We Don't Collect",
       content: [
-        "We do not sell, trade, or rent your personal information to third parties for marketing purposes.",
-        "We may share information with service providers who assist in platform operations under strict confidentiality agreements.",
-        "Legal compliance may require disclosure of information to law enforcement or regulatory authorities.",
-        "In case of business transfer or merger, user information may be transferred as part of business assets.",
-        "We may share aggregated, anonymized data for research or business purposes that cannot identify individual users."
+        "Personal information: No names, emails, phone numbers, or physical addresses.",
+        "Browsing behavior: No tracking of your activity across websites or applications.",
+        "Device fingerprinting: No collection of device-specific identifiers or characteristics.",
+        "Location data: No GPS, IP-based location tracking, or geographic profiling.",
+        "Biometric data: No facial recognition, fingerprints, or other biometric identifiers.",
+        "Social connections: No access to your contacts, social media, or relationship data."
       ]
     },
     {
-      title: "5. Data Security and Protection",
+      title: "5. How We Use Blockchain Data",
       content: [
-        "We implement industry-standard security measures to protect your personal information.",
-        "All data transmission is encrypted using SSL/TLS protocols and secure communication channels.",
-        "Access to personal information is restricted to authorized personnel who need it for legitimate business purposes.",
-        "We regularly review and update our security practices to address emerging threats and vulnerabilities.",
-        "Users are responsible for maintaining the security of their wallet private keys and account credentials.",
-        "We cannot recover lost private keys or reverse blockchain transactions due to their decentralized nature."
+        "To verify token ownership and enable access to content you legitimately own.",
+        "To display your digital collection and transaction history from public blockchain records.",
+        "To process rights verification and royalty distribution based on token holdings.",
+        "To provide platform analytics based on aggregated, anonymous wallet activity patterns.",
+        "To ensure platform security by monitoring for suspicious on-chain activity.",
+        "All usage is based on public blockchain data that is already transparent and verifiable."
       ]
     },
     {
-      title: "6. Your Privacy Rights",
+      title: "6. Data Sharing and Third Parties",
       content: [
-        "You have the right to access, update, or delete your personal information stored on our platform.",
-        "You can request a copy of the personal data we have collected about you.",
-        "You may opt out of non-essential communications and marketing materials.",
-        "You can request restriction of processing or object to certain uses of your information.",
-        "Note that blockchain data cannot be deleted or modified due to the immutable nature of distributed ledgers.",
-        "Contact our privacy team to exercise any of these rights or ask questions about your data."
+        "We do not sell, trade, or share any data with third parties for marketing purposes.",
+        "Blockchain data is already public and accessible to anyone with blockchain analysis tools.",
+        "We may use blockchain infrastructure providers (like Infura) who can see the same public data.",
+        "Legal compliance may require sharing public blockchain data with authorities if requested.",
+        "No personal information is shared because we don't collect personal information.",
+        "Our decentralized approach minimizes data sharing risks by design."
       ]
     },
     {
-      title: "7. Cookies and Tracking Technologies",
+      title: "7. Your Privacy Rights and Control",
       content: [
-        "We use cookies and similar technologies to enhance platform functionality and user experience.",
-        "Essential cookies are necessary for platform operation and cannot be disabled.",
-        "Analytics cookies help us understand usage patterns and improve platform performance.",
-        "You can control cookie preferences through your browser settings.",
-        "Third-party services integrated with the platform may use their own tracking technologies.",
-        "We do not use cookies for targeted advertising or cross-site tracking."
+        "You control your privacy by choosing which wallet addresses to connect to the platform.",
+        "You can disconnect your wallet at any time to stop platform access to your blockchain data.",
+        "Platform preferences can be reset or modified through your user interface settings.",
+        "Blockchain data cannot be deleted as it exists on decentralized networks beyond our control.",
+        "You can use privacy-focused wallets or techniques to enhance your transaction privacy.",
+        "No account deletion is needed since we don't maintain personal accounts or profiles."
       ]
     },
     {
-      title: "8. International Data Transfers",
+      title: "8. Security and Data Protection",
       content: [
-        "Your information may be processed and stored in countries other than your residence.",
-        "We ensure appropriate safeguards are in place for international data transfers.",
-        "Blockchain networks are global and decentralized, making data location control impossible.",
-        "We comply with applicable data protection laws in jurisdictions where we operate.",
-        "Users in the EU have specific rights under GDPR that we respect and uphold."
+        "We implement industry-standard security for the minimal data we do handle (preferences).",
+        "All platform communications use SSL/TLS encryption for data in transit.",
+        "We cannot lose your personal data because we don't collect or store personal data.",
+        "Blockchain data security is maintained by decentralized networks, not our servers.",
+        "You are responsible for securing your wallet private keys and seed phrases.",
+        "Our privacy-by-design approach eliminates most traditional data security risks."
       ]
     },
     {
-      title: "9. Children's Privacy",
+      title: "9. No Cookies or Tracking",
       content: [
-        "The Wylloh platform is not intended for use by children under 13 years of age.",
-        "We do not knowingly collect personal information from children under 13.",
-        "If we become aware that we have collected information from a child under 13, we will delete it promptly.",
-        "Parents or guardians who believe their child has provided information should contact us immediately.",
-        "Users between 13-18 should have parental consent before using the platform."
+        "We do not use tracking cookies, analytics cookies, or advertising cookies.",
+        "Essential technical cookies may be used only for basic platform functionality.",
+        "No third-party tracking scripts or analytics services monitor your behavior.",
+        "We do not participate in cross-site tracking or advertising networks.",
+        "Your browser settings control any technical cookies we might use.",
+        "Our blockchain-native approach eliminates the need for traditional web tracking."
       ]
     },
     {
       title: "10. Changes to This Privacy Policy",
       content: [
-        "We may update this Privacy Policy from time to time to reflect changes in our practices or legal requirements.",
-        "We will notify users of significant changes through platform notifications or email.",
-        "Continued use of the platform after policy updates constitutes acceptance of the changes.",
-        "We encourage users to review this policy periodically to stay informed about our privacy practices.",
-        "The effective date at the top of this policy indicates when it was last updated."
+        "We may update this policy to reflect changes in our privacy practices or legal requirements.",
+        "Significant changes will be communicated through platform notifications.",
+        "Our commitment to privacy-first, blockchain-native principles will remain unchanged.",
+        "Continued platform use after policy updates constitutes acceptance of changes.",
+        "We encourage periodic review of this policy to stay informed about our practices.",
+        "The effective date indicates when this policy was last updated."
       ]
     }
   ];
@@ -169,26 +176,26 @@ const PrivacyPage: React.FC = () => {
               lineHeight: 1.6,
             }}
           >
-            How we collect, use, and protect your personal information
+            Privacy-first blockchain platform with no personal data collection
           </Typography>
           <Typography variant="body2" color="text.secondary">
             Last updated: {lastUpdated}
           </Typography>
         </Box>
 
-        {/* Blockchain Privacy Notice */}
+        {/* Privacy-First Notice */}
         <Alert 
-          severity="warning" 
+          severity="success" 
           sx={{ mb: 4, p: 3 }}
-          icon={<BlockchainIcon />}
+          icon={<WalletIcon />}
         >
           <Typography variant="h6" gutterBottom sx={{ fontWeight: 600 }}>
-            Important: Blockchain Privacy Considerations
+            Privacy-First Blockchain Platform
           </Typography>
           <Typography variant="body2">
-            This platform uses blockchain technology where transactions are public and permanent. 
-            While we protect your personal information, blockchain data (wallet addresses, transactions) 
-            may be publicly visible and cannot be deleted or modified.
+            Wylloh respects your privacy through blockchain-native design. We use only public 
+            blockchain data (wallet activity) for analytics and do not collect personal information, 
+            use tracking cookies, or monitor your behavior. Your privacy is protected by design.
           </Typography>
         </Alert>
 
@@ -205,7 +212,7 @@ const PrivacyPage: React.FC = () => {
           <Box sx={{ textAlign: 'center', mb: 4 }}>
             <DataIcon sx={{ fontSize: 48, color: 'primary.main', mb: 2 }} />
             <Typography variant="h5" component="h2" gutterBottom sx={{ fontWeight: 600 }}>
-              Types of Information We Collect
+              What We Access (All Public or Voluntary)
             </Typography>
           </Box>
           <Grid container spacing={3}>
@@ -283,7 +290,7 @@ const PrivacyPage: React.FC = () => {
           ))}
         </Box>
 
-        {/* Your Rights Section */}
+        {/* Privacy Benefits Section */}
         <Paper 
           elevation={0}
           sx={{ 
@@ -296,21 +303,21 @@ const PrivacyPage: React.FC = () => {
           <Box sx={{ textAlign: 'center', mb: 3 }}>
             <SecurityIcon sx={{ fontSize: 48, color: 'primary.main', mb: 2 }} />
             <Typography variant="h5" component="h2" gutterBottom sx={{ fontWeight: 600 }}>
-              Your Privacy Rights
+              Privacy Benefits of Blockchain-Native Design
             </Typography>
           </Box>
           <Grid container spacing={2} justifyContent="center">
             {[
-              "Access Your Data",
-              "Update Information", 
-              "Delete Account",
-              "Data Portability",
-              "Opt-out Communications",
-              "Restrict Processing"
-            ].map((right, index) => (
+              "No Personal Data Collection",
+              "No Behavioral Tracking", 
+              "No Cookies or Analytics",
+              "Wallet-Only Identity",
+              "Decentralized by Design",
+              "Transparent & Verifiable"
+            ].map((benefit, index) => (
               <Grid item key={index}>
                 <Chip 
-                  label={right} 
+                  label={benefit} 
                   variant="outlined" 
                   sx={{ 
                     borderColor: 'primary.main',
@@ -325,7 +332,7 @@ const PrivacyPage: React.FC = () => {
             ))}
           </Grid>
           <Typography variant="body2" color="text.secondary" sx={{ textAlign: 'center', mt: 3 }}>
-            Contact us at <strong>privacy@wylloh.com</strong> to exercise any of these rights
+            Your privacy is protected by blockchain design, not just policy promises
           </Typography>
         </Paper>
 
@@ -343,15 +350,15 @@ const PrivacyPage: React.FC = () => {
             Privacy Questions or Concerns?
           </Typography>
           <Typography variant="body1" color="text.secondary" paragraph>
-            If you have questions about this Privacy Policy or our data practices, 
-            please contact our privacy team.
+            If you have questions about this Privacy Policy or our blockchain-native privacy practices, 
+            please contact our team.
           </Typography>
           <Typography variant="body2" color="text.secondary">
             Email: <strong>privacy@wylloh.com</strong>
           </Typography>
           <Divider sx={{ my: 3 }} />
           <Typography variant="body2" color="text.secondary">
-            We are committed to protecting your privacy and will respond to inquiries within 5 business days.
+            We are committed to privacy-first blockchain technology and will respond to inquiries within 5 business days.
           </Typography>
         </Paper>
       </Box>
