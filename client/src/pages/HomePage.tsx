@@ -14,7 +14,13 @@ import {
   CardMedia,
   CardContent,
   CardActionArea,
-  Skeleton
+  Skeleton,
+  List,
+  ListItem,
+  ListItemIcon,
+  ListItemText,
+  Collapse,
+  IconButton
 } from '@mui/material';
 import { 
   PlayArrow, 
@@ -24,7 +30,9 @@ import {
   ArrowForward,
   Verified,
   Collections,
-  Analytics
+  Analytics,
+  ExpandMore as ExpandMoreIcon,
+  CheckCircle as CheckIcon
 } from '@mui/icons-material';
 import { Link } from 'react-router-dom';
 import { useWallet } from '../contexts/WalletContext';
@@ -54,10 +62,11 @@ const HomePage: React.FC = () => {
   const [showConnectPrompt, setShowConnectPrompt] = useState<boolean>(false);
   const [featuredContent, setFeaturedContent] = useState<FeaturedContent[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [expandedFeatures, setExpandedFeatures] = useState<{ [key: number]: boolean }>({});
   const { enqueueSnackbar } = useSnackbar();
   
   // Performance monitoring
-  const performanceMonitor = createPerformanceMonitor();
+  const performanceUtils = usePerformanceOptimization();
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -95,21 +104,52 @@ const HomePage: React.FC = () => {
       icon: <Verified sx={{ fontSize: 40, color: 'text.primary' }} />,
       title: "Professional-Grade Security",
       description: "Enterprise blockchain infrastructure with hardware-bound encryption for your valuable IP",
-      audience: "pros"
+      audience: "pros",
+      details: [
+        "Hardware Security Module (HSM) integration for key management",
+        "Multi-signature wallet support for enterprise accounts",
+        "End-to-end encryption for all content uploads",
+        "Immutable audit trails on Polygon blockchain",
+        "SOC 2 Type II compliance standards"
+      ],
+      benefits: "Protect your intellectual property with bank-grade security that scales from independent filmmakers to major studios."
     },
     {
       icon: <Collections sx={{ fontSize: 40, color: 'text.primary' }} />,
       title: "Permanent Digital Ownership",
       description: "Build a lasting collection with true ownership rights that can't be revoked",
-      audience: "collectors"
+      audience: "collectors",
+      details: [
+        "NFT-based ownership certificates stored on blockchain",
+        "Transferable licenses with resale capabilities",
+        "No expiration dates or subscription renewals",
+        "Cross-platform compatibility with other Wylloh-protocol platforms",
+        "Inheritance and estate planning support"
+      ],
+      benefits: "Own your digital movie collection forever. Unlike streaming services, your purchases can't be removed or revoked."
     },
     {
       icon: <Analytics sx={{ fontSize: 40, color: 'text.primary' }} />,
       title: "Transparent Analytics",
       description: "Real-time insights into distribution, royalties, and audience engagement",
-      audience: "pros"
+      audience: "pros",
+      details: [
+        "Real-time revenue tracking and royalty distribution",
+        "Geographic distribution analytics",
+        "Audience engagement metrics without privacy invasion",
+        "Secondary market performance tracking",
+        "Automated financial reporting for tax purposes"
+      ],
+      benefits: "Make data-driven decisions with comprehensive analytics that respect user privacy while providing actionable insights."
     }
   ];
+
+  const handleExpandFeature = (index: number) => {
+    setExpandedFeatures(prev => ({
+      ...prev,
+      [index]: !prev[index]
+    }));
+  };
 
   return (
     <ErrorBoundary>
@@ -199,21 +239,15 @@ const HomePage: React.FC = () => {
                         variant="outlined" 
                         size="large"
                         component={Link} 
-                        to="/creator/upload"
+                        to="/pro-verification"
                         sx={{ 
                           py: 1.5,
                           px: 4,
                           fontSize: '1rem',
                           fontWeight: 500,
-                          borderColor: 'white',
-                          color: 'white',
-                          '&:hover': {
-                            borderColor: 'white',
-                            backgroundColor: 'rgba(255,255,255,0.1)',
-                          }
                         }}
                       >
-                        For Pros
+                        Pro Access
                       </Button>
                     </Stack>
                   </Box>
@@ -263,8 +297,11 @@ const HomePage: React.FC = () => {
                   p: 4,
                   textAlign: 'center',
                   transition: 'all 0.2s ease-in-out',
+                  border: '1px solid',
+                  borderColor: 'divider',
                   '&:hover': {
-                    borderColor: 'text.secondary',
+                    borderColor: 'primary.main',
+                    transform: 'translateY(-2px)',
                   }
                 }}
               >
@@ -288,10 +325,46 @@ const HomePage: React.FC = () => {
                   sx={{ 
                     lineHeight: 1.6,
                     fontWeight: 400,
+                    mb: 2
                   }}
                 >
                   {feature.description}
                 </Typography>
+                
+                <IconButton
+                  onClick={() => handleExpandFeature(index)}
+                  sx={{
+                    transform: expandedFeatures[index] ? 'rotate(180deg)' : 'rotate(0deg)',
+                    transition: 'transform 0.2s ease-in-out',
+                    color: 'primary.main'
+                  }}
+                >
+                  <ExpandMoreIcon />
+                </IconButton>
+                
+                <Collapse in={expandedFeatures[index]} timeout="auto" unmountOnExit>
+                  <Box sx={{ mt: 2, textAlign: 'left' }}>
+                    <Typography variant="body2" color="text.secondary" paragraph>
+                      {feature.benefits}
+                    </Typography>
+                    <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1 }}>
+                      Key Features:
+                    </Typography>
+                    <List dense>
+                      {feature.details.map((detail, idx) => (
+                        <ListItem key={idx} sx={{ px: 0, py: 0.25 }}>
+                          <ListItemIcon sx={{ minWidth: 24 }}>
+                            <CheckIcon sx={{ fontSize: 16, color: 'success.main' }} />
+                          </ListItemIcon>
+                          <ListItemText 
+                            primary={detail}
+                            primaryTypographyProps={{ variant: 'body2' }}
+                          />
+                        </ListItem>
+                      ))}
+                    </List>
+                  </Box>
+                </Collapse>
               </Card>
             </Grid>
           ))}
@@ -356,7 +429,7 @@ const HomePage: React.FC = () => {
               variant="outlined" 
               size="large"
               component={Link} 
-              to="/creator/register"
+              to="/pro-verification"
               sx={{ 
                 py: 1.5,
                 px: 4,

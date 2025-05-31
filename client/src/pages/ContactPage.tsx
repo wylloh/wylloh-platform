@@ -59,8 +59,19 @@ const ContactPage: React.FC = () => {
 
   const handleSubmit = (event: React.FormEvent) => {
     event.preventDefault();
-    // In a real implementation, this would send the form data to a backend
-    console.log('Form submitted:', formData);
+    
+    // Create mailto link with form data
+    const subject = encodeURIComponent(`[${formData.category}] ${formData.subject}`);
+    const body = encodeURIComponent(
+      `Name: ${formData.name}\n` +
+      `Email: ${formData.email}\n` +
+      `Category: ${formData.category}\n\n` +
+      `Message:\n${formData.message}`
+    );
+    
+    const mailtoLink = `mailto:contact@wylloh.com?subject=${subject}&body=${body}`;
+    window.open(mailtoLink, '_blank');
+    
     setSubmitted(true);
     // Reset form after submission
     setTimeout(() => {
@@ -77,32 +88,39 @@ const ContactPage: React.FC = () => {
 
   const contactMethods = [
     {
+      icon: <EmailIcon />,
+      title: "General Contact",
+      description: "All inquiries, support questions, business matters, and general communication",
+      email: "contact@wylloh.com",
+      response: "Within 2-3 business days",
+      active: true
+    },
+    {
       icon: <SupportIcon />,
-      title: "General Support",
+      title: "Technical Support",
       description: "Platform questions, account issues, technical support",
       email: "support@wylloh.com",
-      response: "Within 24 hours"
+      response: "Department in development",
+      active: false,
+      note: "Currently routed to contact@wylloh.com"
     },
     {
       icon: <SecurityIcon />,
       title: "Security & Privacy",
       description: "Security concerns, privacy questions, vulnerability reports",
       email: "security@wylloh.com",
-      response: "Within 12 hours"
+      response: "Department in development",
+      active: false,
+      note: "Currently routed to contact@wylloh.com"
     },
     {
       icon: <BusinessIcon />,
-      title: "Business Inquiries",
-      description: "Partnerships, licensing, enterprise solutions",
-      email: "business@wylloh.com",
-      response: "Within 48 hours"
-    },
-    {
-      icon: <EmailIcon />,
-      title: "Legal & Compliance",
-      description: "Legal questions, DMCA notices, compliance matters",
+      title: "Legal & Business",
+      description: "Legal questions, partnerships, licensing, enterprise solutions",
       email: "legal@wylloh.com",
-      response: "Within 5 business days"
+      response: "Department in development",
+      active: false,
+      note: "Currently routed to contact@wylloh.com"
     }
   ];
 
@@ -147,7 +165,8 @@ const ContactPage: React.FC = () => {
               lineHeight: 1.6,
             }}
           >
-            Get in touch with our team for support, questions, or business inquiries
+            Get in touch with our team. We're transparent about our current development state 
+            and committed to responsive communication.
           </Typography>
         </Box>
 
@@ -297,6 +316,11 @@ const ContactPage: React.FC = () => {
                         <Typography variant="body2" color="text.secondary">
                           Response time: {method.response}
                         </Typography>
+                        {method.note && (
+                          <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+                            {method.note}
+                          </Typography>
+                        )}
                       </CardContent>
                     </Card>
                   </Grid>
@@ -319,11 +343,22 @@ const ContactPage: React.FC = () => {
               <List dense>
                 <ListItem sx={{ px: 0 }}>
                   <ListItemIcon sx={{ minWidth: 40 }}>
+                    <EmailIcon sx={{ fontSize: 20, color: 'primary.main' }} />
+                  </ListItemIcon>
+                  <ListItemText 
+                    primary="Primary Contact"
+                    secondary="contact@wylloh.com - All inquiries welcome"
+                    primaryTypographyProps={{ variant: 'body2', fontWeight: 600 }}
+                    secondaryTypographyProps={{ variant: 'body2' }}
+                  />
+                </ListItem>
+                <ListItem sx={{ px: 0 }}>
+                  <ListItemIcon sx={{ minWidth: 40 }}>
                     <ScheduleIcon sx={{ fontSize: 20, color: 'primary.main' }} />
                   </ListItemIcon>
                   <ListItemText 
-                    primary="Business Hours"
-                    secondary="Monday - Friday, 9:00 AM - 6:00 PM PST"
+                    primary="Response Time"
+                    secondary="2-3 business days for most inquiries"
                     primaryTypographyProps={{ variant: 'body2', fontWeight: 600 }}
                     secondaryTypographyProps={{ variant: 'body2' }}
                   />
@@ -333,19 +368,8 @@ const ContactPage: React.FC = () => {
                     <LocationIcon sx={{ fontSize: 20, color: 'primary.main' }} />
                   </ListItemIcon>
                   <ListItemText 
-                    primary="Location"
-                    secondary="Los Angeles, California, USA"
-                    primaryTypographyProps={{ variant: 'body2', fontWeight: 600 }}
-                    secondaryTypographyProps={{ variant: 'body2' }}
-                  />
-                </ListItem>
-                <ListItem sx={{ px: 0 }}>
-                  <ListItemIcon sx={{ minWidth: 40 }}>
-                    <PhoneIcon sx={{ fontSize: 20, color: 'primary.main' }} />
-                  </ListItemIcon>
-                  <ListItemText 
-                    primary="Emergency Security"
-                    secondary="For urgent security matters only"
+                    primary="Social Media"
+                    secondary="@wyllohland on X (Twitter) for updates"
                     primaryTypographyProps={{ variant: 'body2', fontWeight: 600 }}
                     secondaryTypographyProps={{ variant: 'body2' }}
                   />
@@ -354,6 +378,10 @@ const ContactPage: React.FC = () => {
               
               <Divider sx={{ my: 2 }} />
               
+              <Typography variant="body2" color="text.secondary" sx={{ textAlign: 'center', mb: 2 }}>
+                <strong>Transparency Note:</strong> Wylloh is currently a solo-founded project in active development. 
+                While we maintain professional standards, specialized departments are being built as we grow.
+              </Typography>
               <Typography variant="body2" color="text.secondary" sx={{ textAlign: 'center' }}>
                 We're committed to responding to all inquiries promptly and professionally.
               </Typography>

@@ -246,24 +246,13 @@ const Navbar: React.FC = () => {
                 <ConnectWalletButton />
               </Box>
               
-              {/* User menu */}
-              {isAuthenticated ? (
+              {/* User menu - only show if authenticated */}
+              {isAuthenticated && (
                 <Tooltip title="Open user menu">
                   <IconButton onClick={handleUserMenuOpen} sx={{ p: 0 }}>
                     <Avatar alt="User" src="/static/images/avatar/1.jpg" />
                   </IconButton>
                 </Tooltip>
-              ) : (
-                <Button
-                  variant="contained"
-                  color="primary"
-                  component={RouterLink}
-                  to="/login"
-                  startIcon={<Login />}
-                  sx={{ display: { xs: 'none', sm: 'flex' } }}
-                >
-                  Sign In
-                </Button>
               )}
             </Box>
           </Toolbar>
@@ -346,18 +335,7 @@ const Navbar: React.FC = () => {
                 <ListItemText>Logout</ListItemText>
               </MenuItem>
             </>
-          ) : (
-            <MenuItem 
-              component={RouterLink} 
-              to="/login"
-              onClick={handleMobileMenuClose}
-            >
-              <ListItemIcon>
-                <Login />
-              </ListItemIcon>
-              <ListItemText>Sign In</ListItemText>
-            </MenuItem>
-          )}
+          ) : null}
         </Menu>
         
         {/* User Menu */}

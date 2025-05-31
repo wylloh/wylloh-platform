@@ -13,10 +13,8 @@ import {
 } from '@mui/material';
 import {
   Twitter as TwitterIcon,
-  Telegram as TelegramIcon,
-  LinkedIn as LinkedInIcon,
-  YouTube as YouTubeIcon,
-  GitHub as GitHubIcon
+  GitHub as GitHubIcon,
+  Email as EmailIcon
 } from '@mui/icons-material';
 
 const Footer: React.FC = () => {
@@ -25,10 +23,10 @@ const Footer: React.FC = () => {
   
   const footerLinks = [
     {
-      title: 'Company',
+      title: 'Organization',
       links: [
         { name: 'About', path: '/about' },
-        { name: 'Careers', path: '/careers' },
+        { name: 'Contribute', path: '/contribute' },
         { name: 'Press', path: '/press' },
         { name: 'Contact', path: '/contact' }
       ]
@@ -91,20 +89,31 @@ const Footer: React.FC = () => {
               Secure, permanent, and valuable digital film collection.
             </Typography>
             <Box sx={{ mt: 2 }}>
-              <IconButton color="primary" aria-label="Twitter" component="a" href="https://twitter.com" target="_blank">
+              <IconButton 
+                color="primary" 
+                aria-label="X (Twitter)" 
+                component="a" 
+                href="https://x.com/wyllohland" 
+                target="_blank"
+              >
                 <TwitterIcon />
               </IconButton>
-              <IconButton color="primary" aria-label="Telegram" component="a" href="https://telegram.org" target="_blank">
-                <TelegramIcon />
-              </IconButton>
-              <IconButton color="primary" aria-label="LinkedIn" component="a" href="https://linkedin.com" target="_blank">
-                <LinkedInIcon />
-              </IconButton>
-              <IconButton color="primary" aria-label="YouTube" component="a" href="https://youtube.com" target="_blank">
-                <YouTubeIcon />
-              </IconButton>
-              <IconButton color="primary" aria-label="GitHub" component="a" href="https://github.com" target="_blank">
+              <IconButton 
+                color="primary" 
+                aria-label="GitHub" 
+                component="a" 
+                href="https://github.com/wylloh/wylloh-platform" 
+                target="_blank"
+              >
                 <GitHubIcon />
+              </IconButton>
+              <IconButton 
+                color="primary" 
+                aria-label="Email" 
+                component="a" 
+                href="mailto:contact@wylloh.com"
+              >
+                <EmailIcon />
               </IconButton>
             </Box>
           </Grid>

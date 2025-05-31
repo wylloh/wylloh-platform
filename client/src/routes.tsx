@@ -31,9 +31,18 @@ const LoginPage = React.lazy(() => import('./pages/auth/LoginPage'));
 
 // Essential pages
 const CommunityPage = React.lazy(() => import('./pages/CommunityPage'));
+const AboutPage = React.lazy(() => import('./pages/AboutPage'));
+const ContributePage = React.lazy(() => import('./pages/ContributePage'));
+const PressPage = React.lazy(() => import('./pages/PressPage'));
+const ProVerificationPage = React.lazy(() => import('./pages/ProVerificationPage'));
 const TermsPage = React.lazy(() => import('./pages/TermsPage'));
 const PrivacyPage = React.lazy(() => import('./pages/PrivacyPage'));
+const LicensesPage = React.lazy(() => import('./pages/LicensesPage'));
+const CopyrightPage = React.lazy(() => import('./pages/CopyrightPage'));
 const ContactPage = React.lazy(() => import('./pages/ContactPage'));
+const DocsPage = React.lazy(() => import('./pages/DocsPage'));
+const HelpPage = React.lazy(() => import('./pages/HelpPage'));
+const BlogPage = React.lazy(() => import('./pages/BlogPage'));
 
 // Loading component
 const LoadingFallback = () => (
@@ -82,9 +91,18 @@ const AppRoutes = () => {
         
         {/* Essential pages */}
         <Route path="/community" element={<CommunityPage />} />
+        <Route path="/about" element={<AboutPage />} />
+        <Route path="/contribute" element={<ContributePage />} />
+        <Route path="/press" element={<PressPage />} />
+        <Route path="/pro-verification" element={<ProVerificationPage />} />
         <Route path="/terms" element={<TermsPage />} />
         <Route path="/privacy" element={<PrivacyPage />} />
+        <Route path="/licenses" element={<LicensesPage />} />
+        <Route path="/copyright" element={<CopyrightPage />} />
         <Route path="/contact" element={<ContactPage />} />
+        <Route path="/docs" element={<DocsPage />} />
+        <Route path="/help" element={<HelpPage />} />
+        <Route path="/blog" element={<BlogPage />} />
         
         {/* 404 route */}
         <Route path="*" element={<NotFoundPage />} />
