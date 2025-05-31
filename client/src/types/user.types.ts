@@ -84,10 +84,10 @@ export interface EnhancedContentMetadata {
   
   // Development tracking
   developmentInfo?: {
-    branch: string;
-    commit: string;
-    developer: string;
-    buildNumber: string;
+    branch?: string;
+    commit?: string;
+    developer?: string;
+    buildNumber?: string;
   };
 }
 
