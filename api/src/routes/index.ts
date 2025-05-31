@@ -1,22 +1,15 @@
 import express from 'express';
+import type { Router as ExpressRouter } from 'express';
 import userRoutes from './userRoutes';
 import contentRoutes from './contentRoutes';
-import authRoutes from './authRoutes';
-import storageRoutes from './storageRoutes';
-import libraryRoutes from './libraryRoutes';
-import searchRoutes from './searchRoutes';
-import blockchainRoutes from './blockchainRoutes';
 import metadataRoutes from './metadataRoutes';
+import royaltyRoutes from './royaltyRoutes';
 
-const router = express.Router();
+const router: ExpressRouter = express.Router();
 
 router.use('/api/users', userRoutes);
 router.use('/api/content', contentRoutes);
-router.use('/api/auth', authRoutes);
-router.use('/api/storage', storageRoutes);
-router.use('/api/libraries', libraryRoutes);
-router.use('/api/search', searchRoutes);
-router.use('/api/blockchain', blockchainRoutes);
 router.use('/api/metadata', metadataRoutes);
+router.use('/api/royalty', royaltyRoutes);
 
 export default router; 
