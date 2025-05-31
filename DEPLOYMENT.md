@@ -1,0 +1,440 @@
+# 🚀 Wylloh Platform Deployment Guide
+
+Welcome to the deployment guide for the Wylloh Platform! This guide will help you get the complete blockchain-based content management system live and running.
+
+## 🎯 Quick Start (5 Minutes)
+
+For immediate testing and validation:
+
+```bash
+# Clone and navigate to the project
+git clone <your-repo-url>
+cd wylloh-platform
+
+# Quick deploy for testing
+./scripts/quick-deploy.sh
+
+# Check status
+docker-compose ps
+```
+
+**Access Points:**
+- 🌐 Frontend: http://localhost:3000
+- 🔌 API: http://localhost:3001
+- 💾 Storage: http://localhost:3002
+- 📊 IPFS: http://localhost:8080
+- 📈 Monitoring: http://localhost:9090
+
+## 📋 Prerequisites
+
+### System Requirements
+- **Docker**: Version 20.0+ with Docker Compose
+- **Node.js**: Version 16+ (for contract deployment)
+- **Git**: For repository management
+- **OpenSSL**: For SSL certificate generation
+- **Minimum 4GB RAM**: For all services
+- **Minimum 20GB Storage**: For content and databases
+
+### External Services (Production)
+- **Domain Name**: wylloh.com (configured with DNS)
+- **SSL Certificates**: Let's Encrypt or commercial CA
+- **Infura Account**: For Ethereum/Polygon RPC access
+- **Pinata Account**: For IPFS pinning service
+- **Ethereum Wallet**: With private key for contract deployment
+
+## 🏗️ Architecture Overview
+
+The Wylloh platform consists of 9 core services:
+
+```
+┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
+│   Nginx Proxy   │    │   React Client  │    │   Node.js API   │
+│   (Port 80/443) │────│   (Port 3000)   │────│   (Port 3001)   │
+└─────────────────┘    └─────────────────┘    └─────────────────┘
+         │                       │                       │
+         │              ┌─────────────────┐    ┌─────────────────┐
+         │              │ Storage Service │    │   MongoDB DB    │
+         │              │   (Port 3002)   │────│   (Port 27017)  │
+         │              └─────────────────┘    └─────────────────┘
+         │                       │                       │
+┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
+│   IPFS Node     │    │   Redis Cache   │    │   Prometheus    │
+│   (Port 8080)   │    │   (Port 6379)   │    │   (Port 9090)   │
+└─────────────────┘    └─────────────────┘    └─────────────────┘
+         │                                              │
+         │                                    ┌─────────────────┐
+         └────────────────────────────────────│     Grafana     │
+                                              │   (Port 3003)   │
+                                              └─────────────────┘
+```
+
+## 🚀 Production Deployment
+
+### Step 1: Environment Configuration
+
+1. **Copy environment template:**
+   ```bash
+   cp env.production.template .env
+   ```
+
+2. **Configure required variables:**
+   ```bash
+   # Edit .env with your actual values
+   nano .env
+   ```
+
+   **Critical Variables to Update:**
+   ```env
+   # Security
+   MONGO_ROOT_PASSWORD=your-secure-password
+   JWT_SECRET=your-32-character-secret-key
+   
+   # Blockchain
+   ETHEREUM_RPC_URL=https://mainnet.infura.io/v3/YOUR_PROJECT_ID
+   POLYGON_RPC_URL=https://polygon-mainnet.infura.io/v3/YOUR_PROJECT_ID
+   PRIVATE_KEY=your-ethereum-private-key
+   
+   # IPFS
+   PINATA_API_KEY=your-pinata-api-key
+   PINATA_SECRET_API_KEY=your-pinata-secret-key
+   
+   # Domain
+   CORS_ORIGIN=https://wylloh.com,https://www.wylloh.com
+   REACT_APP_API_URL=https://api.wylloh.com
+   ```
+
+### Step 2: SSL Certificates
+
+**For Production (Let's Encrypt):**
+```bash
+# Install certbot
+sudo apt-get install certbot
+
+# Generate certificates
+sudo certbot certonly --standalone -d wylloh.com -d www.wylloh.com -d api.wylloh.com -d storage.wylloh.com -d ipfs.wylloh.com
+
+# Copy certificates
+sudo cp /etc/letsencrypt/live/wylloh.com/fullchain.pem nginx/ssl/wylloh.com.crt
+sudo cp /etc/letsencrypt/live/wylloh.com/privkey.pem nginx/ssl/wylloh.com.key
+```
+
+**For Development (Self-Signed):**
+```bash
+# Certificates are auto-generated by deployment script
+./scripts/deploy-production.sh
+```
+
+### Step 3: Deploy Platform
+
+```bash
+# Run production deployment
+./scripts/deploy-production.sh
+```
+
+The script will:
+- ✅ Validate environment configuration
+- ✅ Create necessary directories
+- ✅ Generate SSL certificates (if needed)
+- ✅ Initialize MongoDB with proper indexes
+- ✅ Build all Docker images
+- ✅ Start all services with health checks
+- ✅ Deploy smart contracts
+- ✅ Perform comprehensive health checks
+
+### Step 4: DNS Configuration
+
+Configure your domain DNS with these records:
+
+```
+Type    Name        Value               TTL
+A       @           YOUR_SERVER_IP      300
+A       www         YOUR_SERVER_IP      300
+A       api         YOUR_SERVER_IP      300
+A       storage     YOUR_SERVER_IP      300
+A       ipfs        YOUR_SERVER_IP      300
+```
+
+### Step 5: Verification
+
+1. **Check service status:**
+   ```bash
+   docker-compose ps
+   ```
+
+2. **Test endpoints:**
+   ```bash
+   # Frontend
+   curl -f https://wylloh.com
+   
+   # API health
+   curl -f https://api.wylloh.com/health
+   
+   # Storage health
+   curl -f https://storage.wylloh.com/health
+   ```
+
+3. **Monitor logs:**
+   ```bash
+   # All services
+   docker-compose logs -f
+   
+   # Specific service
+   docker-compose logs -f api
+   ```
+
+## 🔧 Configuration Details
+
+### Environment Variables Reference
+
+| Variable | Description | Example |
+|----------|-------------|---------|
+| `NODE_ENV` | Environment mode | `production` |
+| `MONGO_ROOT_PASSWORD` | MongoDB admin password | `secure-password-123` |
+| `JWT_SECRET` | JWT signing secret | `32-character-secret-key` |
+| `ETHEREUM_RPC_URL` | Ethereum node URL | `https://mainnet.infura.io/v3/...` |
+| `POLYGON_RPC_URL` | Polygon node URL | `https://polygon-mainnet.infura.io/v3/...` |
+| `PRIVATE_KEY` | Deployment wallet key | `0x123...` |
+| `PINATA_API_KEY` | IPFS pinning service | `your-api-key` |
+| `CORS_ORIGIN` | Allowed origins | `https://wylloh.com` |
+
+### Service Ports
+
+| Service | Internal Port | External Port | Purpose |
+|---------|---------------|---------------|---------|
+| Nginx | 80, 443 | 80, 443 | Reverse proxy |
+| Client | 80 | 3000 | React frontend |
+| API | 3001 | 3001 | Backend API |
+| Storage | 3002 | 3002 | Storage service |
+| MongoDB | 27017 | 27017 | Database |
+| Redis | 6379 | 6379 | Cache |
+| IPFS | 8080 | 8080 | Content gateway |
+| Prometheus | 9090 | 9090 | Metrics |
+| Grafana | 3000 | 3003 | Dashboards |
+
+## 📊 Monitoring & Maintenance
+
+### Health Checks
+
+All services include built-in health checks:
+
+```bash
+# Check all service health
+docker-compose ps
+
+# Individual service health
+curl http://localhost:3001/health  # API
+curl http://localhost:3002/health  # Storage
+curl http://localhost:3000/health  # Client
+```
+
+### Monitoring Dashboards
+
+- **Prometheus**: http://localhost:9090
+  - System metrics and alerts
+  - Service performance monitoring
+  - Custom Wylloh platform metrics
+
+- **Grafana**: http://localhost:3003
+  - Visual dashboards
+  - Real-time monitoring
+  - Historical data analysis
+  - Default credentials: admin / (check GRAFANA_PASSWORD in .env)
+
+### Log Management
+
+```bash
+# View all logs
+docker-compose logs -f
+
+# Service-specific logs
+docker-compose logs -f api
+docker-compose logs -f storage
+docker-compose logs -f client
+
+# Log rotation (automatic)
+# Logs are automatically rotated and managed by Docker
+```
+
+### Backup Strategy
+
+```bash
+# Database backup
+docker-compose exec mongodb mongodump --out /backup
+
+# IPFS data backup
+docker-compose exec ipfs ipfs repo gc
+docker cp wylloh-ipfs:/data/ipfs ./backup/ipfs-data
+
+# Configuration backup
+tar -czf backup/config-$(date +%Y%m%d).tar.gz .env nginx/ monitoring/
+```
+
+## 🔒 Security Considerations
+
+### SSL/TLS Configuration
+- **TLS 1.2+ Only**: Modern encryption standards
+- **HSTS Headers**: Prevent downgrade attacks
+- **Security Headers**: XSS, CSRF, and clickjacking protection
+
+### Access Control
+- **Rate Limiting**: API and general request limits
+- **CORS Configuration**: Restricted to allowed origins
+- **Authentication**: JWT-based with secure secrets
+
+### Network Security
+- **Internal Network**: Services communicate on isolated Docker network
+- **Firewall Rules**: Only necessary ports exposed
+- **Regular Updates**: Keep base images and dependencies updated
+
+## 🚨 Troubleshooting
+
+### Common Issues
+
+**Services Won't Start:**
+```bash
+# Check Docker daemon
+sudo systemctl status docker
+
+# Check available resources
+docker system df
+docker system prune  # Clean up if needed
+
+# Check logs for specific errors
+docker-compose logs service-name
+```
+
+**SSL Certificate Issues:**
+```bash
+# Verify certificate files
+ls -la nginx/ssl/
+openssl x509 -in nginx/ssl/wylloh.com.crt -text -noout
+
+# Regenerate if needed
+rm nginx/ssl/*
+./scripts/deploy-production.sh
+```
+
+**Database Connection Issues:**
+```bash
+# Check MongoDB status
+docker-compose exec mongodb mongosh --eval "db.adminCommand('ping')"
+
+# Reset database if needed
+docker-compose down
+docker volume rm wylloh-platform_mongodb_data
+docker-compose up -d
+```
+
+**IPFS Connectivity Issues:**
+```bash
+# Check IPFS node status
+docker-compose exec ipfs ipfs id
+
+# Check peer connections
+docker-compose exec ipfs ipfs swarm peers
+
+# Restart IPFS if needed
+docker-compose restart ipfs
+```
+
+### Performance Optimization
+
+**Database Optimization:**
+```bash
+# Create additional indexes
+docker-compose exec mongodb mongosh wylloh --eval "
+  db.content.createIndex({createdAt: -1});
+  db.transactions.createIndex({userId: 1, timestamp: -1});
+"
+```
+
+**IPFS Optimization:**
+```bash
+# Garbage collection
+docker-compose exec ipfs ipfs repo gc
+
+# Pin important content
+docker-compose exec ipfs ipfs pin add QmHash...
+```
+
+**Nginx Optimization:**
+```bash
+# Check nginx configuration
+docker-compose exec nginx nginx -t
+
+# Reload configuration
+docker-compose exec nginx nginx -s reload
+```
+
+## 🔄 Updates & Maintenance
+
+### Updating the Platform
+
+```bash
+# Pull latest changes
+git pull origin main
+
+# Rebuild and restart services
+docker-compose down
+docker-compose build --no-cache
+docker-compose up -d
+
+# Verify health
+./scripts/health-check.sh
+```
+
+### Database Migrations
+
+```bash
+# Run migration scripts
+docker-compose exec api node scripts/migrate.js
+
+# Verify data integrity
+docker-compose exec mongodb mongosh wylloh --eval "db.stats()"
+```
+
+### Certificate Renewal
+
+```bash
+# Renew Let's Encrypt certificates
+sudo certbot renew
+
+# Update nginx certificates
+sudo cp /etc/letsencrypt/live/wylloh.com/fullchain.pem nginx/ssl/wylloh.com.crt
+sudo cp /etc/letsencrypt/live/wylloh.com/privkey.pem nginx/ssl/wylloh.com.key
+
+# Reload nginx
+docker-compose exec nginx nginx -s reload
+```
+
+## 📞 Support & Resources
+
+### Documentation
+- **API Documentation**: https://api.wylloh.com/docs
+- **Smart Contracts**: See `contracts/` directory
+- **Architecture**: See `docs/architecture.md`
+
+### Monitoring
+- **System Status**: https://status.wylloh.com
+- **Performance Metrics**: Grafana dashboard
+- **Error Tracking**: Application logs
+
+### Community
+- **GitHub Issues**: Report bugs and feature requests
+- **Discord**: Community support and discussions
+- **Documentation**: Comprehensive guides and tutorials
+
+---
+
+## 🎉 Congratulations!
+
+You've successfully deployed the Wylloh Platform! The future of Hollywood content distribution is now live. 🎬✨
+
+**Next Steps:**
+1. Configure monitoring alerts
+2. Set up automated backups
+3. Plan content onboarding strategy
+4. Engage with the community
+5. Monitor performance and scale as needed
+
+Welcome to the future of digital content ownership! 🚀 
