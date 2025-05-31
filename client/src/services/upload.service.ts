@@ -170,7 +170,7 @@ class UploadService {
       console.log('Starting upload process...');
       
       // Generate a symmetric encryption key
-      const encryptionKey = encryptionUtils.generateContentKey();
+      const encryptionKey = await encryptionUtils.generateContentKey();
       console.log('Encryption key generated');
       
       // Encrypt the file

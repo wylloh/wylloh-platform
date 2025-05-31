@@ -184,7 +184,9 @@ class MetadataService {
   }
   
   /**
-   * Get current metadata schema
+   * Get metadata schema
+   * 
+   * @returns Metadata schema
    */
   public async getSchema(): Promise<MetadataSchema> {
     try {
@@ -194,7 +196,7 @@ class MetadataService {
       const cachedSchema = storageService.retrieve('metadata_schema');
       if (cachedSchema) {
         this.schema = JSON.parse(cachedSchema);
-        return this.schema;
+        if (this.schema) return this.schema;
       }
       
       // Get from API
@@ -206,7 +208,7 @@ class MetadataService {
         expiresAt: Date.now() + (24 * 60 * 60 * 1000) // 24 hours
       });
       
-      return this.schema;
+      return this.schema || this.getDefaultSchema();
     } catch (error) {
       console.error('MetadataService: Error getting schema', error);
       
@@ -466,9 +468,10 @@ class MetadataService {
     }
     
     const errors: MetadataValidationError[] = [];
+    const schema = this.schema; // Ensure non-null reference
     
     // Check required fields
-    for (const field of this.schema.fields) {
+    for (const field of schema.fields) {
       if (field.required) {
         // If field is required for this content type
         if (

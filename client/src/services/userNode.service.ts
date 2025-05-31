@@ -1,12 +1,12 @@
 import { createHelia } from 'helia';
 import { unixfs } from '@helia/unixfs';
 import { verifiedFetch } from '@helia/verified-fetch';
-import * as webRTC from '@libp2p/webrtc-star';
 import { createLibp2p } from 'libp2p';
 import { bootstrap } from '@libp2p/bootstrap';
 import { noise } from '@chainsafe/libp2p-noise';
 import { yamux } from '@chainsafe/libp2p-yamux';
 import { identify } from '@libp2p/identify';
+import { ping } from '@libp2p/ping';
 import { webSockets } from '@libp2p/websockets';
 import { gossipsub } from '@chainsafe/libp2p-gossipsub';
 import { mdns } from '@libp2p/mdns';
@@ -182,21 +182,20 @@ class UserNodeService {
         webSockets()
       ];
 
-      // Add WebRTC transport if enabled
-      if (this.config.enableWebRTC) {
-        transportConfig.push(webRTC.webRTCStar());
-      }
+      // Note: WebRTC-Star has been deprecated in favor of WebRTC Direct
+      // For browser-to-browser connectivity, use WebRTC Direct or Circuit Relay
+      // WebRTC functionality is not included in this basic configuration
 
       // Create and return libp2p node
       return await createLibp2p({
         addresses: {
           listen: [
-            '/dns4/wrtc-star1.par.dwebops.pub/tcp/443/wss/p2p-webrtc-star',
-            '/dns4/wrtc-star2.sjc.dwebops.pub/tcp/443/wss/p2p-webrtc-star'
+            // Remove WebRTC-Star addresses as they're deprecated
+            // For browser nodes, typically no listen addresses are needed
           ]
         },
         transports: transportConfig,
-        connectionEncryption: [noise()],
+        connectionEncrypters: [noise()],
         streamMuxers: [yamux()],
         peerDiscovery: [
           bootstrap({
@@ -208,11 +207,12 @@ class UserNodeService {
         ],
         services: {
           identify: identify(),
+          ping: ping(),
           pubsub: gossipsub(),
           dht: kadDHT({
-            clientMode: false,
-            pingTimeout: 10000,
-            pingConcurrency: 10
+            clientMode: false
+            // Removed deprecated pingTimeout and pingConcurrency options
+            // The ping service is now provided separately via the ping() service above
           })
         }
       });

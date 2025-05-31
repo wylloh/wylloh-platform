@@ -424,10 +424,10 @@ class AdaptiveStreamingService {
     // Set initial quality if not AUTO
     if (options.preferredQuality !== StreamQuality.AUTO) {
       dash.on(dashjs.MediaPlayer.events.STREAM_INITIALIZED, () => {
-        const bitrateList = dash.getBitrateInfoListFor('video');
-        if (bitrateList && bitrateList.length > 0) {
-          const level = this.qualityToLevel(options.preferredQuality, 'dash', bitrateList.length - 1);
-          dash.setQualityFor('video', level);
+        const representations = dash.getRepresentationsByType('video');
+        if (representations && representations.length > 0) {
+          const level = this.qualityToLevel(options.preferredQuality, 'dash', representations.length - 1);
+          dash.setRepresentationForTypeByIndex('video', level);
           dash.updateSettings({
             streaming: {
               abr: {
@@ -444,18 +444,18 @@ class AdaptiveStreamingService {
     // Add event listeners
     dash.on(dashjs.MediaPlayer.events.QUALITY_CHANGE_RENDERED, (e: any) => {
       if (e.mediaType === 'video') {
-        const bitrateList = dash.getBitrateInfoListFor('video');
+        const representations = dash.getRepresentationsByType('video');
         const currentLevel = e.newQuality;
         
-        if (bitrateList && currentLevel >= 0 && currentLevel < bitrateList.length) {
-          const bitrateInfo = bitrateList[currentLevel];
-          console.log(`AdaptiveStreamingService: Quality changed to ${bitrateInfo.width}x${bitrateInfo.height} (${Math.round(bitrateInfo.bitrate/1000)} kbps)`);
+        if (representations && currentLevel >= 0 && currentLevel < representations.length) {
+          const representation = representations[currentLevel];
+          console.log(`AdaptiveStreamingService: Quality changed to ${representation.width}x${representation.height} (${Math.round(representation.bandwidth/1000)} kbps)`);
           
           // Update analytics
           const analytics = this.analytics.get(playerId);
           if (analytics) {
             analytics.bitrateChanges++;
-            analytics.lastQuality = this.levelToQuality(currentLevel, 'dash', bitrateList.length - 1);
+            analytics.lastQuality = this.levelToQuality(currentLevel, 'dash', representations.length - 1);
             analytics.qualitySwitches++;
           }
         }
@@ -616,9 +616,9 @@ class AdaptiveStreamingService {
         break;
         
       case StreamFormat.DASH:
-        if (player.setQualityFor) {
-          const bitrateList = player.getBitrateInfoListFor('video');
-          if (bitrateList && bitrateList.length > 0) {
+        if (player.setRepresentationForTypeByIndex) {
+          const representations = player.getRepresentationsByType('video');
+          if (representations && representations.length > 0) {
             if (quality === StreamQuality.AUTO) {
               player.updateSettings({
                 streaming: {
@@ -630,8 +630,8 @@ class AdaptiveStreamingService {
                 }
               });
             } else {
-              const level = this.qualityToLevel(quality, 'dash', bitrateList.length - 1);
-              player.setQualityFor('video', level);
+              const level = this.qualityToLevel(quality, 'dash', representations.length - 1);
+              player.setRepresentationForTypeByIndex('video', level);
               player.updateSettings({
                 streaming: {
                   abr: {
