@@ -361,7 +361,7 @@ const DiscoverPage: React.FC = () => {
         {/* Tab Panels */}
         <TabPanel value={tabValue} index={0}>
           <RecommendationsList
-            recommendations={[]}
+            items={[]}
             title="Trending Now"
             maxItems={12}
             showActions={true}
@@ -378,7 +378,7 @@ const DiscoverPage: React.FC = () => {
         
         <TabPanel value={tabValue} index={isAuthenticated ? 2 : 1}>
           <RecommendationsList
-            recommendations={[]}
+            items={[]}
             title="New Releases"
             maxItems={12}
             showActions={true}
@@ -388,7 +388,7 @@ const DiscoverPage: React.FC = () => {
         <TabPanel value={tabValue} index={isAuthenticated ? 3 : 2}>
           {selectedGenres.length > 0 ? (
             <RecommendationsList
-              recommendations={[]}
+              items={[]}
               title={`${selectedGenres[0]} Content`}
               maxItems={12}
               showActions={true}

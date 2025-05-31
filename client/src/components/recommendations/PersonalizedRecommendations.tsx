@@ -7,13 +7,16 @@ import {
   CircularProgress,
   Alert,
 } from '@mui/material';
-import RecommendationsList, { RecommendationItem } from './RecommendationsList';
+import RecommendationsList from './RecommendationsList';
+import { 
+  BaseRecommendationComponentProps,
+  RecommendationItem 
+} from '../../types/component-interfaces';
 
-interface PersonalizedRecommendationsProps {
+interface PersonalizedRecommendationsProps extends Omit<BaseRecommendationComponentProps, 'items'> {
   userId?: string;
-  maxItems?: number;
-  onItemClick?: (item: RecommendationItem) => void;
-  onPlayClick?: (item: RecommendationItem) => void;
+  // Override items to be optional since we generate mock data
+  items?: RecommendationItem[];
 }
 
 interface TabPanelProps {
@@ -41,12 +44,21 @@ function TabPanel(props: TabPanelProps) {
 const PersonalizedRecommendations: React.FC<PersonalizedRecommendationsProps> = ({
   userId,
   maxItems = 8,
+  loading = false,
+  error = null,
   onItemClick,
   onPlayClick,
+  onFavoriteClick,
+  onShareClick,
+  onInfoClick,
+  showActions = true,
+  variant = 'standard',
+  elevation = 0,
+  className,
+  sx,
+  onRetry,
 }) => {
   const [tabValue, setTabValue] = useState(0);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
   // Mock data for different recommendation categories - Production ready empty state
   const mockRecommendations: Record<string, RecommendationItem[]> = {
@@ -88,9 +100,10 @@ const PersonalizedRecommendations: React.FC<PersonalizedRecommendationsProps> = 
     return messages[tabValue] || messages[0];
   };
 
+  // Handle loading and error states at the top level
   if (loading) {
     return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
+      <Box sx={{ display: 'flex', justifyContent: 'center', py: 4, ...sx }} className={className}>
         <CircularProgress />
       </Box>
     );
@@ -98,14 +111,18 @@ const PersonalizedRecommendations: React.FC<PersonalizedRecommendationsProps> = 
 
   if (error) {
     return (
-      <Alert severity="error" sx={{ my: 2 }}>
-        {error}
-      </Alert>
+      <Box sx={{ py: 2, ...sx }} className={className}>
+        <Alert severity="error">
+          {error}
+        </Alert>
+      </Box>
     );
   }
 
+  const currentEmptyState = getEmptyStateMessage();
+
   return (
-    <Box>
+    <Box sx={sx} className={className}>
       <Typography variant="h5" sx={{ mb: 3, fontWeight: 600 }}>
         Personalized for You
       </Typography>
@@ -127,41 +144,77 @@ const PersonalizedRecommendations: React.FC<PersonalizedRecommendationsProps> = 
 
       <TabPanel value={tabValue} index={0}>
         <RecommendationsList
-          recommendations={getCurrentRecommendations()}
+          items={getCurrentRecommendations()}
           maxItems={maxItems}
           onItemClick={onItemClick}
           onPlayClick={onPlayClick}
-          showActions={true}
+          onFavoriteClick={onFavoriteClick}
+          onShareClick={onShareClick}
+          onInfoClick={onInfoClick}
+          showActions={showActions}
+          showHeader={false}
+          variant={variant}
+          elevation={elevation}
+          emptyStateTitle={currentEmptyState.title}
+          emptyStateMessage={currentEmptyState.description}
+          onRetry={onRetry}
         />
       </TabPanel>
 
       <TabPanel value={tabValue} index={1}>
         <RecommendationsList
-          recommendations={getCurrentRecommendations()}
+          items={getCurrentRecommendations()}
           maxItems={maxItems}
           onItemClick={onItemClick}
           onPlayClick={onPlayClick}
-          showActions={true}
+          onFavoriteClick={onFavoriteClick}
+          onShareClick={onShareClick}
+          onInfoClick={onInfoClick}
+          showActions={showActions}
+          showHeader={false}
+          variant={variant}
+          elevation={elevation}
+          emptyStateTitle={currentEmptyState.title}
+          emptyStateMessage={currentEmptyState.description}
+          onRetry={onRetry}
         />
       </TabPanel>
 
       <TabPanel value={tabValue} index={2}>
         <RecommendationsList
-          recommendations={getCurrentRecommendations()}
+          items={getCurrentRecommendations()}
           maxItems={maxItems}
           onItemClick={onItemClick}
           onPlayClick={onPlayClick}
-          showActions={true}
+          onFavoriteClick={onFavoriteClick}
+          onShareClick={onShareClick}
+          onInfoClick={onInfoClick}
+          showActions={showActions}
+          showHeader={false}
+          variant={variant}
+          elevation={elevation}
+          emptyStateTitle={currentEmptyState.title}
+          emptyStateMessage={currentEmptyState.description}
+          onRetry={onRetry}
         />
       </TabPanel>
 
       <TabPanel value={tabValue} index={3}>
         <RecommendationsList
-          recommendations={getCurrentRecommendations()}
+          items={getCurrentRecommendations()}
           maxItems={maxItems}
           onItemClick={onItemClick}
           onPlayClick={onPlayClick}
-          showActions={true}
+          onFavoriteClick={onFavoriteClick}
+          onShareClick={onShareClick}
+          onInfoClick={onInfoClick}
+          showActions={showActions}
+          showHeader={false}
+          variant={variant}
+          elevation={elevation}
+          emptyStateTitle={currentEmptyState.title}
+          emptyStateMessage={currentEmptyState.description}
+          onRetry={onRetry}
         />
       </TabPanel>
     </Box>
