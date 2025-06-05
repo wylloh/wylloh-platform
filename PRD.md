@@ -1,12 +1,8 @@
-# Product Requirements Document
+# Wylloh Platform - Product Requirements Document (PRD)
 
-#### Wylloh Platform
-
-Project Manager: Harrison Kavanaugh
-
-Date of Creation: 2025/02/28
-
-Version 1.40
+**Version:** 1.1  
+**Date:** February 2025  
+**Project Manager:** Wylloh Development Team
 
 ## 1. Executive Summary
 

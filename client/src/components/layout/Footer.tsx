@@ -37,6 +37,7 @@ const Footer: React.FC = () => {
         { name: 'Terms', path: '/terms' },
         { name: 'Privacy', path: '/privacy' },
         { name: 'Licenses', path: '/licenses' },
+        { name: 'Compliance', path: '/compliance' },
         { name: 'Copyright', path: '/copyright' }
       ]
     },
