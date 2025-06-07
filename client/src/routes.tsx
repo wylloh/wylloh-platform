@@ -35,6 +35,7 @@ const AboutPage = React.lazy(() => import('./pages/AboutPage'));
 const ContributePage = React.lazy(() => import('./pages/ContributePage'));
 const PressPage = React.lazy(() => import('./pages/PressPage'));
 const ProVerificationPage = React.lazy(() => import('./pages/ProVerificationPage'));
+const PartnershipsPage = React.lazy(() => import('./pages/PartnershipsPage'));
 const TermsPage = React.lazy(() => import('./pages/TermsPage'));
 const PrivacyPage = React.lazy(() => import('./pages/PrivacyPage'));
 const LicensesPage = React.lazy(() => import('./pages/LicensesPage'));
@@ -95,6 +96,7 @@ const AppRoutes = () => {
         <Route path="/about" element={<AboutPage />} />
         <Route path="/contribute" element={<ContributePage />} />
         <Route path="/press" element={<PressPage />} />
+        <Route path="/partnerships" element={<PartnershipsPage />} />
         <Route path="/pro-verification" element={<ProVerificationPage />} />
         <Route path="/terms" element={<TermsPage />} />
         <Route path="/privacy" element={<PrivacyPage />} />

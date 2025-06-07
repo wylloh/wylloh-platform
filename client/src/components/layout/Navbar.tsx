@@ -32,7 +32,8 @@ import {
   AdminPanelSettings,
   VerifiedUser,
   Search as SearchIcon,
-  Cloud as CloudIcon
+  Cloud as CloudIcon,
+  Handshake as HandshakeIcon
 } from '@mui/icons-material';
 import { useWallet } from '../../contexts/WalletContext';
 import { useAuth } from '../../contexts/AuthContext';
@@ -135,6 +136,7 @@ const Navbar: React.FC = () => {
     { text: 'Home', to: '/', icon: <Home /> },
     { text: 'Marketplace', to: '/marketplace', icon: <VideoLibrary /> },
     { text: 'Discover', to: '/search', icon: <SearchIcon /> },
+    { text: 'Partnerships', to: '/partnerships', icon: <HandshakeIcon /> },
   ];
   
   // Pro links (if authenticated)

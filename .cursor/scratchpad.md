@@ -3,52 +3,25 @@
 ## Background and Motivation
 The Wylloh platform is developing as a blockchain-based content management system for Hollywood filmmakers. The primary objective is to provide a secure, user-friendly platform for content creators to manage, tokenize, and distribute their digital assets. The platform needs to inspire trust among professional filmmakers who are entrusting their valuable intellectual property to the system.
 
-**CURRENT STATUS UPDATE**: Platform is at 100% completion with professional branding, monochromatic design system, and production-ready functionality. Successfully completed all 6 major phases including Advanced Rights Verification System and IPFS Integration. Infrastructure deployment completed with Docker containerization and Cloudflare Tunnel configuration ready.
+**CURRENT STATUS UPDATE**: Platform is at 100% completion with professional branding, monochromatic design system, and production-ready functionality. Successfully completed all 6 major phases including Advanced Rights Verification System and IPFS Integration. Infrastructure deployment completed with Docker containerization and ready for VPS deployment.
 
-**🚀 NEW CONSIDERATION: FLEEK HOSTING EVALUATION**
-User is exploring Fleek (https://fleek.xyz/docs/platform/hosting/) as an alternative to self-hosted MacBook Pro deployment for beta launch. This represents a significant architectural decision that needs careful evaluation given the platform's unique requirements and legal considerations.
+**🚀 LATEST SESSION COMPLETED (Demo & Planning)**:
+- ✅ Successfully ran local demo for user presentation to friend
+- ✅ Confirmed platform functionality with client running on port 3000
+- ✅ Identified minor warnings (source maps, unused variables) - non-critical
+- ✅ Platform ready for production deployment
 
-**Key Fleek Alignment Benefits:**
-- ✅ **Decentralization Values**: Aligns with Wylloh's decentralized philosophy
-- ✅ **IPFS Integration**: Native IPFS support matches our storage architecture
-- ✅ **Free Tier**: Cost-effective for early validation phase
-- ✅ **Persistence**: Decentralized hosting provides content permanence
-
-**Critical Compatibility Concerns:**
-- ❌ **Static Site Only**: Fleek hosts static sites, but Wylloh requires full-stack architecture
-- ❌ **No Backend Services**: Cannot host MongoDB, Redis, API services, or IPFS nodes
-- ❌ **No Docker Support**: Current Docker Compose architecture incompatible
-- ❌ **Limited Dynamic Features**: Token stacking, rights management need backend processing
-
-**Legal Risk Assessment Required:**
-- IP containment concerns during beta glitches
-- Crypto token classification (securities vs utility)
-- Platform liability for user-uploaded content
-- Decentralized hosting legal implications
-
-**🚀 LATEST SESSION COMPLETED (UI/UX Improvements)**:
-- ✅ Updated About page terminology: "Creators" → "Filmmakers", "Consumers" → "Audiences"
-- ✅ Created comprehensive Pro Verification page explaining filmmaker verification process
-- ✅ Fixed "Pro Access" links on HomePage to direct to Pro verification page
-- ✅ Made feature cards expandable with detailed information and benefits
-- ✅ Simplified wallet connect modal for better blockchain-native UX
-- ✅ Removed confusing "Sign In" option from wallet modal
-- ✅ Enhanced onboarding for non-Web3 users with educational content
-- ✅ **ADDITIONAL FIXES**: Removed "Sign In" button from navbar (desktop & mobile)
-- ✅ **ADDITIONAL FIXES**: Fixed broken "Register Wallet" link to trigger wallet connection
-- ✅ **ADDITIONAL FIXES**: Clarified email registration is optional and only for communication
-
-**🚀 NEXT SESSION PRIORITY: OFFICIAL BETA LAUNCH**
-- Deploy platform on dedicated iMac server
-- Configure Cloudflare Tunnel for wylloh.com
+**🚀 NEXT SESSION PRIORITY: VPS DEPLOYMENT FOR BETA LAUNCH**
+- Deploy platform on Virtual Private Server (VPS)
+- Configure domain and SSL certificates
 - Launch public beta targeting 0-100 users
-- Complete privacy policy review for blockchain-native approach
+- Monitor performance and stability
 
 **PROJECT CONTEXT**: 
 - Platform has reached 100% completion milestone
+- Local demo successfully running and demonstrated
 - Infrastructure deployment completed with Docker Compose
-- Cloudflare Tunnel setup documentation created
-- Beta launch plan finalized for next session
+- Ready for VPS deployment and beta launch
 - Privacy policy needs review for blockchain-native approach
 - UI/UX improvements completed for better user experience
 
@@ -88,7 +61,7 @@ User is exploring Fleek (https://fleek.xyz/docs/platform/hosting/) as an alterna
 
 ### Dual-Audience Copy Strategy
 
-The platform copy balances technical precision with accessible language to serve both professional filmmakers and passionate collectors:
+The platform balances technical precision with accessible language to serve both professional filmmakers and passionate collectors:
 
 **For Hollywood Professionals:**
 - Emphasize security, rights management, and industry-standard workflows
@@ -134,67 +107,98 @@ This model combines the permanence of physical media ownership with the flexibil
 
 ## Overall Progress: 100% Complete ✅
 
-## 🎯 NEXT SESSION OBJECTIVES (Beta Launch)
+## 🎯 NEXT SESSION OBJECTIVES (VPS Beta Launch)
 
-### 🖥️ MacBook Pro 2015 Deployment Configuration ✅ COMPLETE
+### 🖥️ VPS Deployment Strategy
 
-**Hardware Target**: 2015 MacBook Pro (UPGRADED from 2013 iMac)
-- **macOS Version**: 11.6.5 (Big Sur) ✅ **EXCELLENT COMPATIBILITY**
-- **Advantages**: SSD performance, modern macOS, full Docker support, portability
-- **Optimization**: Configured for laptop-specific considerations and thermal management
+**Deployment Target**: Virtual Private Server (VPS)
+- **Advantages**: Professional hosting, scalability, reliability, 24/7 uptime
+- **Provider Options**: DigitalOcean, Linode, Vultr, or AWS Lightsail
+- **Specifications**: Minimum 4GB RAM, 2 CPU cores, 80GB SSD storage
+- **Operating System**: Ubuntu 22.04 LTS (recommended for Docker compatibility)
 
-**✅ DEPLOYMENT ASSETS CREATED:**
+**✅ EXISTING DEPLOYMENT ASSETS (Ready for VPS):**
 - `deployment/env.production.template` - Production environment configuration template
-- `scripts/deploy-imac.sh` - Comprehensive automated deployment script (works for MacBook Pro)
-- `deployment/cloudflare-tunnel-config.yml` - Tunnel configuration template
-- `deployment/IMAC_DEPLOYMENT_GUIDE.md` - Original iMac deployment documentation
-- `deployment/MACBOOK_PRO_DEPLOYMENT_GUIDE.md` - **NEW: MacBook Pro specific guide**
+- `docker-compose.yml` - Multi-service container orchestration
+- `scripts/deploy-imac.sh` - Deployment script (adaptable for VPS)
+- Nginx configuration for reverse proxy
+- SSL certificate automation ready
 
-**🔄 HARDWARE CHANGE RATIONALE:**
-- **2013 iMac (macOS 10.9.5)**: ❌ Outdated, limited Docker support, security risks
-- **2015 MacBook Pro (macOS 11.6.5)**: ✅ Modern, full compatibility, better performance
+### 🚀 VPS Deployment Plan
 
-**Pre-Deployment System Preparation:**
-1. **macOS Verification**: Confirm Big Sur 11.6.5 compatibility
-2. **Storage Optimization**: 
-   - Free up minimum 40GB disk space for Docker volumes
-   - Leverage SSD performance advantage over 2013 iMac HDD
-3. **Memory Management**: Optimize Docker allocation (6-8GB depending on total RAM)
-4. **Power Management**: Use power adapter during deployment, prevent sleep
-5. **Network Configuration**: Ensure stable connection for Cloudflare Tunnel
+#### Phase 1: VPS Setup & Configuration
+1. **VPS Provisioning**:
+   - Select VPS provider and plan (4GB RAM minimum)
+   - Configure Ubuntu 22.04 LTS
+   - Set up SSH key authentication
+   - Configure firewall (UFW) with required ports
 
-### 🚀 READY TO EXECUTE: MacBook Pro Deployment Process
+2. **System Preparation**:
+   - Update system packages
+   - Install Docker and Docker Compose
+   - Configure swap file for memory optimization
+   - Set up automatic security updates
 
-**EXECUTOR MODE READY** - All deployment assets created and optimized for MacBook Pro hardware.
+#### Phase 2: Application Deployment
+1. **Repository Setup**:
+   - Clone Wylloh platform repository
+   - Configure production environment variables
+   - Set up SSL certificates (Let's Encrypt)
+   - Configure domain DNS settings
 
-#### Next Steps for Execution:
-1. **System Check**: Verify MacBook Pro resources and compatibility
-2. **Install Prerequisites**: Homebrew and Docker Desktop for Mac
-3. **Clone Repository**: `git clone` to MacBook Pro
-4. **Configure Environment**: Edit `.env.production` with actual credentials
-5. **Run Deployment Script**: `./scripts/deploy-imac.sh` (compatible with MacBook Pro)
-6. **Set up Cloudflare Tunnel**: Follow automated prompts in script
-7. **Deploy Services**: Automated Docker build and deployment
-8. **Verify Health**: Automated service health checks
-9. **Go Live**: Configure DNS and enable public access
+2. **Service Deployment**:
+   - Deploy MongoDB with persistent volumes
+   - Deploy Redis for caching
+   - Deploy API server with health checks
+   - Deploy client with optimized build
+   - Configure IPFS node for content storage
 
-#### Key Benefits of MacBook Pro 2015 vs 2013 iMac:
-- ✅ **Modern macOS**: Big Sur (11.6.5) vs Mavericks (10.9.5)
-- ✅ **Docker Compatibility**: Full support vs limited/no support
-- ✅ **SSD Performance**: 10x faster I/O for database and IPFS operations
-- ✅ **Security**: Active updates vs 7+ years outdated
-- ✅ **Portability**: Can monitor deployment remotely
-- ✅ **Better Cooling**: Sustained performance under load
+#### Phase 3: Production Configuration
+1. **Security Hardening**:
+   - Configure HTTPS-only access
+   - Set up fail2ban for intrusion prevention
+   - Configure automated backups
+   - Implement monitoring and alerting
 
-#### Deployment Timeline Estimate:
-- **System Preparation**: 10 minutes (faster on modern macOS)
-- **Docker Installation**: 10 minutes (via Homebrew)
-- **Environment Configuration**: 15 minutes
-- **Cloudflare Tunnel Setup**: 20 minutes
-- **Platform Deployment**: 20 minutes (faster SSD builds)
-- **Health Verification**: 10 minutes
+2. **Performance Optimization**:
+   - Configure Nginx caching
+   - Optimize Docker resource allocation
+   - Set up log rotation
+   - Configure CDN if needed
+
+#### Phase 4: Go Live Process
+1. **Domain Configuration**:
+   - Point wylloh.com to VPS IP
+   - Configure SSL certificates
+   - Test all endpoints and functionality
+   - Verify blockchain connectivity
+
+2. **Beta Launch**:
+   - Enable public access
+   - Monitor system performance
+   - Track user registrations (0-100 target)
+   - Collect feedback for improvements
+
+### VPS Deployment Timeline Estimate:
+- **VPS Setup & Configuration**: 30 minutes
+- **System Preparation**: 20 minutes
+- **Repository & Environment Setup**: 15 minutes
+- **Service Deployment**: 25 minutes
+- **Security & SSL Configuration**: 20 minutes
+- **Domain & DNS Configuration**: 15 minutes
+- **Testing & Verification**: 15 minutes
 - **Go Live Process**: 10 minutes
-- **Total**: ~1.5 hours for complete beta launch (30 minutes faster than iMac)
+- **Total**: ~2.5 hours for complete VPS deployment
+
+### Key Benefits of VPS Deployment:
+- ✅ **Professional Infrastructure**: Enterprise-grade hosting
+- ✅ **24/7 Uptime**: Reliable availability for beta users
+- ✅ **Scalability**: Easy resource upgrades as user base grows
+- ✅ **Security**: Professional security features and monitoring
+- ✅ **Performance**: Optimized for web applications
+- ✅ **Backup & Recovery**: Automated backup solutions
+- ✅ **Global Access**: Fast loading times worldwide
+- ✅ **Cost Effective**: Predictable monthly costs
 
 ### Project Status Board
 
