@@ -41,7 +41,7 @@ RUN npm install --only=production --legacy-peer-deps && npm cache clean --force
 COPY --from=builder /app/dist ./dist
 
 # Copy any other necessary files (env, configs, etc.)
-COPY --chown=wylloh:nodejs .env.production* ./
+COPY --chown=wylloh:nodejs .env.production ./
 
 # Create necessary directories
 RUN mkdir -p temp logs && chown -R wylloh:nodejs temp logs
