@@ -1,0 +1,8 @@
+
+# Treasury Security - DO NOT COMMIT PRIVATE KEYS
+treasury-private.json
+*.key
+*.pem
+*.p12
+backup/
+keys/

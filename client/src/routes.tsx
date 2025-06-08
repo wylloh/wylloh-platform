@@ -38,6 +38,7 @@ const ProVerificationPage = React.lazy(() => import('./pages/ProVerificationPage
 const PartnershipsPage = React.lazy(() => import('./pages/PartnershipsPage'));
 const TermsPage = React.lazy(() => import('./pages/TermsPage'));
 const PrivacyPage = React.lazy(() => import('./pages/PrivacyPage'));
+const AITransparencyPage = React.lazy(() => import('./pages/AITransparencyPage'));
 const LicensesPage = React.lazy(() => import('./pages/LicensesPage'));
 const CompliancePage = React.lazy(() => import('./pages/CompliancePage'));
 const CopyrightPage = React.lazy(() => import('./pages/CopyrightPage'));
@@ -100,6 +101,7 @@ const AppRoutes = () => {
         <Route path="/pro-verification" element={<ProVerificationPage />} />
         <Route path="/terms" element={<TermsPage />} />
         <Route path="/privacy" element={<PrivacyPage />} />
+        <Route path="/ai-transparency" element={<AITransparencyPage />} />
         <Route path="/licenses" element={<LicensesPage />} />
         <Route path="/compliance" element={<CompliancePage />} />
         <Route path="/copyright" element={<CopyrightPage />} />

@@ -62,19 +62,36 @@ const Logo = () => (
         filter: 'brightness(1)',
       }} 
     />
-    <Typography
-      variant="h6"
-      noWrap
-      sx={{
-        fontFamily: '"Inter", sans-serif',
-        fontWeight: 600,
-        letterSpacing: '.1rem',
-        color: 'text.primary',
-        textDecoration: 'none',
-      }}
-    >
-      WYLLOH
-    </Typography>
+    <Box sx={{ display: 'flex', alignItems: 'center' }}>
+      <Typography
+        variant="h6"
+        noWrap
+        sx={{
+          fontFamily: '"Inter", sans-serif',
+          fontWeight: 600,
+          letterSpacing: '.1rem',
+          color: 'text.primary',
+          textDecoration: 'none',
+        }}
+      >
+        WYLLOH
+      </Typography>
+      <Typography
+        variant="caption"
+        sx={{
+          fontFamily: '"Inter", sans-serif',
+          fontWeight: 400,
+          fontSize: '0.65rem',
+          color: 'text.secondary',
+          textDecoration: 'none',
+          ml: 0.75,
+          opacity: 0.7,
+          letterSpacing: '0.05rem',
+        }}
+      >
+        BETA
+      </Typography>
+    </Box>
   </Box>
 );
 

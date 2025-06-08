@@ -36,6 +36,7 @@ const Footer: React.FC = () => {
       links: [
         { name: 'Terms', path: '/terms' },
         { name: 'Privacy', path: '/privacy' },
+        { name: 'AI Transparency', path: '/ai-transparency' },
         { name: 'Licenses', path: '/licenses' },
         { name: 'Compliance', path: '/compliance' },
         { name: 'Copyright', path: '/copyright' }
