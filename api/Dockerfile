@@ -7,7 +7,10 @@ WORKDIR /app
 COPY package*.json ./
 
 # Install all dependencies (including dev dependencies for building)
-RUN npm install --legacy-peer-deps && npm cache clean --force
+RUN npm ci --legacy-peer-deps && npm cache clean --force
+
+# Ensure TypeScript is properly installed
+RUN npm install -g typescript@latest && npm install typescript@latest
 
 # Copy source code
 COPY . .
