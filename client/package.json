@@ -94,13 +94,15 @@
     "ts-node": "^10.9.2"
   },
   "resolutions": {
-    "ajv": "^6.12.6",
-    "ajv-keywords": "^3.5.2",
-    "ajv-formats": "^1.6.1"
+    "ajv": "6.12.6",
+    "ajv-keywords": "3.5.2",
+    "ajv-formats": "1.6.1",
+    "schema-utils": "3.3.0"
   },
   "overrides": {
-    "ajv": "^6.12.6",
-    "ajv-keywords": "^3.5.2",
-    "ajv-formats": "^1.6.1"
+    "ajv": "6.12.6",
+    "ajv-keywords": "3.5.2", 
+    "ajv-formats": "1.6.1",
+    "schema-utils": "3.3.0"
   }
 }
