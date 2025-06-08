@@ -1,0 +1,139 @@
+version: '3.8'
+
+services:
+  # Development client with hot reload
+  client-dev:
+    build:
+      context: ./client
+      dockerfile: Dockerfile
+      target: builder
+    container_name: wylloh-client-dev
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=development
+      - REACT_APP_API_URL=http://localhost:3001
+      - REACT_APP_STORAGE_URL=http://localhost:3002
+      - REACT_APP_IPFS_GATEWAY=http://localhost:8080
+      - REACT_APP_NETWORK_ID=31337
+      - REACT_APP_CHAIN_NAME=localhost
+      - FAST_REFRESH=true
+    volumes:
+      - ./client/src:/app/src
+      - ./client/public:/app/public
+      - client_dev_node_modules:/app/node_modules
+    command: npm start
+    restart: unless-stopped
+    networks:
+      - wylloh-dev
+
+  # Development API with hot reload
+  api-dev:
+    build:
+      context: ./api
+      dockerfile: Dockerfile
+      target: builder
+    container_name: wylloh-api-dev
+    ports:
+      - "3001:3001"
+    environment:
+      - NODE_ENV=development
+      - PORT=3001
+      - MONGODB_URI=mongodb://mongo:27017/wylloh_dev
+      - REDIS_URL=redis://redis:6379
+      - JWT_SECRET=dev-jwt-secret-key
+    volumes:
+      - ./api/src:/app/src
+      - api_dev_node_modules:/app/node_modules
+    command: npx ts-node src/index.ts
+    depends_on:
+      - mongo
+      - redis
+    restart: unless-stopped
+    networks:
+      - wylloh-dev
+
+  # Development storage service
+  storage-dev:
+    build:
+      context: ./storage
+      dockerfile: Dockerfile
+      target: builder
+    container_name: wylloh-storage-dev
+    ports:
+      - "3002:3002"
+    environment:
+      - NODE_ENV=development
+      - PORT=3002
+      - MONGODB_URI=mongodb://mongo:27017/wylloh_dev
+      - REDIS_URL=redis://redis:6379
+    volumes:
+      - ./storage/src:/app/src
+      - storage_dev_node_modules:/app/node_modules
+    command: npx ts-node src/index.ts
+    depends_on:
+      - mongo
+      - redis
+      - ipfs
+    restart: unless-stopped
+    networks:
+      - wylloh-dev
+
+  # MongoDB for development
+  mongo:
+    image: mongo:7
+    container_name: wylloh-mongo-dev
+    ports:
+      - "27017:27017"
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=admin
+      - MONGO_INITDB_ROOT_PASSWORD=devpassword
+      - MONGO_INITDB_DATABASE=wylloh_dev
+    volumes:
+      - mongo_dev_data:/data/db
+    restart: unless-stopped
+    networks:
+      - wylloh-dev
+
+  # Redis for development
+  redis:
+    image: redis:7-alpine
+    container_name: wylloh-redis-dev
+    ports:
+      - "6379:6379"
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_dev_data:/data
+    restart: unless-stopped
+    networks:
+      - wylloh-dev
+
+  # IPFS for development
+  ipfs:
+    image: ipfs/kubo:latest
+    container_name: wylloh-ipfs-dev
+    ports:
+      - "4001:4001"
+      - "5001:5001"
+      - "8080:8080"
+    volumes:
+      - ipfs_dev_data:/data/ipfs
+      - ipfs_dev_staging:/export
+    environment:
+      - IPFS_PROFILE=server
+    restart: unless-stopped
+    networks:
+      - wylloh-dev
+
+volumes:
+  client_dev_node_modules:
+  api_dev_node_modules:
+  storage_dev_node_modules:
+  mongo_dev_data:
+  redis_dev_data:
+  ipfs_dev_data:
+  ipfs_dev_staging:
+
+networks:
+  wylloh-dev:
+    driver: bridge 
