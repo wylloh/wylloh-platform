@@ -7,16 +7,16 @@ WORKDIR /app
 COPY package*.json ./
 
 # Install all dependencies (including dev dependencies for building)
-RUN npm ci --legacy-peer-deps && npm cache clean --force
+RUN npm install --legacy-peer-deps && npm cache clean --force
 
 # Ensure TypeScript is properly installed
-RUN npm install -g typescript@latest && npm install typescript@latest
+RUN npm install -g typescript@latest
 
 # Copy source code
 COPY . .
 
 # Build the TypeScript application
-RUN npm run build || npx tsc
+RUN tsc || npm run build
 
 # Production stage
 FROM node:18-alpine AS production
