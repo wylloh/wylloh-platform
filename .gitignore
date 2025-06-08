@@ -2,8 +2,8 @@
 node_modules/
 .pnp/
 .pnp.js
-yarn.lock
-package-lock.json
+# yarn.lock - should be committed for reproducible builds
+# package-lock.json - should be committed for reproducible builds
 
 # Testing
 coverage/

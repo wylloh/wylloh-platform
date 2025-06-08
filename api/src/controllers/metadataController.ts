@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { Content } from '../models/Content';
+import Content from '../models/Content';
 import createError from '../utils/createError';
 import asyncHandler from '../middleware/asyncHandler';
 import axios from 'axios';

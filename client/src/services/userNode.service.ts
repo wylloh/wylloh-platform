@@ -140,8 +140,8 @@ class UserNodeService {
       this.helia = await createHelia({
         libp2p: this.libp2p,
         blockstore: this.blockstore,
-        datastore: this.datastore as any // Type assertion to resolve interface conflicts
-      } as any); // Additional type assertion for Helia initialization
+        datastore: this.datastore
+      } as any); // Type assertion to resolve IPFS/libp2p interface version conflicts
 
       // Create UnixFS interface for file operations
       this.fs = unixfs(this.helia);
@@ -213,8 +213,8 @@ class UserNodeService {
             clientMode: false
             // Removed deprecated pingTimeout and pingConcurrency options
             // The ping service is now provided separately via the ping() service above
-          })
-        } as any // Type assertion to resolve all service interface conflicts
+          }) as any // Type assertion to resolve DHT interface conflicts
+        }
       });
     } catch (error) {
       console.error('Error creating libp2p node:', error);

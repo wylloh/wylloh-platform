@@ -3,17 +3,17 @@ FROM node:18-alpine AS builder
 
 WORKDIR /app
 
-# Copy package files
+# Copy package files first for better caching
 COPY package*.json ./
 
 # Install all dependencies (including dev dependencies for building)
-RUN npm install
+RUN npm install --legacy-peer-deps && npm cache clean --force
 
 # Copy source code
 COPY . .
 
-# Build the application using the full TypeScript path
-RUN ./node_modules/.bin/tsc
+# Build the TypeScript application
+RUN npm run build || npx tsc
 
 # Production stage
 FROM node:18-alpine AS production
@@ -30,11 +30,14 @@ RUN adduser -S wylloh -u 1001
 # Copy package files
 COPY package*.json ./
 
-# Install all dependencies (including TypeScript for runtime compilation)
-RUN npm install && npm cache clean --force
+# Install only production dependencies
+RUN npm ci --only=production --legacy-peer-deps && npm cache clean --force
 
-# Copy source code
-COPY --chown=wylloh:nodejs . .
+# Copy built application from builder stage
+COPY --from=builder /app/dist ./dist
+
+# Copy any other necessary files (env, configs, etc.)
+COPY --chown=wylloh:nodejs .env.production* ./
 
 # Create necessary directories
 RUN mkdir -p temp logs && chown -R wylloh:nodejs temp logs
@@ -49,5 +52,5 @@ EXPOSE 3002
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
   CMD curl -f http://localhost:3002/health || exit 1
 
-# Start the application with ts-node for development
-CMD ["npx", "ts-node", "src/index.ts"] 
+# Start the compiled JavaScript application
+CMD ["node", "dist/index.js"] 

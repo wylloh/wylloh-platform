@@ -1,0 +1,14 @@
+# Production Dockerfile for serving pre-built client
+FROM nginx:alpine as production
+
+# Copy pre-built static files (built locally on development machine)
+COPY build/ /usr/share/nginx/html/
+
+# Copy custom nginx configuration
+COPY nginx.conf /etc/nginx/conf.d/default.conf
+
+# Expose port 80
+EXPOSE 80
+
+# Start nginx
+CMD ["nginx", "-g", "daemon off;"] 

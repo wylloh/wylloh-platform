@@ -13,6 +13,9 @@ export interface IUser extends Document {
   updatedAt: Date;
   isVerified: boolean;
   lastLogin?: Date;
+  resetPasswordToken?: string;
+  resetPasswordExpire?: Date;
+  emailVerificationToken?: string;
   comparePassword(candidatePassword: string): Promise<boolean>;
 }
 
@@ -65,6 +68,15 @@ const UserSchema: Schema = new Schema(
     },
     lastLogin: {
       type: Date
+    },
+    resetPasswordToken: {
+      type: String
+    },
+    resetPasswordExpire: {
+      type: Date
+    },
+    emailVerificationToken: {
+      type: String
     }
   },
   {
@@ -83,7 +95,7 @@ UserSchema.pre<IUser>('save', async function(next) {
     this.password = await bcrypt.hash(this.password, salt);
     next();
   } catch (error) {
-    next(error);
+    next(error as Error);
   }
 });
 

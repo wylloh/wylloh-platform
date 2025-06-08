@@ -1,8 +1,8 @@
 import { Router } from 'express';
 import { RecommendationController } from '../controllers/recommendationController';
-import { auth } from '../middleware/auth';
+import { authMiddleware as auth } from '../middleware/authMiddleware';
 
-const router = Router();
+const router: Router = Router();
 
 // Personalized recommendations (requires authentication)
 router.get('/personalized', auth, RecommendationController.getPersonalizedRecommendations);

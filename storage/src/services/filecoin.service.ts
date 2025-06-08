@@ -142,7 +142,7 @@ class FilecoinService {
       if (process.env.NODE_ENV === 'production') {
         // Query the Filecoin network for active miners
         // This is simplified - in production would need more complex miner selection
-        const miners = await this.client.stateListMiners();
+        const miners = await this.client.stateListMiners([]);
         // Filter to active miners with enough storage
         return miners.slice(0, 5); // Just take first 5 for simplicity
       } else {

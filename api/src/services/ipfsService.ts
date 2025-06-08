@@ -1,6 +1,6 @@
 import { create, IPFSHTTPClient } from 'ipfs-http-client';
 
-export class IpfsService {
+class IpfsService {
   private client: IPFSHTTPClient;
 
   constructor() {
@@ -48,4 +48,7 @@ export class IpfsService {
       throw new Error('Failed to get content from IPFS: Unknown error');
     }
   }
-} 
+}
+
+// Export as default
+export default IpfsService; 

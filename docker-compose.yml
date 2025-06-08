@@ -145,21 +145,27 @@ services:
       timeout: 10s
       retries: 3
 
-  # Frontend Client
+  # Client service - Production React frontend
   client:
     build:
       context: ./client
       dockerfile: Dockerfile
+      target: production
       args:
-        REACT_APP_API_URL: ${REACT_APP_API_URL:-https://api.wylloh.com}
-        REACT_APP_STORAGE_URL: ${REACT_APP_STORAGE_URL:-https://storage.wylloh.com}
-        REACT_APP_IPFS_GATEWAY: ${REACT_APP_IPFS_GATEWAY:-https://ipfs.wylloh.com}
-        REACT_APP_NETWORK_ID: ${REACT_APP_NETWORK_ID:-137}
-        REACT_APP_CHAIN_NAME: ${REACT_APP_CHAIN_NAME:-Polygon}
+        REACT_APP_API_URL: ${REACT_APP_API_URL:-http://138.197.232.48:3001}
+        REACT_APP_STORAGE_URL: ${REACT_APP_STORAGE_URL:-http://138.197.232.48:3002}
+        REACT_APP_IPFS_GATEWAY: ${REACT_APP_IPFS_GATEWAY:-http://138.197.232.48:8080}
+        REACT_APP_NETWORK_ID: ${REACT_APP_NETWORK_ID:-1}
+        REACT_APP_CHAIN_NAME: ${REACT_APP_CHAIN_NAME:-mainnet}
     container_name: wylloh-client
     restart: unless-stopped
     ports:
       - "3000:80"
+    environment:
+      - NODE_ENV=production
+    depends_on:
+      - api
+      - storage
     networks:
       - wylloh-network
     healthcheck:
@@ -167,6 +173,7 @@ services:
       interval: 30s
       timeout: 10s
       retries: 3
+      start_period: 60s
 
   # Nginx Reverse Proxy
   nginx:
@@ -222,7 +229,7 @@ services:
       - "3003:3000"
     environment:
       GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_PASSWORD:-wylloh2024!}
-      GF_USERS_ALLOW_SIGN_UP: false
+      GF_USERS_ALLOW_SIGN_UP: "false"
     volumes:
       - grafana_data:/var/lib/grafana
       - ./monitoring/grafana/dashboards:/etc/grafana/provisioning/dashboards:ro
@@ -240,6 +247,8 @@ volumes:
   prometheus_data:
     driver: local
   grafana_data:
+    driver: local
+  client_node_modules:
     driver: local
 
 networks:
