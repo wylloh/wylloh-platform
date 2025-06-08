@@ -70,6 +70,8 @@ services:
     restart: unless-stopped
     ports:
       - "3001:3001"
+    env_file:
+      - ./.env.production
     environment:
       NODE_ENV: ${NODE_ENV:-production}
       PORT: 3001
@@ -120,6 +122,8 @@ services:
     restart: unless-stopped
     ports:
       - "3002:3002"
+    env_file:
+      - ./.env.production
     environment:
       NODE_ENV: ${NODE_ENV:-production}
       PORT: 3002

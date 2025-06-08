@@ -40,8 +40,8 @@ RUN npm install --only=production --legacy-peer-deps && npm cache clean --force
 # Copy built application from builder stage
 COPY --from=builder /app/dist ./dist
 
-# Copy any other necessary files (env, configs, etc.)
-COPY --chown=wylloh:nodejs .env.production ./
+# Environment variables will be provided by docker-compose
+# COPY --chown=wylloh:nodejs .env.production ./
 
 # Create necessary directories
 RUN mkdir -p uploads logs && chown -R wylloh:nodejs uploads logs
