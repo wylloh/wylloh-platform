@@ -35,7 +35,7 @@ RUN adduser -S wylloh -u 1001
 COPY package*.json ./
 
 # Install only production dependencies
-RUN npm ci --only=production --legacy-peer-deps && npm cache clean --force
+RUN npm install --only=production --legacy-peer-deps && npm cache clean --force
 
 # Copy built application from builder stage
 COPY --from=builder /app/dist ./dist
