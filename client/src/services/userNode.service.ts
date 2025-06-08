@@ -80,7 +80,7 @@ class UserNodeService {
   private fs: any; // UnixFS interface
   private libp2p: any; // Libp2p instance
   private blockstore: MemoryBlockstore;
-  private datastore: MemoryDatastore;
+  private datastore: any; // Using any to resolve type conflicts between different interface-datastore versions
   private isInitialized: boolean = false;
   private isRunning: boolean = false;
   private config: UserNodeConfig = DEFAULT_CONFIG;
@@ -140,7 +140,7 @@ class UserNodeService {
       this.helia = await createHelia({
         libp2p: this.libp2p,
         blockstore: this.blockstore,
-        datastore: this.datastore
+        datastore: this.datastore as any // Type assertion to resolve interface conflicts
       });
 
       // Create UnixFS interface for file operations
@@ -213,7 +213,7 @@ class UserNodeService {
             clientMode: false
             // Removed deprecated pingTimeout and pingConcurrency options
             // The ping service is now provided separately via the ping() service above
-          })
+          }) as any // Type assertion to resolve interface conflicts
         }
       });
     } catch (error) {

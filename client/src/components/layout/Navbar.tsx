@@ -15,21 +15,17 @@ import {
   Divider,
   useScrollTrigger,
   ListItemIcon,
-  ListItemText,
-  Chip
+  ListItemText
 } from '@mui/material';
 import {
   Menu as MenuIcon,
-  AccountCircle,
   Wallet,
   Collections,
-  Login,
   Logout,
   VideoLibrary,
   Dashboard,
   FileUpload,
   Home,
-  AdminPanelSettings,
   VerifiedUser,
   Search as SearchIcon,
   Cloud as CloudIcon,
@@ -98,8 +94,8 @@ const Logo = () => (
 const Navbar: React.FC = () => {
   const [mobileMenuAnchorEl, setMobileMenuAnchorEl] = useState<null | HTMLElement>(null);
   const [userMenuAnchorEl, setUserMenuAnchorEl] = useState<null | HTMLElement>(null);
-  const { active, account, chainId, isCorrectNetwork, connect, disconnect } = useWallet();
-  const { isAuthenticated, user, login, logout } = useAuth();
+  const { active, account, connect, disconnect } = useWallet();
+  const { isAuthenticated, user, logout } = useAuth();
   const navigate = useNavigate();
   
   // For elevated app bar when scrolling
