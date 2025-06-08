@@ -38,12 +38,19 @@ This document establishes the governance framework for the Wylloh Treasury, incl
 
 ## Key Holders & Access Control
 
-### Treasury Signatories (5 total)
+### Treasury Signatories (Phased Approach)
+
+**Phase 1: Pre-Revenue (3-person interim treasury)**
 1. **Platform Founder** - Harrison Kavanaugh (Primary)
-2. **Technical Lead** - [To be appointed]
-3. **Community Representative** - [To be elected]
-4. **Legal Advisor** - [To be appointed]
-5. **Financial Advisor** - [To be appointed]
+2. **Technical Advisor** - [To be appointed - blockchain/security expertise]
+3. **Legal Advisor** - [To be appointed - entertainment law or blockchain legal expert]
+
+**Phase 2: First Revenue (5-person full treasury)**
+1. **Platform Founder** - Harrison Kavanaugh (Primary)
+2. **Technical Advisor** - [Appointed from Phase 1]
+3. **Community Representative** - [To be elected by early user community]
+4. **Legal Advisor** - [Appointed from Phase 1]
+5. **Industry Advisor** - [Established filmmaker or industry professional]
 
 ### Access Levels
 - **Level 1**: Operational wallet (single signature, spending limits)
@@ -241,32 +248,32 @@ Total Platform Fee: 2.5%
 
 ## Implementation Timeline
 
-### Phase 1: Wallet Setup (Week 1)
-- [ ] Generate multi-signature treasury wallet
-- [ ] Generate operational wallet
-- [ ] Generate emergency reserve wallet
-- [ ] Document all wallet addresses and keys
-- [ ] Test transaction processes
+### Phase 1: Governance Framework (Pre-Revenue)
+- [x] Document treasury governance policies
+- [x] Establish platform fee structure (2.5%)
+- [x] Create wallet generation scripts
+- [ ] Appoint technical and legal advisors
+- [ ] **WAIT**: Generate wallets only when first Pro user signs up
 
-### Phase 2: Signatory Onboarding (Week 2)
-- [ ] Identify and contact potential signatories
+### Phase 2: Wallet Generation (First Pro User)
+- [ ] Generate multi-signature treasury wallets when first Pro user signs up
+- [ ] Onboard interim 3-person signatory team
 - [ ] Conduct security training for all signatories
-- [ ] Distribute wallet access and responsibilities
-- [ ] Test multi-signature processes
+- [ ] Test multi-signature processes with small amounts
 - [ ] Document emergency contact procedures
 
-### Phase 3: Policy Implementation (Week 3)
-- [ ] Implement automated fee collection
+### Phase 3: Treasury Operations (First Revenue)
+- [ ] Implement automated fee collection from first transactions
 - [ ] Set up spending approval workflows
-- [ ] Create reporting templates and schedules
+- [ ] Begin monthly treasury reporting
 - [ ] Establish community communication channels
-- [ ] Begin monthly reporting cycle
+- [ ] Monitor and optimize fee allocation
 
-### Phase 4: Community Integration (Week 4)
-- [ ] Announce treasury governance to community
+### Phase 4: Full Governance (Growth Phase)
+- [ ] Expand to 5-person signatory structure
+- [ ] Elect community representative
+- [ ] Appoint industry advisor
 - [ ] Conduct first community treasury call
-- [ ] Gather initial community feedback
-- [ ] Refine policies based on feedback
 - [ ] Begin regular governance operations
 
 ## Success Metrics

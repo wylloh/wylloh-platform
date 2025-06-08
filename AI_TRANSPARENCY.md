@@ -232,9 +232,9 @@ We invite artists, creators, and community members to join us in this transition
 ---
 
 **Contact for Artist Collaborations:**
-- Email: conta@wylloh.com
+- Email: contact@wylloh.com
 - Discord: [Wylloh Artist Community]
 - Application Form: [Artist Collaboration Interest Form]
 
-**Last Updated**: December 2024
-**Next Review**: March 2025 ct
+**Last Updated**: June 2025
+**Next Review**: November 2025
