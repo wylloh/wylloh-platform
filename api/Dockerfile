@@ -3,21 +3,21 @@ FROM node:18-alpine AS builder
 
 WORKDIR /app
 
-# Copy package files first for better caching
+# Copy package files and yarn lock from root workspace for better caching
 COPY package*.json ./
+COPY ../yarn.lock ./
 
 # Install all dependencies (including dev dependencies for building)
-RUN npm install --legacy-peer-deps && npm cache clean --force
+RUN yarn install --frozen-lockfile && yarn cache clean
 
 # Ensure TypeScript is properly installed
-RUN npm install -g typescript@latest
+RUN yarn global add typescript@latest
 
 # Copy source code
 COPY . .
 
-# Build the TypeScript application (skip for now due to compilation errors)
-# RUN tsc || npm run build
-RUN mkdir -p dist && cp -r src/* dist/
+# Build the TypeScript application
+RUN yarn build
 
 # Production stage
 FROM node:18-alpine AS production
@@ -31,11 +31,12 @@ WORKDIR /app
 RUN addgroup -g 1001 -S nodejs
 RUN adduser -S wylloh -u 1001
 
-# Copy package files
+# Copy package files and yarn lock
 COPY package*.json ./
+COPY ../yarn.lock ./
 
 # Install only production dependencies
-RUN npm install --only=production --legacy-peer-deps && npm cache clean --force
+RUN yarn install --production --frozen-lockfile && yarn cache clean
 
 # Copy built application from builder stage
 COPY --from=builder /app/dist ./dist
@@ -56,5 +57,5 @@ EXPOSE 3001
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
   CMD curl -f http://localhost:3001/health || exit 1
 
-# Start with ts-node for now (until TypeScript compilation is fixed)
-CMD ["npx", "ts-node", "dist/index.ts"] 
+# Start the compiled JavaScript application
+CMD ["node", "dist/index.js"] 
