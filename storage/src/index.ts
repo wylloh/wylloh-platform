@@ -21,8 +21,7 @@ import { errorHandler } from './middleware/errorHandler';
 import { authMiddleware } from './middleware/authMiddleware';
 
 // Import services
-import { initializeIPFSService } from './ipfs/ipfsService';
-import { distributedNodeService } from './ipfs/distributedNodeService';
+import { initializeIPFSService, distributedNodeService } from './ipfs';
 import { contentAvailabilityService } from './services/contentAvailabilityService';
 import { filecoinService } from './services/filecoin.service';
 

@@ -1,5 +1,5 @@
 import { EventEmitter } from 'events';
-import { distributedNodeService } from '../ipfs/distributedNodeService';
+import { distributedNodeService } from '../ipfs';
 import NodeCache from 'node-cache';
 
 // Types
