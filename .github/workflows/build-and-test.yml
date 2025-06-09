@@ -38,12 +38,12 @@ jobs:
     - name: Install API dependencies
       run: |
         cd api
-        npm ci --legacy-peer-deps
+        yarn install --frozen-lockfile
         
     - name: Install storage dependencies
       run: |
         cd storage
-        npm ci --legacy-peer-deps
+        yarn install --frozen-lockfile
         
     - name: Run linting
       run: |
@@ -77,12 +77,13 @@ jobs:
       run: |
         cd ${{ matrix.service }}
         
-        # Install dependencies with correct package manager
+        # Install dependencies with yarn
+        yarn install --frozen-lockfile
+        
+        # Build with appropriate command
         if [ "${{ matrix.service }}" = "client" ]; then
-          yarn install --frozen-lockfile
           npm run build:cicd
         else
-          npm ci --legacy-peer-deps
           npm run build
         fi
         
