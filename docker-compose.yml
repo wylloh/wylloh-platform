@@ -152,8 +152,8 @@ services:
   # Client service - Production React frontend
   client:
     build:
-      context: ./client
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: ./client/Dockerfile
       target: production
       args:
         REACT_APP_API_URL: ${REACT_APP_API_URL:-https://api.wylloh.com}

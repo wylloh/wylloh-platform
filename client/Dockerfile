@@ -3,14 +3,15 @@ FROM node:18-alpine AS builder
 
 WORKDIR /app
 
-# Copy package files
-COPY package*.json ./
+# Copy package files and yarn lock
+COPY ./client/package*.json ./
+COPY yarn.lock ./
 
-# Install dependencies with legacy peer deps to resolve conflicts
-RUN npm install --legacy-peer-deps
+# Install dependencies using yarn for workspace consistency
+RUN yarn install --frozen-lockfile
 
 # Copy source code
-COPY . .
+COPY ./client/ .
 
 # Build arguments for environment variables
 ARG REACT_APP_API_URL
@@ -27,7 +28,7 @@ ENV REACT_APP_NETWORK_ID=$REACT_APP_NETWORK_ID
 ENV REACT_APP_CHAIN_NAME=$REACT_APP_CHAIN_NAME
 
 # Build the application
-RUN npm run build
+RUN yarn build
 
 # Production stage
 FROM nginx:alpine AS production
@@ -39,7 +40,7 @@ RUN apk add --no-cache curl
 COPY --from=builder /app/build /usr/share/nginx/html
 
 # Copy nginx configuration
-COPY nginx.conf /etc/nginx/conf.d/default.conf
+COPY ./client/nginx.conf /etc/nginx/conf.d/default.conf
 
 # Create non-root user
 RUN addgroup -g 1001 -S nginx-wylloh
