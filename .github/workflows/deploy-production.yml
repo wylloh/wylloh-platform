@@ -1,0 +1,127 @@
+name: Deploy to Production VPS
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: production  # This targets your production environment secrets
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup SSH
+      uses: webfactory/ssh-agent@v0.7.0
+      with:
+        ssh-private-key: ${{ secrets.VPS_SSH_PRIVATE_KEY }}  # Using your existing secret name
+        
+    - name: Deploy to VPS
+      run: |
+        ssh -o StrictHostKeyChecking=no ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} << 'EOF'
+          cd wylloh-platform
+          
+          # Pull latest code
+          git pull origin main
+          
+          # Create production environment file
+          cat > .env << 'EOL'
+        NODE_ENV=production
+        
+        # Database Configuration
+        MONGO_ROOT_USERNAME=admin
+        MONGO_ROOT_PASSWORD=${{ secrets.MONGO_ROOT_PASSWORD }}
+        MONGO_DATABASE=wylloh
+        
+        # Redis Configuration
+        REDIS_URL=redis://redis:6379
+        
+        # JWT Configuration
+        JWT_SECRET=${{ secrets.JWT_SECRET }}
+        
+        # CORS Configuration
+        CORS_ORIGIN=https://wylloh.com,https://www.wylloh.com
+        
+        # Blockchain Configuration
+        ETHEREUM_RPC_URL=https://mainnet.infura.io/v3/${{ secrets.INFURA_PROJECT_ID }}
+        POLYGON_RPC_URL=https://polygon-mainnet.infura.io/v3/${{ secrets.INFURA_PROJECT_ID }}
+        INFURA_PROJECT_ID=${{ secrets.INFURA_PROJECT_ID }}
+        INFURA_PROJECT_SECRET=${{ secrets.INFURA_PROJECT_SECRET }}
+        PRIVATE_KEY=WAIT_FOR_FIRST_PRO_USER_THEN_GENERATE
+        
+        # IPFS Configuration
+        PINATA_API_KEY=${{ secrets.PINATA_API_KEY }}
+        PINATA_SECRET_API_KEY=${{ secrets.PINATA_SECRET_API_KEY }}
+        
+        # Frontend Configuration
+        REACT_APP_API_URL=https://api.wylloh.com
+        REACT_APP_STORAGE_URL=https://storage.wylloh.com
+        REACT_APP_IPFS_GATEWAY=https://ipfs.wylloh.com
+        REACT_APP_NETWORK_ID=137
+        REACT_APP_CHAIN_NAME=Polygon
+        
+        # Monitoring Configuration
+        GRAFANA_PASSWORD=WyllohGrafana2024!
+        
+        # Security Configuration
+        RATE_LIMIT_WINDOW_MS=900000
+        RATE_LIMIT_MAX_REQUESTS=100
+        
+        # SSL Configuration
+        SSL_CERT_PATH=/etc/nginx/ssl/wylloh.com.crt
+        SSL_KEY_PATH=/etc/nginx/ssl/wylloh.com.key
+        
+        # Backup Configuration
+        BACKUP_SCHEDULE=0 2 * * *
+        BACKUP_RETENTION_DAYS=30
+        
+        # Logging Configuration
+        LOG_LEVEL=info
+        LOG_MAX_FILES=10
+        LOG_MAX_SIZE=10m
+        EOL
+          
+          # Set secure permissions on .env file
+          chmod 600 .env
+          
+          # Rebuild and restart services
+          docker-compose down
+          docker-compose build --no-cache
+          docker-compose up -d
+          
+          # Wait for services to start
+          echo "Waiting for services to start..."
+          sleep 30
+          
+          # Check service health
+          docker-compose ps
+        EOF
+        
+    - name: Verify Deployment
+      run: |
+        echo "Testing deployment endpoints..."
+        sleep 60  # Give services more time to fully start
+        
+        # Test main site
+        MAIN_STATUS=$(curl -s -o /dev/null -w "%{http_code}" https://wylloh.com || echo "000")
+        echo "Main site status: $MAIN_STATUS"
+        
+        # Test API health
+        API_STATUS=$(curl -s -o /dev/null -w "%{http_code}" https://api.wylloh.com/health || echo "000")
+        echo "API health status: $API_STATUS"
+        
+        # Report results
+        if [ "$MAIN_STATUS" = "200" ]; then
+          echo "✅ Main site is responding correctly"
+        else
+          echo "⚠️ Main site returned status: $MAIN_STATUS"
+        fi
+        
+        if [ "$API_STATUS" = "200" ]; then
+          echo "✅ API is responding correctly"
+        else
+          echo "⚠️ API returned status: $API_STATUS"
+        fi 
