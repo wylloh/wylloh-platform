@@ -76,7 +76,7 @@
   },
   "dependencies": {
     "@helia/unixfs": "^5.0.0",
-    "@helia/verified-fetch": "^2.6.13",
+
     "@libp2p/webrtc-star": "^7.0.0",
     "@types/joi": "^17.2.2",
     "@types/jsonwebtoken": "^9.0.9",
