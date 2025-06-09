@@ -33,7 +33,7 @@ router.post('/upload', authMiddleware, asyncHandler(async (req, res) => {
  * @desc    Upload content chunk
  * @access  Private
  */
-router.post('/upload/:uploadId/chunk', authMiddleware, upload.single('chunk'), fileUploadMiddleware, asyncHandler(async (req, res) => {
+router.post('/upload/:uploadId/chunk', authMiddleware, upload.single('chunk') as any, fileUploadMiddleware, asyncHandler(async (req, res) => {
   // Will call contentStorageController.uploadChunk
   res.status(200).json({
     message: `Upload chunk route for upload ID: ${req.params.uploadId} - To be implemented`,

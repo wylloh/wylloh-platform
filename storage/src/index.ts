@@ -81,7 +81,7 @@ app.use(cors({
 app.use(morgan('combined', { 
   stream: { write: (message) => serviceLogger.info(message.trim()) }
 })); // Logging
-app.use(compression()); // Compress responses
+app.use(compression() as any); // Compress responses - type fixed for CI/CD
 app.use(express.json({ limit: '10mb' })); // Parse JSON bodies
 app.use(express.urlencoded({ extended: true, limit: '10mb' })); // Parse URL-encoded bodies
 

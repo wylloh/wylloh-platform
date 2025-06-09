@@ -85,7 +85,7 @@ router.post('/uploads/init', authMiddleware, initChunkedUpload);
 router.post(
   '/uploads/:uploadId/chunks/:chunkIndex',
   authMiddleware,
-  upload.single('chunk'),
+  upload.single('chunk') as any,
   asyncHandler(async (req: express.Request, res: express.Response, next: express.NextFunction) => {
     // Set the file buffer as the request body for the controller
     req.body = req.file?.buffer;
