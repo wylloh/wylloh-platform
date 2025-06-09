@@ -98,6 +98,30 @@ jobs:
           
           # Check service health
           docker-compose ps
+          
+          # Check if client container is running and what it contains
+          echo "=== CLIENT CONTAINER DEBUGGING ==="
+          echo "Client container status:"
+          docker ps | grep wylloh-client || echo "Client container not found!"
+          
+          echo "Client container logs (last 20 lines):"
+          docker logs wylloh-client --tail=20 || echo "No client container logs"
+          
+          echo "Contents of client nginx html directory:"
+          docker exec wylloh-client ls -la /usr/share/nginx/html || echo "Cannot access client container"
+          
+          echo "Client nginx config:"
+          docker exec wylloh-client cat /etc/nginx/conf.d/default.conf || echo "Cannot read client nginx config"
+          
+          echo "=== NGINX REVERSE PROXY DEBUGGING ==="
+          echo "Nginx container status:"
+          docker ps | grep wylloh-nginx || echo "Nginx container not found!"
+          
+          echo "Nginx configuration test:"
+          docker exec wylloh-nginx nginx -t || echo "Nginx config test failed"
+          
+          echo "Nginx error logs (last 10 lines):"
+          docker exec wylloh-nginx tail -10 /var/log/nginx/error.log || echo "No nginx error logs"
         EOF
         
     - name: Verify Deployment
