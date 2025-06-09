@@ -116,8 +116,8 @@ services:
   # Storage Service
   storage:
     build:
-      context: ./storage
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: ./storage/Dockerfile
     container_name: wylloh-storage
     restart: unless-stopped
     ports:

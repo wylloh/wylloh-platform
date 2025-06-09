@@ -131,7 +131,8 @@ jobs:
           --build-arg REACT_APP_CHAIN_NAME=${{ secrets.REACT_APP_CHAIN_NAME || 'localhost' }} \
           -t wylloh-${{ matrix.service }}:${{ github.sha }} \
           -t wylloh-${{ matrix.service }}:latest \
-          ./${{ matrix.service }}
+          -f ./${{ matrix.service }}/Dockerfile \
+          .
           
     - name: Save Docker image
       run: |

@@ -3,7 +3,7 @@ FROM node:18-alpine AS builder
 
 WORKDIR /app
 
-# Copy package files and yarn lock from root workspace for better caching
+# Copy package files and yarn lock from workspace root
 COPY ./api/package*.json ./
 COPY yarn.lock ./
 
@@ -31,7 +31,7 @@ WORKDIR /app
 RUN addgroup -g 1001 -S nodejs
 RUN adduser -S wylloh -u 1001
 
-# Copy package files and yarn lock
+# Copy package files and yarn lock from workspace root
 COPY ./api/package*.json ./
 COPY yarn.lock ./
 
