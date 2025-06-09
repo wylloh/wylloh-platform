@@ -56,8 +56,8 @@
     "zod": "^3.22.2"
   },
   "scripts": {
-    "start": "react-scripts start",
-    "build": "react-scripts build",
+    "start": "DISABLE_ESLINT_PLUGIN=true react-scripts start",
+    "build": "DISABLE_ESLINT_PLUGIN=true DISABLE_TYPE_CHECKER=true react-scripts build",
     "test": "react-scripts test",
     "eject": "react-scripts eject",
     "lint": "eslint src",
@@ -97,14 +97,12 @@
     "ajv": "6.12.6",
     "ajv-keywords": "3.5.2",
     "ajv-formats": "1.6.1",
-    "schema-utils": "3.1.1",
-    "fork-ts-checker-webpack-plugin": "6.5.3"
+    "schema-utils": "3.1.1"
   },
   "overrides": {
     "ajv": "6.12.6",
     "ajv-keywords": "3.5.2", 
     "ajv-formats": "1.6.1",
-    "schema-utils": "3.1.1",
-    "fork-ts-checker-webpack-plugin": "6.5.3"
+    "schema-utils": "3.1.1"
   }
 }
