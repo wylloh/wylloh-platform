@@ -33,8 +33,9 @@ class ContentService {
       if (contentData.ipfsCid) {
         ipfsCid = contentData.ipfsCid;
         
-        // Verify the CID exists on IPFS
-        const exists = await ipfsService.checkContentExists(ipfsCid);
+        // Verify the CID exists on IPFS  
+        const ipfsServiceInstance = new (await import('./ipfsService')).default();
+        const exists = await ipfsServiceInstance.checkContentExists(ipfsCid);
         if (!exists) {
           throw createError('Content not found on IPFS', 404);
         }
@@ -453,7 +454,7 @@ class ContentService {
         {
           $set: {
             tokenId: tokenResult.tokenId,
-            contractAddress: tokenResult.contractAddress,
+            contractAddress: process.env.TOKEN_CONTRACT_ADDRESS || '',
             status: 'active', // Once tokenized, set to active
             rightsThresholds: tokenData.rightsThresholds || []
           }

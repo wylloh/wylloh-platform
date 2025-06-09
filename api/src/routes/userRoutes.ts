@@ -5,7 +5,7 @@ import { authMiddleware, roleAuthorization } from '../middleware/authMiddleware'
 // Note: Controllers will be implemented later
 // This sets up the structure for routes
 
-const router = express.Router();
+const router: express.Router = express.Router();
 
 /**
  * @route   POST /api/users/register

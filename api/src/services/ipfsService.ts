@@ -48,6 +48,26 @@ class IpfsService {
       throw new Error('Failed to get content from IPFS: Unknown error');
     }
   }
+
+  /**
+   * Check if content exists on IPFS
+   * @param cid Content identifier
+   * @returns True if content exists, false otherwise
+   */
+  async checkContentExists(cid: string): Promise<boolean> {
+    try {
+      // Try to get content info (lightweight check)
+      const chunks: Uint8Array[] = [];
+      let hasContent = false;
+      for await (const chunk of this.client.cat(cid, { length: 1 })) {
+        hasContent = true;
+        break;
+      }
+      return hasContent;
+    } catch (error: unknown) {
+      return false;
+    }
+  }
 }
 
 // Export as default

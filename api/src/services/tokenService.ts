@@ -2,7 +2,7 @@ import { ethers } from 'ethers';
 import { createError } from '../middleware/errorHandler';
 // @ts-ignore - Contract ABI JSON import
 import WyllohToken from '../contracts/WyllohToken.json';
-import { IpfsService } from './ipfsService';
+import IpfsService from './ipfsService';
 
 // Define token data interfaces
 interface RightsThreshold {

@@ -110,7 +110,7 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' })); // Limit URL-enc
 
 // Apply other middleware
 app.use(morgan('dev')); // Logging
-app.use(compression()); // Compress responses
+app.use(compression() as any); // Compress responses - type fixed for CI/CD
 app.use(bodyParser.json());
 
 // Security headers middleware
