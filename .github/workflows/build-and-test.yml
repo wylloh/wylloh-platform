@@ -33,7 +33,7 @@ jobs:
     - name: Install client dependencies
       run: |
         cd client
-        npm ci --legacy-peer-deps
+        yarn install --frozen-lockfile
         
     - name: Install API dependencies
       run: |
@@ -76,12 +76,13 @@ jobs:
     - name: Build ${{ matrix.service }}
       run: |
         cd ${{ matrix.service }}
-        npm ci --legacy-peer-deps
         
-        # Handle client build with cross-platform compatibility
+        # Install dependencies with correct package manager
         if [ "${{ matrix.service }}" = "client" ]; then
+          yarn install --frozen-lockfile
           npm run build:cicd
         else
+          npm ci --legacy-peer-deps
           npm run build
         fi
         
