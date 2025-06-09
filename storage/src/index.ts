@@ -1,4 +1,4 @@
-import express from 'express';
+import express, { Express } from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import morgan from 'morgan';
@@ -29,7 +29,7 @@ import { filecoinService } from './services/filecoin.service';
 const serviceLogger = createServiceLogger('storage-main');
 
 // Create Express app
-const app = express();
+const app: Express = express();
 
 // Validate configuration
 try {

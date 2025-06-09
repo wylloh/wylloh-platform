@@ -1,11 +1,11 @@
-import express from 'express';
+import express, { Router } from 'express';
 import { asyncHandler } from '../middleware/errorHandler';
 import { authMiddleware } from '../middleware/authMiddleware';
 
 // Note: Controllers will be implemented later
 // This sets up the structure for routes
 
-const router = express.Router();
+const router: Router = express.Router();
 
 /**
  * @route   POST /api/encryption/keys/generate

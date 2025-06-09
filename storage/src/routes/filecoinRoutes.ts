@@ -1,4 +1,4 @@
-import express from 'express';
+import express, { Router } from 'express';
 import { authMiddleware } from '../middleware/authMiddleware';
 import {
   archiveContent,
@@ -9,7 +9,7 @@ import {
   retrieveContent
 } from '../controllers/filecoinController';
 
-const router = express.Router();
+const router: Router = express.Router();
 
 /**
  * Archive content to Filecoin

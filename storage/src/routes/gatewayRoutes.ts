@@ -1,4 +1,4 @@
-import express from 'express';
+import express, { Router } from 'express';
 import { authMiddleware } from '../middleware/authMiddleware';
 import {
   getGatewayStatistics,
@@ -8,7 +8,7 @@ import {
   refreshGatewayStats
 } from '../controllers/gatewayController';
 
-const router = express.Router();
+const router: Router = express.Router();
 
 /**
  * Get stats for all IPFS gateways

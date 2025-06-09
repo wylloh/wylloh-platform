@@ -1,4 +1,4 @@
-import express from 'express';
+import express, { Router } from 'express';
 import multer from 'multer';
 import { asyncHandler } from '../middleware/errorHandler';
 import { authMiddleware, fileUploadMiddleware } from '../middleware/authMiddleware';
@@ -13,7 +13,7 @@ const upload = multer({
   limits: { fileSize: 500 * 1024 * 1024 } // 500MB limit
 });
 
-const router = express.Router();
+const router: Router = express.Router();
 
 /**
  * @route   POST /api/content/upload
