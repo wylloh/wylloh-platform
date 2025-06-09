@@ -64,8 +64,8 @@ services:
   # API Backend
   api:
     build:
-      context: ./api
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: ./api/Dockerfile
     container_name: wylloh-api
     restart: unless-stopped
     ports:

@@ -4,8 +4,8 @@ FROM node:18-alpine AS builder
 WORKDIR /app
 
 # Copy package files and yarn lock from root workspace for better caching
-COPY package*.json ./
-COPY ../yarn.lock ./
+COPY ./api/package*.json ./
+COPY yarn.lock ./
 
 # Install all dependencies (including dev dependencies for building)
 RUN yarn install --frozen-lockfile && yarn cache clean
@@ -14,7 +14,7 @@ RUN yarn install --frozen-lockfile && yarn cache clean
 RUN yarn global add typescript@latest
 
 # Copy source code
-COPY . .
+COPY ./api/ .
 
 # Build the TypeScript application
 RUN yarn build
@@ -32,8 +32,8 @@ RUN addgroup -g 1001 -S nodejs
 RUN adduser -S wylloh -u 1001
 
 # Copy package files and yarn lock
-COPY package*.json ./
-COPY ../yarn.lock ./
+COPY ./api/package*.json ./
+COPY yarn.lock ./
 
 # Install only production dependencies
 RUN yarn install --production --frozen-lockfile && yarn cache clean
