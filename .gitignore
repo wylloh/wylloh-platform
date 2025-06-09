@@ -42,9 +42,10 @@ artifacts/
 typechain/
 typechain-types/
 
-# IPFS
+# IPFS data directories (but not source code)
 .ipfs/
-ipfs/
+**/node_modules/.ipfs/
+# Note: storage/src/ipfs/ contains source code and should be tracked
 
 # Logs
 logs/
