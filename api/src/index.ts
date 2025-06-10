@@ -6,6 +6,7 @@ import compression from 'compression';
 import dotenv from 'dotenv';
 import mongoose from 'mongoose';
 import bodyParser from 'body-parser';
+import { Request, Response, NextFunction } from 'express';
 
 // Load environment variables
 dotenv.config();
@@ -129,7 +130,7 @@ app.use((req: express.Request, res: express.Response, next: express.NextFunction
 });
 
 // Health check endpoint
-app.get('/health', (req, res) => {
+app.get('/health', (req: Request, res: Response) => {
   res.status(200).json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
@@ -142,7 +143,7 @@ app.use('/api/featured-content', featuredContentRoutes);
 app.use('/api/libraries', libraryRoutes);
 
 // Root route
-app.get('/', (req, res) => {
+app.get('/', (req: Request, res: Response) => {
   res.json({
     message: 'Welcome to Wylloh API',
     version: '1.0.0',

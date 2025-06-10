@@ -1,4 +1,4 @@
-import express, { Express } from 'express';
+import express, { Express, Request, Response } from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import morgan from 'morgan';
@@ -85,7 +85,7 @@ app.use(express.json({ limit: '10mb' })); // Parse JSON bodies
 app.use(express.urlencoded({ extended: true, limit: '10mb' })); // Parse URL-encoded bodies
 
 // Health check endpoint
-app.get('/health', (req, res) => {
+app.get('/health', (req: Request, res: Response) => {
   const nodeHealth = distributedNodeService.getServiceHealth();
   const contentStats = contentAvailabilityService.getContentStats();
   const filecoinDeals = filecoinService.getAllDeals();
@@ -114,7 +114,7 @@ app.get('/health', (req, res) => {
 });
 
 // Detailed health endpoint
-app.get('/health/detailed', (req, res) => {
+app.get('/health/detailed', (req: Request, res: Response) => {
   const nodeHealth = distributedNodeService.getServiceHealth();
   const nodeStats = distributedNodeService.getNodeHealthStats();
   const contentStats = contentAvailabilityService.getContentStats();
