@@ -7,24 +7,24 @@ import { createHelia } from 'helia';
 import { unixfs } from '@helia/unixfs';
 
 // Import configuration and utilities
-import { config, validateConfig } from './config';
-import { logger, createServiceLogger } from './utils/logger';
+import { config, validateConfig } from './config/index.js';
+import { logger, createServiceLogger } from './utils/logger.js';
 
 // Import routes
-import contentRoutes from './routes/contentRoutes';
-import ipfsRoutes from './routes/ipfsRoutes';
-import encryptionRoutes from './routes/encryptionRoutes';
-import gatewayRoutes from './routes/gatewayRoutes';
-import filecoinRoutes from './routes/filecoinRoutes';
+import contentRoutes from './routes/contentRoutes.js';
+import ipfsRoutes from './routes/ipfsRoutes.js';
+import encryptionRoutes from './routes/encryptionRoutes.js';
+import gatewayRoutes from './routes/gatewayRoutes.js';
+import filecoinRoutes from './routes/filecoinRoutes.js';
 
 // Import middleware
-import { errorHandler } from './middleware/errorHandler';
-import { authMiddleware } from './middleware/authMiddleware';
+import { errorHandler } from './middleware/errorHandler.js';
+import { authMiddleware } from './middleware/authMiddleware.js';
 
 // Import services
-import { initializeIPFSService, distributedNodeService } from './ipfs';
-import { contentAvailabilityService } from './services/contentAvailabilityService';
-import { filecoinService } from './services/filecoin.service';
+import { initializeIPFSService, distributedNodeService } from './ipfs/index.js';
+import { contentAvailabilityService } from './services/contentAvailabilityService.js';
+import { filecoinService } from './services/filecoin.service.js';
 
 // Create service logger
 const serviceLogger = createServiceLogger('storage-main');
