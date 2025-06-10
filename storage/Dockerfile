@@ -16,8 +16,8 @@ COPY ./storage/ .
 # Install TypeScript globally to ensure tsc is available
 RUN yarn global add typescript@latest
 
-# Build the TypeScript application
-RUN yarn build
+# Build the TypeScript application using global tsc
+RUN $(yarn global bin)/tsc
 
 # Production stage
 FROM node:18-alpine AS production
