@@ -13,11 +13,8 @@ RUN yarn install --frozen-lockfile && yarn cache clean
 # Copy source code
 COPY ./api/ .
 
-# Install TypeScript globally to ensure tsc is available
-RUN yarn global add typescript@latest
-
-# Build the TypeScript application using global tsc
-RUN $(yarn global bin)/tsc
+# Verify TypeScript installation and build
+RUN ls -la node_modules/.bin/tsc && yarn build
 
 # Production stage
 FROM node:18-alpine AS production
