@@ -196,6 +196,20 @@ See [INTEGRATION.md](docs/INTEGRATION.md) for detailed integration instructions.
 
 We welcome contributions from the community! Please see [README-OPEN-SOURCE.md](README-OPEN-SOURCE.md) for detailed guidelines on how to contribute to the project.
 
+### For Developers
+
+**Quick Start**: 
+- 📚 **Development Guide**: See [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md) for complete setup instructions
+- 🔧 **Build Patterns**: We use yarn workspaces with root build contexts
+- 🤖 **CI/CD**: Automated deployment via GitHub Actions
+- 📝 **Session Notes**: Check `.cursor/scratchpad.md` for latest development context
+
+**Key Points**:
+- **Monorepo**: All services in unified workspace
+- **Docker**: Root build context required (`docker build -f ./api/Dockerfile .`)
+- **Package Manager**: yarn consistently across all services  
+- **TypeScript**: Proper compilation to `dist/` directories
+
 ### Development Focus Areas
 
 1. **Search/Blockchain Crawler Integration**
