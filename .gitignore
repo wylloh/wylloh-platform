@@ -115,3 +115,6 @@ Thumbs.db
 
 # Security reports
 /reports/
+
+# Local development workspace
+.cursor/workspace.md
