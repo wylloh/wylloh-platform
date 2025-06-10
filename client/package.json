@@ -33,7 +33,7 @@
     "ethers": "^5.7.2",
     "helia": "^5.4.2",
     "hls.js": "^1.6.2",
-    "ipfs-http-client": "^60.0.1",
+
     "libp2p": "^2.8.8",
     "nanoid": "^5.1.5",
     "notistack": "^3.0.2",

@@ -1,15 +1,38 @@
-import { create, IPFSHTTPClient } from 'ipfs-http-client';
+import { createHelia } from 'helia';
+import { unixfs } from '@helia/unixfs';
+import { CID } from 'multiformats/cid';
+import type { Helia } from 'helia';
+import type { UnixFS } from '@helia/unixfs';
 
 class IpfsService {
-  private client: IPFSHTTPClient;
+  private heliaNode: Helia | null = null;
+  private unixfsInstance: UnixFS | null = null;
 
   constructor() {
-    // Connect to local IPFS node or Infura IPFS gateway
-    this.client = create({
-      host: process.env.IPFS_HOST || 'ipfs.infura.io',
-      port: parseInt(process.env.IPFS_PORT || '5001'),
-      protocol: process.env.IPFS_PROTOCOL || 'https'
-    });
+    this.initialize();
+  }
+
+  private async initialize(): Promise<void> {
+    try {
+      // Initialize Helia node
+      this.heliaNode = await createHelia();
+      this.unixfsInstance = unixfs(this.heliaNode);
+      console.log('Helia IPFS service initialized');
+    } catch (error) {
+      console.error('Failed to initialize Helia IPFS service:', error);
+    }
+  }
+
+  /**
+   * Ensure the service is initialized
+   */
+  private async ensureInitialized(): Promise<void> {
+    if (!this.heliaNode || !this.unixfsInstance) {
+      await this.initialize();
+    }
+    if (!this.heliaNode || !this.unixfsInstance) {
+      throw new Error('IPFS service failed to initialize');
+    }
   }
 
   /**
@@ -19,7 +42,17 @@ class IpfsService {
    */
   async uploadMetadata(metadata: Record<string, unknown>): Promise<string> {
     try {
-      const { cid } = await this.client.add(JSON.stringify(metadata));
+      await this.ensureInitialized();
+      
+      const jsonData = JSON.stringify(metadata);
+      const encoder = new TextEncoder();
+      const data = encoder.encode(jsonData);
+      
+      const cid = await this.unixfsInstance!.addBytes(data);
+      
+      // Pin the content
+      await this.heliaNode!.pins.add(cid);
+      
       return cid.toString();
     } catch (error: unknown) {
       if (error instanceof Error) {
@@ -36,10 +69,15 @@ class IpfsService {
    */
   async getContent(cid: string): Promise<Buffer> {
     try {
+      await this.ensureInitialized();
+      
+      const cidObj = CID.parse(cid);
       const chunks: Uint8Array[] = [];
-      for await (const chunk of this.client.cat(cid)) {
+      
+      for await (const chunk of this.unixfsInstance!.cat(cidObj)) {
         chunks.push(chunk);
       }
+      
       return Buffer.concat(chunks);
     } catch (error: unknown) {
       if (error instanceof Error) {
@@ -56,16 +94,25 @@ class IpfsService {
    */
   async checkContentExists(cid: string): Promise<boolean> {
     try {
-      // Try to get content info (lightweight check)
-      const chunks: Uint8Array[] = [];
-      let hasContent = false;
-      for await (const chunk of this.client.cat(cid, { length: 1 })) {
-        hasContent = true;
-        break;
-      }
-      return hasContent;
+      await this.ensureInitialized();
+      
+      const cidObj = CID.parse(cid);
+      await this.unixfsInstance!.stat(cidObj);
+      return true;
     } catch (error: unknown) {
       return false;
+    }
+  }
+
+  /**
+   * Shutdown the IPFS service
+   */
+  async shutdown(): Promise<void> {
+    if (this.heliaNode) {
+      await this.heliaNode.stop();
+      this.heliaNode = null;
+      this.unixfsInstance = null;
+      console.log('Helia IPFS service shut down');
     }
   }
 }

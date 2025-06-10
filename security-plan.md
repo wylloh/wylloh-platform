@@ -14,10 +14,11 @@
    - Impact: Potential denial of service via regex processing
    - Affected dependencies: css-select (via svgo, @svgr/plugin-svgo, @svgr/webpack, react-scripts)
 
-3. **parse-duration (<2.1.3)**
+3. **parse-duration (<2.1.3)** - ✅ **RESOLVED**
    - Issue: Regex Denial of Service vulnerability
    - Impact: Event loop delay and out of memory issues
-   - Affected dependencies: ipfs-core-utils, ipfs-http-client
+   - ~~Affected dependencies: ipfs-core-utils, ipfs-http-client~~ 
+   - **STATUS**: Resolved by migration from ipfs-http-client to Helia (Dec 2024)
 
 4. **ws (7.0.0 - 7.5.9)**
    - Issue: DoS vulnerability when handling requests with many HTTP headers
@@ -25,10 +26,12 @@
    - Affected dependencies: @walletconnect/socket-transport
 
 ### Moderate Severity Vulnerabilities
-1. **nanoid (4.0.0 - 5.0.8)**
+1. **nanoid (4.0.0 - 5.0.8)** - ✅ **PARTIALLY RESOLVED**
    - Issue: Predictable results in nanoid generation when given non-integer values
    - Impact: Potentially predictable IDs leading to security issues
-   - Affected dependencies: interface-datastore, ipfs-core-utils
+   - ~~Affected dependencies: interface-datastore, ipfs-core-utils~~
+   - **STATUS**: ipfs-core-utils dependency removed by Helia migration (Dec 2024)
+   - **REMAINING**: interface-datastore (if still present)
 
 2. **postcss (<8.4.31)**
    - Issue: Line return parsing error

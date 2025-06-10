@@ -3,7 +3,8 @@ import cors from 'cors';
 import helmet from 'helmet';
 import morgan from 'morgan';
 import compression from 'compression';
-import { create as createIPFS } from 'ipfs-http-client';
+import { createHelia } from 'helia';
+import { unixfs } from '@helia/unixfs';
 
 // Import configuration and utilities
 import { config, validateConfig } from './config';
@@ -40,16 +41,26 @@ try {
   process.exit(1);
 }
 
-// Configure IPFS
-const ipfs = createIPFS({ url: config.ipfs.apiUrl });
+// Configure Helia IPFS - will be initialized async
+let heliaNode: any;
+let unixfsInstance: any;
+
+async function initializeHelia() {
+  heliaNode = await createHelia();
+  unixfsInstance = unixfs(heliaNode);
+  serviceLogger.info('Helia IPFS node initialized successfully');
+}
 
 // Initialize services
 async function initializeServices(): Promise<void> {
   try {
     serviceLogger.info('Initializing storage services...');
 
-    // Initialize IPFS service
-    initializeIPFSService(ipfs);
+    // Initialize Helia IPFS first
+    await initializeHelia();
+
+    // Initialize IPFS service with Helia instances
+    initializeIPFSService(heliaNode, unixfsInstance);
     serviceLogger.info('IPFS service initialized');
 
     // Initialize distributed node service

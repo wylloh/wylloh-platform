@@ -1,4 +1,6 @@
-import { IPFSHTTPClient } from 'ipfs-http-client';
+import type { Helia } from 'helia';
+import type { UnixFS } from '@helia/unixfs';
+import { CID } from 'multiformats/cid';
 import { Buffer } from 'buffer';
 import CryptoJS from 'crypto-js';
 import { v4 as uuidv4 } from 'uuid';
@@ -58,8 +60,9 @@ interface PinningService {
   isAvailable: () => Promise<boolean>;
 }
 
-// Singleton IPFS client
-let ipfsClient: IPFSHTTPClient;
+// Singleton Helia instances
+let heliaNode: Helia;
+let unixfsInstance: UnixFS;
 
 // In-memory storage for upload jobs
 const uploadJobs = new Map<string, UploadJob>();
@@ -68,17 +71,19 @@ const uploadJobs = new Map<string, UploadJob>();
 const pinnedContent = new Map<string, { timestamp: number, pinningServices: string[] }>();
 
 /**
- * Initialize the IPFS service with a client
- * @param client IPFS HTTP client instance
+ * Initialize the IPFS service with Helia
+ * @param helia Helia node instance
+ * @param unixfs UnixFS instance
  */
-export const initializeIPFSService = (client: IPFSHTTPClient) => {
-  console.log('Initializing IPFS service...');
+export const initializeIPFSService = (helia: Helia, unixfs: UnixFS) => {
+  console.log('Initializing IPFS service with Helia...');
   
-  if (!client) {
-    throw new Error('IPFS client is required');
+  if (!helia || !unixfs) {
+    throw new Error('Helia node and UnixFS instances are required');
   }
   
-  ipfsClient = client;
+  heliaNode = helia;
+  unixfsInstance = unixfs;
   
   // Initialize pinning services
   initializePinningServices();
@@ -96,7 +101,7 @@ export const initializeIPFSService = (client: IPFSHTTPClient) => {
     console.error('Failed to initialize gateway service:', err);
   });
   
-  console.log('IPFS service initialized');
+  console.log('IPFS service initialized with Helia successfully');
   return true;
 };
 
@@ -107,31 +112,33 @@ const pinningServices: PinningService[] = [];
  * Initialize external pinning services
  */
 const initializePinningServices = () => {
-  // Add local node pinning service
+  // Add local Helia node pinning service
   pinningServices.push({
-    name: 'local-node',
+    name: 'local-helia-node',
     pin: async (cid: string) => {
       try {
-        await ipfsClient.pin.add(cid, { timeout: PIN_TIMEOUT });
+        // Helia pinning API - convert string to CID object
+        await heliaNode.pins.add(CID.parse(cid));
         return true;
       } catch (error) {
-        console.error('Error pinning to local node:', error);
+        console.error('Error pinning to local Helia node:', error);
         return false;
       }
     },
     unpin: async (cid: string) => {
       try {
-        await ipfsClient.pin.rm(cid);
+        // Helia pinning API - convert string to CID object
+        await heliaNode.pins.rm(CID.parse(cid));
         return true;
       } catch (error) {
-        console.error('Error unpinning from local node:', error);
+        console.error('Error unpinning from local Helia node:', error);
         return false;
       }
     },
     isAvailable: async () => {
       try {
-        await ipfsClient.id();
-        return true;
+        // Check if Helia node is available
+        return heliaNode !== undefined && unixfsInstance !== undefined;
       } catch {
         return false;
       }
@@ -206,220 +213,7 @@ const initializePinningServices = () => {
 };
 
 /**
- * Create a new upload job for chunked upload
- * @param filename Original filename
- * @param mimeType File MIME type
- * @param totalChunks Total number of chunks expected
- * @param totalSize Total file size in bytes
- */
-export const createUploadJob = (
-  filename: string,
-  mimeType: string,
-  totalChunks: number,
-  totalSize: number
-): string => {
-  const uploadId = uuidv4();
-  
-  uploadJobs.set(uploadId, {
-    id: uploadId,
-    filename,
-    mimeType,
-    totalChunks,
-    receivedChunks: 0,
-    chunkPaths: new Array(totalChunks).fill(''),
-    totalSize,
-    uploadStartTime: new Date(),
-    status: 'in-progress'
-  });
-  
-  console.log(`Created upload job ${uploadId} for ${filename}, expecting ${totalChunks} chunks`);
-  return uploadId;
-};
-
-/**
- * Process an uploaded chunk for a specific upload job
- * @param uploadId Upload job ID
- * @param chunkIndex Index of the chunk (0-based)
- * @param chunkBuffer Chunk data as buffer
- */
-export const uploadChunk = async (
-  uploadId: string,
-  chunkIndex: number,
-  chunkBuffer: Buffer
-): Promise<ChunkUploadResult> => {
-  const job = uploadJobs.get(uploadId);
-  if (!job) {
-    throw new Error(`Upload job ${uploadId} not found`);
-  }
-  
-  if (chunkIndex >= job.totalChunks) {
-    throw new Error(`Chunk index ${chunkIndex} out of range (0-${job.totalChunks - 1})`);
-  }
-  
-  try {
-    // Save chunk to temporary file
-    const chunkFilename = `${uploadId}_chunk_${chunkIndex}`;
-    const chunkPath = path.join(TEMP_DIR, chunkFilename);
-    
-    fs.writeFileSync(chunkPath, chunkBuffer);
-    
-    // Update job state
-    job.chunkPaths[chunkIndex] = chunkPath;
-    job.receivedChunks++;
-    
-    console.log(`Received chunk ${chunkIndex} for upload ${uploadId} (${job.receivedChunks}/${job.totalChunks})`);
-    
-    return {
-      tempFilePath: chunkPath,
-      size: chunkBuffer.length
-    };
-  } catch (err: any) {
-    console.error(`Error processing chunk ${chunkIndex} for upload ${uploadId}:`, err);
-    job.status = 'failed';
-    job.errorMessage = err.message;
-    throw err;
-  }
-};
-
-/**
- * Complete a chunked upload and process the final file
- * @param uploadId Upload job ID
- * @param encryptionKey Optional encryption key
- */
-export const completeUpload = async (
-  uploadId: string,
-  encryptionKey?: string
-): Promise<FileUploadResult> => {
-  const job = uploadJobs.get(uploadId);
-  if (!job) {
-    throw new Error(`Upload job ${uploadId} not found`);
-  }
-  
-  if (job.status === 'failed') {
-    throw new Error(`Upload job ${uploadId} has failed: ${job.errorMessage}`);
-  }
-  
-  if (job.receivedChunks !== job.totalChunks) {
-    throw new Error(`Upload incomplete: received ${job.receivedChunks}/${job.totalChunks} chunks`);
-  }
-  
-  try {
-    // Combine chunks into a single file
-    const finalFilePath = path.join(TEMP_DIR, `${uploadId}_complete`);
-    const writeStream = fs.createWriteStream(finalFilePath);
-    
-    for (let i = 0; i < job.totalChunks; i++) {
-      const chunkPath = job.chunkPaths[i];
-      const chunkData = fs.readFileSync(chunkPath);
-      writeStream.write(chunkData);
-    }
-    
-    writeStream.end();
-    
-    // Wait for the file to be fully written
-    await new Promise<void>((resolve) => writeStream.on('finish', () => resolve()));
-    
-    // Read the complete file
-    const fileBuffer = fs.readFileSync(finalFilePath);
-    
-    // Upload to IPFS
-    const result = await uploadToIPFS(fileBuffer, encryptionKey);
-    
-    // Update job status
-    job.status = 'completed';
-    
-    // Clean up temporary files
-    cleanupUploadJob(uploadId);
-    
-    return result;
-  } catch (err: any) {
-    console.error(`Error completing upload ${uploadId}:`, err);
-    job.status = 'failed';
-    job.errorMessage = err.message;
-    
-    // Clean up on failure too
-    cleanupUploadJob(uploadId);
-    
-    throw err;
-  }
-};
-
-/**
- * Clean up temporary files for an upload job
- * @param uploadId Upload job ID
- */
-const cleanupUploadJob = (uploadId: string) => {
-  const job = uploadJobs.get(uploadId);
-  if (!job) return;
-  
-  // Delete chunk files
-  for (const chunkPath of job.chunkPaths) {
-    if (chunkPath && fs.existsSync(chunkPath)) {
-      fs.unlinkSync(chunkPath);
-    }
-  }
-  
-  // Delete complete file if it exists
-  const finalFilePath = path.join(TEMP_DIR, `${uploadId}_complete`);
-  if (fs.existsSync(finalFilePath)) {
-    fs.unlinkSync(finalFilePath);
-  }
-  
-  // Keep job entry for a while for status queries, but will be cleaned up later
-  setTimeout(() => {
-    uploadJobs.delete(uploadId);
-  }, 3600000); // 1 hour
-  
-  console.log(`Cleaned up temporary files for upload ${uploadId}`);
-};
-
-/**
- * Clean up old temporary files
- */
-const cleanupTempFiles = () => {
-  try {
-    const files = fs.readdirSync(TEMP_DIR);
-    const now = Date.now();
-    
-    for (const file of files) {
-      const filePath = path.join(TEMP_DIR, file);
-      const stats = fs.statSync(filePath);
-      
-      // If file is older than 24 hours, delete it
-      if (now - stats.mtimeMs > 24 * 3600 * 1000) {
-        fs.unlinkSync(filePath);
-        console.log(`Deleted old temporary file: ${filePath}`);
-      }
-    }
-  } catch (error) {
-    console.error('Error cleaning up temporary files:', error);
-  }
-};
-
-/**
- * Get upload job status
- * @param uploadId Upload job ID
- */
-export const getUploadStatus = (uploadId: string) => {
-  const job = uploadJobs.get(uploadId);
-  if (!job) {
-    throw new Error(`Upload job ${uploadId} not found`);
-  }
-  
-  return {
-    id: job.id,
-    filename: job.filename,
-    status: job.status,
-    progress: job.totalChunks > 0 ? (job.receivedChunks / job.totalChunks) * 100 : 0,
-    receivedChunks: job.receivedChunks,
-    totalChunks: job.totalChunks,
-    startTime: job.uploadStartTime,
-    errorMessage: job.errorMessage
-  };
-};
-
-/**
- * Upload a file to IPFS
+ * Upload a file to IPFS using Helia UnixFS
  * @param fileBuffer File data as buffer
  * @param encryptionKey Optional encryption key
  * @returns Promise resolving to IPFS CID
@@ -429,8 +223,8 @@ export const uploadToIPFS = async (
   encryptionKey?: string
 ): Promise<FileUploadResult> => {
   try {
-    if (!ipfsClient) {
-      throw new Error('IPFS client not initialized');
+    if (!heliaNode || !unixfsInstance) {
+      throw new Error('Helia node not initialized');
     }
 
     // Generate a unique path for the file
@@ -446,17 +240,16 @@ export const uploadToIPFS = async (
       dataToUpload = Buffer.from(encryptedData);
     }
 
-    // Upload to IPFS with retry mechanism
-    let added: any;
+    // Upload to IPFS with retry mechanism using Helia UnixFS
+    let cid: CID;
     for (let attempt = 1; attempt <= MAX_RETRY_ATTEMPTS; attempt++) {
       try {
-        added = await ipfsClient.add({
-          path,
-          content: dataToUpload,
-        }, {
-          pin: true,
-          wrapWithDirectory: true,
-        });
+        // Use Helia UnixFS API - addBytes for simple file upload
+        cid = await unixfsInstance.addBytes(new Uint8Array(dataToUpload));
+        
+        // Pin the content automatically using Helia
+        await heliaNode.pins.add(cid);
+        
         break; // Success, exit retry loop
       } catch (err: any) {
         if (attempt === MAX_RETRY_ATTEMPTS) {
@@ -467,19 +260,18 @@ export const uploadToIPFS = async (
       }
     }
 
-    // Make sure added is defined
-    if (!added) {
+    // Make sure cid is defined
+    if (!cid!) {
       throw new Error('Upload failed after multiple attempts');
     }
 
-    // Return the last item which is the directory containing the file
-    const lastItem = added.cid.toString();
+    const cidString = cid.toString();
     
     // Pin to external services
-    pinToExternalServices(lastItem);
+    pinToExternalServices(cidString);
     
     return {
-      cid: lastItem,
+      cid: cidString,
       size: dataToUpload.length,
       path,
     };
@@ -500,7 +292,7 @@ const pinToExternalServices = async (cid: string) => {
   const successfulServices = [];
   
   for (const service of pinningServices) {
-    if (service.name === 'local-node') continue; // Skip local node, it's already pinned
+    if (service.name === 'local-helia-node') continue; // Skip local node, it's already pinned
     
     try {
       const isAvailable = await service.isAvailable();
@@ -527,14 +319,14 @@ const pinToExternalServices = async (cid: string) => {
   // Track pinned content
   pinnedContent.set(cid, { 
     timestamp: Date.now(),
-    pinningServices: ['local-node', ...successfulServices]
+    pinningServices: ['local-helia-node', ...successfulServices]
   });
   
   return results;
 };
 
 /**
- * Retrieve content from IPFS by CID
+ * Retrieve content from IPFS by CID using Helia
  * @param cid IPFS CID
  * @param encryptionKey Optional encryption key to decrypt the content
  * @returns Buffer containing the content
@@ -550,23 +342,25 @@ export const retrieveFromIPFS = async (
   let content: Buffer;
 
   try {
-    // First try to get it from the local IPFS node
+    // First try to get it from the local Helia node
     try {
       const chunks: Uint8Array[] = [];
       
-      // Use the local IPFS node if available
-      if (ipfsClient) {
-        for await (const chunk of ipfsClient.cat(cid)) {
+      // Use Helia UnixFS to retrieve content
+      if (heliaNode && unixfsInstance) {
+        // Convert string CID to CID object and cat the content
+        const cidObj = CID.parse(cid);
+        for await (const chunk of unixfsInstance.cat(cidObj)) {
           chunks.push(chunk);
         }
         
         content = Buffer.concat(chunks);
       } else {
-        // If local node is not available, use gateway
-        throw new Error('Local IPFS node not available');
+        // If Helia node is not available, use gateway
+        throw new Error('Helia node not available');
       }
     } catch (err) {
-      console.log(`Could not retrieve ${cid} from local node, using gateway: ${err}`);
+      console.log(`Could not retrieve ${cid} from local Helia node, using gateway: ${err}`);
       
       // If local node fails, try using gateways with automatic fallback
       content = await fetchFromGateway(cid, {
@@ -593,24 +387,29 @@ export const retrieveFromIPFS = async (
 };
 
 /**
- * Create a metadata JSON file and upload to IPFS
+ * Create a metadata JSON file and upload to IPFS using Helia
  * @param metadata Metadata object
  * @returns Promise resolving to IPFS CID
  */
 export const uploadMetadata = async (metadata: Record<string, any>): Promise<string> => {
   try {
-    if (!ipfsClient) {
-      throw new Error('IPFS client not initialized');
+    if (!heliaNode || !unixfsInstance) {
+      throw new Error('Helia node not initialized');
     }
 
     // Convert metadata to JSON string and then to buffer
     const metadataBuffer = Buffer.from(JSON.stringify(metadata));
     
-    // Upload to IPFS with retry mechanism
-    let added: any;
+    // Upload to IPFS with retry mechanism using Helia UnixFS
+    let cid: CID;
     for (let attempt = 1; attempt <= MAX_RETRY_ATTEMPTS; attempt++) {
       try {
-        added = await ipfsClient.add(metadataBuffer, { pin: true });
+        // Use Helia UnixFS API to add metadata
+        cid = await unixfsInstance.addBytes(new Uint8Array(metadataBuffer));
+        
+        // Pin the metadata
+        await heliaNode.pins.add(cid);
+        
         break; // Success, exit retry loop
       } catch (err: any) {
         if (attempt === MAX_RETRY_ATTEMPTS) {
@@ -620,138 +419,225 @@ export const uploadMetadata = async (metadata: Record<string, any>): Promise<str
         await new Promise(resolve => setTimeout(resolve, RETRY_DELAY));
       }
     }
-    
-    // Make sure added is defined
-    if (!added) {
+
+    // Make sure cid is defined
+    if (!cid!) {
       throw new Error('Metadata upload failed after multiple attempts');
     }
 
-    const cid = added.cid.toString();
+    const cidString = cid.toString();
     
     // Pin to external services
-    pinToExternalServices(cid);
+    await pinToExternalServices(cidString);
     
-    return cid;
-  } catch (error) {
+    return cidString;
+  } catch (error: any) {
     console.error('Error uploading metadata to IPFS:', error);
     throw error;
   }
 };
 
 /**
- * Pin a file to ensure it stays available
- * @param cid IPFS CID to pin
- * @returns Promise resolving when pin is complete
+ * Pin content to IPFS using Helia
+ * @param cid Content CID to pin
  */
 export const pinContent = async (cid: string): Promise<void> => {
   try {
-    if (!ipfsClient) {
-      throw new Error('IPFS client not initialized');
+    if (!heliaNode) {
+      throw new Error('Helia node not initialized');
     }
 
-    // Pin to local node
-    await ipfsClient.pin.add(cid, { timeout: PIN_TIMEOUT });
+    // Pin using Helia API
+    await heliaNode.pins.add(CID.parse(cid));
     
-    // Pin to external services
+    // Also pin to external services
     await pinToExternalServices(cid);
     
-    console.log(`Successfully pinned ${cid} to all available services`);
-  } catch (err: any) {
-    console.error('Error pinning content:', err);
-    throw err;
+  } catch (error: any) {
+    console.error('Error pinning content:', error);
+    throw error;
   }
 };
 
 /**
- * Check if content exists on IPFS
- * @param cid IPFS CID to check
- * @returns Promise resolving to boolean indicating if content exists
+ * Check if content exists in IPFS using Helia
+ * @param cid Content CID to check
+ * @returns True if content exists
  */
 export const checkContentExists = async (cid: string): Promise<boolean> => {
   try {
-    if (!ipfsClient) {
-      throw new Error('IPFS client not initialized');
-    }
-
-    // Try to get the stat for the CID
-    for (let attempt = 1; attempt <= MAX_RETRY_ATTEMPTS; attempt++) {
-      try {
-        await ipfsClient.files.stat(`/ipfs/${cid}`);
-        return true;
-      } catch (err: any) {
-        // If the error is because the content doesn't exist, return false
-        if (err.message.includes('does not exist')) {
-          return false;
-        }
-        
-        // Other errors might be transient, retry
-        if (attempt === MAX_RETRY_ATTEMPTS) {
-          throw err;
-        }
-        
-        await new Promise(resolve => setTimeout(resolve, RETRY_DELAY));
-      }
-    }
-    
-    return false;
-  } catch (err: any) {
-    // If the error is because the content doesn't exist, return false
-    if (err.message.includes('does not exist')) {
+    if (!heliaNode || !unixfsInstance) {
       return false;
     }
-    // Otherwise, rethrow the error
-    throw err;
+
+    // Try to stat the content using Helia UnixFS
+    const cidObj = CID.parse(cid);
+    await unixfsInstance.stat(cidObj);
+    return true;
+  } catch (error) {
+    // If stat fails, content doesn't exist or is not accessible
+    return false;
   }
 };
 
 /**
- * Gets a gateway URL for a CID
- * @param cid Content identifier
- * @param options Optional gateway options
+ * Get gateway URL for content
+ * @param cid Content CID
+ * @param options Additional options
+ * @returns Gateway URL
  */
 export const getGatewayUrl = (cid: string, options: any = {}): string => {
   return getOptimalGatewayUrl(cid, options);
 };
 
 /**
- * Get information about pinned content
- * @param cid IPFS CID
+ * Get pinning information for content
+ * @param cid Content CID
  * @returns Pinning information
  */
 export const getPinningInfo = async (cid: string) => {
-  try {
-    if (!ipfsClient) {
-      throw new Error('IPFS client not initialized');
-    }
-    
-    // Check if pinned locally
-    let isPinnedLocally = false;
-    try {
-      const pins = await ipfsClient.pin.ls({ paths: [cid] });
-      for await (const pin of pins) {
-        if (pin.cid.toString() === cid) {
-          isPinnedLocally = true;
-          break;
-        }
-      }
-    } catch {
-      isPinnedLocally = false;
-    }
-    
-    // Get info from our records
-    const pinnedInfo = pinnedContent.get(cid);
-    
+  const pinInfo = pinnedContent.get(cid);
+  
+  if (!pinInfo) {
     return {
-      cid,
-      isPinnedLocally,
-      pinningServices: pinnedInfo?.pinningServices || [],
-      timestamp: pinnedInfo?.timestamp,
+      isPinned: false,
+      pinningServices: [],
+      timestamp: null
     };
-  } catch (error) {
-    console.error('Error getting pinning info:', error);
-    throw error;
   }
+  
+  return {
+    isPinned: true,
+    pinningServices: pinInfo.pinningServices,
+    timestamp: new Date(pinInfo.timestamp)
+  };
 };
 
-// Export functions
-export { ipfsClient };
+// Simplified chunk and upload job functions - keeping minimal functionality
+export const createUploadJob = (
+  filename: string,
+  mimeType: string,
+  totalChunks: number,
+  totalSize: number
+): string => {
+  const uploadId = uuidv4();
+  uploadJobs.set(uploadId, {
+    id: uploadId,
+    filename,
+    mimeType,
+    totalChunks,
+    receivedChunks: 0,
+    chunkPaths: [],
+    totalSize,
+    uploadStartTime: new Date(),
+    status: 'in-progress'
+  });
+  return uploadId;
+};
+
+export const uploadChunk = async (
+  uploadId: string,
+  chunkIndex: number,
+  chunkBuffer: Buffer
+): Promise<ChunkUploadResult> => {
+  const job = uploadJobs.get(uploadId);
+  if (!job) {
+    throw new Error('Upload job not found');
+  }
+
+  const tempFilePath = path.join(TEMP_DIR, `${uploadId}_chunk_${chunkIndex}`);
+  fs.writeFileSync(tempFilePath, chunkBuffer);
+  
+  job.chunkPaths[chunkIndex] = tempFilePath;
+  job.receivedChunks++;
+  
+  return {
+    tempFilePath,
+    size: chunkBuffer.length
+  };
+};
+
+export const completeUpload = async (
+  uploadId: string,
+  encryptionKey?: string
+): Promise<FileUploadResult> => {
+  const job = uploadJobs.get(uploadId);
+  if (!job) {
+    throw new Error('Upload job not found');
+  }
+
+  // Combine all chunks
+  const chunks = [];
+  for (let i = 0; i < job.totalChunks; i++) {
+    const chunkPath = job.chunkPaths[i];
+    if (!chunkPath) {
+      throw new Error(`Chunk ${i} missing`);
+    }
+    chunks.push(fs.readFileSync(chunkPath));
+  }
+  
+  const combinedBuffer = Buffer.concat(chunks);
+  
+  // Upload to IPFS
+  const result = await uploadToIPFS(combinedBuffer, encryptionKey);
+  
+  // Cleanup
+  cleanupUploadJob(uploadId);
+  
+  job.status = 'completed';
+  
+  return result;
+};
+
+export const getUploadStatus = (uploadId: string) => {
+  const job = uploadJobs.get(uploadId);
+  if (!job) {
+    return null;
+  }
+
+  return {
+    id: job.id,
+    filename: job.filename,
+    status: job.status,
+    progress: job.receivedChunks / job.totalChunks,
+    receivedChunks: job.receivedChunks,
+    totalChunks: job.totalChunks,
+    uploadStartTime: job.uploadStartTime,
+    errorMessage: job.errorMessage
+  };
+};
+
+const cleanupUploadJob = (uploadId: string) => {
+  const job = uploadJobs.get(uploadId);
+  if (!job) return;
+
+  // Delete temporary files
+  job.chunkPaths.forEach(chunkPath => {
+    if (chunkPath && fs.existsSync(chunkPath)) {
+      fs.unlinkSync(chunkPath);
+    }
+  });
+
+  uploadJobs.delete(uploadId);
+};
+
+const cleanupTempFiles = () => {
+  console.log('Cleaning up temporary files...');
+  
+  if (!fs.existsSync(TEMP_DIR)) {
+    return;
+  }
+  
+  const files = fs.readdirSync(TEMP_DIR);
+  const oneHourAgo = Date.now() - (60 * 60 * 1000);
+  
+  files.forEach(file => {
+    const filePath = path.join(TEMP_DIR, file);
+    const stats = fs.statSync(filePath);
+    
+    if (stats.mtime.getTime() < oneHourAgo) {
+      fs.unlinkSync(filePath);
+      console.log(`Deleted old temp file: ${file}`);
+    }
+  });
+};
