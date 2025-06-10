@@ -219,6 +219,11 @@ jobs:
           # Deploy with docker-compose
           echo "=== RESTARTING SERVICES ==="
           docker-compose -f docker-compose.yml --env-file .env.production down --remove-orphans
+          
+          # AUTOMATED CONTAINER REBUILD: Ensure containers use latest code
+          echo "=== REBUILDING CONTAINERS WITH LATEST CODE ==="
+          docker-compose -f docker-compose.yml --env-file .env.production build --no-cache storage api client
+          
           docker-compose -f docker-compose.yml --env-file .env.production up -d
           
           # Health check
