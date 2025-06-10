@@ -220,10 +220,15 @@ jobs:
           echo "=== RESTARTING SERVICES ==="
           docker-compose -f docker-compose.yml --env-file .env.production down --remove-orphans
           
+          # Clean docker system to free up space and ensure fresh builds
+          echo "=== CLEANING DOCKER SYSTEM ==="
+          docker system prune -f || echo "Docker cleanup completed"
+          
           # AUTOMATED CONTAINER REBUILD: Ensure containers use latest code
           echo "=== REBUILDING CONTAINERS WITH LATEST CODE ==="
-          docker-compose -f docker-compose.yml --env-file .env.production build --no-cache storage api client
+          docker-compose -f docker-compose.yml --env-file .env.production build --no-cache nginx storage api client
           
+          echo "=== STARTING SERVICES ==="
           docker-compose -f docker-compose.yml --env-file .env.production up -d
           
           # Health check

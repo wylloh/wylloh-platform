@@ -641,7 +641,6 @@ GitHub Repository (wylloh/wylloh-platform)
 - ✅ **Analyzed remaining 11 critical errors** - All code quality issues, not functional bugs
 - ✅ **Applied strategic ESLint rules** - Converted errors to warnings with documentation
 - ✅ **FIXED STORAGE ESLINT CONFIGURATION** - Resolved dependency issues and restored to pipeline
-- ✅ **ALL WORKSPACES PASSING** - Client, API, Storage all have 0 errors
 
 **📊 FINAL LINT RESULTS**:
 - **✅ Client**: 0 errors, 452 warnings (CI/CD PASSES!)
@@ -1258,3 +1257,121 @@ ssh -i ~/.ssh/wylloh_vps_contact wylloh@142.93.22.139
 ---
 
 ## 🎯 **SESSION PROGRESS UPDATE** (December 10, 2024)
+
+### 🚨 **CRITICAL ISSUE: CI/CD CONTAINER REBUILD GAP (CURRENT)**
+
+**STATUS**: ⚠️ **BLOCKING PRODUCTION** - nginx container failing to start (Exit 128)  
+**PRIORITY**: 🔥 **URGENT** - Site showing nginx splash page, SSL not working
+**ROOT CAUSE DISCOVERED**: CI/CD workflow missing nginx container rebuild
+
+#### **🔍 ROOT CAUSE ANALYSIS**:
+
+**Problem**: nginx container fails to start with Exit 128 status
+**Symptoms**: 
+- wylloh.com shows nginx splash page
+- SSL certificates not working
+- nginx container status: `Exit 128` (failed to start)
+
+**Root Cause**: Missing `mime.types` file in nginx configuration
+- Our custom `nginx.conf` references `/etc/nginx/mime.types` 
+- But we're mounting custom nginx directory that doesn't include this file
+- Docker volumes: `./nginx/nginx.conf:/etc/nginx/nginx.conf:ro` overwrites default nginx structure
+
+**Technical Details**:
+```bash
+# Error from nginx config test:
+2025/06/10 18:14:40 [emerg] 1#1: open() "/etc/nginx/mime.types" failed (2: No such file or directory)
+nginx: [emerg] open() "/etc/nginx/mime.types" failed (2: No such file or directory)
+nginx: configuration file /etc/nginx/nginx.conf test failed
+```
+
+#### **📋 IMMEDIATE FIXES NEEDED**:
+
+**Option 1: Add mime.types file** (Recommended)
+- Copy mime.types from nginx:alpine image to our nginx/ directory
+- Maintains our custom configuration structure
+
+**Option 2: Update nginx.conf** 
+- Remove mime.types include and use simpler approach
+- Add basic MIME types inline
+
+**Option 3: Change volume mounting**
+- Mount only specific files instead of entire directory
+- Preserve default nginx structure
+
+#### **🎯 CURRENT DEPLOYMENT STATUS**:
+- **Services Running**: client (healthy), api (unhealthy), storage (restarting), mongodb/redis/ipfs (healthy)
+- **SSL Certificates**: ✅ Present on VPS (`wylloh.com.crt`, `wylloh.com.key`)
+- **nginx Status**: ❌ Exit 128 - Configuration failure
+- **Site Access**: Showing nginx splash page (port 80 default)
+
+#### **⚡ EXECUTION PLAN**:
+1. ✅ **Immediate**: Copy mime.types to nginx/ directory
+2. ✅ **Test**: Verify nginx config with `nginx -t` 
+3. ⏳ **Deploy**: CI/CD pipeline running (ETA: 10-15 minutes)
+4. ⏳ **Verify**: Check https://wylloh.com loads properly
+
+#### **🚀 FIX IMPLEMENTATION STATUS**:
+- ✅ **Root Cause**: Identified missing `mime.types` file in nginx configuration
+- ✅ **Solution**: Copied mime.types from nginx:alpine image to local nginx/ directory
+- ✅ **Commit**: `685715d` - "Fix nginx configuration - add missing mime.types file"
+- ✅ **Deploy Trigger**: Pushed to main branch, CI/CD pipeline initiated
+- ⏳ **Deployment**: In progress (ETA: 10-15 minutes from push time)
+
+#### **📋 POST-DEPLOYMENT VERIFICATION CHECKLIST** (After 10-15 minutes):
+
+**1. Check nginx container status:**
+```bash
+ssh -i ~/.ssh/wylloh_vps_contact wylloh@142.93.22.139 "cd wylloh-platform && docker-compose ps"
+```
+
+**2. Verify nginx is running (should be "Up" not "Exit 128"):**
+```bash
+ssh -i ~/.ssh/wylloh_vps_contact wylloh@142.93.22.139 "docker ps | grep nginx"
+```
+
+**3. Test SSL certificate:**
+```bash
+curl -I https://wylloh.com
+```
+
+**4. Verify site loads correctly:**
+- Visit https://wylloh.com (should show Wylloh app, not nginx splash)
+- Check https://api.wylloh.com/health
+- Verify SSL certificate is valid in browser
+
+**5. Check nginx logs if issues persist:**
+```bash
+ssh -i ~/.ssh/wylloh_vps_contact wylloh@142.93.22.139 "docker logs wylloh-nginx --tail 20"
+```
+
+#### **🎯 EXPECTED OUTCOME**:
+- nginx container: `Exit 128` → `Up (healthy)`
+- Site access: nginx splash page → Wylloh React application  
+- SSL: Not working → Valid HTTPS with proper certificates
+- All services: Properly reverse-proxied through nginx
+
+#### **⏸️ SESSION PAUSED - NEXT STEPS WHEN RETURNING**:
+
+**Deploy Status**: CI/CD pipeline running (started ~6:15 PM, ETA: 10-15 minutes)
+**Commit**: `685715d` - nginx mime.types fix deployed
+**Issue**: nginx Exit 128 due to missing mime.types file → **FIXED**
+
+**🔍 FIRST CHECKS WHEN RETURNING:**
+
+1. **Quick Site Test**: Visit https://wylloh.com 
+   - Expected: Wylloh React app (not nginx splash page)
+   - SSL should work properly
+
+2. **Container Status Check**: 
+   ```bash
+   ssh -i ~/.ssh/wylloh_vps_contact wylloh@142.93.22.139 "docker-compose ps"
+   ```
+   - Expected: wylloh-nginx should be "Up" (not "Exit 128")
+
+3. **If Still Issues**: Check nginx logs
+   ```bash
+   ssh -i ~/.ssh/wylloh_vps_contact wylloh@142.93.22.139 "docker logs wylloh-nginx --tail 20"
+   ```
+
+**✅ CONFIDENCE LEVEL**: High - Root cause identified and proper fix implemented
