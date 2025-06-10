@@ -3,11 +3,12 @@ FROM node:18-alpine AS builder
 
 WORKDIR /app
 
-# Copy package files and yarn lock from workspace root
+# Copy workspace root files for proper yarn workspace setup
+COPY package.json yarn.lock ./
 COPY ./storage/package*.json ./
-COPY yarn.lock ./
 
 # Install all dependencies (including dev dependencies for building)
+# Use workspace root context for proper TypeScript installation
 RUN yarn install --frozen-lockfile && yarn cache clean
 
 # Copy source code
@@ -28,9 +29,9 @@ WORKDIR /app
 RUN addgroup -g 1001 -S nodejs
 RUN adduser -S wylloh -u 1001
 
-# Copy package files and yarn lock from workspace root
+# Copy workspace root files for proper yarn workspace setup
+COPY package.json yarn.lock ./
 COPY ./storage/package*.json ./
-COPY yarn.lock ./
 
 # Install only production dependencies
 RUN yarn install --production --frozen-lockfile && yarn cache clean
