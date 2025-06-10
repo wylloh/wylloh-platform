@@ -179,6 +179,10 @@ jobs:
         ssh -i ~/.ssh/id_rsa ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} << 'EOF'
           cd ~/wylloh-platform
           
+          echo "=== DEPLOYMENT START ==="
+          echo "Current commit before update:"
+          git log --oneline -1
+          
           # Load new Docker images
           for image in *.tar.gz; do
             if [ -f "$image" ]; then
@@ -188,8 +192,21 @@ jobs:
             fi
           done
           
-          # Pull latest code
-          git pull origin main
+          # FIXED: Robust git pull with error handling and verification
+          echo "=== UPDATING SOURCE CODE ==="
+          git fetch origin || { echo "ERROR: git fetch failed"; exit 1; }
+          git reset --hard origin/main || { echo "ERROR: git reset failed"; exit 1; }
+          
+          echo "Updated to commit:"
+          git log --oneline -1
+          
+          # Verify we have the expected commit
+          if ! git log --oneline -5 | grep -q "temp: Disable CodeQL\|fix: Add TypeScript"; then
+            echo "ERROR: Expected commits not found! Deployment may have failed."
+            echo "Recent commits:"
+            git log --oneline -5
+            exit 1
+          fi
           
           # Create production environment file if it doesn't exist
           if [ ! -f .env.production ]; then
@@ -198,16 +215,18 @@ jobs:
           fi
           
           # Deploy with docker-compose
+          echo "=== RESTARTING SERVICES ==="
           docker-compose -f docker-compose.yml --env-file .env.production down --remove-orphans
           docker-compose -f docker-compose.yml --env-file .env.production up -d
           
           # Health check
+          echo "=== HEALTH CHECK ==="
           echo "Waiting for services to start..."
           sleep 30
           
           # Verify deployment
           docker-compose ps
-          echo "Deployment completed successfully!"
+          echo "=== DEPLOYMENT COMPLETED SUCCESSFULLY ==="
         EOF
         
     - name: Deployment notification
