@@ -210,15 +210,47 @@ jobs:
             echo "✅ Found recent TypeScript/Docker fixes in commit history"
           fi
           
-          # Create production environment file if it doesn't exist
-          if [ ! -f .env.production ]; then
-            cp env.production.template .env.production
-            echo "Please configure .env.production file"
-          fi
+          # Create production environment file (standard .env) from GitHub Secrets
+          echo "=== CREATING PRODUCTION ENVIRONMENT ==="
+          cat > .env << 'EOL'
+        NODE_ENV=production
+        
+        # Database Configuration
+        MONGO_ROOT_USERNAME=admin
+        MONGO_ROOT_PASSWORD=${{ secrets.MONGO_ROOT_PASSWORD }}
+        MONGO_DATABASE=wylloh
+        
+        # Redis Configuration
+        REDIS_URL=redis://redis:6379
+        
+        # JWT Configuration
+        JWT_SECRET=${{ secrets.JWT_SECRET }}
+        
+        # CORS Configuration
+        CORS_ORIGIN=https://wylloh.com,https://www.wylloh.com
+        
+        # Blockchain Configuration
+        ETHEREUM_RPC_URL=https://mainnet.infura.io/v3/${{ secrets.INFURA_PROJECT_ID }}
+        POLYGON_RPC_URL=https://polygon-mainnet.infura.io/v3/${{ secrets.INFURA_PROJECT_ID }}
+        INFURA_PROJECT_ID=${{ secrets.INFURA_PROJECT_ID }}
+        INFURA_PROJECT_SECRET=${{ secrets.INFURA_PROJECT_SECRET }}
+        PRIVATE_KEY=WAIT_FOR_FIRST_PRO_USER_THEN_GENERATE
+        
+        # IPFS Configuration
+        PINATA_API_KEY=${{ secrets.PINATA_API_KEY }}
+        PINATA_SECRET_API_KEY=${{ secrets.PINATA_SECRET_API_KEY }}
+        
+        # Frontend Configuration
+        REACT_APP_API_URL=https://api.wylloh.com
+        REACT_APP_STORAGE_URL=https://storage.wylloh.com
+        REACT_APP_IPFS_GATEWAY=https://ipfs.wylloh.com
+        REACT_APP_NETWORK_ID=1
+        REACT_APP_CHAIN_NAME=mainnet
+        EOL
           
-          # Deploy with docker-compose
+          # Deploy with docker-compose (using default .env file)
           echo "=== RESTARTING SERVICES ==="
-          docker-compose -f docker-compose.yml --env-file .env.production down --remove-orphans
+          docker-compose down --remove-orphans
           
           # Clean docker system to free up space and ensure fresh builds
           echo "=== CLEANING DOCKER SYSTEM ==="
@@ -226,10 +258,10 @@ jobs:
           
           # AUTOMATED CONTAINER REBUILD: Ensure containers use latest code
           echo "=== REBUILDING CONTAINERS WITH LATEST CODE ==="
-          docker-compose -f docker-compose.yml --env-file .env.production build --no-cache nginx storage api client
+          docker-compose build --no-cache nginx storage api client
           
           echo "=== STARTING SERVICES ==="
-          docker-compose -f docker-compose.yml --env-file .env.production up -d
+          docker-compose up -d
           
           # Health check
           echo "=== HEALTH CHECK ==="
