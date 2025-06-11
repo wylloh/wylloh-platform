@@ -7,7 +7,7 @@ WORKDIR /app
 COPY ./client/package*.json ./
 
 # Install dependencies using npm for self-contained builds
-RUN npm install
+RUN npm install --legacy-peer-deps
 
 # Copy source code
 COPY ./client/ .
