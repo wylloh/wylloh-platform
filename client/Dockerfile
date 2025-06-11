@@ -3,12 +3,11 @@ FROM node:18-alpine AS builder
 
 WORKDIR /app
 
-# Copy package files and yarn lock
+# Copy package files
 COPY ./client/package*.json ./
-COPY yarn.lock ./
 
-# Install dependencies using yarn for workspace consistency
-RUN yarn install --frozen-lockfile
+# Install dependencies using npm for self-contained builds
+RUN npm ci --production=false
 
 # Copy source code
 COPY ./client/ .
@@ -28,7 +27,7 @@ ENV REACT_APP_NETWORK_ID=$REACT_APP_NETWORK_ID
 ENV REACT_APP_CHAIN_NAME=$REACT_APP_CHAIN_NAME
 
 # Build the application
-RUN yarn build
+RUN npm run build
 
 # Production stage
 FROM nginx:alpine AS production
