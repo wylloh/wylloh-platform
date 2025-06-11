@@ -152,11 +152,11 @@ services:
       dockerfile: ./client/Dockerfile
       target: production
       args:
-        REACT_APP_API_URL: ${REACT_APP_API_URL:-https://api.wylloh.com}
-        REACT_APP_STORAGE_URL: ${REACT_APP_STORAGE_URL:-https://storage.wylloh.com}
-        REACT_APP_IPFS_GATEWAY: ${REACT_APP_IPFS_GATEWAY:-https://ipfs.wylloh.com}
-        REACT_APP_NETWORK_ID: ${REACT_APP_NETWORK_ID:-1}
-        REACT_APP_CHAIN_NAME: ${REACT_APP_CHAIN_NAME:-mainnet}
+        VITE_API_URL: ${VITE_API_URL:-https://api.wylloh.com}
+        VITE_STORAGE_URL: ${VITE_STORAGE_URL:-https://storage.wylloh.com}
+        VITE_IPFS_GATEWAY: ${VITE_IPFS_GATEWAY:-https://ipfs.wylloh.com}
+        VITE_NETWORK_ID: ${VITE_NETWORK_ID:-1}
+        VITE_CHAIN_NAME: ${VITE_CHAIN_NAME:-mainnet}
     container_name: wylloh-client
     restart: unless-stopped
     ports:
