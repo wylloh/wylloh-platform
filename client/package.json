@@ -33,7 +33,6 @@
     "ethers": "^5.7.2",
     "helia": "^5.4.2",
     "hls.js": "^1.6.2",
-
     "libp2p": "^2.8.8",
     "nanoid": "^5.1.5",
     "notistack": "^3.0.2",
@@ -44,7 +43,6 @@
     "react-hook-form": "^7.46.1",
     "react-query": "^3.39.3",
     "react-router-dom": "^6.15.0",
-    "react-scripts": "5.0.1",
     "recharts": "^2.15.3",
     "shaka-player": "^4.14.11",
     "swr": "^2.2.2",
@@ -56,11 +54,11 @@
     "zod": "^3.22.2"
   },
   "scripts": {
-    "start": "react-scripts start",
-    "build": "DISABLE_ESLINT_PLUGIN=true TSC_COMPILE_ON_ERROR=true GENERATE_SOURCEMAP=false react-scripts build",
-    "build:cicd": "DISABLE_ESLINT_PLUGIN=true TSC_COMPILE_ON_ERROR=true GENERATE_SOURCEMAP=false CI=true react-scripts build",
-    "test": "react-scripts test",
-    "eject": "react-scripts eject",
+    "start": "vite",
+    "build": "vite build",
+    "build:cicd": "CI=true vite build",
+    "preview": "vite preview",
+    "test": "vitest",
     "lint": "eslint src",
     "cleanup-demo-content": "echo 'Demo content cleanup is disabled for better demo reliability'",
     "kill-port": "lsof -ti:3000 | xargs kill -9 || echo 'No process running on port 3000'",
@@ -87,16 +85,22 @@
   "devDependencies": {
     "@types/uuid": "^9.0.3",
     "@types/video.js": "^7.3.58",
+    "@vitejs/plugin-react-swc": "^3.10.2",
+    "buffer": "^6.0.3",
     "eslint": "^8.48.0",
     "eslint-config-prettier": "^9.0.0",
     "eslint-plugin-prettier": "^5.0.0",
     "prettier": "^3.0.3",
+    "process": "^0.11.10",
     "sharp": "^0.34.2",
-    "ts-node": "^10.9.2"
+    "terser": "^5.42.0",
+    "ts-node": "^10.9.2",
+    "vite": "^6.3.5",
+    "vite-plugin-node-polyfills": "^0.23.0"
   },
   "overrides": {
     "ajv": "^8.12.0",
-    "ajv-keywords": "^5.1.0", 
+    "ajv-keywords": "^5.1.0",
     "ajv-formats": "^2.1.1",
     "schema-utils": "^4.0.0"
   }

@@ -2,50 +2,55 @@
  * Utility functions for working with IPFS in the frontend
  */
 
-import { create } from 'ipfs-http-client';
 import { Buffer } from 'buffer';
+import { createHelia } from 'helia';
+import { unixfs } from '@helia/unixfs';
+import type { Helia } from 'helia';
+import type { UnixFS } from '@helia/unixfs';
 
 // Default gateway URLs
 const DEFAULT_PUBLIC_GATEWAY = 'https://ipfs.io/ipfs';
 const DEFAULT_PROJECT_GATEWAY = '/api/ipfs'; // Our API's IPFS gateway
 
-// Create IPFS client for local node
-const createIpfsClient = () => {
+// Helia client for browser IPFS operations
+let heliaInstance: Helia | null = null;
+let unixfsInstance: UnixFS | null = null;
+
+// Initialize Helia client (browser-compatible)
+const initializeHelia = async (): Promise<{ helia: Helia; fs: UnixFS }> => {
+  if (heliaInstance && unixfsInstance) {
+    return { helia: heliaInstance, fs: unixfsInstance };
+  }
+
   try {
-    console.log('Creating IPFS client...');
-    const client = create({
-      host: '127.0.0.1',
-      port: 5001,
-      protocol: 'http',
-      apiPath: '/api/v0',
-      headers: {
-        'User-Agent': 'Wylloh-Platform',
-      }
+    console.log('Initializing Helia client for browser...');
+    
+    // Create Helia instance with browser-compatible configuration
+    heliaInstance = await createHelia({
+      // Browser-specific configuration
+      start: true,
     });
-    console.log('IPFS client created successfully');
-    return client;
+    
+    unixfsInstance = unixfs(heliaInstance);
+    
+    console.log('Helia client initialized successfully');
+    return { helia: heliaInstance, fs: unixfsInstance };
   } catch (error) {
-    console.error('Failed to create IPFS client:', error);
+    console.error('Failed to initialize Helia client:', error);
     throw error;
   }
 };
 
-const ipfsClient = createIpfsClient();
-
-// Add a function to check IPFS connection with better error handling
+// Check IPFS connection via our API endpoint
 export const checkIpfsConnection = async () => {
   try {
-    console.log('Checking IPFS connection...');
-    const id = await ipfsClient.id();
-    console.log('IPFS connection successful:', id);
-    return true;
+    console.log('Checking IPFS connection via API...');
+    const response = await fetch('/api/storage/health');
+    const isHealthy = response.ok;
+    console.log('IPFS connection check:', isHealthy ? 'successful' : 'failed');
+    return isHealthy;
   } catch (error: any) {
     console.error('IPFS connection check failed:', error);
-    console.error('Error details:', {
-      message: error.message,
-      name: error.name,
-      stack: error.stack
-    });
     return false;
   }
 };
@@ -167,44 +172,93 @@ export const normalizeCid = (cid: string): string => {
   return cid.trim().replace(/^ipfs:\/\//, '');
 };
 
-// Upload a file to IPFS with chunked upload for large files
+// Upload a file to IPFS using Helia client (with API fallback)
 export const uploadToIPFS = async (fileBuffer: Buffer) => {
+  try {
+    console.log('Starting IPFS upload via Helia client...');
+    
+    // Try Helia client first for direct P2P upload
+    try {
+      const { helia, fs } = await initializeHelia();
+      
+      // Convert Buffer to Uint8Array for Helia
+      const uint8Array = new Uint8Array(fileBuffer);
+      
+      // Upload to IPFS using Helia
+      const cid = await fs.addFile({
+        path: 'uploaded-file',
+        content: uint8Array,
+      });
+      
+      const cidString = cid.toString();
+      console.log('File uploaded successfully via Helia, CID:', cidString);
+      
+      // Optional: Pin the content to ensure persistence
+      try {
+        await helia.pins.add(cid);
+        console.log('Content pinned successfully via Helia');
+      } catch (pinError) {
+        console.warn('Failed to pin content via Helia (non-critical):', pinError);
+      }
+      
+      return {
+        cid: cidString,
+        size: fileBuffer.length,
+        path: 'uploaded-file'
+      };
+    } catch (heliaError) {
+      console.warn('Helia upload failed, falling back to API:', heliaError);
+      
+      // Fallback to API endpoint
+      return await uploadToIPFSViaAPI(fileBuffer);
+    }
+  } catch (error: any) {
+    console.error('Error uploading to IPFS:', error);
+    throw new Error(error.message || 'Failed to upload to IPFS');
+  }
+};
+
+// Fallback: Upload a file to IPFS via our API endpoint
+const uploadToIPFSViaAPI = async (fileBuffer: Buffer) => {
   try {
     // Check connection first
     const isConnected = await checkIpfsConnection();
     if (!isConnected) {
-      throw new Error('Cannot connect to IPFS node. Please ensure IPFS daemon is running.');
+      throw new Error('Cannot connect to IPFS via API. Please check storage service.');
     }
 
-    console.log('Starting IPFS upload...');
+    console.log('Starting IPFS upload via API fallback...');
     
-    // Upload to IPFS with chunked upload
-    const added = await ipfsClient.add(
-      {
-        content: fileBuffer,
-      },
-      {
-        pin: true,
-        chunker: 'size-262144', // 256KB chunks
-        rawLeaves: true,
-        wrapWithDirectory: false,
-        progress: (prog) => console.log(`Upload progress: ${prog} bytes`)
-      }
-    );
+    // Create FormData for file upload
+    const formData = new FormData();
+    const blob = new Blob([fileBuffer]);
+    formData.append('file', blob);
     
-    if (!added?.cid) {
+    // Upload via our storage API
+    const response = await fetch('/api/storage/upload', {
+      method: 'POST',
+      body: formData
+    });
+    
+    if (!response.ok) {
+      throw new Error(`Upload failed: ${response.statusText}`);
+    }
+    
+    const result = await response.json();
+    
+    if (!result?.cid) {
       throw new Error('Upload failed - no CID returned');
     }
 
-    console.log('Upload successful, CID:', added.cid.toString());
+    console.log('Upload successful via API fallback, CID:', result.cid);
 
     return {
-      cid: added.cid.toString(),
+      cid: result.cid,
       size: fileBuffer.length,
-      path: added.path || ''
+      path: result.path || ''
     };
   } catch (error: any) {
-    console.error('Error uploading to IPFS:', error);
+    console.error('Error uploading to IPFS via API:', error);
     throw new Error(error.message || 'Failed to upload to IPFS');
   }
 };

@@ -354,6 +354,21 @@ RUN ls -la node_modules/.bin/tsc && yarn build
 - **Commit**: `bf27ef9` - "Fix ES module imports - add explicit .js extensions for storage service"
 
 #### **🔄 CURRENT DEPLOYMENT STATUS:**
+
+**🎯 STRATEGIC PIVOT: IMMEDIATE VITE MIGRATION DECISION** (June 11, 2025)
+
+**Root Cause Discovered:**
+- ✅ **Docker Build Diagnosis Complete**: React build failing silently with `schema_utils_1.default is not a function`
+- ❌ **No build directory created**: CRA webpack process failing, Docker copying default nginx files (615 bytes)
+- 🔍 **Evidence**: Site serving nginx splash page, missing static/ JS/CSS bundles, only React favicon files present
+
+**Strategic Decision Made:**
+- ❌ **Skip CRA Debugging**: Would take days to fix deprecated webpack/ajv compatibility issues
+- ✅ **Immediate Vite Migration**: Solves root cause + modernizes architecture in 9-13 hours
+- 🎯 **Efficiency**: Vite eliminates exact ajv/schema-utils conflicts causing current failure
+- 🚀 **Dual Benefit**: Fixes deployment + strategic modernization in single effort
+
+**Execution Status:** ⚡ **PROCEEDING IMMEDIATELY** with Phase 1 Vite setup
 - **Manual SSH Deployment**: ✅ **WORKING** - Platform fully operational at wylloh.com
 - **CI/CD Pipeline**: 🔄 **TESTING FIX** - Environment file consistency fix deployed (commit f7ae8d3)
 - **SSL Status**: ✅ **HTTPS WORKING** - Let's Encrypt certificate installed and functional
@@ -1052,6 +1067,323 @@ JWT_SECRET=WyllohJWT2024SecureKey123456789012
 - [ ] All package.json overrides are applied in Docker builds  
 - [ ] Environment variables are properly passed to Docker builds
 - [ ] Build processes are identical between local and CI/CD environments
+- [ ] **YARN CONSISTENCY**: All package management uses yarn (never mix npm/yarn)
+
+### 🔧 **PACKAGE MANAGER STANDARDS - YARN ONLY**
+
+**CRITICAL RULE**: Always use `yarn` throughout the entire monorepo - never mix with npm
+
+**Why Yarn Consistency Matters:**
+- ✅ **Monorepo Workspaces**: Root `yarn.lock` manages all dependencies
+- ✅ **Docker Builds**: All Dockerfiles use yarn for consistency
+- ✅ **Dependency Resolution**: Single algorithm prevents version conflicts
+- ✅ **CI/CD Pipeline**: GitHub Actions expects yarn commands
+- ✅ **Team Collaboration**: Consistent lock file across all developers
+
+**Correct Commands:**
+```bash
+# ✅ CORRECT - Use yarn
+yarn add package-name
+yarn add --dev package-name  
+yarn install
+yarn build
+
+# ❌ WRONG - Never use npm in this project
+npm install package-name
+npm run build
+```
+
+**Vite Migration Note**: During Vite setup, accidentally used npm commands - fixed by using yarn workspace system instead
+
+**📝 TODO: Update Contributor Documentation**
+- [ ] Update existing CONTRIBUTING.md to emphasize yarn-only requirement
+- [ ] Add yarn workspace commands to development setup instructions
+- [ ] Document Vite migration and new build process for contributors
+
+## 🚀 **NEXT MAJOR MILESTONE: CREATE REACT APP → VITE MIGRATION**
+
+### 🎯 **STRATEGIC CONTEXT & JUSTIFICATION**
+
+**Critical Priority Upgrade**: Create React App officially deprecated by Meta (2023)
+- ❌ **Security Risk**: No more security updates for react-scripts 5.0.1
+- ❌ **Dependency Hell**: CRA's locked webpack ecosystem causing ajv compatibility issues
+- ❌ **Performance**: Slow builds impacting development velocity
+- ✅ **Vite Solution**: Modern, fast, Web3-compatible build tool with active maintenance
+
+**Why Vite Over Alternatives:**
+- **Next.js**: ❌ SSR complexity incompatible with Web3/IPFS client-side architecture
+- **Remix**: ❌ SSR-first paradigm doesn't suit decentralized dApp needs
+- **Pure Webpack**: ❌ Too much configuration overhead vs development velocity
+- **Vite**: ✅ **PERFECT FIT** - ES modules, Web3 ecosystem support, blazing fast builds
+
+### 📋 **DETAILED MIGRATION EXECUTION PLAN**
+
+#### **Phase 1: Vite Foundation Setup** (2-3 hours)
+
+**Step 1.1: Install Vite + Essential Plugins**
+```bash
+# Remove CRA
+yarn remove react-scripts
+
+# Install Vite core
+yarn add --dev vite @vitejs/plugin-react-swc
+
+# Web3/Node.js polyfills for browser compatibility
+yarn add --dev vite-plugin-node-polyfills buffer process
+```
+
+**Step 1.2: Create vite.config.ts**
+```typescript
+import { defineConfig } from 'vite'
+import react from '@vitejs/plugin-react-swc'
+import { nodePolyfills } from 'vite-plugin-node-polyfills'
+
+export default defineConfig({
+  plugins: [
+    react(),
+    nodePolyfills({
+      // Enable polyfills for our Web3/IPFS dependencies
+      include: ['buffer', 'process', 'crypto', 'stream', 'util', 'url', 'os'],
+      globals: { Buffer: true, global: true, process: true }
+    })
+  ],
+  
+  // Environment variable prefix (REACT_APP_ → VITE_)
+  envPrefix: 'VITE_',
+  
+  // Build configuration matching current nginx setup
+  build: {
+    outDir: 'build',  // Keep same output directory for Docker
+    sourcemap: false,  // Match current CRA build:cicd setting
+    minify: 'terser',
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          vendor: ['react', 'react-dom'],
+          web3: ['ethers', '@web3-react/core'],
+          ipfs: ['helia', '@helia/unixfs'],
+          ui: ['@mui/material', '@mui/icons-material']
+        }
+      }
+    }
+  },
+  
+  // Development server
+  server: {
+    port: 3000,
+    host: true,
+    open: true
+  },
+  
+  // Path resolution
+  resolve: {
+    alias: {
+      '@': '/src',
+      'process': 'process',
+      'buffer': 'buffer'
+    }
+  }
+})
+```
+
+**Step 1.3: Update Environment Variables**
+```bash
+# Change all REACT_APP_ → VITE_ in environment files
+# .env.development, .env.production, Docker compose, etc.
+
+# BEFORE:
+REACT_APP_API_URL=https://api.wylloh.com
+REACT_APP_NETWORK_ID=137
+
+# AFTER:
+VITE_API_URL=https://api.wylloh.com  
+VITE_NETWORK_ID=137
+```
+
+**Step 1.4: Update package.json Scripts**
+```json
+{
+  "scripts": {
+    "start": "vite",
+    "build": "vite build",
+    "build:cicd": "CI=true vite build",
+    "preview": "vite preview",
+    "test": "vitest"
+  }
+}
+```
+
+**Step 1.5: Update index.html**
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <!-- Move index.html from public/ to root directory -->
+  <!-- Add script type="module" for main.tsx entry point -->
+</head>
+<body>
+  <div id="root"></div>
+  <script type="module" src="/src/main.tsx"></script>
+</body>
+</html>
+```
+
+#### **Phase 2: Web3/IPFS Compatibility Updates** (3-4 hours)
+
+**Step 2.1: Update Import Statements**
+```typescript
+// Add explicit polyfill imports where needed
+import { Buffer } from 'buffer'
+import process from 'process'
+
+// Update environment variable references
+// BEFORE: process.env.REACT_APP_API_URL  
+// AFTER:  import.meta.env.VITE_API_URL
+```
+
+**Step 2.2: Fix Crypto/Buffer Dependencies** 
+```typescript
+// In components using crypto-js or ethers
+import { Buffer } from 'buffer'
+
+// Ensure global Buffer is available for ethers
+if (typeof global === 'undefined') {
+  var global = globalThis
+}
+if (!global.Buffer) {
+  global.Buffer = Buffer
+}
+```
+
+**Step 2.3: Web3 Provider Updates (if needed)**
+```typescript
+// Our current @web3-react/core v6 should work
+// But prepare for future wagmi migration
+// Document any compatibility issues for next phase
+```
+
+#### **Phase 3: Docker & CI/CD Integration** (1-2 hours)
+
+**Step 3.1: Update Dockerfile**
+```dockerfile
+# client/Dockerfile - Update build commands
+FROM node:18-alpine AS builder
+
+WORKDIR /app
+COPY ./client/package*.json ./
+RUN yarn install
+
+COPY ./client/ .
+
+# CHANGE: Use vite build instead of react-scripts
+RUN yarn build:cicd
+
+# Production stage remains the same
+FROM nginx:alpine AS production
+COPY --from=builder /app/build /usr/share/nginx/html
+# ... rest unchanged
+```
+
+**Step 3.2: Update Environment Variable Handling**
+```bash
+# Docker compose & CI/CD - update env var names
+# REACT_APP_API_URL → VITE_API_URL
+# REACT_APP_STORAGE_URL → VITE_STORAGE_URL
+# etc.
+```
+
+#### **Phase 4: Testing & Validation** (2-3 hours)
+
+**Step 4.1: Development Environment Testing**
+```bash
+# Test local development
+npm run start  # Should start Vite dev server
+
+# Test build process  
+npm run build  # Should create optimized build
+
+# Test preview
+npm run preview  # Should serve built files
+```
+
+**Step 4.2: Functionality Testing Checklist**
+- [ ] **Wallet Connection**: MetaMask integration working
+- [ ] **Blockchain Interactions**: Token creation, transfers
+- [ ] **IPFS/Helia**: File upload, download, content viewing
+- [ ] **API Calls**: All backend integrations functional
+- [ ] **Routing**: React Router navigation working
+- [ ] **Environment Variables**: All configs loading correctly
+
+**Step 4.3: Performance Benchmarking**
+```bash
+# Compare build times
+# CRA: ~60-120 seconds (estimated)
+# Vite: ~10-20 seconds (expected)
+
+# Compare bundle sizes
+# Target: similar or smaller than CRA build
+```
+
+#### **Phase 5: Production Deployment** (1 hour)
+
+**Step 5.1: CI/CD Pipeline Update**
+- Update GitHub Actions workflow
+- Test automated deployment
+- Verify Docker build succeeds
+
+**Step 5.2: Production Validation**
+- Deploy to VPS
+- Full functionality testing
+- Monitor for any issues
+
+### 🚨 **RISK MITIGATION STRATEGIES**
+
+**High-Risk Dependencies:**
+1. **ethers.js v5**: May need polyfill adjustments
+   - **Mitigation**: Comprehensive testing, keep fallback CRA branch
+2. **@web3-react/core v6**: Deprecated package
+   - **Mitigation**: Document migration to wagmi as follow-up task
+3. **Environment Variable Changes**: Breaking config references
+   - **Mitigation**: Automated find/replace, comprehensive testing
+
+**Rollback Plan:**
+1. **Git Branch Strategy**: Keep CRA version in separate branch
+2. **Quick Revert**: Can return to CRA within 30 minutes if critical issues
+3. **Feature Flag**: Gradual rollout if needed
+
+### 📊 **SUCCESS CRITERIA & TIMELINE**
+
+**Definition of Success:**
+- ✅ **Build Performance**: 5-10x faster builds than CRA
+- ✅ **Bundle Size**: Equal or smaller than current CRA build
+- ✅ **All Features Working**: 100% functionality parity
+- ✅ **CI/CD Integration**: Automated deployment working
+- ✅ **Developer Experience**: Faster iteration, better debugging
+
+**Estimated Timeline:**
+- **Phase 1**: 2-3 hours (Vite setup)
+- **Phase 2**: 3-4 hours (Web3 compatibility)  
+- **Phase 3**: 1-2 hours (Docker/CI-CD)
+- **Phase 4**: 2-3 hours (Testing)
+- **Phase 5**: 1 hour (Deployment)
+- **Total**: 9-13 hours (1-2 development sessions)
+
+**Target Completion**: Next major development session after current deployment validation
+
+### 💡 **ADDITIONAL BENEFITS**
+
+**Beyond Fixing CRA Deprecation:**
+- 🚀 **Development Speed**: Near-instant HMR for faster iteration
+- 🛠️ **Modern Tooling**: Better TypeScript support, tree-shaking
+- 📦 **Dependency Health**: Eliminate ajv overrides requirement
+- 🔧 **Maintenance**: Active community support vs deprecated CRA
+- 🎯 **Web3 Ecosystem**: Better alignment with modern dApp development
+
+**Expected Impact:**
+- **Developer Productivity**: 50-70% faster development builds
+- **CI/CD Performance**: 80-90% faster production builds  
+- **Technical Debt**: Elimination of CRA-related compatibility issues
+- **Security**: Modern, maintained build toolchain
 
 ### Executor's Feedback or Assistance Requests
 
@@ -1510,3 +1842,59 @@ ssh -i ~/.ssh/wylloh_vps_contact wylloh@142.93.22.139 "docker logs wylloh-nginx 
    ```
 
 **✅ CONFIDENCE LEVEL**: High - Root cause identified and proper fix implemented
+
+---
+
+## 🚀 **STRATEGIC HELIA CLIENT MIGRATION COMPLETED** (Current Session)
+
+**MAJOR ARCHITECTURAL ALIGNMENT**: Client now uses Helia directly instead of API workarounds!
+
+### **✅ UNIFIED HELIA ARCHITECTURE ACHIEVED**:
+- **Storage Service**: ✅ Using Helia (completed in previous sessions)
+- **Client**: ✅ **JUST MIGRATED** - Now using Helia with API fallback
+- **Result**: Consistent IPFS architecture across entire platform
+
+### **🎯 CLIENT HELIA IMPLEMENTATION**:
+```typescript
+// BEFORE: API-only approach
+export const uploadToIPFS = async (fileBuffer: Buffer) => {
+  const response = await fetch('/api/storage/upload', { ... });
+  // Always required server round-trip
+}
+
+// AFTER: Helia-first with API fallback
+export const uploadToIPFS = async (fileBuffer: Buffer) => {
+  try {
+    const { helia, fs } = await initializeHelia();
+    const cid = await fs.addFile({ content: uint8Array });
+    await helia.pins.add(cid); // Direct P2P pinning
+    return { cid: cid.toString(), ... };
+  } catch (heliaError) {
+    return await uploadToIPFSViaAPI(fileBuffer); // Fallback
+  }
+}
+```
+
+### **🏗️ TECHNICAL BENEFITS**:
+- ✅ **Performance**: Direct IPFS operations (no API round-trips)
+- ✅ **Reliability**: API fallback ensures compatibility
+- ✅ **P2P Foundation**: Browser becomes IPFS node (future user-to-user sharing)
+- ✅ **Consistency**: Same Helia version across storage + client
+- ✅ **Modern**: No deprecated ipfs-http-client anywhere in platform
+
+### **🔧 IMPLEMENTATION STATUS**:
+- ✅ **Dependencies**: Helia already installed (`helia: ^5.4.2`, `@helia/unixfs: ^5.0.3`)
+- ✅ **Vite Config**: Proper polyfills and chunking configured
+- ✅ **Code Migration**: `client/src/utils/ipfs.ts` updated with Helia-first approach
+- ✅ **Fallback Strategy**: API endpoint preserved for compatibility
+- ⏳ **Testing**: Ready for build test to verify browser compatibility
+
+### **🎭 WYLLOH P2P VISION PROGRESS**:
+```
+Traditional: User → API Server → IPFS Network
+Wylloh Now:  User Browser (Helia) → IPFS Network (direct)
+             ↓ (fallback if needed)
+             API Server → IPFS Network
+```
+
+**Next Phase**: Browser-to-browser content sharing for revolutionary streaming economics!
