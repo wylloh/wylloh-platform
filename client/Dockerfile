@@ -26,8 +26,8 @@ ENV REACT_APP_IPFS_GATEWAY=$REACT_APP_IPFS_GATEWAY
 ENV REACT_APP_NETWORK_ID=$REACT_APP_NETWORK_ID
 ENV REACT_APP_CHAIN_NAME=$REACT_APP_CHAIN_NAME
 
-# Build the application
-RUN npm run build
+# Build the application (using CI/CD script with proper environment settings)
+RUN npm run build:cicd
 
 # Production stage
 FROM nginx:alpine AS production
