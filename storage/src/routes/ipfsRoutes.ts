@@ -1,6 +1,6 @@
 import express, { Router } from 'express';
-import { asyncHandler } from '../middleware/errorHandler';
-import { authMiddleware } from '../middleware/authMiddleware';
+import { asyncHandler } from '../middleware/errorHandler.js';
+import { authMiddleware } from '../middleware/authMiddleware.js';
 import multer from 'multer';
 import {
   getContentByCid,
@@ -13,7 +13,7 @@ import {
   uploadChunkToIPFS,
   completeChunkedUpload,
   getUploadJobStatus
-} from '../controllers/ipfsController';
+} from '../controllers/ipfsController.js';
 
 // Note: Controllers will be implemented later
 // This sets up the structure for routes

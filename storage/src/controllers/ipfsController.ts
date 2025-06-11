@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { createError, asyncHandler } from '../middleware/errorHandler';
+import { createError, asyncHandler } from '../middleware/errorHandler.js';
 import { 
   uploadToIPFS, 
   retrieveFromIPFS, 
@@ -12,7 +12,7 @@ import {
   completeUpload,
   getUploadStatus,
   getPinningInfo
-} from '../ipfs/ipfsService';
+} from '../ipfs/ipfsService.js';
 
 /**
  * Get content from IPFS by CID

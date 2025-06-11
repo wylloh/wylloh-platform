@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
-import { createError } from './errorHandler';
+import { createError } from './errorHandler.js';
 
 // Extend Express Request interface to include user property
 declare global {

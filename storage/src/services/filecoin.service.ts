@@ -5,9 +5,9 @@
 import * as lotus from '@filecoin-shipyard/lotus-client-schema';
 import fs from 'fs';
 import path from 'path';
-import { logger } from '../utils/logger';
-import { config } from '../config';
-import * as ipfsServices from '../ipfs/ipfsService';
+import { logger } from '../utils/logger.js';
+import { config } from '../config/index.js';
+import * as ipfsServices from '../ipfs/ipfsService.js';
 
 // Constants
 const FILECOIN_API_URL = process.env.FILECOIN_API_URL || 'http://127.0.0.1:1234/rpc/v0';

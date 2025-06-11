@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { createError, asyncHandler } from '../middleware/errorHandler';
+import { createError, asyncHandler } from '../middleware/errorHandler.js';
 import { filecoinService } from '../services/filecoin.service';
 import { checkContentExists } from '../ipfs/ipfsService';
 

@@ -315,7 +315,26 @@ RUN ls -la node_modules/.bin/tsc && yarn build
 - **TypeScript builds**: Actual compilation instead of source copying
 - **CI/CD alignment**: GitHub Actions matches docker-compose patterns
 
-**NEXT**: Monitor deployment completion → Verify all services start healthy → Test website access
+### 🔧 **LATEST: IP DOCUMENTATION CORRECTED (CRITICAL)**
+
+**MAJOR INFRASTRUCTURE DISCOVERY**:
+- **❌ Wrong Server**: All troubleshooting done on `142.93.22.139` (wrong IP!)
+- **✅ Correct Server**: `wylloh.com` resolves to `138.197.232.48` (Reserved IP)
+- **Impact**: Explains why all fixes weren't working - deploying to wrong server!
+
+**📋 DOCUMENTATION UPDATES**:
+- ✅ Updated `.cursor/workspace.md` with correct IP (`138.197.232.48`)
+- ✅ Added warning about old IP confusion (`142.93.22.139`)
+- ✅ Added DNS verification step (`dig wylloh.com`) before troubleshooting
+- ✅ Updated all SSH commands to use correct Reserved IP
+
+**🎯 IMMEDIATE NEXT STEPS**:
+1. **Connect to correct server** (`138.197.232.48`) to investigate actual deployment state
+2. **Check Docker processes** on correct server for stuck containers causing high CPU
+3. **Verify system nginx conflicts** on the actual production server
+4. **Test all our fixes** on the correct infrastructure
+
+**NEXT**: SSH to correct server and investigate actual deployment state
 
 **WAITING FOR**: Final CI/CD completion to confirm all Docker builds succeed
 

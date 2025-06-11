@@ -1,6 +1,6 @@
 import express, { Router } from 'express';
 import multer from 'multer';
-import { asyncHandler } from '../middleware/errorHandler';
+import { asyncHandler } from '../middleware/errorHandler.js';
 import { authMiddleware, fileUploadMiddleware } from '../middleware/authMiddleware';
 
 // Note: Controllers will be implemented later
