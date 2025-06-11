@@ -7,7 +7,7 @@ WORKDIR /app
 COPY ./client/package*.json ./
 
 # Install dependencies using npm for self-contained builds
-RUN npm ci --production=false
+RUN npm install
 
 # Copy source code
 COPY ./client/ .
