@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 import { createError } from './errorHandler.js';
+import env from '../config/env.js';
 
 // Extend Express Request interface to include user property
 declare global {
@@ -33,7 +34,7 @@ export const authMiddleware = (req: Request, res: Response, next: NextFunction) 
     
     try {
       // Verify token
-      const secret = process.env.JWT_SECRET;
+      const secret = env.JWT_SECRET;
       
       if (!secret) {
         throw new Error('JWT secret is not defined in environment variables');

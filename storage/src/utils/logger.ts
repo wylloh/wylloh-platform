@@ -1,4 +1,5 @@
 import winston from 'winston';
+import env, { isProduction } from '../config/env.js';
 
 // Define log levels
 const logLevels = {
@@ -11,7 +12,7 @@ const logLevels = {
 // Create base transports
 const baseTransports: winston.transport[] = [
   new winston.transports.Console({
-    level: process.env.LOG_LEVEL || 'info',
+    level: env.LOG_LEVEL,
     format: winston.format.combine(
       winston.format.colorize(),
       winston.format.simple()
@@ -20,7 +21,7 @@ const baseTransports: winston.transport[] = [
 ];
 
 // Add file transports in production
-if (process.env.NODE_ENV === 'production') {
+if (isProduction()) {
   baseTransports.push(
     new winston.transports.File({
       filename: 'logs/storage-error.log',

@@ -7,25 +7,31 @@ import { v4 as uuidv4 } from 'uuid';
 import axios from 'axios';
 import * as fs from 'fs';
 import * as path from 'path';
+import { fileURLToPath } from 'url';
 import { 
   getGatewayUrl as getOptimalGatewayUrl, 
   fetchFromGateway, 
   getFallbackGateways, 
   initGatewayService 
 } from './gatewayService.js';
+import env from '../config/env.js';
 
-// Config constants
+// ES module equivalent of __dirname
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// Config constants from environment wrapper
 const MAX_RETRY_ATTEMPTS = 3;
 const RETRY_DELAY = 1000; // ms
-const TEMP_DIR = process.env.TEMP_UPLOAD_DIR || path.join(__dirname, '../../temp');
-const CHUNK_SIZE = parseInt(process.env.IPFS_CHUNK_SIZE || '262144', 10); // 256KB default
-const PIN_TIMEOUT = parseInt(process.env.IPFS_PIN_TIMEOUT || '120000', 10); // 2 minutes default
+const TEMP_DIR = env.TEMP_UPLOAD_DIR || path.join(__dirname, '../../temp');
+const CHUNK_SIZE = env.IPFS_CHUNK_SIZE;
+const PIN_TIMEOUT = env.IPFS_PIN_TIMEOUT;
 
-// External pinning services configuration
-const PINATA_API_KEY = process.env.PINATA_API_KEY;
-const PINATA_API_SECRET = process.env.PINATA_API_SECRET;
-const INFURA_IPFS_PROJECT_ID = process.env.INFURA_IPFS_PROJECT_ID;
-const INFURA_IPFS_PROJECT_SECRET = process.env.INFURA_IPFS_PROJECT_SECRET;
+// External pinning services configuration from environment wrapper
+const PINATA_API_KEY = env.PINATA_API_KEY;
+const PINATA_API_SECRET = env.PINATA_API_SECRET;
+const INFURA_IPFS_PROJECT_ID = env.INFURA_IPFS_PROJECT_ID;
+const INFURA_IPFS_PROJECT_SECRET = env.INFURA_IPFS_PROJECT_SECRET;
 
 // Types
 interface FileUploadResult {

@@ -1,4 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
+import { isDevelopment } from '../config/env.js';
 
 // Interface for API errors
 interface ApiError extends Error {
@@ -25,7 +26,7 @@ export const errorHandler = (
   const errorResponse = {
     error: {
       message: err.message || 'Internal Server Error',
-      ...(process.env.NODE_ENV === 'development' && { 
+      ...(isDevelopment() && { 
         stack: err.stack,
         details: err.data 
       })

@@ -5,14 +5,20 @@
 import * as lotus from '@filecoin-shipyard/lotus-client-schema';
 import fs from 'fs';
 import path from 'path';
+import { fileURLToPath } from 'url';
 import { logger } from '../utils/logger.js';
 import { config } from '../config/index.js';
 import * as ipfsServices from '../ipfs/ipfsService.js';
+import env, { isProduction } from '../config/env.js';
 
-// Constants
-const FILECOIN_API_URL = process.env.FILECOIN_API_URL || 'http://127.0.0.1:1234/rpc/v0';
-const FILECOIN_TOKEN = process.env.FILECOIN_TOKEN || '';
-const FILECOIN_STORAGE_DAYS = parseInt(process.env.FILECOIN_STORAGE_DAYS || '180', 10);
+// ES module equivalent of __dirname
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// Constants from environment wrapper
+const FILECOIN_API_URL = env.FILECOIN_API_URL;
+const FILECOIN_TOKEN = env.FILECOIN_TOKEN;
+const FILECOIN_STORAGE_DAYS = env.FILECOIN_STORAGE_DAYS;
 const DEAL_STATUS_FILE = path.join(__dirname, '../../data/filecoin-deals.json');
 
 // Interfaces
@@ -145,7 +151,7 @@ class FilecoinService {
     try {
       // In production, we would query the Filecoin network for miners
       // For development, we'll use a static list
-      if (process.env.NODE_ENV === 'production') {
+      if (isProduction()) {
         // Query the Filecoin network for active miners
         // This is simplified - in production would need more complex miner selection
         const miners = await this.client.stateListMiners([]);
@@ -254,7 +260,7 @@ class FilecoinService {
           
           // In production, we would use real Lotus client code to create a deal
           // For development, we'll simulate the deal making process
-          if (process.env.NODE_ENV === 'production') {
+          if (isProduction()) {
             // Production code would go here
             // This is simplified - real implementation would be more complex
             /*
@@ -329,7 +335,7 @@ class FilecoinService {
           deal.lastChecked = new Date().toISOString();
           
           // In production, would check deal status with Lotus client
-          if (process.env.NODE_ENV === 'production') {
+          if (isProduction()) {
             // This is simplified - real implementation would use proper client calls
             /*
             const status = await this.client.ClientGetDealInfo({ '/': deal.dealCid });
@@ -466,7 +472,7 @@ class FilecoinService {
       }
       
       // In production, would initiate retrieval from Filecoin
-      if (process.env.NODE_ENV === 'production') {
+      if (isProduction()) {
         // This is simplified - real implementation would use proper client calls
         /*
         await this.client.ClientRetrieve({
