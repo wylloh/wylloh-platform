@@ -1,5 +1,5 @@
 import express, { Router } from 'express';
-import { authMiddleware } from '../middleware/authMiddleware';
+import { authMiddleware } from '../middleware/authMiddleware.js';
 import {
   archiveContent,
   getAllDeals,
