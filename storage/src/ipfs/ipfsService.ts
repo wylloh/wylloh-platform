@@ -12,7 +12,7 @@ import {
   fetchFromGateway, 
   getFallbackGateways, 
   initGatewayService 
-} from './gatewayService';
+} from './gatewayService.js';
 
 // Config constants
 const MAX_RETRY_ATTEMPTS = 3;
