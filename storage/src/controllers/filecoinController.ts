@@ -1,7 +1,7 @@
 import { Request, Response } from 'express';
 import { createError, asyncHandler } from '../middleware/errorHandler.js';
-import { filecoinService } from '../services/filecoin.service';
-import { checkContentExists } from '../ipfs/ipfsService';
+import { filecoinService } from '../services/filecoin.service.js';
+import { checkContentExists } from '../ipfs/ipfsService.js';
 
 /**
  * Archive content to Filecoin for long-term storage

@@ -6,7 +6,7 @@ import {
   checkGatewayStatus,
   addNewGateway,
   refreshGatewayStats
-} from '../controllers/gatewayController';
+} from '../controllers/gatewayController.js';
 
 const router: Router = express.Router();
 

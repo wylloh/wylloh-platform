@@ -7,7 +7,7 @@ import {
   checkContentOnFilecoin,
   processScheduledDeals,
   retrieveContent
-} from '../controllers/filecoinController';
+} from '../controllers/filecoinController.js';
 
 const router: Router = express.Router();
 

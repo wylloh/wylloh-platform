@@ -6,7 +6,7 @@ import {
   checkGateway, 
   addCustomGateway, 
   probeAllGateways
-} from '../ipfs/gatewayService';
+} from '../ipfs/gatewayService.js';
 
 /**
  * Get stats for all IPFS gateways
