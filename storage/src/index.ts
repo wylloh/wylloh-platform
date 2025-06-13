@@ -1,3 +1,14 @@
+// Node.js polyfills for browser APIs required by Helia/libp2p
+if (typeof globalThis.CustomEvent === 'undefined') {
+  globalThis.CustomEvent = class CustomEvent extends Event {
+    constructor(type: string, options?: { detail?: any; bubbles?: boolean; cancelable?: boolean }) {
+      super(type, options);
+      this.detail = options?.detail;
+    }
+    detail: any;
+  } as any;
+}
+
 import express, { Express, Request, Response } from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
