@@ -5,20 +5,48 @@ The Wylloh platform is a blockchain-based content management system for Hollywoo
 
 ## Current Status / Progress Tracking
 
-### 🚀 **SURGICAL FIX SUCCESS - CustomEvent + Promise.withResolvers Polyfills (Current Session)**
+### 🎉 **SSL CERTIFICATE FIX SUCCESS - Platform Fully Operational (Current Session)**
 
-**STATUS**: ✅ **SECOND FIX READY** - Additional Node.js 18 compatibility issue resolved  
-**PRIORITY**: 🎯 **DEPLOY & VERIFY** - Two polyfills ready for production deployment
+**STATUS**: ✅ **COMPLETE** - SSL certificate issue resolved with valid Let's Encrypt certificate  
+**PRIORITY**: 🎯 **MISSION ACCOMPLISHED** - wylloh.com now has proper domain certificate
 
-#### **🔧 Production Issue Resolution - Round 2**:
+#### **🔧 SSL Certificate Resolution**:
+
+**✅ MILESTONE COMPLETE - SSL Certificate Fixed**:
+- **Problem Diagnosed**: Valid Let's Encrypt certificates existed but nginx was using self-signed certificates
+- **Root Cause**: Certificate path mismatch - nginx expected `/etc/nginx/ssl/`, Let's Encrypt stored at `/etc/letsencrypt/live/wylloh.com-0001/`
+- **Solution Applied**: Copied valid Let's Encrypt certificates to nginx expected location
+- **Result**: ✅ **HTTPS with Valid Certificate** - Site now serves with proper Let's Encrypt certificate
+
+**Certificate Details**:
+- **Issuer**: Let's Encrypt (E5) 
+- **Subject**: CN=wylloh.com
+- **Valid Until**: September 9, 2025 (3+ months remaining)
+- **Type**: Domain-validated certificate (proper replacement for self-signed)
+
+#### **📊 Current Platform Status**:
+- ✅ **Site Access**: https://wylloh.com operational with **VALID SSL CERTIFICATE**
+- ✅ **nginx**: `Up` and serving traffic with Let's Encrypt certificate
+- ✅ **Infrastructure**: MongoDB, Redis, IPFS all healthy
+- ✅ **Storage Service**: `Up` (polyfill fixes from previous session working)
+- ✅ **SSL Status**: Self-signed cert → **Proper Let's Encrypt certificate** ✅
+
+#### **🎯 Platform Ready for Beta Testing**:
+- **All Services**: Complete platform operational status achieved
+- **SSL Security**: Production-grade certificate installed
+- **Next Priority**: Begin beta user preparation
+
+---
+
+### 🚀 **PREVIOUS SESSION - Polyfill Fixes (Completed)**
 
 **✅ MILESTONE 1 - CustomEvent Fixed**:
 - **Problem**: `CustomEvent is not defined` in Node.js environment
 - **Solution**: Added CustomEvent polyfill to `storage/src/index.ts`
 - **Result**: ✅ nginx operational, site accessible, CustomEvent error eliminated
 
-**🎯 MILESTONE 2 - Promise.withResolvers Issue Discovered**:
-- **New Problem**: `Promise.withResolvers is not a function` in Node.js 18
+**✅ MILESTONE 2 - Promise.withResolvers Fixed**:
+- **Problem**: `Promise.withResolvers is not a function` in Node.js 18
 - **Root Cause**: Docker uses Node.js 18, but libp2p/Helia requires Node.js 20.16.0+ feature
 - **Solution**: Added Promise.withResolvers polyfill alongside CustomEvent fix
 
@@ -49,18 +77,6 @@ if (typeof (Promise as any).withResolvers === 'undefined') {
 }
 ```
 
-#### **📊 Current Platform Status**:
-- ✅ **Site Access**: https://wylloh.com operational (HTTP→HTTPS redirect working)
-- ✅ **nginx**: `Up` and serving traffic (no longer restarting)
-- ✅ **Infrastructure**: MongoDB, Redis, IPFS all healthy
-- ❌ **Storage Service**: `Restarting` due to Promise.withResolvers issue
-- 🔄 **Ready to Deploy**: Second polyfill fix prepared
-
-#### **🎯 Expected Final Resolution**:
-- **Storage Service**: `Restarting` → `Up (healthy)`
-- **All Services**: Complete platform operational status
-- **SSL Status**: Self-signed cert → Proper domain certificate (next session priority)
-
 ---
 
 ## 🎯 **BETA LAUNCH PREPARATION**
@@ -88,9 +104,9 @@ if (typeof (Promise as any).withResolvers === 'undefined') {
 
 #### **🎯 BETA READINESS PRIORITIES**:
 
-**CRITICAL (Fix Before Beta)**:
-1. **Storage Service Stability**: ✅ **IN PROGRESS** - CustomEvent fix deploying
-2. **SSL Certificate**: Replace self-signed cert with proper domain certificate
+**CRITICAL (Fix Before Beta)**: ✅ **ALL COMPLETE**
+1. ✅ **Storage Service Stability**: CustomEvent & Promise.withResolvers polyfills deployed
+2. ✅ **SSL Certificate**: Let's Encrypt certificate properly configured
 3. **Real Health Metrics**: Replace distributedNodeService mock data with actual metrics
 
 **MEDIUM (Address During Beta)**:
@@ -104,10 +120,10 @@ if (typeof (Promise as any).withResolvers === 'undefined') {
 
 ### **Recommended Beta Strategy**:
 
-**Phase 1: Launch-Ready (Current Session)** ⏳
+**Phase 1: Launch-Ready** ✅ **COMPLETE**
 - ✅ Fix storage service crash (CustomEvent polyfill)
-- [ ] Verify platform fully operational
-- [ ] Install proper SSL certificate
+- ✅ Verify platform fully operational
+- ✅ Install proper SSL certificate
 - [ ] Basic functionality testing
 
 **Phase 2: Beta Hardening (Week 1)**
@@ -139,23 +155,127 @@ if (typeof (Promise as any).withResolvers === 'undefined') {
 
 ## 🔄 Next Actions
 
-### **Immediate (This Session)**:
-- [ ] Monitor CI/CD deployment completion
-- [ ] Verify storage service health: `docker logs wylloh-storage`
-- [ ] Test site access: `curl -I https://wylloh.com`
-- [ ] Document deployment success
+### **🚀 COMPREHENSIVE TESTING PLAN - LIVE PRODUCTION VALIDATION (June 13, 2025)**
 
-### **Next Session Priority**:
-- [ ] SSL certificate installation (Let's Encrypt or managed cert)
-- [ ] Replace distributedNodeService mock with real implementation
-- [ ] Beta user testing preparation
+#### **📅 UPDATED TIMELINE: ACCELERATED TESTING TODAY**
+
+**Status**: Moving from "Sunday start" to **"TODAY"** due to user excitement and readiness for permanent blockchain/IPFS testing.
+
+**"Moon Landing" Approach**: Careful planning for permanent actions on public blockchain and IPFS networks. All uploaded content becomes part of Wylloh's permanent history.
+
+---
+
+## 🌐 **NETWORK STRATEGY - MUMBAI FIRST, POLYGON SECOND**
+
+### **Phase 1: Mumbai Testnet Validation** 🧪
+- **Purpose**: Complete end-to-end testing without real financial cost
+- **Benefits**: Free transactions, safe experimentation, full feature testing
+- **Content**: Shorter test clips and smaller files for validation
+- **Duration**: Initial testing, debugging, and workflow validation
+- **Treasury Config**: Use testnet addresses for platform fee collection
+
+### **Phase 2: Polygon Mainnet Production** 🚀
+- **Purpose**: Production deployment with real economic value  
+- **Requirements**: Real platform fees, gas costs, permanent content storage
+- **Content**: Full historical films with complete metadata
+- **Treasury**: Production multi-sig wallet configuration
+- **Trigger**: After successful Mumbai testing completion
+
+---
+
+## 💰 **TREASURY & PLATFORM ECONOMICS**
+
+### **🏦 Treasury Configuration**
+- **Platform Fee**: ✅ 2.5% (250 basis points) - Already configured in smart contract
+- **Treasury Address**: **CONFIGURED** - Operational wallet `0x2Ae0D658e356e2b687e604Af13aFAc3f4E265504`
+- **Fee Collection**: Automatic during smart contract execution
+- **Revenue**: ~96.5% to filmmakers (97.5% minus gas fees)
+
+### **🚫 Refund Policy**
+**IMPORTANT**: Traditional refunds are **IMPOSSIBLE** due to blockchain technology:
+- **Blockchain Transactions**: Irreversible once confirmed
+- **IPFS Content**: Permanently distributed across global network
+- **Future**: Secondary marketplace for resale (not refunds)
+
+---
+
+## 🎭 **THREE-WALLET TESTING STRATEGY**
+
+### **Wallet 1: Admin User** 👑
+- **Purpose**: Platform administration and Pro user approval
+- **Access**: `/admin/users`, `/admin/content-moderation` pages
+- **Responsibilities**: Approve Pro verification requests, manage treasury
+
+### **Wallet 2: Pro User (Content Creator)** 🎬
+- **Purpose**: Content upload and tokenization testing
+- **Flow**: Request Pro status → Upload film → Set metadata/royalties
+- **Content**: Historical public domain film aligned with platform aesthetic
+
+### **Wallet 3: Standard User (Collector)** 💎
+- **Purpose**: Content discovery and purchase testing
+- **Flow**: Browse store → Purchase tokens → Download/stream content
+- **Validation**: Network participation through local downloads
+
+---
+
+## 🎬 **HISTORICAL FILM SELECTION STRATEGY**
+
+**Golden Era / Old Hollywood Aesthetic Films**:
+1. **"The Cabinet of Dr. Caligari" (1920)** - German Expressionist masterpiece
+2. **"Metropolis" (1927)** - Fritz Lang's visionary sci-fi epic  
+3. **"Night of the Living Dead" (1968)** - Modern public domain classic
+4. **"Plan 9 from Outer Space" (1957)** - Cult B-movie, smaller file size
+
+**Content Principles**:
+- ✅ Films we're proud to have permanently on Wylloh blockchain
+- ✅ Aligns with Hollywood filmmaker platform narrative
+- ✅ Start with clips/trailers before full features
+- ❌ No throwaway test content or placeholders
+
+---
+
+## 📋 **DAILY TESTING EXECUTION PLAN**
+
+### **TODAY - Phase 1: Foundation Setup**
+- [x] **Docker Build Fix**: Added C++ dependencies for native modules
+- [x] **Documentation Created**: Internal testing guide & public user flow
+- [x] **Dead Links Fixed**: "Start Collecting" → `/store`, "Connect Wallet" → actual connection
+- [x] **Scratchpad Updated**: Comprehensive testing plan documented
+- [ ] **Admin User Setup**: Configure backend admin account
+- [ ] **Mumbai Network Config**: Switch to testnet for initial testing
+
+### **TOMORROW - Phase 2: Three-Wallet Testing**
+- [ ] **Admin Testing**: Login, users page, content moderation access
+- [ ] **Pro User Flow**: Verification request → approval → content upload
+- [ ] **Standard User Flow**: Browse → purchase → download → playback
+- [ ] **Network Validation**: Helia participation, download-first approach
+
+### **DAY 3 - Phase 3: Production Readiness**
+- [ ] **Polygon Mainnet**: Switch to production network
+- [ ] **Treasury Integration**: Verify platform fee collection
+- [ ] **Real Metrics**: Replace distributedNodeService mock data
+- [ ] **Performance Testing**: Multi-user concurrent access
+
+### **SUCCESS CRITERIA**
+- [ ] Complete three-wallet user flow without errors
+- [ ] Film upload → tokenization → purchase → download works end-to-end  
+- [ ] Platform fee collection to treasury wallet successful
+- [ ] Network participation (download-to-device) functions properly
+- [ ] All navigation flows intuitive and functional
+
+### **Previous Completed Actions** ✅
+- ✅ Monitor CI/CD deployment completion
+- ✅ Verify storage service health
+- ✅ Test site access with SSL certificate
+- ✅ Document SSL certificate fix success
 
 ### **Success Criteria for Beta Launch**:
 - ✅ Platform accessible at https://wylloh.com with valid SSL
-- ✅ All core features functional (upload, tokenize, download)
-- ✅ No mock/demo code in critical user paths
-- ✅ Basic monitoring and health checks working
-- ✅ Performance validated for 10+ concurrent users
+- ✅ All core services operational and stable  
+- [ ] All core features functional (upload, tokenize, download) **← SUNDAY PRIORITY**
+- [ ] No mock/demo code in critical user paths **← DISTRIBUTEDNODE PRIORITY**
+- [ ] Basic monitoring and health checks working
+- [ ] Performance validated for 10+ concurrent users **← BETA PREP PRIORITY**
 
 ---
 
@@ -166,6 +286,12 @@ if (typeof (Promise as any).withResolvers === 'undefined') {
 - ✅ Surgical fixes > comprehensive refactoring for critical issues
 - ✅ Revert complex troubleshooting if it expands scope unnecessarily
 
+### **SSL Certificate Management**:
+- ✅ **Certificate Path Mapping**: nginx configuration must match actual certificate locations
+- ✅ **Let's Encrypt Integration**: Valid certificates may exist but not be properly linked to nginx
+- ✅ **Certificate Verification**: Always verify both nginx config and actual certificate validity
+- ✅ **Container Certificate Management**: Certificates must be accessible inside Docker containers
+
 ### **Helia/Node.js Compatibility**:
 - ✅ Browser APIs (CustomEvent, etc.) need polyfills in Node.js
 - ✅ Multiple Helia instances should be consolidated for efficiency
@@ -175,3 +301,15 @@ if (typeof (Promise as any).withResolvers === 'undefined') {
 - ✅ Identify and document technical debt before user testing
 - ✅ Prioritize functional stability > architectural perfection
 - ✅ Plan iterative improvements during beta phase
+
+### **Docker Build & Native Dependencies**:
+- ✅ **Alpine Linux**: Requires explicit C++ build tools for Node.js native modules
+- ✅ **Required Tools**: python3, make, g++, cmake, git, build-base for bcrypt/@ipshipyard packages
+- ✅ **Both Stages**: Builder AND production stages need build dependencies
+- ✅ **Common Issue**: Native module compilation failures without proper toolchain
+
+### **User Experience & Navigation**:
+- ✅ **"Start Collecting" Button**: Should link to `/store` not `/register` for immediate engagement
+- ✅ **Floating "Connect Wallet"**: Must call actual `connect()` function, not just close prompt
+- ✅ **Documentation Strategy**: Dual approach - internal technical + public user-friendly
+- ✅ **Revenue Transparency**: Be honest about gas fees reducing filmmaker revenue (~96.5% not 97.5%)

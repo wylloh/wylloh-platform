@@ -55,7 +55,7 @@ interface FeaturedContent {
 }
 
 const HomePage: React.FC = () => {
-  const { active } = useWallet();
+  const { active, connect } = useWallet();
   const theme = useTheme();
   const { breakpoints, config, card } = useResponsiveDesign();
   const { debounce, createPerformanceMonitor } = usePerformanceOptimization();
@@ -415,7 +415,7 @@ const HomePage: React.FC = () => {
               variant="contained" 
               size="large"
               component={Link} 
-              to="/register"
+              to="/store"
               sx={{ 
                 py: 1.5,
                 px: 4,
@@ -528,7 +528,10 @@ const HomePage: React.FC = () => {
               </Box>
               <Button 
                 variant="contained" 
-                onClick={() => setShowConnectPrompt(false)}
+                onClick={() => {
+                  connect();
+                  setShowConnectPrompt(false);
+                }}
                 sx={{ whiteSpace: 'nowrap' }}
               >
                 Connect Wallet

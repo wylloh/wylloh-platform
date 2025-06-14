@@ -3,6 +3,15 @@ FROM node:18-alpine AS builder
 
 WORKDIR /app
 
+# Install build dependencies for native modules
+RUN apk add --no-cache \
+    python3 \
+    make \
+    g++ \
+    cmake \
+    git \
+    build-base
+
 # Copy workspace root files for proper yarn workspace setup
 COPY package.json yarn.lock ./
 COPY ./api/package*.json ./
@@ -20,8 +29,15 @@ RUN ls -la node_modules/.bin/tsc && yarn build
 # Production stage
 FROM node:18-alpine AS production
 
-# Install curl for health checks
-RUN apk add --no-cache curl
+# Install runtime dependencies and build tools for production deps
+RUN apk add --no-cache \
+    curl \
+    python3 \
+    make \
+    g++ \
+    cmake \
+    git \
+    build-base
 
 WORKDIR /app
 
