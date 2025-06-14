@@ -87,6 +87,11 @@ jobs:
           # Set secure permissions on .env file
           chmod 600 .env
           
+          # Manage SSL certificates before rebuilding containers
+          echo "🔒 Managing SSL certificates..."
+          chmod +x scripts/ssl-cert-manager.sh
+          ./scripts/ssl-cert-manager.sh
+          
           # Rebuild and restart services
           docker-compose down
           docker-compose build --no-cache

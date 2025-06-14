@@ -313,3 +313,132 @@ if (typeof (Promise as any).withResolvers === 'undefined') {
 - ✅ **Floating "Connect Wallet"**: Must call actual `connect()` function, not just close prompt
 - ✅ **Documentation Strategy**: Dual approach - internal technical + public user-friendly
 - ✅ **Revenue Transparency**: Be honest about gas fees reducing filmmaker revenue (~96.5% not 97.5%)
+
+---
+
+## 🔒 **SSL CERTIFICATE PERSISTENCE STRATEGY (INTERNAL)**
+
+### **🎯 Current Challenge**
+- **Problem**: CI/CD deployments overwrite SSL certificates from repository
+- **Scale**: Single VPS, 100 concurrent users (Beta)
+- **Need**: SSL persistence without undermining decentralization values
+
+### **⚠️ DECENTRALIZATION VS CLOUDFLARE CONFLICT**
+
+**CRITICAL ANALYSIS**: Cloudflare **DIRECTLY CONTRADICTS** Wylloh's decentralized mission:
+
+#### **❌ Why Cloudflare Conflicts with Wylloh Values:**
+- **Centralized Chokepoint**: All traffic flows through Cloudflare servers
+- **Content Filtering**: Cloudflare can block/censor content at will
+- **Data Collection**: Centralizes analytics and user behavior data
+- **Control Point**: Creates single point of failure for decentralized platform
+- **Mission Misalignment**: Contradicts IPFS/blockchain decentralization principles
+
+#### **✅ Decentralized SSL Strategy (RECOMMENDED)**
+
+**Phase 1: Protected Directory Approach** 🛡️
+- **Implementation**: Host SSL certificates in `/etc/wylloh/ssl/` (outside CI/CD deployment)
+- **Benefits**: Zero dependency on centralized services
+- **Cost**: $0, maintains full control
+- **Time**: 50 minutes implementation
+- **Alignment**: ✅ **Preserves decentralization values**
+
+**Phase 2: Future Decentralized Alternatives** 🌐
+- **IPFS-based Certificate Management**: Explore decentralized certificate authorities
+- **Blockchain Certificate Verification**: Smart contract-based SSL validation
+- **Peer-to-Peer Certificate Exchange**: Direct certificate management without intermediaries
+
+### **🔧 IMMEDIATE IMPLEMENTATION (Protected Directory)**
+
+#### **VPS Setup Commands:**
+```bash
+# Create protected SSL directory (outside deployment path)
+sudo mkdir -p /etc/wylloh/ssl
+sudo chown wylloh:wylloh /etc/wylloh/ssl
+sudo chmod 700 /etc/wylloh/ssl
+
+# Copy existing Let's Encrypt certificates
+sudo cp /etc/letsencrypt/live/wylloh.com-0001/fullchain.pem /etc/wylloh/ssl/wylloh.com.crt
+sudo cp /etc/letsencrypt/live/wylloh.com-0001/privkey.pem /etc/wylloh/ssl/wylloh.com.key
+sudo chown wylloh:wylloh /etc/wylloh/ssl/*
+sudo chmod 644 /etc/wylloh/ssl/wylloh.com.crt
+sudo chmod 600 /etc/wylloh/ssl/wylloh.com.key
+```
+
+#### **Docker Compose Update:**
+```yaml
+# Change from: ./nginx/ssl:/etc/nginx/ssl:ro
+# Change to:   /etc/wylloh/ssl:/etc/nginx/ssl:ro
+```
+
+#### **Automated Renewal:**
+- **Cron Job**: Daily certificate renewal check (2 AM)  
+- **Script**: `/etc/wylloh/scripts/renew-ssl.sh`
+- **Backup**: Automatic certificate versioning
+- **Monitoring**: Renewal logs at `/var/log/ssl-renewal.log`
+
+### **📊 STRATEGY COMPARISON**
+
+| Approach | Decentralization | Cost | Complexity | Recommended |
+|----------|------------------|------|------------|-------------|
+| **Protected Directory** | ✅ **Full Control** | $0 | Low | ✅ **YES** |
+| **Cloudflare SSL** | ❌ **Centralized** | $0-20/mo | Medium | ❌ **NO** |
+| **Let's Encrypt Direct** | ✅ **Independent** | $0 | Medium | ✅ **Future** |
+
+### **🎯 ACTION PLAN**
+1. ✅ **TODAY - COMPLETE**: Implement protected directory approach
+   - ✅ Created `/etc/wylloh/ssl` directory on VPS
+   - ✅ Updated docker-compose.yml volume mount: `/etc/wylloh/ssl:/etc/nginx/ssl:ro`
+   - ✅ Copied Let's Encrypt certificates to protected location
+   - ✅ Tested deployment restart - SSL working correctly
+2. **Week 1**: Test automated renewal system  
+3. **Month 2**: Research decentralized certificate alternatives
+4. **Future**: Pioneer blockchain-based SSL certificate management
+
+**IMPLEMENTATION RESULTS**:
+- ✅ **SSL Persistence**: Certificates now survive CI/CD deployments
+- ✅ **Automated Renewal**: Daily cron job at 2 AM with logging
+- ✅ **Security**: Certificates removed from repository 
+- ✅ **Service Status**: All containers restarted and SSL verified (HTTP/2 200)
+- ✅ **Decentralization**: Zero dependency on centralized services like Cloudflare
+
+**DECISION CONFIRMED**: **Reject Cloudflare** in favor of protected directory approach to maintain decentralization integrity.
+
+---
+
+## 🎯 **NEXT SESSION PRIORITIES**
+
+### **✅ SESSION COMPLETE - SSL PERSISTENCE IMPLEMENTED**
+**Status**: SSL certificate persistence successfully implemented on production VPS
+**Result**: Certificates now survive CI/CD deployments while maintaining decentralization
+
+### **🚀 NEXT SESSION FOCUS: BETA TESTING PREPARATION**
+
+#### **TOP PRIORITIES FOR NEXT SESSION:**
+1. **Admin User Setup**: Configure backend admin account for three-wallet testing
+2. **Mumbai Network Config**: Switch to testnet for initial safe testing
+3. **Three-Wallet Testing Flow**: Admin → Pro User → Standard User validation
+4. **Historical Film Upload**: Test with public domain films (Cabinet of Dr. Caligari clips)
+
+#### **TECHNICAL DEBT TO ADDRESS:**
+- **distributedNodeService**: Replace mock metrics with real IPFS health data
+- **Multiple Helia Instances**: Consolidate architecture for efficiency
+- **Demo/Mock Code**: Clean up development artifacts in production paths
+
+#### **SUCCESS CRITERIA FOR BETA LAUNCH:**
+- [ ] Complete three-wallet user flow without errors
+- [ ] Film upload → tokenization → purchase → download works end-to-end  
+- [ ] Platform fee collection to treasury wallet successful
+- [ ] Network participation (download-to-device) functions properly
+- [ ] All navigation flows intuitive and functional
+
+#### **CURRENT PLATFORM STATUS:**
+- ✅ **SSL Certificates**: Protected and persistent across deployments
+- ✅ **All Services**: Running and healthy on production VPS
+- ✅ **Storage Service**: Polyfill fixes from previous session working
+- ✅ **Docker Builds**: C++ dependencies resolved for native modules
+- ✅ **Navigation**: Dead links fixed, connect wallet functional
+
+**READY FOR**: Comprehensive beta testing with permanent blockchain/IPFS actions
+
+---
