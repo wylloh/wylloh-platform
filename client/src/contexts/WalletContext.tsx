@@ -7,6 +7,7 @@ import { blockchainService } from '../services/blockchain.service';
 
 // Import the generated JSON configuration
 import deployedAddresses from '../config/deployedAddresses.json';
+import polygonAddresses from '../config/polygonAddresses.json';
 
 // Add Snackbar for notifications
 import { 
@@ -28,8 +29,8 @@ const POLYGON_MUMBAI_ID = 80001;
 const GANACHE_ID = 1337;
 
 // Define chain ID for the app
-// For beta testing, use Mumbai testnet
-const CHAIN_ID = POLYGON_MUMBAI_ID;
+// For production deployment, use Polygon mainnet
+const CHAIN_ID = POLYGON_MAINNET_ID;
 
 console.log('WalletContext initialized with CHAIN_ID:', CHAIN_ID);
 
@@ -137,9 +138,9 @@ export function WalletProvider({ children }: { children: ReactNode }) {
            blockchainService.initialize();
            console.log('Blockchain service initialized from WalletContext');
            
-           // Now set the marketplace address using the imported config
-           console.log(`WalletContext: Setting Marketplace Address from imported config: [${deployedAddresses.marketplaceAddress}]`);
-           blockchainService.setMarketplaceAddress(deployedAddresses.marketplaceAddress);
+           // Now set the film factory address using the Polygon config
+           console.log(`WalletContext: Setting Film Factory Address from Polygon config: [${polygonAddresses.factoryAddress}]`);
+           blockchainService.setFilmFactoryAddress(polygonAddresses.factoryAddress);
         }
 
       } catch (error) {

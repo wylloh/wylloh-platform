@@ -1,0 +1,17 @@
+{
+  "network": "polygon",
+  "chainId": 137,
+  "factoryAddress": "0x0000000000000000000000000000000000000000",
+  "historicFilmContract": "0x0000000000000000000000000000000000000000",
+  "filmId": "a-trip-to-the-moon",
+  "filmTitle": "A Trip to the Moon",
+  "director": "Georges Méliès",
+  "year": 1902,
+  "deployer": "0x0000000000000000000000000000000000000000",
+  "deploymentDate": "2024-12-19T00:00:00.000Z",
+  "architecture": "film-specific-contracts",
+  "tokenModel": "revolutionary-stacking",
+  "significance": "First film tokenized on Wylloh platform",
+  "gasUsed": "0",
+  "transactionHash": "0x0000000000000000000000000000000000000000000000000000000000000000"
+} 

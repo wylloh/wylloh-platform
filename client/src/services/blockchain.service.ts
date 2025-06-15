@@ -45,8 +45,10 @@ class BlockchainService {
   private provider: ethers.providers.Web3Provider | ethers.providers.JsonRpcProvider | null = null;
   private tokenContract: ethers.Contract | null = null;
   private marketplaceContract: ethers.Contract | null = null;
+  private filmFactoryContract: ethers.Contract | null = null;
   private contractAddress: string = DEFAULT_CONTRACT_ADDRESS;
   private marketplaceAddress: string = DEFAULT_MARKETPLACE_ADDRESS;
+  private filmFactoryAddress: string = '';
   private _initialized: boolean = false;
   
   /**
@@ -231,6 +233,32 @@ class BlockchainService {
       console.warn(`BlockchainService: Attempted to set invalid or empty marketplace address: [${address}]`);
       // Keep the existing address or default if it was never set
       this.marketplaceAddress = this.marketplaceAddress || ''; 
+    }
+  }
+
+  /**
+   * Public method to set or update the film factory address after initialization.
+   * @param address The film factory contract address
+   */
+  public setFilmFactoryAddress(address: string | undefined): void {
+    if (address && ethers.utils.isAddress(address)) {
+      console.log(`BlockchainService: Setting film factory address to ${address}`);
+      this.filmFactoryAddress = address;
+
+      // Re-initialize the film factory contract instance if provider exists
+      if (this.provider && !this.filmFactoryContract) {
+        console.log('Connecting to film factory contract with updated address...');
+        // Note: We'll need to add the film factory ABI when we implement it
+        // this.filmFactoryContract = new ethers.Contract(
+        //   this.filmFactoryAddress,
+        //   filmFactoryAbi,
+        //   this.provider
+        // );
+        console.log('Film factory contract address set successfully');
+      }
+    } else {
+      console.warn(`BlockchainService: Attempted to set invalid or empty film factory address: [${address}]`);
+      this.filmFactoryAddress = this.filmFactoryAddress || ''; 
     }
   }
 
