@@ -97,7 +97,7 @@ contract ContentToken is
         uint256 price,
         uint256 royaltyBps,
         uint256 maxSupply,
-        string calldata uri
+        string calldata /* uri */
     ) external whenNotPaused returns (uint256) {
         require(bytes(ipfsHash).length > 0, "Invalid IPFS hash");
         require(size > 0, "Invalid size");

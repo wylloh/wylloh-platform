@@ -135,19 +135,19 @@ contract StoragePool is
         string calldata ipfsHash,
         uint256 amount
     ) external onlyRole(POOL_MANAGER_ROLE) whenNotPaused {
-        ContentStorage storage storage = contentStorage[ipfsHash];
-        require(storage.isActive, "Content not active");
+        ContentStorage storage content = contentStorage[ipfsHash];
+        require(content.isActive, "Content not active");
         require(
-            amount <= storage.cost - storage.recoveredAmount,
+            amount <= content.cost - content.recoveredAmount,
             "Amount exceeds remaining cost"
         );
 
-        storage.recoveredAmount += amount;
+        content.recoveredAmount += amount;
         metrics.totalRecovered += amount;
         emit CostRecovered(ipfsHash, amount);
 
-        if (storage.recoveredAmount >= storage.cost) {
-            storage.isActive = false;
+        if (content.recoveredAmount >= content.cost) {
+            content.isActive = false;
             metrics.activeContent--;
         }
     }
@@ -168,13 +168,13 @@ contract StoragePool is
         uint256 recoveredAmount,
         bool isActive
     ) {
-        ContentStorage storage storage = contentStorage[ipfsHash];
+        ContentStorage storage content = contentStorage[ipfsHash];
         return (
-            storage.size,
-            storage.cost,
-            storage.startTime,
-            storage.recoveredAmount,
-            storage.isActive
+            content.size,
+            content.cost,
+            content.startTime,
+            content.recoveredAmount,
+            content.isActive
         );
     }
 

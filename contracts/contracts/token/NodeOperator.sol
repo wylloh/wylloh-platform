@@ -107,7 +107,7 @@ contract NodeOperator is
     ) external whenNotPaused {
         require(bytes(ipfsPeerId).length > 0, "Invalid peer ID");
         require(peerIdToOperator[ipfsPeerId] == address(0), "Peer ID already registered");
-        require(nodes[msg.sender].ipfsPeerId.length == 0, "Operator already registered");
+        require(bytes(nodes[msg.sender].ipfsPeerId).length == 0, "Operator already registered");
 
         NodeTypeConfig memory config = nodeTypeConfigs[uint256(nodeType)];
         require(token.balanceOf(msg.sender) >= config.minStake, "Insufficient stake");
@@ -252,7 +252,7 @@ contract NodeOperator is
         revert("Node not found");
     }
 
-    function getTotalNodes() public view returns (uint256) {
+    function getTotalNodes() public pure returns (uint256) {
         // This is a placeholder - in a real implementation, you'd need to maintain a list of nodes
         return 1000; // Example maximum
     }
@@ -261,6 +261,16 @@ contract NodeOperator is
         // This is a placeholder - in a real implementation, you'd need to maintain a list of nodes
         require(index < getTotalNodes(), "Index out of bounds");
         return address(uint160(index + 1)); // Example implementation
+    }
+
+    function getNodeStatus(address operator) public view returns (bool isActive, uint256 nodeType) {
+        Node storage node = nodes[operator];
+        return (node.isActive, uint256(node.nodeType));
+    }
+
+    function getNodePerformance(address operator) public view returns (bool isActive, uint256 performance) {
+        Node storage node = nodes[operator];
+        return (node.isActive, node.performanceScore);
     }
 
     // Admin functions

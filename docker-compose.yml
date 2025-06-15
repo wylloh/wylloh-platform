@@ -155,8 +155,8 @@ services:
         VITE_API_URL: ${VITE_API_URL:-https://api.wylloh.com}
         VITE_STORAGE_URL: ${VITE_STORAGE_URL:-https://storage.wylloh.com}
         VITE_IPFS_GATEWAY: ${VITE_IPFS_GATEWAY:-https://ipfs.wylloh.com}
-        VITE_NETWORK_ID: ${VITE_NETWORK_ID:-1}
-        VITE_CHAIN_NAME: ${VITE_CHAIN_NAME:-mainnet}
+        VITE_NETWORK_ID: ${VITE_NETWORK_ID:-80001}
+        VITE_CHAIN_NAME: ${VITE_CHAIN_NAME:-mumbai}
     container_name: wylloh-client
     restart: unless-stopped
     ports:

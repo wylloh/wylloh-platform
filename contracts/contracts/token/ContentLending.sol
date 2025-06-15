@@ -375,7 +375,7 @@ contract ContentLending is
     function supportsInterface(bytes4 interfaceId)
         public
         view
-        override(AccessControlUpgradeable, ERC1155HolderUpgradeable)
+        override(AccessControlUpgradeable, ERC1155ReceiverUpgradeable)
         returns (bool)
     {
         return super.supportsInterface(interfaceId);

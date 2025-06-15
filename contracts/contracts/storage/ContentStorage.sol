@@ -5,7 +5,7 @@ import "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol"
 import "@openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
-import "../node/NodeOperator.sol";
+import "../token/NodeOperator.sol";
 
 contract ContentStorage is 
     Initializable, 
@@ -132,7 +132,7 @@ contract ContentStorage is
         require(content.replicationCount < MAX_REPLICATION, "Max replication reached");
 
         // Verify node is active and has capacity
-        (bool isActive, uint256 nodeType) = nodeOperator.getNodeStatus(node);
+        (bool isActive, ) = nodeOperator.getNodeStatus(node);
         require(isActive, "Node not active");
 
         // Add node to content's node list

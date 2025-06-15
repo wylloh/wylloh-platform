@@ -28,8 +28,8 @@ const POLYGON_MUMBAI_ID = 80001;
 const GANACHE_ID = 1337;
 
 // Define chain ID for the app
-// For local development, use Ganache
-const CHAIN_ID = GANACHE_ID;
+// For beta testing, use Mumbai testnet
+const CHAIN_ID = POLYGON_MUMBAI_ID;
 
 console.log('WalletContext initialized with CHAIN_ID:', CHAIN_ID);
 
@@ -366,63 +366,24 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     }
 
     try {
-      // For local Ganache
-      if (CHAIN_ID === GANACHE_ID) {
-        await library.provider.request({
-          method: 'wallet_addEthereumChain',
-          params: [
-            {
-              chainId: `0x${GANACHE_ID.toString(16)}`,
-              chainName: 'Ganache Local',
-              nativeCurrency: {
-                name: 'ETH',
-                symbol: 'ETH',
-                decimals: 18,
-              },
-              rpcUrls: ['http://localhost:8545'],
+      // Mumbai testnet configuration
+      await library.provider.request({
+        method: 'wallet_addEthereumChain',
+        params: [
+          {
+            chainId: `0x${CHAIN_ID.toString(16)}`,
+            chainName: 'Polygon Mumbai Testnet',
+            nativeCurrency: {
+              name: 'MATIC',
+              symbol: 'MATIC',
+              decimals: 18,
             },
-          ],
-        });
-      }
-      // Check if Mumbai testnet
-      else if (CHAIN_ID === POLYGON_MUMBAI_ID) {
-        await library.provider.request({
-          method: 'wallet_addEthereumChain',
-          params: [
-            {
-              chainId: `0x${POLYGON_MUMBAI_ID.toString(16)}`,
-              chainName: 'Polygon Mumbai Testnet',
-              nativeCurrency: {
-                name: 'MATIC',
-                symbol: 'MATIC',
-                decimals: 18,
-              },
-              rpcUrls: ['https://rpc-mumbai.maticvigil.com'],
-              blockExplorerUrls: ['https://mumbai.polygonscan.com'],
-            },
-          ],
-        });
-      } 
-      // Polygon mainnet
-      else if (CHAIN_ID === POLYGON_MAINNET_ID) {
-        await library.provider.request({
-          method: 'wallet_addEthereumChain',
-          params: [
-            {
-              chainId: `0x${POLYGON_MAINNET_ID.toString(16)}`,
-              chainName: 'Polygon Mainnet',
-              nativeCurrency: {
-                name: 'MATIC',
-                symbol: 'MATIC',
-                decimals: 18,
-              },
-              rpcUrls: ['https://polygon-rpc.com'],
-              blockExplorerUrls: ['https://polygonscan.com'],
-            },
-          ],
-        });
-      }
-      console.log('Network switched successfully');
+            rpcUrls: ['https://rpc-mumbai.maticvigil.com'],
+            blockExplorerUrls: ['https://mumbai.polygonscan.com'],
+          },
+        ],
+      });
+      console.log('Network switched to Mumbai testnet successfully');
     } catch (error) {
       console.error('Error switching network:', error);
     }

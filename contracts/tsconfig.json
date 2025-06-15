@@ -9,8 +9,14 @@
     "resolveJsonModule": true,
     "outDir": "dist",
     "declaration": true,
-    "typeRoots": ["./node_modules/@types", "./typechain-types"]
+    "moduleResolution": "node"
   },
-  "include": ["./scripts", "./test", "./typechain-types"],
-  "files": ["./hardhat.config.ts"]
+  "include": ["./scripts/**/*", "./test/**/*", "./hardhat.config.ts"],
+  "exclude": [
+    "node_modules", 
+    "dist", 
+    "cache", 
+    "artifacts",
+    "typechain-types/**/*"
+  ]
 } 
