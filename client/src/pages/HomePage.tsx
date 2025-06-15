@@ -31,6 +31,7 @@ import {
   Verified,
   Collections,
   Analytics,
+  TrendingUp,
   ExpandMore as ExpandMoreIcon,
   CheckCircle as CheckIcon
 } from '@mui/icons-material';
@@ -101,46 +102,46 @@ const HomePage: React.FC = () => {
 
   const features = [
     {
-      icon: <Verified sx={{ fontSize: 40, color: 'text.primary' }} />,
-      title: "Professional-Grade Security",
-      description: "Enterprise blockchain infrastructure with hardware-bound encryption for your valuable IP",
-      audience: "pros",
-      details: [
-        "Hardware Security Module (HSM) integration for key management",
-        "Multi-signature wallet support for enterprise accounts",
-        "End-to-end encryption for all content uploads",
-        "Immutable audit trails on Polygon blockchain",
-        "SOC 2 Type II compliance standards"
-      ],
-      benefits: "Protect your intellectual property with bank-grade security that scales from independent filmmakers to major studios."
-    },
-    {
       icon: <Collections sx={{ fontSize: 40, color: 'text.primary' }} />,
-      title: "Permanent Digital Ownership",
-      description: "Build a lasting collection with true ownership rights that can't be revoked",
+      title: "Truly Own Your Movies",
+      description: "Buy once, own forever. No subscriptions, no takedowns, no funny business.",
       audience: "collectors",
       details: [
-        "NFT-based ownership certificates stored on blockchain",
-        "Transferable licenses with resale capabilities",
+        "Blockchain-verified ownership certificates",
+        "Resell your movies anytime at market value",
         "No expiration dates or subscription renewals",
-        "Cross-platform compatibility with other Wylloh-protocol platforms",
-        "Inheritance and estate planning support"
+        "Access your collection from any device",
+        "Pass movies to family through inheritance"
       ],
-      benefits: "Own your digital movie collection forever. Unlike streaming services, your purchases can't be removed or revoked."
+      benefits: "Unlike streaming services that can remove content anytime, your Wylloh movies are yours permanently. Physical media convenience with digital ownership security."
     },
     {
-      icon: <Analytics sx={{ fontSize: 40, color: 'text.primary' }} />,
-      title: "Transparent Analytics",
-      description: "Real-time insights into distribution, royalties, and audience engagement",
-      audience: "pros",
+      icon: <TrendingUp sx={{ fontSize: 40, color: 'text.primary' }} />,
+      title: "Trade & Retain Value",
+      description: "Unlike streaming, your movies keep their worth. Resell when you're done watching.",
+      audience: "collectors",
       details: [
-        "Real-time revenue tracking and royalty distribution",
-        "Geographic distribution analytics",
-        "Audience engagement metrics without privacy invasion",
-        "Secondary market performance tracking",
-        "Automated financial reporting for tax purposes"
+        "Built-in marketplace for buying and selling",
+        "Real-time pricing based on actual demand",
+        "Rare releases may appreciate over time",
+        "No middleman fees on peer-to-peer trades",
+        "Track your collection's current value"
       ],
-      benefits: "Make data-driven decisions with comprehensive analytics that respect user privacy while providing actionable insights."
+      benefits: "Break free from the walled garden. Buy a movie for $10, watch it forever, then resell for $5-8 when you're done. That's $5-8 more than streaming gives you back."
+    },
+    {
+      icon: <Verified sx={{ fontSize: 40, color: 'text.primary' }} />,
+      title: "Studio-Grade Authenticity",
+      description: "The same verification systems that protect major releases, now securing your collection.",
+      audience: "collectors",
+      details: [
+        "All transactions recorded on blockchain",
+        "Verified authentic content from real creators",
+        "Professional-grade digital rights management",
+        "Direct support to filmmakers with every purchase",
+        "Industry-standard security protocols"
+      ],
+      benefits: "Your movies are protected by the same technology that secures Hollywood's biggest releases. No counterfeits, no scams, just authentic cinema from verified creators."
     }
   ];
 
@@ -209,7 +210,7 @@ const HomePage: React.FC = () => {
                         textShadow: '1px 1px 2px rgba(0,0,0,0.8)',
                       }}
                     >
-                      Open-source, decentralized license management and CDN with realtime utility.
+                      Own your movies again. Physical media is reimagined with blockbusters on the blockchain.
                     </Typography>
                     <Stack 
                       direction={{ xs: 'column', sm: 'row' }} 
@@ -220,7 +221,7 @@ const HomePage: React.FC = () => {
                         variant="contained" 
                         size="large"
                         component={Link} 
-                        to="/marketplace"
+                        to="/store"
                         endIcon={<ArrowForward />}
                         sx={{ 
                           py: 1.5,
@@ -233,7 +234,7 @@ const HomePage: React.FC = () => {
                           }
                         }}
                       >
-                        Explore Collection
+                        Browse Movie Store
                       </Button>
                       <Button 
                         variant="outlined" 
@@ -270,7 +271,7 @@ const HomePage: React.FC = () => {
               color: 'text.primary'
             }}
           >
-            Built for professionals, designed for everyone
+            The same tools Hollywood uses
           </Typography>
           <Typography 
             variant="h6" 
@@ -282,8 +283,8 @@ const HomePage: React.FC = () => {
               lineHeight: 1.6,
             }}
           >
-            Industry-standard security meets consumer-friendly experience. 
-            Every feature serves both creators and collectors.
+            Professional-grade distribution technology, now available to collectors. 
+            Own movies with the same security that protects billion-dollar blockbusters.
           </Typography>
         </Box>
         

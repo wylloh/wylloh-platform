@@ -102,9 +102,17 @@ const EnhancedWalletModal: React.FC<EnhancedWalletModalProps> = ({ open, onClose
         setMode('connect');
         setTimeout(onClose, 500);
       }
-    } catch (err) {
-      setError('Failed to connect wallet. Please try again.');
+    } catch (err: any) {
       console.error('Wallet connection error:', err);
+      
+      // Handle user rejection specifically
+      if (err.code === 4001 || err.message?.includes('rejected') || err.message?.includes('denied') || err.message?.includes('User rejected')) {
+        // User cancelled - close modal instead of showing error
+        onClose();
+        return;
+      }
+      
+      setError('Failed to connect wallet. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -201,11 +209,11 @@ const EnhancedWalletModal: React.FC<EnhancedWalletModalProps> = ({ open, onClose
       return (
         <Grid container spacing={3}>
           <Grid item xs={12}>
-            <Typography variant="h6" align="center" gutterBottom>
-              Connect to Wylloh
+            <Typography variant="h6" align="center" gutterBottom sx={{ fontWeight: 600 }}>
+              Start Your Collection
             </Typography>
             <Typography variant="body2" align="center" color="text.secondary" paragraph>
-              Your wallet is your identity on Wylloh. Connect to access your content and preferences.
+              Your wallet is your movie vault. Connect to buy, trade, and manage your digital film collection.
             </Typography>
           </Grid>
           
@@ -236,11 +244,11 @@ const EnhancedWalletModal: React.FC<EnhancedWalletModalProps> = ({ open, onClose
               </Typography>
               <Divider sx={{ width: '100%', my: 2 }} />
               <Typography variant="body2" align="center" color="primary">
-                • Full platform access
+                • Buy & trade movie tokens
                 <br />
-                • Secure token management
+                • True digital ownership
                 <br />
-                • Personalized experience
+                • Resell your collection
                 <br />
                 • No passwords needed
               </Typography>
@@ -270,13 +278,13 @@ const EnhancedWalletModal: React.FC<EnhancedWalletModalProps> = ({ open, onClose
               </Typography>
               <Divider sx={{ width: '100%', my: 2 }} />
               <Typography variant="body2" align="center" color="text.secondary">
-                • Explore the platform
+                • Browse movie catalog
                 <br />
-                • Learn about Web3
+                • Learn about ownership
                 <br />
-                • Limited features
+                • See how it works
                 <br />
-                • No purchases
+                • Connect later to buy
               </Typography>
             </Paper>
           </Grid>
@@ -538,9 +546,14 @@ const EnhancedWalletModal: React.FC<EnhancedWalletModalProps> = ({ open, onClose
       PaperProps={{ sx: { borderRadius: 2 } }}
     >
       <DialogTitle>
-        <Box display="flex" alignItems="center" justifyContent="center">
-          <Typography variant="h5" component="div">
+        <Box display="flex" alignItems="center" justifyContent="center" sx={{ pb: 1 }}>
+          <Typography variant="h5" component="div" sx={{ fontWeight: 600 }}>
             Welcome to Wylloh
+          </Typography>
+        </Box>
+        <Box display="flex" alignItems="center" justifyContent="center">
+          <Typography variant="body2" color="text.secondary" align="center">
+            Own movies like never before. Buy, trade, and truly possess your collection.
           </Typography>
         </Box>
       </DialogTitle>

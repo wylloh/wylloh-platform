@@ -366,25 +366,25 @@ class ContentService {
         // Inform user to check MetaMask
         console.log('Please check MetaMask for a transaction confirmation popup');
         
-        // Attempt to create token and get transaction hash
-        let txHash: string;
+        // Create film contract through factory
+        let filmContractAddress: string;
         try {
-          txHash = await blockchainService.createToken(
-          id,
-          tokenizationData.initialSupply,
-          {
-            contentId: id,
-            title: content.title,
-            description: content.description,
-            rightsThresholds: rightsThresholds
-          },
-          tokenizationData.royaltyPercentage
-        );
+          // Extract rights threshold quantities
+          const thresholdQuantities = rightsThresholds.map((rt: {quantity: number, type: string}) => rt.quantity);
+          
+          filmContractAddress = await blockchainService.createFilmContract(
+            id, // filmId
+            content.title, // title
+            walletAddress || content.creatorAddress, // creator
+            tokenizationData.initialSupply, // maxSupply
+            thresholdQuantities, // rightsThresholds
+            `https://api.wylloh.com/films/${id}/` // baseURI
+          );
         
-        console.log('Token creation transaction submitted, hash:', txHash);
+        console.log('Film contract created at address:', filmContractAddress);
         
-          if (!txHash) {
-            throw new Error('Token creation failed - no transaction hash returned');
+          if (!filmContractAddress) {
+            throw new Error('Film contract creation failed - no contract address returned');
           }
           
           // Verify token creation immediately
@@ -409,7 +409,7 @@ class ContentService {
               status: 'active' as const,
               visibility: 'public' as const,
               creatorAddress: walletAddress || content.creatorAddress,
-              blockchainTxHash: txHash,
+              filmContractAddress: filmContractAddress,
               // Note we're not setting tokenized: true here
             };
             
@@ -430,10 +430,10 @@ class ContentService {
           available: tokenizationData.initialSupply,
           totalSupply: tokenizationData.initialSupply,
           rightsThresholds: rightsThresholds,
-          status: 'active' as const,
+                      status: 'active' as const,
             visibility: 'public' as const,
             creatorAddress: walletAddress || content.creatorAddress,
-            blockchainTxHash: txHash
+            filmContractAddress: filmContractAddress
           };
           
           // Save to local storage and return

@@ -67,7 +67,7 @@ const AppRoutes = () => {
         <Route path="/" element={<HomePage />} />
         <Route path="/store" element={<StorePage />} />
         <Route path="/search" element={<SearchPage />} />
-        <Route path="/discover" element={<DiscoverPage />} />
+        <Route path="/discover" element={<Navigate to="/search" replace />} />
         {/* <Route path="/network" element={<NetworkPage />} /> Temporarily disabled due to Node.js dependencies */}
         <Route path="/profile" element={<ProfilePage />} />
         <Route path="/transactions" element={<TransactionHistoryPage />} />
@@ -81,7 +81,9 @@ const AppRoutes = () => {
         <Route path="/player/:id" element={<PlayerPage />} />
         
         {/* Library routes */}
+        <Route path="/library" element={<LibraryPage />} />
         <Route path="/library/:libraryId" element={<LibraryPage />} />
+        <Route path="/collection" element={<Navigate to="/library" replace />} />
         
         {/* Pro routes */}
         <Route path="/pro/dashboard" element={<EnhancedDashboardPage />} />

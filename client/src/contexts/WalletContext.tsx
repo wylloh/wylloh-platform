@@ -23,9 +23,7 @@ import {
 
 // Define chain IDs for supported networks
 const POLYGON_MAINNET_ID = 137;
-const POLYGON_MUMBAI_ID = 80001;
-
-// For local development with Ganache
+// For local development (if needed)
 const GANACHE_ID = 1337;
 
 // Define chain ID for the app
@@ -36,13 +34,13 @@ console.log('WalletContext initialized with CHAIN_ID:', CHAIN_ID);
 
 // Configure the connectors
 const injected = new InjectedConnector({
-  supportedChainIds: [POLYGON_MAINNET_ID, POLYGON_MUMBAI_ID, GANACHE_ID],
+      supportedChainIds: [POLYGON_MAINNET_ID, GANACHE_ID],
 });
 
 const walletconnect = new WalletConnectConnector({
   rpc: {
     [POLYGON_MAINNET_ID]: 'https://polygon-rpc.com',
-    [POLYGON_MUMBAI_ID]: 'https://rpc-mumbai.maticvigil.com',
+
     [GANACHE_ID]: 'http://localhost:8545',
   },
   qrcode: true,

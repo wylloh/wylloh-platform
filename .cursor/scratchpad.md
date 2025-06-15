@@ -323,9 +323,244 @@ This architecture is **ESSENTIAL for MVP** because it properly implements the re
 - 📚 **Educational Value**: Film history meets blockchain innovation
 
 #### **Token Economics for Historic Film**:
-- 🎫 **1 Token**: Personal viewing of historic masterpiece (~$0.001 MATIC)
-- 🎬 **1,000 Tokens**: Commercial exhibition rights + high-quality files
-- 🌍 **10,000 Tokens**: Regional distribution of historic content
-- 📺 **100,000 Tokens**: National broadcast rights for Méliès film
+- 🎫 **1 Token**: Personal viewing of historic masterpiece (**2 MATIC** ~$1.60)
+- 🎬 **1,000 Tokens**: Commercial exhibition rights + high-quality files (**5 MATIC** ~$4.00)
+- 🌍 **10,000 Tokens**: Regional distribution of historic content (**8 MATIC** ~$6.40)
+- 📺 **100,000 Tokens**: National broadcast rights for Méliès film (**10 MATIC** ~$8.00)
 
 This represents a **REVOLUTIONARY MOMENT** where cinema history meets blockchain innovation! 🎬🚀
+
+## 💎 **BRILLIANT PRICING STRATEGY - COLLECTOR VALUE MODEL**
+
+### **🎯 GENIUS INSIGHT: Public Domain + Premium Pricing**
+
+#### **Strategic Brilliance**:
+- 🎭 **Historic Significance**: First film on Wylloh justifies premium pricing
+- 💰 **Meaningful Revenue**: 2-10 MATIC creates real economic value
+- 🧪 **Perfect Testing**: Affordable but meaningful stakes for validation
+- 🏆 **Collector Appeal**: Higher prices signal premium, scarce content
+
+#### **🌙 "A TRIP TO THE MOON" QUANTITY-BASED UNLOCKS**:
+
+**ERC-1155 Architecture**: Same token, different quantities unlock different rights
+
+**Tier 1: Cinema History Enthusiast** 🎫
+- **1 Token = 1 MATIC** (~$0.80)
+- **Value**: Personal viewing of Georges Méliès masterpiece
+- **Appeal**: Ultra-accessible entry point for film history lovers
+
+**Tier 2: Educational Institution** 🎬
+- **2 Tokens = 2 MATIC** (~$1.60 total)
+- **Value**: Commercial exhibition + high-quality files
+- **Appeal**: Museums, schools, film societies
+
+**Tier 3: Serious Collector** 🌍
+- **4 Tokens = 4 MATIC** (~$3.20 total)
+- **Value**: Regional distribution rights (collector prestige)
+- **Appeal**: Blockchain/film enthusiasts, early adopters
+
+**Tier 4: Ultimate Collector** 📺
+- **10 Tokens = 10 MATIC** (~$8.00 total)
+- **Value**: National broadcast rights (maximum collector status)
+- **Appeal**: Crypto collectors, historic significance enthusiasts
+
+### **🚀 STRATEGIC ADVANTAGES**
+
+#### **Economic Benefits**:
+- ✅ **Ultra-Low Testing Costs**: $0.80-$8.00 per purchase enables rapid iteration
+- ✅ **Perfect for Validation**: Meaningful but accessible costs for comprehensive testing
+- ✅ **Stacking Incentive**: Clear quantity progression (1→2→4→10) encourages larger purchases
+- ✅ **Platform Validation**: Proves viable token economics model with minimal risk
+
+#### **Marketing Genius**:
+- ✅ **"First Film" Premium**: Historic significance justifies higher pricing
+- ✅ **Scarcity Psychology**: Limited tokens of cinema's first sci-fi film
+- ✅ **Educational Market**: Institutions can afford exhibition tier
+- ✅ **Collector Community**: Attracts serious blockchain + film enthusiasts
+
+#### **Testing Perfect**:
+- ✅ **Full Validation**: Test complete revolutionary stacking mechanics
+- ✅ **Real Stakes**: Meaningful but accessible costs for thorough testing
+- ✅ **Revenue Generation**: Platform demonstrates actual earning potential
+- ✅ **Proof of Concept**: Shows sustainable business model for future films
+
+### **🎬 PUBLIC DOMAIN INSIGHT**
+
+**Brilliant observation**: Since "A Trip to the Moon" is public domain, the exhibition rights are **symbolic collector value** rather than legal restrictions. This makes it perfect for:
+- 🎭 **Pure Collector Appeal**: Rights are about prestige, not legal control
+- 🧪 **Safe Testing**: No copyright complications during validation
+- 💎 **Historic Value**: Owning "first film on Wylloh" blockchain history
+- 🚀 **Marketing Story**: Revolutionary intersection of cinema + blockchain
+
+This pricing model transforms our testing phase into a **potential revenue-generating historic launch**! 🌙✨
+
+## ✈️ **PILOT TEST "FLIGHT" - MISSION CRITICAL PRIORITIES**
+
+### **🎯 PHASE 1: CRITICAL SUCCESS - TOKENIZATION & UPLOAD**
+
+**Mission Objective**: Get "A Trip to the Moon" onchain + IPFS = **VICTORY** 🏆
+
+#### **Success Criteria** (Must Achieve):
+1. ✅ **Film Factory Deployed** → Polygon mainnet contract live
+2. ✅ **"A Trip to the Moon" Contract Created** → ERC-1155 token exists
+3. ✅ **Film Uploaded to Helia/IPFS** → Permanent decentralized storage
+4. ✅ **Metadata Integration** → Onchain reference to IPFS content
+
+**Result**: Film exists permanently on blockchain + IPFS = **MISSION ACCOMPLISHED** 🎉
+
+### **🧪 PHASE 2: USER ACCESS TESTING (LOW-COST ITERATION)**
+
+**Mission Objective**: Validate user experience with minimal cost
+
+#### **Testing Economics**:
+- **Cost Per Test Run**: Only 1 MATIC (~$0.80) per user test
+- **Rapid Iteration**: Fix playback/access issues cheaply
+- **Real Environment**: Production testing with minimal financial risk
+- **Multiple Attempts**: Can afford many test cycles for perfection
+
+#### **Testing Strategy**:
+- 🎫 **1 Token Tests**: Validate basic viewing functionality ($0.80 each)
+- 🎬 **2 Token Tests**: Test commercial tier unlocks ($1.60 each)
+- 🌍 **4 Token Tests**: Validate regional tier features ($3.20 each)
+- 📺 **10 Token Tests**: Test ultimate collector experience ($8.00 each)
+
+### **🚀 BRILLIANT INSIGHT: ERC-1155 QUANTITY MECHANICS**
+
+**Correct Architecture Understanding**:
+- ✅ **Single Token ID** for "A Trip to the Moon"
+- ✅ **Same Token** at different quantities unlocks different rights
+- ✅ **1:1 MATIC Pricing** makes testing affordable and logical
+- ✅ **Quantity Thresholds**: 1, 2, 4, 10 (perfect for testing)
+
+**Future Film Scaling**:
+- 🎬 **Commercial Films**: Higher thresholds (1, 1000, 10000, 100000)
+- 🧪 **Test Film**: Lower thresholds (1, 2, 4, 10) for validation
+- 💰 **Same Economics**: 1 MATIC per token maintains consistency
+
+This approach ensures **mission-critical success** (film onchain) while enabling **cost-effective iteration** for user experience perfection! 🎭✨
+
+## 🔧 **PRODUCTION WORKFLOW INTEGRATION COMPLETE**
+
+### **✅ PHASE 1 & 2 IMPLEMENTATION STATUS**
+
+#### **🏭 Minimal Factory Deployment Script**:
+- ✅ **Created**: `deploy-film-factory-only.ts` with safety checks
+- ✅ **Network Validation**: Polygon mainnet only deployment
+- ✅ **Balance Verification**: Minimum 2 MATIC requirement
+- ✅ **Config Generation**: Updates `polygonAddresses.json` automatically
+
+#### **🎬 TokenizePublishPage Integration**:
+- ✅ **Film Factory ABI**: Added to blockchain service
+- ✅ **createFilmContract()**: New method for user-driven film creation
+- ✅ **Content Service**: Updated to use film factory instead of direct token creation
+- ✅ **User-Defined Thresholds**: Maintains existing UI flexibility
+- ✅ **Production Alignment**: Test flow now matches actual user experience
+
+#### **🚀 Revolutionary Benefits**:
+- ✅ **True Production Testing**: Uses actual Pro UI workflow
+- ✅ **User-Driven Configuration**: Custom thresholds through interface
+- ✅ **Factory Architecture**: Scalable film-specific contracts
+- ✅ **Cost-Effective Testing**: 1 MATIC per token enables rapid iteration
+
+### **🎯 NEXT PHASE: NAVIGATION & UX IMPROVEMENTS**
+
+#### **📋 IDENTIFIED IMPROVEMENTS**:
+- 🔄 **Navigation Consolidation**: Marketplace + Discover → Store + Library
+- 🎯 **Store**: Search/buy new films + resell owned tokens
+- 📚 **Library**: Personal collection + categorization + playback
+- 🌐 **Polygon Consistency**: All language/copy aligned with mainnet
+- ✍️ **Copy Review**: Clear messaging for pros/consumers/exhibitors
+
+## 🚀 **NEXT SESSION: PRODUCTION TESTING READY**
+
+### **🎯 IMMEDIATE NEXT STEPS - POLYGON MAINNET DEPLOYMENT**
+
+#### **Phase 1: Deploy Film Factory** (First Priority)
+```bash
+cd contracts
+npx hardhat run scripts/deploy-film-factory-only.ts --network polygon
+```
+**Success Criteria**: Factory deployed, `polygonAddresses.json` updated with factory address
+
+#### **Phase 2: Three-Wallet Testing Setup**
+- **Admin Wallet**: 0x7FA50da5a8f998c9184E344279b205DE699Aa672 (admin@wylloh.com)
+- **Pro Wallet**: 0x2Ae0D658e356e2b687e604Af13aFAc3f4E265504 (pro@wylloh.com) 
+- **User Wallet**: 0x12235bd88Cd72bf543f80651ECe29a3451FC25d3 (user@wylloh.com)
+- **Private Keys**: Available in `treasury-private.json`
+
+#### **Phase 3: "A Trip to the Moon" Production Test**
+1. **Pro Wallet**: Connect to wylloh.com, request Pro status
+2. **Admin Wallet**: Approve Pro status for testing
+3. **Pro Wallet**: Use TokenizePublishPage to create "A Trip to the Moon"
+   - **Custom Thresholds**: 1, 2, 4, 10 tokens (affordable testing)
+   - **Pricing**: 1 MATIC per token (1:1 ratio)
+   - **Rights**: Personal → Commercial → Regional → National
+4. **User Wallet**: Purchase tokens and test stacking mechanics
+5. **Validation**: Verify complete user-driven workflow matches production experience
+
+### **🎬 HISTORIC FILM DETAILS**
+- **Title**: "A Trip to the Moon" (1902)
+- **Creator**: Georges Méliès
+- **Significance**: First sci-fi film, perfect for blockchain history
+- **Status**: Public domain, no copyright issues
+- **Token Economics**: 1-10 MATIC total cost for complete testing
+
+### **✅ CURRENT SESSION COMPLETED**
+- ✅ **Minimal Factory Deployment Script**: Ready for Polygon mainnet
+- ✅ **TokenizePublishPage Integration**: Uses film factory for user-driven creation
+- ✅ **Navigation Consolidation**: Store/Library structure implemented
+- ✅ **Collector-Focused Messaging**: "Own your movies again" + professional credibility
+- ✅ **Legal Safety**: Removed profit language, focus on value retention
+- ✅ **Production Ready**: All components configured for Polygon mainnet
+
+### **✅ NAVIGATION & UX IMPROVEMENTS COMPLETE**
+
+#### **🔄 Navigation Consolidation**:
+- ✅ **Marketplace + Discover → Store + Library**: Simplified navigation structure
+- ✅ **Store**: `/store` - Search/buy new films + resell owned tokens
+- ✅ **Library**: `/library` - Personal collection + categorization + playback
+- ✅ **Route Redirects**: Old `/marketplace` and `/discover` routes redirect properly
+- ✅ **Redundancy Removal**: Eliminated duplicate "My Collection" links
+
+#### **🌐 Polygon Network Consistency**:
+- ✅ **TokenizePublishPage**: Updated from Ganache to Polygon mainnet (Chain ID 137)
+- ✅ **WalletContext**: Removed Mumbai testnet references, focused on Polygon mainnet
+- ✅ **Error Messages**: Updated to reference Polygon mainnet instead of local networks
+- ✅ **Network Validation**: All components now expect Polygon mainnet
+
+#### **🎯 User Experience Improvements**:
+- ✅ **Clear Navigation**: Store (buy) vs Library (own) distinction
+- ✅ **Consistent Terminology**: All references aligned with Polygon mainnet
+- ✅ **Streamlined Flow**: Removed confusing duplicate navigation options
+- ✅ **Production Ready**: All components configured for mainnet deployment
+
+### **🎬 COLLECTOR-FOCUSED MESSAGING COMPLETE**
+
+#### **🔧 Wallet Connection Improvements**:
+- ✅ **Cancellation Handling**: Modal closes gracefully when user rejects wallet connection
+- ✅ **Collector Messaging**: "Start Your Collection" and "movie vault" language
+- ✅ **Value Propositions**: "Buy & trade movie tokens", "True digital ownership", "Resell your collection"
+- ✅ **Guest Experience**: "Browse movie catalog", "Learn about ownership", "Connect later to buy"
+
+#### **🏠 Homepage Messaging Overhaul**:
+- ✅ **Hero Copy**: "Own your movies again. But without the plastic, shelf space, or fussy equipment. Keep your blockbusters on the blockchain."
+- ✅ **CTA Button**: "Browse Movie Store" (was "Explore Collection")
+- ✅ **Pro Tools Appeal**: "The same tools Hollywood uses" + "Professional-grade distribution technology"
+
+#### **🎯 Three Feature Cards - Refined & Legally Safe**:
+1. ✅ **"Truly Own Your Movies"**: Permanent ownership, no subscriptions, resale rights
+2. ✅ **"Trade & Retain Value"**: Value retention vs streaming, unwalled garden concept (removed "profit")
+3. ✅ **"Studio-Grade Authenticity"**: Professional verification systems, industry-standard security
+
+#### **🎭 Strategic Messaging Shift**:
+- ✅ **Primary Audience**: Movie collectors and fans (not just pros)
+- ✅ **Value Props**: Ownership, trading, value retention (not profit), authenticity
+- ✅ **Language**: "Own your movies again", "unwalled garden", "blockbusters on blockchain"
+- ✅ **Pro Appeal**: Subtle hints at professional tools without alienating collectors
+- ✅ **Legal Safety**: Removed "profit" language, focus on value retention vs streaming
+
+#### **🔧 Key Messaging Improvements**:
+- ✅ **Unwalled Garden**: "Break free from the walled garden" - perfect contrast to streaming
+- ✅ **Realistic Economics**: "$10 movie → resell for $5-8" vs "$10 streaming → $0 back"
+- ✅ **Professional Credibility**: "Same tools Hollywood uses" creates insider appeal
+- ✅ **Physical Media Nostalgia**: "Without the plastic, shelf space, or fussy equipment"

@@ -147,8 +147,8 @@ const Navbar: React.FC = () => {
   // Navigation links
   const navLinks = [
     { text: 'Home', to: '/', icon: <Home /> },
-    { text: 'Marketplace', to: '/marketplace', icon: <VideoLibrary /> },
-    { text: 'Discover', to: '/search', icon: <SearchIcon /> },
+    { text: 'Store', to: '/store', icon: <VideoLibrary /> },
+    { text: 'Library', to: '/library', icon: <Collections /> },
     { text: 'Partnerships', to: '/partnerships', icon: <HandshakeIcon /> },
   ];
   
@@ -161,7 +161,6 @@ const Navbar: React.FC = () => {
   // User menu items
   const userMenuItems = [
     { text: 'Dashboard', to: '/dashboard', icon: <Dashboard /> },
-    { text: 'My Collection', to: '/collection', icon: <Collections /> },
     { text: 'Network', to: '/network', icon: <CloudIcon /> },
   ];
   
@@ -216,23 +215,7 @@ const Navbar: React.FC = () => {
                 </Button>
               ))}
               
-              {isAuthenticated && user?.proStatus !== 'verified' && (
-                <Button
-                  component={RouterLink}
-                  to="/collection"
-                  sx={{ 
-                    mx: 1, 
-                    color: 'text.secondary', 
-                    display: 'block',
-                    '&:hover': {
-                      color: 'text.primary',
-                      backgroundColor: 'action.hover',
-                    }
-                  }}
-                >
-                  My Collection
-                </Button>
-              )}
+
               
               {creatorLinks.map((link) => (
                 <Button

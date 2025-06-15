@@ -249,15 +249,15 @@ const TokenizePublishPage: React.FC = () => {
       
       console.log('Using MetaMask account:', accounts[0]);
       
-      // Check if on the correct network (Ganache for demo)
+      // Check if on the correct network (Polygon mainnet)
       try {
         const chainIdHex = await window.ethereum.request({ method: 'eth_chainId' });
         const chainId = parseInt(chainIdHex, 16);
         console.log(`Current chain ID: ${chainId}`);
         
-        // For the demo, we need to be on chainId 1337 (Ganache)
-        if (chainId !== 1337) {
-          console.warn('Not on the expected network (Ganache). This may cause issues with tokenization.');
+        // For production, we need to be on chainId 137 (Polygon mainnet)
+        if (chainId !== 137) {
+          console.warn('Not on the expected network (Polygon mainnet). This may cause issues with tokenization.');
         }
       } catch (err) {
         console.error('Error checking network:', err);
@@ -368,7 +368,7 @@ const TokenizePublishPage: React.FC = () => {
       } else if (err.message && err.message.includes('balance')) {
         errorMessage = 'Token creation failed: The creator received 0 tokens. Please try again or contact support.';
       } else if (err.message && err.message.includes('network') || err.message.includes('chainId')) {
-        errorMessage = 'Network error: Please make sure MetaMask is connected to the local Ganache network (localhost:8545).';
+        errorMessage = 'Network error: Please make sure MetaMask is connected to the Polygon mainnet (Chain ID: 137).';
       }
       
       setError(errorMessage);

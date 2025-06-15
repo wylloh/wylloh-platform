@@ -55,7 +55,8 @@ async function main() {
   const filmId = "a-trip-to-the-moon";
   const filmTitle = "A Trip to the Moon";
   const maxSupply = 10_000_000; // 10 million tokens for stacking
-  const rightsThresholds = [1, 1000, 10000, 100000]; // Personal, Commercial, Regional, National
+  const rightsThresholds = [1, 2, 4, 10]; // Personal, Commercial, Regional, National
+  const tokenPrice = ethers.parseEther("1.0"); // 1 MATIC per token
   const baseURI = "https://api.wylloh.com/films/";
   
   console.log("📋 Film Details:");
@@ -64,6 +65,7 @@ async function main() {
   console.log("  Director: Georges Méliès (1902)");
   console.log("  Max Supply:", maxSupply.toLocaleString(), "tokens");
   console.log("  Rights Thresholds:", rightsThresholds.join(", "));
+  console.log("  Token Price:", ethers.formatEther(tokenPrice), "MATIC per token");
   
   const createFilmTx = await filmFactory.deployFilmContract(
     filmId,
@@ -119,11 +121,11 @@ async function main() {
   console.log("🎪 Film Explorer:", `https://polygonscan.com/address/${filmContractAddress}`);
   console.log("📁 Config saved to:", polygonConfigPath);
   
-  console.log("\n🔧 Revolutionary Stacking Model:");
-  console.log("1 token = Personal Viewing Rights");
-  console.log("1,000 tokens = Commercial Exhibition + IMF/DCP Access");
-  console.log("10,000 tokens = Regional Distribution Rights");
-  console.log("100,000 tokens = National Broadcast Rights");
+  console.log("\n🔧 Revolutionary Stacking Model & Pricing:");
+  console.log("1 token = Personal Viewing Rights (1 MATIC)");
+  console.log("2 tokens = Commercial Exhibition + IMF/DCP Access (2 MATIC total)");
+  console.log("4 tokens = Regional Distribution Rights (4 MATIC total)");
+  console.log("10 tokens = National Broadcast Rights (10 MATIC total)");
   
   console.log("\n🎯 Next Steps:");
   console.log("1. Update client configuration to use Polygon mainnet");

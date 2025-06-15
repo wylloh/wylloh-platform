@@ -34,6 +34,20 @@ const marketplaceAbi = [
   "event TokensListed(address indexed seller, uint256 indexed tokenId, uint256 quantity, uint256 price)"
 ];
 
+// Film Factory ABI for creating film contracts
+const filmFactoryAbi = [
+  // Write functions
+  "function deployFilmContract(string memory filmId, string memory title, address creator, uint256 maxSupply, uint256[] memory rightsThresholds, string memory baseURI) returns (address)",
+  
+  // Read functions
+  "function getFilmContract(string memory filmId) view returns (address)",
+  "function getAllFilmContracts() view returns (address[])",
+  "function getTotalFilms() view returns (uint256)",
+  
+  // Events
+  "event FilmContractDeployed(string indexed filmId, string title, address indexed creator, address indexed contractAddress)"
+];
+
 // Default contract addresses - should be configured at app startup
 const DEFAULT_CONTRACT_ADDRESS = '0x5FbDB2315678afecb367f032d93F642f64180aa3';
 const DEFAULT_MARKETPLACE_ADDRESS = '0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512';
@@ -248,13 +262,22 @@ class BlockchainService {
       // Re-initialize the film factory contract instance if provider exists
       if (this.provider && !this.filmFactoryContract) {
         console.log('Connecting to film factory contract with updated address...');
-        // Note: We'll need to add the film factory ABI when we implement it
-        // this.filmFactoryContract = new ethers.Contract(
-        //   this.filmFactoryAddress,
-        //   filmFactoryAbi,
-        //   this.provider
-        // );
-        console.log('Film factory contract address set successfully');
+        this.filmFactoryContract = new ethers.Contract(
+          this.filmFactoryAddress,
+          filmFactoryAbi,
+          this.provider
+        );
+        console.log('Film factory contract connected successfully');
+        this.checkContractExistence(); // Re-check existence
+      } else if (this.provider && this.filmFactoryContract && this.filmFactoryContract.address !== address) {
+         console.log('Re-connecting to film factory contract with new address...');
+         this.filmFactoryContract = new ethers.Contract(
+           this.filmFactoryAddress,
+           filmFactoryAbi,
+           this.provider
+         );
+         console.log('Film factory contract re-connected successfully');
+         this.checkContractExistence(); // Re-check existence
       }
     } else {
       console.warn(`BlockchainService: Attempted to set invalid or empty film factory address: [${address}]`);
@@ -392,7 +415,75 @@ class BlockchainService {
   }
   
   /**
-   * Create a new token for content
+   * Create a new film through the film factory
+   * @param filmId Unique identifier for the film
+   * @param title Film title
+   * @param creator Creator address
+   * @param maxSupply Maximum token supply
+   * @param rightsThresholds Array of token quantities for different rights
+   * @param baseURI Base URI for metadata
+   * @returns Film contract address
+   */
+  async createFilmContract(
+    filmId: string,
+    title: string,
+    creator: string,
+    maxSupply: number,
+    rightsThresholds: number[],
+    baseURI: string
+  ): Promise<string> {
+    if (!this.filmFactoryContract) {
+      throw new Error('Film factory not initialized. Please set factory address first.');
+    }
+
+    try {
+      console.log('Creating film contract through factory:', {
+        filmId,
+        title,
+        creator,
+        maxSupply,
+        rightsThresholds,
+        baseURI
+      });
+
+      // Get signer from MetaMask
+      if (!window.ethereum) {
+        throw new Error('MetaMask not available');
+      }
+
+      const web3Provider = new ethers.providers.Web3Provider(window.ethereum);
+      const signer = web3Provider.getSigner();
+      const factoryWithSigner = this.filmFactoryContract.connect(signer);
+
+      // Deploy film contract through factory
+      const tx = await factoryWithSigner.deployFilmContract(
+        filmId,
+        title,
+        creator,
+        maxSupply,
+        rightsThresholds,
+        baseURI
+      );
+
+      console.log('Film contract deployment transaction:', tx.hash);
+      
+      // Wait for transaction confirmation
+      const receipt = await tx.wait();
+      console.log('Film contract deployment confirmed:', receipt);
+
+      // Get the deployed contract address
+      const filmContractAddress = await this.filmFactoryContract.getFilmContract(filmId);
+      console.log('Film contract deployed to:', filmContractAddress);
+
+      return filmContractAddress;
+    } catch (error) {
+      console.error('Error creating film contract:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Create a new token for content (legacy method - now uses film factory)
    * @param contentId Content ID to create token for
    * @param initialSupply Initial token supply
    * @param tokenMetadata Metadata for the token
