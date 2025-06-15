@@ -220,7 +220,7 @@ const StorePage: React.FC = () => {
   return (
     <Container maxWidth="xl" sx={{ py: 4 }}>
       <Box mb={4}>
-        <Typography variant="h4" gutterBottom>Your next favorite film awaits</Typography>
+        <Typography variant="h4" gutterBottom>Your next favorite film awaits.</Typography>
         <Typography variant="body1" color="text.secondary">
           Discover movies you'll actually own, from filmmakers who pour their hearts into every frame.
         </Typography>

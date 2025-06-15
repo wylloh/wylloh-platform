@@ -103,17 +103,17 @@ const ProVerificationPage: React.FC = () => {
             mb: 2
           }}
         >
-          Tools for storytellers
+          Tools for story makers.
         </Typography>
         <Typography variant="h5" color="text.secondary" paragraph>
-          Professional distribution, simplified
+          Professional distribution, simplified.
         </Typography>
       </Box>
 
       {/* Overview */}
       <Paper elevation={0} sx={{ p: 4, mb: 6, border: '1px solid', borderColor: 'divider' }}>
         <Typography variant="h4" gutterBottom sx={{ fontWeight: 600 }}>
-          Your stories deserve the best stage
+          Your stories deserve the best stage.
         </Typography>
         <Typography variant="body1" paragraph sx={{ lineHeight: 1.7 }}>
           Professional verification opens the door to direct distribution—from intimate audiences to 

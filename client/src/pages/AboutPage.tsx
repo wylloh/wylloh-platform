@@ -102,10 +102,10 @@ const AboutPage: React.FC = () => {
             mb: 2
           }}
         >
-          Cinema, reimagined
+          Cinema, reimagined.
         </Typography>
         <Typography variant="h5" color="text.secondary" paragraph>
-          Where every movie finds its perfect home
+          Where every movie finds its forever home.
         </Typography>
         <Chip 
           label="Open Source • Apache License" 
@@ -117,7 +117,7 @@ const AboutPage: React.FC = () => {
       {/* Mission Statement */}
       <Paper elevation={0} sx={{ p: 4, mb: 6, border: '1px solid', borderColor: 'divider' }}>
         <Typography variant="h4" gutterBottom sx={{ fontWeight: 600 }}>
-          Movies that matter
+          Movies that matter.
         </Typography>
         <Typography variant="body1" sx={{ fontSize: '1.1rem', lineHeight: 1.7, mb: 3 }}>
           Every great film deserves to find its audience. Every passionate viewer deserves to truly own 

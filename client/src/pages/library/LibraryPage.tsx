@@ -29,7 +29,7 @@ import {
   Send as SendIcon,
   AttachMoney as AttachMoneyIcon,
   Info as InfoIcon,
-  Collections,
+  Movie,
 } from '@mui/icons-material';
 import LibraryAnalytics from '../../components/library/LibraryAnalytics';
 import EnhancedContentCard from '../../components/common/EnhancedContentCard';
@@ -351,12 +351,12 @@ const LibraryPage: React.FC<LibraryPageProps> = ({ isPro = false }) => {
     return (
       <Container maxWidth="md" sx={{ py: 8, textAlign: 'center' }}>
         <Box sx={{ mb: 4 }}>
-          <Collections sx={{ fontSize: 80, color: 'text.secondary', mb: 2 }} />
+          <Movie sx={{ fontSize: 80, color: 'text.secondary', mb: 2 }} />
           <Typography variant="h3" gutterBottom sx={{ fontWeight: 600, mb: 2 }}>
-            Your movie vault awaits
+            The vault is locked
           </Typography>
           <Typography variant="h6" color="text.secondary" sx={{ mb: 4, maxWidth: '500px', mx: 'auto' }}>
-            Connect your wallet to access your personal collection of owned films and manage your digital rights.
+            Your collection awaits behind the velvet rope. Please connect your wallet to enter.
           </Typography>
           <Button 
             variant="contained" 
@@ -364,7 +364,7 @@ const LibraryPage: React.FC<LibraryPageProps> = ({ isPro = false }) => {
             onClick={connect}
             sx={{ py: 1.5, px: 4, fontSize: '1rem', fontWeight: 500 }}
           >
-            Connect Wallet
+            Unlock Collection
           </Button>
         </Box>
       </Container>

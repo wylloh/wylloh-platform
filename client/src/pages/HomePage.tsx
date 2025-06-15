@@ -399,13 +399,13 @@ const HomePage: React.FC = () => {
             paragraph
             sx={{ 
               mb: 4,
-              maxWidth: '500px',
+              maxWidth: '600px',
               mx: 'auto',
               fontWeight: 400,
               lineHeight: 1.6,
             }}
           >
-            Where cinema meets permanence, and every movie finds its home.
+            Where cinema means permanence, and every movie finds its home.
           </Typography>
           <Stack 
             direction={{ xs: 'column', sm: 'row' }} 
