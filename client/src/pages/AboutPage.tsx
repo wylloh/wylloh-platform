@@ -102,10 +102,10 @@ const AboutPage: React.FC = () => {
             mb: 2
           }}
         >
-          About Wylloh
+          Cinema, reimagined
         </Typography>
         <Typography variant="h5" color="text.secondary" paragraph>
-          Revolutionizing digital media through blockchain-based licensing
+          Where every movie finds its perfect home
         </Typography>
         <Chip 
           label="Open Source • Apache License" 
@@ -117,17 +117,15 @@ const AboutPage: React.FC = () => {
       {/* Mission Statement */}
       <Paper elevation={0} sx={{ p: 4, mb: 6, border: '1px solid', borderColor: 'divider' }}>
         <Typography variant="h4" gutterBottom sx={{ fontWeight: 600 }}>
-          Our Mission
+          Movies that matter
         </Typography>
         <Typography variant="body1" sx={{ fontSize: '1.1rem', lineHeight: 1.7, mb: 3 }}>
-          Wylloh is a blockchain-based media licensing system that revolutionizes how digital content 
-          is distributed, accessed, and monetized. Our mission is to create a transparent, efficient, 
-          and equitable ecosystem where filmmakers maintain control of their intellectual property while 
-          audiences gain flexible access to content through tokenized ownership.
+          Every great film deserves to find its audience. Every passionate viewer deserves to truly own 
+          the movies they love. We're building the bridge between these two truths.
         </Typography>
         <Typography variant="body1" sx={{ fontSize: '1.1rem', lineHeight: 1.7 }}>
-          We believe in empowering filmmakers with professional-grade tools while providing audiences 
-          with a premium experience that respects their privacy and ownership rights.
+          Professional-grade tools for filmmakers. Premium ownership experience for audiences. 
+          All built on technology that respects both creativity and privacy.
         </Typography>
       </Paper>
 

@@ -29,6 +29,7 @@ import {
   Send as SendIcon,
   AttachMoney as AttachMoneyIcon,
   Info as InfoIcon,
+  Collections,
 } from '@mui/icons-material';
 import LibraryAnalytics from '../../components/library/LibraryAnalytics';
 import EnhancedContentCard from '../../components/common/EnhancedContentCard';
@@ -131,7 +132,7 @@ const LibraryPage: React.FC<LibraryPageProps> = ({ isPro = false }) => {
   const navigate = useNavigate();
   const queryParams = new URLSearchParams(location.search);
   const tabFromUrl = queryParams.get('tab');
-  const { provider, account } = useContext(WalletContext);
+  const { provider, account, connect } = useContext(WalletContext);
   
   // Set initial tab value based on URL query param
   const initialTabValue = tabFromUrl === 'analytics' ? 1 : 0;
@@ -140,6 +141,9 @@ const LibraryPage: React.FC<LibraryPageProps> = ({ isPro = false }) => {
   const [error, setError] = useState<string | null>(null);
   const [libraryData, setLibraryData] = useState<any>(null);
   const [content, setContent] = useState<ContentItem[]>([]);
+  
+  // Check wallet connection status
+  const isWalletConnected = !!account;
 
   // Dialog states
   const [lendDialogOpen, setLendDialogOpen] = useState(false);
@@ -157,6 +161,12 @@ const LibraryPage: React.FC<LibraryPageProps> = ({ isPro = false }) => {
   const [buyerEmail, setBuyerEmail] = useState('');
 
   useEffect(() => {
+    // Don't fetch data if wallet isn't connected
+    if (!isWalletConnected) {
+      setLoading(false);
+      return;
+    }
+
     const fetchLibraryData = async () => {
       try {
         // Fetch library metadata
@@ -256,7 +266,7 @@ const LibraryPage: React.FC<LibraryPageProps> = ({ isPro = false }) => {
     if (libraryId) {
       fetchLibraryData();
     }
-  }, [libraryId]);
+  }, [libraryId, isWalletConnected]);
 
   // Update tabValue when URL query changes
   useEffect(() => {
@@ -335,6 +345,31 @@ const LibraryPage: React.FC<LibraryPageProps> = ({ isPro = false }) => {
     setSellPrice(0);
     setBuyerEmail('');
   };
+
+  // Show wallet connection prompt if not connected
+  if (!isWalletConnected) {
+    return (
+      <Container maxWidth="md" sx={{ py: 8, textAlign: 'center' }}>
+        <Box sx={{ mb: 4 }}>
+          <Collections sx={{ fontSize: 80, color: 'text.secondary', mb: 2 }} />
+          <Typography variant="h3" gutterBottom sx={{ fontWeight: 600, mb: 2 }}>
+            Your movie vault awaits
+          </Typography>
+          <Typography variant="h6" color="text.secondary" sx={{ mb: 4, maxWidth: '500px', mx: 'auto' }}>
+            Connect your wallet to access your personal collection of owned films and manage your digital rights.
+          </Typography>
+          <Button 
+            variant="contained" 
+            size="large"
+            onClick={connect}
+            sx={{ py: 1.5, px: 4, fontSize: '1rem', fontWeight: 500 }}
+          >
+            Connect Wallet
+          </Button>
+        </Box>
+      </Container>
+    );
+  }
 
   if (loading) {
     return (

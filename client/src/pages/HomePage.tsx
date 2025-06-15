@@ -113,12 +113,12 @@ const HomePage: React.FC = () => {
         "Access your collection from any device",
         "Pass movies to family through inheritance"
       ],
-      benefits: "Unlike streaming services that can remove content anytime, your Wylloh movies are yours permanently. Physical media convenience with digital ownership security."
+      benefits: "Unlike streaming services that can remove content anytime, your Wylloh movies are yours permanently. Digital ownership with physical media permanence."
     },
     {
       icon: <TrendingUp sx={{ fontSize: 40, color: 'text.primary' }} />,
       title: "Trade & Retain Value",
-      description: "Unlike streaming, your movies keep their worth. Resell when you're done watching.",
+      description: "Your movies keep their worth. Resell when you're done watching.",
       audience: "collectors",
       details: [
         "Built-in marketplace for buying and selling",
@@ -127,12 +127,12 @@ const HomePage: React.FC = () => {
         "No middleman fees on peer-to-peer trades",
         "Track your collection's current value"
       ],
-      benefits: "Break free from the walled garden. Buy a movie for $10, watch it forever, then resell for $5-8 when you're done. That's $5-8 more than streaming gives you back."
+      benefits: "Break free from the walled garden. Movies that hold their value, in a marketplace that's yours to explore."
     },
     {
       icon: <Verified sx={{ fontSize: 40, color: 'text.primary' }} />,
       title: "Studio-Grade Authenticity",
-      description: "The same verification systems that protect major releases, now securing your collection.",
+      description: "The same security that protects Hollywood's biggest releases, now protecting your collection.",
       audience: "collectors",
       details: [
         "All transactions recorded on blockchain",
@@ -141,7 +141,7 @@ const HomePage: React.FC = () => {
         "Direct support to filmmakers with every purchase",
         "Industry-standard security protocols"
       ],
-      benefits: "Your movies are protected by the same technology that secures Hollywood's biggest releases. No counterfeits, no scams, just authentic cinema from verified creators."
+      benefits: "Every movie in your collection is verified authentic. No counterfeits, no compromises, just pure cinema from the source."
     }
   ];
 
@@ -161,7 +161,7 @@ const HomePage: React.FC = () => {
             <ResponsiveBanner 
               height="60vh"
               priority={true}
-              alt="Wylloh Platform - Hollywood's Digital Content Hub"
+              alt="Wylloh Platform - Hollywood's Digital Marketplace"
             />
         
         {/* Overlay Content */}
@@ -196,7 +196,7 @@ const HomePage: React.FC = () => {
                         textShadow: '2px 2px 4px rgba(0,0,0,0.8)',
                       }}
                     >
-                      Hollywood distribution, reimagined.
+                      Own your movies again.
                     </Typography>
                     <Typography 
                       variant="h5" 
@@ -210,7 +210,7 @@ const HomePage: React.FC = () => {
                         textShadow: '1px 1px 2px rgba(0,0,0,0.8)',
                       }}
                     >
-                      Own your movies again. Physical media is reimagined with blockbusters on the blockchain.
+                      Physical media reimagined with blockbusters on the blockchain.
                     </Typography>
                     <Stack 
                       direction={{ xs: 'column', sm: 'row' }} 
@@ -271,7 +271,7 @@ const HomePage: React.FC = () => {
               color: 'text.primary'
             }}
           >
-            The same tools Hollywood uses
+            Modular rights for everyone.
           </Typography>
           <Typography 
             variant="h6" 
@@ -283,8 +283,8 @@ const HomePage: React.FC = () => {
               lineHeight: 1.6,
             }}
           >
-            Professional-grade distribution technology, now available to collectors. 
-            Own movies with the same security that protects billion-dollar blockbusters.
+            Introducing a new licensing standard for personal and commercial applications. 
+            Unlock a download for home viewing, or unlock a cinema package for your theatrical exhibition.
           </Typography>
         </Box>
         
@@ -391,7 +391,7 @@ const HomePage: React.FC = () => {
               color: 'text.primary'
             }}
           >
-            Ready to get started?
+            Your collection awaits.
           </Typography>
           <Typography 
             variant="h6" 
@@ -405,7 +405,7 @@ const HomePage: React.FC = () => {
               lineHeight: 1.6,
             }}
           >
-            Join the platform where professional filmmakers maintain control and collectors build lasting value.
+            Where cinema meets permanence, and every movie finds its home.
           </Typography>
           <Stack 
             direction={{ xs: 'column', sm: 'row' }} 

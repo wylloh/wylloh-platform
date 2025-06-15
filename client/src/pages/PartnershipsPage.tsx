@@ -147,13 +147,13 @@ const PartnershipsPage: React.FC = () => {
             mb: 2
           }}
         >
-          Industry Partnerships
+          <span style={{ textDecoration: 'line-through', opacity: 0.6 }}>Disruption</span> Coherence
         </Typography>
         <Typography variant="h5" color="text.secondary" paragraph>
           Enhancing Hollywood's distribution pipelines with blockchain technology
         </Typography>
         <Chip 
-          label="Pipeline Enhancement • Not Disruption" 
+          label="Automation × Acquisition" 
           variant="outlined" 
           sx={{ mt: 2, fontSize: '1rem', py: 1 }}
         />

@@ -103,23 +103,22 @@ const ProVerificationPage: React.FC = () => {
             mb: 2
           }}
         >
-          Pro Verification
+          Tools for storytellers
         </Typography>
         <Typography variant="h5" color="text.secondary" paragraph>
-          Unlock professional filmmaking tools and direct distribution
+          Professional distribution, simplified
         </Typography>
       </Box>
 
       {/* Overview */}
       <Paper elevation={0} sx={{ p: 4, mb: 6, border: '1px solid', borderColor: 'divider' }}>
         <Typography variant="h4" gutterBottom sx={{ fontWeight: 600 }}>
-          Professional Access for Filmmakers
+          Your stories deserve the best stage
         </Typography>
         <Typography variant="body1" paragraph sx={{ lineHeight: 1.7 }}>
-          Pro verification enables professional filmmakers to upload feature films and series content 
-          for direct distribution to audiences and exhibitors. This verification process ensures content 
-          quality and protects the platform's reputation while giving creators powerful tools for 
-          monetization and distribution.
+          Professional verification opens the door to direct distribution—from intimate audiences to 
+          major exhibitors. We ensure every film meets our quality standards while giving you the 
+          tools to reach exactly the viewers who will love your work.
         </Typography>
         
         <Alert severity="info" sx={{ mt: 3 }}>
