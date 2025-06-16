@@ -17,11 +17,13 @@ import dotenv from 'dotenv';
 import mongoose from 'mongoose';
 import bodyParser from 'body-parser';
 import { Request, Response, NextFunction } from 'express';
+import { validateSecurityConfig } from './config/security';
 
 // Load environment variables
 dotenv.config();
 
 // Import routes
+import authRoutes from './routes/authRoutes';
 import userRoutes from './routes/userRoutes';
 import contentRoutes from './routes/contentRoutes';
 import tokenRoutes from './routes/tokenRoutes';
@@ -145,6 +147,7 @@ app.get('/health', (req: Request, res: Response) => {
 });
 
 // Apply routes
+app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/content', contentRoutes);
 app.use('/api/tokens', tokenRoutes);
@@ -169,9 +172,17 @@ async function startServer() {
   // Setup crypto polyfill first
   await setupCryptoPolyfill();
   
+  // 🔒 SECURITY: Validate security configuration on startup
+  try {
+    validateSecurityConfig();
+  } catch (error) {
+    console.error('❌ Security configuration validation failed:', error);
+    process.exit(1);
+  }
+  
   app.listen(PORT, () => {
-    console.log(`API server running on port ${PORT}`);
-    console.log(`Security mode: ${isProduction ? 'Production' : 'Development'}`);
+    console.log(`✅ API server running on port ${PORT}`);
+    console.log(`🔒 Security mode: ${isProduction ? 'Production' : 'Development'}`);
   });
 }
 
