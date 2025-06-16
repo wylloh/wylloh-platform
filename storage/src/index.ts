@@ -1,4 +1,13 @@
 // Node.js polyfills for browser APIs required by Helia/libp2p
+
+// Crypto polyfill setup function
+async function setupCryptoPolyfill() {
+  if (typeof globalThis.crypto === 'undefined') {
+    const crypto = await import('crypto');
+    globalThis.crypto = crypto.webcrypto as any;
+  }
+}
+
 if (typeof globalThis.CustomEvent === 'undefined') {
   globalThis.CustomEvent = class CustomEvent extends Event {
     constructor(type: string, options?: { detail?: any; bubbles?: boolean; cancelable?: boolean }) {
@@ -79,6 +88,9 @@ async function initializeHelia() {
 async function initializeServices(): Promise<void> {
   try {
     serviceLogger.info('Initializing storage services...');
+
+    // Setup crypto polyfill first
+    await setupCryptoPolyfill();
 
     // Initialize Helia IPFS first
     await initializeHelia();
