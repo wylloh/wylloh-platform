@@ -284,7 +284,7 @@ const HomePage: React.FC = () => {
             }}
           >
             Introducing a new licensing standard for personal and commercial applications. 
-            Unlock a download for home viewing, or unlock a cinema package for your theatrical exhibition.
+            Unlock a download for home viewing, or stack to unlock a cinema package for theatrical exhibition.
           </Typography>
         </Box>
         

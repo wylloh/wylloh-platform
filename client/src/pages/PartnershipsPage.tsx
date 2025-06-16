@@ -147,7 +147,7 @@ const PartnershipsPage: React.FC = () => {
             mb: 2
           }}
         >
-          <span style={{ textDecoration: 'line-through', opacity: 0.6, color: '#888888' }}>Disruption</span> Coherence
+          <Box component="span" sx={{ textDecoration: 'line-through', opacity: 0.6, color: 'text.secondary' }}>Disruption</Box> Coherence
         </Typography>
         <Typography variant="h5" color="text.secondary" paragraph>
           Enhancing Hollywood's distribution pipelines with blockchain technology
@@ -340,7 +340,7 @@ const PartnershipsPage: React.FC = () => {
             </List>
           </Grid>
           <Grid item xs={12} md={6}>
-            <Typography variant="h6" gutterBottom sx={{ fontWeight: 600, color: '#333333' }}>
+            <Typography variant="h6" gutterBottom sx={{ fontWeight: 600, color: 'text.primary' }}>
               Collector Experience
             </Typography>
             <Typography variant="body2" sx={{ lineHeight: 1.6, mb: 2 }}>

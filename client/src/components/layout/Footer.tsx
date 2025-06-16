@@ -87,8 +87,8 @@ const Footer: React.FC = () => {
               WYLLOH
             </Typography>
             <Typography variant="body2" color="text.secondary" paragraph>
-              Professional-grade platform for filmmakers. Premium experience for collectors.
-              Secure, permanent, and valuable digital film collection.
+              Enterprise-grade blockchain infrastructure for film distribution. Automated licensing 
+              for exhibitors, perpetual royalties for filmmakers, permanent ownership for collectors.
             </Typography>
             <Box sx={{ mt: 2 }}>
               <IconButton 

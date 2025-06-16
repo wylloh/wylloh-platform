@@ -10,7 +10,9 @@ import {
   ListItem,
   ListItemIcon,
   ListItemText,
-  Chip
+  Chip,
+  Card,
+  CardContent
 } from '@mui/material';
 import {
   Movie as MovieIcon,
@@ -20,68 +22,87 @@ import {
   TrendingUp as TrendingUpIcon,
   VerifiedUser as VerifiedUserIcon,
   Public as PublicIcon,
-  Lock as LockIcon
+  Lock as LockIcon,
+  Token as TokenIcon,
+  Storage as StorageIcon,
+  Api as ApiIcon,
+  Autorenew as AutorenewIcon,
+  Shield as ShieldIcon,
+  Visibility as VisibilityIcon
 } from '@mui/icons-material';
 
 const AboutPage: React.FC = () => {
+  const revolutionaryFeatures = [
+    {
+      icon: <TokenIcon />,
+      title: "Stackable Token Rights",
+      description: "Revolutionary ERC-1155 token architecture where quantity determines usage rights. 1 token = personal viewing, 25,000 tokens = national distribution rights."
+    },
+    {
+      icon: <AutorenewIcon />,
+      title: "Perpetual Royalty Engine",
+      description: "Smart contracts automatically distribute royalties on every transaction. Creators earn from initial sales AND all future resales forever."
+    },
+    {
+      icon: <ShieldIcon />,
+      title: "Blockchain-Native Content Protection",
+      description: "IPFS storage with wallet-based decryption keys. Content remains encrypted and inaccessible without valid token ownership."
+    },
+    {
+      icon: <VisibilityIcon />,
+      title: "Privacy-First Analytics",
+      description: "\"Movies That Don't Watch You Back\" - Analytics derived from public blockchain data, not invasive user tracking."
+    }
+  ];
+
+  const technicalArchitecture = [
+    {
+      icon: <SecurityIcon />,
+      title: "Blockchain Layer",
+      description: "Polygon-based smart contracts managing media licensing, rights verification, and automated royalty distribution with sub-penny transaction costs."
+    },
+    {
+      icon: <StorageIcon />,
+      title: "Decentralized Storage",
+      description: "IPFS/Filecoin integration ensures content is secure, encrypted, and permanently accessible. No single point of failure."
+    },
+    {
+      icon: <ApiIcon />,
+      title: "Access Control Layer",
+      description: "Multi-level encryption with wallet-based authentication. Token holders automatically receive decryption keys for their rights tier."
+    }
+  ];
+
   const valueProps = [
     {
       icon: <MovieIcon />,
-      title: "For Filmmakers & Rights Holders",
+      title: "For Filmmakers",
       benefits: [
         "Perpetual royalties on all sales (primary and secondary)",
-        "Granular control over licensing terms",
-        "Automated rights management",
-        "New financing opportunities"
+        "Granular rights management (personal, commercial, distribution)",
+        "Direct audience relationships without platform intermediaries",
+        "Pre-financing opportunities through token pre-sales"
       ]
     },
     {
       icon: <AccountBalanceWalletIcon />,
-      title: "For Audiences",
+      title: "For Collectors",
       benefits: [
-        "True ownership of purchased content",
-        "Ability to resell licenses",
-        "Flexibility in how content is consumed",
-        "Access to wider range of independent media"
+        "True ownership - tokens persist across platforms",
+        "Resale rights - create secondary markets",
+        "Stackable rights - accumulate tokens for commercial use",
+        "Permanent access - no expiration dates"
       ]
     },
     {
       icon: <GroupIcon />,
-      title: "For Exhibitors & Platforms",
+      title: "For Exhibitors",
       benefits: [
-        "Frictionless licensing",
-        "Automated royalty distribution",
-        "Reduced legal overhead when acquiring content",
-        "API-driven content acquisition based on real-time demand"
+        "Instant rights verification via blockchain",
+        "API-driven content acquisition",
+        "Automated licensing and payments",
+        "Market intelligence from token demand"
       ]
-    }
-  ];
-
-  const differentiators = [
-    {
-      icon: <VerifiedUserIcon />,
-      title: "Modular Rights Management",
-      description: "Licenses can be stacked to unlock different usage rights (personal viewing, commercial exhibition, etc.)"
-    },
-    {
-      icon: <TrendingUpIcon />,
-      title: "Perpetual Royalties",
-      description: "Creators earn from both initial sales and all subsequent resales automatically"
-    },
-    {
-      icon: <PublicIcon />,
-      title: "Organic Distribution",
-      description: "Content can move fluidly between platforms based on market demand rather than fixed distribution windows"
-    },
-    {
-      icon: <SecurityIcon />,
-      title: "Privacy-First Analytics",
-      description: "\"Movies That Don't Watch You Back\" - analytics based solely on blockchain data, respecting user privacy"
-    },
-    {
-      icon: <LockIcon />,
-      title: "Verifiable Ownership",
-      description: "On-chain verification of legitimate access rights with no expiration dates"
     }
   ];
 
@@ -102,37 +123,165 @@ const AboutPage: React.FC = () => {
             mb: 2
           }}
         >
-          Cinema, reimagined.
+          Revolutionizing Film Distribution
         </Typography>
         <Typography variant="h5" color="text.secondary" paragraph>
-          Where every movie finds its forever home.
+          The first blockchain-native platform for tokenized film licensing and distribution
         </Typography>
         <Chip 
-          label="Open Source • Apache License" 
+          label="Blockchain • IPFS • Smart Contracts" 
           variant="outlined" 
           sx={{ mt: 2 }}
         />
       </Box>
 
-      {/* Mission Statement */}
+      {/* What is Wylloh */}
       <Paper elevation={0} sx={{ p: 4, mb: 6, border: '1px solid', borderColor: 'divider' }}>
         <Typography variant="h4" gutterBottom sx={{ fontWeight: 600 }}>
-          Movies that matter.
+          What is Wylloh?
         </Typography>
         <Typography variant="body1" sx={{ fontSize: '1.1rem', lineHeight: 1.7, mb: 3 }}>
-          Every great film deserves to find its audience. Every passionate viewer deserves to truly own 
-          the movies they love. We're building the bridge between these two truths.
+          Wylloh is the world's first blockchain-native film distribution platform that tokenizes movie licenses 
+          using smart contracts. Instead of traditional licensing paperwork, films become ERC-1155 tokens where 
+          ownership quantity determines usage rights.
         </Typography>
         <Typography variant="body1" sx={{ fontSize: '1.1rem', lineHeight: 1.7 }}>
-          Professional-grade tools for filmmakers. Premium ownership experience for audiences. 
-          All built on technology that respects both creativity and privacy.
+          We've solved the fundamental problems of digital media ownership: expiration dates, platform lock-in, 
+          and creator compensation. Our technology creates permanent, transferable rights that benefit everyone 
+          in the film ecosystem.
         </Typography>
       </Paper>
+
+      {/* Revolutionary Features */}
+      <Box sx={{ mb: 6 }}>
+        <Typography variant="h4" gutterBottom sx={{ fontWeight: 600, mb: 4 }}>
+          Revolutionary Technology
+        </Typography>
+        <Grid container spacing={4}>
+          {revolutionaryFeatures.map((feature, index) => (
+            <Grid item xs={12} md={6} key={index}>
+              <Card 
+                elevation={0} 
+                sx={{ 
+                  height: '100%',
+                  border: '1px solid',
+                  borderColor: 'divider',
+                  '&:hover': {
+                    borderColor: 'primary.main',
+                    transform: 'translateY(-2px)',
+                    transition: 'all 0.2s ease-in-out'
+                  }
+                }}
+              >
+                <CardContent sx={{ p: 3 }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+                    <Box sx={{ color: 'primary.main', mr: 2 }}>
+                      {feature.icon}
+                    </Box>
+                    <Typography variant="h6" sx={{ fontWeight: 600 }}>
+                      {feature.title}
+                    </Typography>
+                  </Box>
+                  <Typography variant="body2" color="text.secondary" sx={{ lineHeight: 1.6 }}>
+                    {feature.description}
+                  </Typography>
+                </CardContent>
+              </Card>
+            </Grid>
+          ))}
+        </Grid>
+      </Box>
+
+      {/* Technical Architecture */}
+      <Paper elevation={0} sx={{ p: 4, mb: 6, border: '1px solid', borderColor: 'divider' }}>
+        <Typography variant="h4" gutterBottom sx={{ fontWeight: 600 }}>
+          How It Works
+        </Typography>
+        <Typography variant="body1" paragraph sx={{ lineHeight: 1.7, mb: 4 }}>
+          Wylloh operates on a three-layer architecture that combines blockchain technology, 
+          decentralized storage, and sophisticated access controls:
+        </Typography>
+        
+        <Grid container spacing={4}>
+          {technicalArchitecture.map((layer, index) => (
+            <Grid item xs={12} md={4} key={index}>
+              <Box sx={{ textAlign: 'center' }}>
+                <Box sx={{ color: 'primary.main', mb: 2 }}>
+                  {layer.icon}
+                </Box>
+                <Typography variant="h6" gutterBottom sx={{ fontWeight: 600 }}>
+                  {layer.title}
+                </Typography>
+                <Typography variant="body2" color="text.secondary" sx={{ lineHeight: 1.6 }}>
+                  {layer.description}
+                </Typography>
+              </Box>
+            </Grid>
+          ))}
+        </Grid>
+      </Paper>
+
+      {/* The Revolutionary Model */}
+      <Box sx={{ mb: 6 }}>
+        <Typography variant="h4" gutterBottom sx={{ fontWeight: 600, mb: 4 }}>
+          What Makes This Revolutionary
+        </Typography>
+        <Grid container spacing={4}>
+          <Grid item xs={12} md={6}>
+            <Paper elevation={0} sx={{ p: 3, border: '1px solid', borderColor: 'divider', height: '100%' }}>
+              <Typography variant="h6" gutterBottom sx={{ fontWeight: 600, color: 'primary.main' }}>
+                Traditional Model Problems
+              </Typography>
+              <List dense>
+                <ListItem sx={{ px: 0 }}>
+                  <ListItemText primary="Content expires or disappears" />
+                </ListItem>
+                <ListItem sx={{ px: 0 }}>
+                  <ListItemText primary="No resale rights for digital purchases" />
+                </ListItem>
+                <ListItem sx={{ px: 0 }}>
+                  <ListItemText primary="Complex licensing negotiations" />
+                </ListItem>
+                <ListItem sx={{ px: 0 }}>
+                  <ListItemText primary="Creators get paid once" />
+                </ListItem>
+                <ListItem sx={{ px: 0 }}>
+                  <ListItemText primary="Platform lock-in and gatekeepers" />
+                </ListItem>
+              </List>
+            </Paper>
+          </Grid>
+          <Grid item xs={12} md={6}>
+            <Paper elevation={0} sx={{ p: 3, border: '1px solid', borderColor: 'divider', height: '100%' }}>
+              <Typography variant="h6" gutterBottom sx={{ fontWeight: 600, color: 'success.main' }}>
+                Wylloh Solution
+              </Typography>
+              <List dense>
+                <ListItem sx={{ px: 0 }}>
+                  <ListItemText primary="Permanent ownership via blockchain" />
+                </ListItem>
+                <ListItem sx={{ px: 0 }}>
+                  <ListItemText primary="Secondary markets for all content" />
+                </ListItem>
+                <ListItem sx={{ px: 0 }}>
+                  <ListItemText primary="Instant verification and licensing" />
+                </ListItem>
+                <ListItem sx={{ px: 0 }}>
+                  <ListItemText primary="Perpetual royalties on all sales" />
+                </ListItem>
+                <ListItem sx={{ px: 0 }}>
+                  <ListItemText primary="Platform-agnostic content access" />
+                </ListItem>
+              </List>
+            </Paper>
+          </Grid>
+        </Grid>
+      </Box>
 
       {/* Value Propositions */}
       <Box sx={{ mb: 6 }}>
         <Typography variant="h4" gutterBottom sx={{ fontWeight: 600, mb: 4 }}>
-          Value for Everyone
+          Value for the Film Ecosystem
         </Typography>
         <Grid container spacing={4}>
           {valueProps.map((prop, index) => (
@@ -178,82 +327,7 @@ const AboutPage: React.FC = () => {
         </Grid>
       </Box>
 
-      {/* Key Differentiators */}
-      <Box sx={{ mb: 6 }}>
-        <Typography variant="h4" gutterBottom sx={{ fontWeight: 600, mb: 4 }}>
-          What Makes Us Different
-        </Typography>
-        <Grid container spacing={3}>
-          {differentiators.map((diff, index) => (
-            <Grid item xs={12} sm={6} key={index}>
-              <Box sx={{ display: 'flex', mb: 3 }}>
-                <Box sx={{ color: 'primary.main', mr: 2, mt: 0.5 }}>
-                  {diff.icon}
-                </Box>
-                <Box>
-                  <Typography variant="h6" gutterBottom sx={{ fontWeight: 600 }}>
-                    {diff.title}
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary" sx={{ lineHeight: 1.6 }}>
-                    {diff.description}
-                  </Typography>
-                </Box>
-              </Box>
-            </Grid>
-          ))}
-        </Grid>
-      </Box>
-
-      {/* System Overview */}
-      <Paper elevation={0} sx={{ p: 4, mb: 6, border: '1px solid', borderColor: 'divider' }}>
-        <Typography variant="h4" gutterBottom sx={{ fontWeight: 600 }}>
-          How It Works
-        </Typography>
-        <Typography variant="body1" paragraph sx={{ lineHeight: 1.7 }}>
-          Wylloh is an integrated ecosystem consisting of three primary components:
-        </Typography>
-        
-        <Grid container spacing={3} sx={{ mt: 2 }}>
-          <Grid item xs={12} md={4}>
-            <Box sx={{ textAlign: 'center' }}>
-              <SecurityIcon sx={{ fontSize: 48, color: 'primary.main', mb: 2 }} />
-              <Typography variant="h6" gutterBottom sx={{ fontWeight: 600 }}>
-                Blockchain Layer
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
-                Polygon-based smart contracts managing media licensing, rights verification, 
-                and automated royalty distribution.
-              </Typography>
-            </Box>
-          </Grid>
-          <Grid item xs={12} md={4}>
-            <Box sx={{ textAlign: 'center' }}>
-              <PublicIcon sx={{ fontSize: 48, color: 'primary.main', mb: 2 }} />
-              <Typography variant="h6" gutterBottom sx={{ fontWeight: 600 }}>
-                Storage Layer
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
-                Decentralized IPFS/Filecoin storage ensuring content is secure, 
-                encrypted, and accessible only to authorized token holders.
-              </Typography>
-            </Box>
-          </Grid>
-          <Grid item xs={12} md={4}>
-            <Box sx={{ textAlign: 'center' }}>
-              <MovieIcon sx={{ fontSize: 48, color: 'primary.main', mb: 2 }} />
-              <Typography variant="h6" gutterBottom sx={{ fontWeight: 600 }}>
-                Access Layer
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
-                Web platform and specialized hardware providing interfaces for content 
-                management, token operations, and secure playback.
-              </Typography>
-            </Box>
-          </Grid>
-        </Grid>
-      </Paper>
-
-      {/* Current Status */}
+      {/* Open Source Philosophy */}
       <Paper 
         elevation={0}
         sx={{ 
@@ -264,30 +338,18 @@ const AboutPage: React.FC = () => {
           background: 'linear-gradient(135deg, rgba(25, 118, 210, 0.05), rgba(66, 165, 245, 0.05))'
         }}
       >
-        <Typography variant="h5" gutterBottom sx={{ fontWeight: 600 }}>
-          Open Source Development
+        <Typography variant="h4" gutterBottom sx={{ fontWeight: 600 }}>
+          Open Source Protocol
         </Typography>
-        <Typography variant="body1" color="text.secondary" paragraph>
-          Wylloh is developed as an open-source project under the Apache License. 
-          Our goal is for other platforms to adopt this protocol, making movie assets 
+        <Typography variant="body1" color="text.secondary" paragraph sx={{ mb: 3 }}>
+          Wylloh is developed as an open-source protocol under the Apache License. 
+          Our goal is for other platforms to adopt this technology, making movie tokens 
           cross-compatible and expanding market exposure for filmmakers.
         </Typography>
-        <Typography variant="body2" color="text.secondary">
-          Filmmakers benefit from wider distribution as their content becomes 
-          accessible across multiple compatible platforms.
-        </Typography>
-        <Divider sx={{ my: 3 }} />
-        <Typography variant="body2" color="text.secondary">
-          Want to contribute? Visit our{' '}
-          <Typography 
-            component="a" 
-            href="https://github.com/wylloh/wylloh-platform" 
-            target="_blank"
-            sx={{ color: 'primary.main', textDecoration: 'none', fontWeight: 600 }}
-          >
-            GitHub repository
-          </Typography>
-          {' '}to get started.
+        <Typography variant="body1" color="text.secondary">
+          When the protocol becomes an industry standard, filmmakers benefit from 
+          wider distribution as their content becomes accessible across multiple 
+          compatible platforms and marketplaces.
         </Typography>
       </Paper>
     </Container>
