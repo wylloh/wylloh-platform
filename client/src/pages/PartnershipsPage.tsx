@@ -147,7 +147,7 @@ const PartnershipsPage: React.FC = () => {
             mb: 2
           }}
         >
-          <Box component="span" sx={{ textDecoration: 'line-through', opacity: 0.6, color: 'text.secondary' }}>Disruption</Box> Coherence
+          <Box component="span" sx={{ textDecoration: 'line-through', color: 'grey.500' }}>Disruption</Box> Coherence
         </Typography>
         <Typography variant="h5" color="text.secondary" paragraph>
           Enhancing Hollywood's distribution pipelines with blockchain technology
@@ -304,7 +304,7 @@ const PartnershipsPage: React.FC = () => {
       </Box>
 
       {/* Collector vs Professional Distinction */}
-      <Paper elevation={0} sx={{ p: 4, mb: 6, border: '1px solid', borderColor: 'divider', bgcolor: 'grey.50' }}>
+      <Paper elevation={0} sx={{ p: 4, mb: 6, border: '1px solid', borderColor: 'divider', bgcolor: 'background.paper' }}>
         <Typography variant="h5" gutterBottom sx={{ fontWeight: 600, mb: 3 }}>
           Dual-Market Approach
         </Typography>
@@ -313,7 +313,7 @@ const PartnershipsPage: React.FC = () => {
             <Typography variant="h6" gutterBottom sx={{ fontWeight: 600, color: 'primary.main' }}>
               Professional Distribution
             </Typography>
-            <Typography variant="body2" sx={{ lineHeight: 1.6, mb: 2 }}>
+            <Typography variant="body2" sx={{ lineHeight: 1.6, mb: 2, color: 'text.primary' }}>
               Our primary focus is enhancing professional distribution workflows for theatrical 
               exhibitors, streaming platforms, and distribution companies. We provide enterprise-grade 
               tools for licensing, rights management, and market intelligence.
@@ -322,19 +322,19 @@ const PartnershipsPage: React.FC = () => {
               <ListItem sx={{ px: 0 }}>
                 <ListItemText 
                   primary="API-first integration with existing systems"
-                  primaryTypographyProps={{ variant: 'body2' }}
+                  primaryTypographyProps={{ variant: 'body2', color: 'text.primary' }}
                 />
               </ListItem>
               <ListItem sx={{ px: 0 }}>
                 <ListItemText 
                   primary="Automated licensing and royalty distribution"
-                  primaryTypographyProps={{ variant: 'body2' }}
+                  primaryTypographyProps={{ variant: 'body2', color: 'text.primary' }}
                 />
               </ListItem>
               <ListItem sx={{ px: 0 }}>
                 <ListItemText 
                   primary="Enterprise security and compliance"
-                  primaryTypographyProps={{ variant: 'body2' }}
+                  primaryTypographyProps={{ variant: 'body2', color: 'text.primary' }}
                 />
               </ListItem>
             </List>
@@ -343,7 +343,7 @@ const PartnershipsPage: React.FC = () => {
             <Typography variant="h6" gutterBottom sx={{ fontWeight: 600, color: 'text.primary' }}>
               Collector Experience
             </Typography>
-            <Typography variant="body2" sx={{ lineHeight: 1.6, mb: 2 }}>
+            <Typography variant="body2" sx={{ lineHeight: 1.6, mb: 2, color: 'text.primary' }}>
               While we support direct viewing through our proprietary player, this experience 
               is designed for passionate collectors and film enthusiasts rather than casual viewers. 
               This preserves the traditional streaming market for our platform partners.
@@ -352,19 +352,19 @@ const PartnershipsPage: React.FC = () => {
               <ListItem sx={{ px: 0 }}>
                 <ListItemText 
                   primary="Premium collecting experience for film enthusiasts"
-                  primaryTypographyProps={{ variant: 'body2' }}
+                  primaryTypographyProps={{ variant: 'body2', color: 'text.primary' }}
                 />
               </ListItem>
               <ListItem sx={{ px: 0 }}>
                 <ListItemText 
                   primary="Complementary to mainstream streaming services"
-                  primaryTypographyProps={{ variant: 'body2' }}
+                  primaryTypographyProps={{ variant: 'body2', color: 'text.primary' }}
                 />
               </ListItem>
               <ListItem sx={{ px: 0 }}>
                 <ListItemText 
                   primary="Focus on ownership and permanence"
-                  primaryTypographyProps={{ variant: 'body2' }}
+                  primaryTypographyProps={{ variant: 'body2', color: 'text.primary' }}
                 />
               </ListItem>
             </List>

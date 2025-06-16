@@ -126,7 +126,7 @@ const AboutPage: React.FC = () => {
           Revolutionizing Film Distribution
         </Typography>
         <Typography variant="h5" color="text.secondary" paragraph>
-          The first blockchain-native platform for tokenized film licensing and distribution
+          The first blockchain-native platform for tokenized film licensing and distribution.
         </Typography>
         <Chip 
           label="Blockchain • IPFS • Smart Contracts" 
