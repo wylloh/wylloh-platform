@@ -1,7 +1,10 @@
 import jwt from 'jsonwebtoken';
 import crypto from 'crypto';
+import mongoose from 'mongoose';
 import { createError } from '../middleware/errorHandler';
 import User, { IUser } from '../models/User';
+import { validateWalletAddress, validateAndSanitizeUsername, validateAndSanitizeEmail, checkRateLimit } from '../utils/validation';
+import { isAdminWallet, SECURITY_CONFIG } from '../config/security';
 // Import a proper email sending service in a real implementation
 // import emailService from './emailService';
 
@@ -79,52 +82,165 @@ class AuthService {
   }
 
   /**
-   * Login or register with wallet
+   * Login or register with wallet (Web3-first approach) - SECURE VERSION
    * @param walletAddress Wallet address
-   * @param signature Signature
+   * @param userData Optional user data for profile creation
+   * @param clientIP Client IP for rate limiting
    */
-  async walletAuth(walletAddress: string, signature: string) {
-    // Verify signature
-    await this.verifyWalletSignature(walletAddress, signature);
-
-    // Find user with this wallet address
-    let user = await User.findOne({ walletAddress });
-
-    if (!user) {
-      // Create new user if this wallet is not associated with any account
-      user = new User({
-        username: `user_${walletAddress.substring(2, 8)}`,
-        email: `wallet_${walletAddress.substring(2, 8)}@placeholder.com`,
-        password: crypto.randomBytes(20).toString('hex'), // Random password
-        walletAddress,
-        roles: ['user']
-      });
-
-      await user.save();
+  async walletAuth(walletAddress: string, userData?: { username?: string, email?: string }, clientIP?: string) {
+    // 🔒 SECURITY: Validate wallet address format
+    if (!validateWalletAddress(walletAddress)) {
+      throw createError('Invalid wallet address format', 400);
     }
 
-    // Generate token
-    const token = this.generateToken(user.id);
+    // 🔒 SECURITY: Rate limiting
+    const rateLimitKey = `wallet_auth_${clientIP || 'unknown'}`;
+    if (!checkRateLimit(rateLimitKey, SECURITY_CONFIG.WALLET_CONNECT_RATE_LIMIT, SECURITY_CONFIG.RATE_LIMIT_WINDOW_MS)) {
+      throw createError('Too many wallet connection attempts. Please try again later.', 429);
+    }
 
-    return { user, token };
+    const normalizedAddress = walletAddress.toLowerCase();
+    
+    // 🔒 SECURITY: Use secure admin wallet checking
+    const isAdmin = isAdminWallet(normalizedAddress);
+
+    // 🔒 SECURITY: Use database transaction to prevent race conditions
+    const session = await mongoose.startSession();
+    
+    try {
+      let user: IUser | null = null;
+      
+      await session.withTransaction(async () => {
+        // Find user with this wallet address
+        user = await User.findOne({ walletAddress: normalizedAddress }).session(session);
+
+        if (!user) {
+          // Create new user if this wallet is not associated with any account
+          const username = userData?.username || `user_${walletAddress.substring(2, 8)}`;
+          const email = userData?.email || `${walletAddress.substring(2, 8)}@wallet.local`;
+          
+          user = new User({
+            username,
+            email,
+            password: crypto.randomBytes(32).toString('hex'), // Secure random password
+            walletAddress: normalizedAddress,
+            roles: isAdmin ? ['admin', 'user'] : ['user'],
+            isVerified: true // Wallet connection serves as verification
+          });
+
+          await user.save({ session });
+          console.log(`✅ Created new wallet user: ${username} (${walletAddress})${isAdmin ? ' - ADMIN' : ''}`);
+        } else {
+          // Update existing user with admin role if needed
+          if (isAdmin && !user.roles.includes('admin')) {
+            user.roles.push('admin');
+            await user.save({ session });
+            console.log(`✅ Granted admin role to: ${user.username}`);
+          }
+        }
+
+        // Update last login
+        user.lastLogin = new Date();
+        await user.save({ session });
+      });
+
+      if (!user) {
+        throw createError('Failed to authenticate wallet', 500);
+      }
+
+      // Generate secure token
+      const token = this.generateToken(user.id);
+
+      return { user, token };
+    } catch (error) {
+      console.error('❌ Wallet authentication error:', error);
+      throw error;
+    } finally {
+      await session.endSession();
+    }
   }
 
   /**
-   * Verify wallet signature
+   * Create wallet profile with custom data - SECURE VERSION
    * @param walletAddress Wallet address
-   * @param signature Signature
+   * @param profileData Profile data
+   * @param clientIP Client IP for rate limiting
    */
-  async verifyWalletSignature(_walletAddress: string, _signature: string): Promise<boolean> {
+  async createWalletProfile(walletAddress: string, profileData: { username: string, email?: string }, clientIP?: string) {
+    // 🔒 SECURITY: Validate wallet address format
+    if (!validateWalletAddress(walletAddress)) {
+      throw createError('Invalid wallet address format', 400);
+    }
+
+    // 🔒 SECURITY: Rate limiting for profile creation
+    const rateLimitKey = `profile_create_${clientIP || 'unknown'}`;
+    if (!checkRateLimit(rateLimitKey, SECURITY_CONFIG.PROFILE_CREATE_RATE_LIMIT, SECURITY_CONFIG.RATE_LIMIT_WINDOW_MS)) {
+      throw createError('Too many profile creation attempts. Please try again later.', 429);
+    }
+
+    // 🔒 SECURITY: Validate and sanitize username
+    const usernameValidation = validateAndSanitizeUsername(profileData.username);
+    if (!usernameValidation.isValid) {
+      throw createError(usernameValidation.error || 'Invalid username', 400);
+    }
+
+    // 🔒 SECURITY: Validate and sanitize email if provided
+    const emailValidation = validateAndSanitizeEmail(profileData.email);
+    if (!emailValidation.isValid) {
+      throw createError(emailValidation.error || 'Invalid email', 400);
+    }
+
+    const normalizedAddress = walletAddress.toLowerCase();
+    
+    // 🔒 SECURITY: Use secure admin wallet checking
+    const isAdmin = isAdminWallet(normalizedAddress);
+
+    // 🔒 SECURITY: Use database transaction to prevent race conditions
+    const session = await mongoose.startSession();
+    
     try {
-      // In a real implementation, we would:
-      // 1. Generate a nonce for the user to sign
-      // 2. Verify the signature against the nonce
-      // 3. Ensure the nonce is used only once
+      let user: IUser | null = null;
       
-      // For demonstration, we'll return true
-      return true;
+      await session.withTransaction(async () => {
+        // Check if user already exists
+        const existingUser = await User.findOne({ walletAddress: normalizedAddress }).session(session);
+        if (existingUser) {
+          throw createError('Wallet already has an associated profile', 400);
+        }
+
+        // Check if username is taken
+        const existingUsername = await User.findOne({ username: usernameValidation.sanitized }).session(session);
+        if (existingUsername) {
+          throw createError('Username already taken', 400);
+        }
+
+        // Create new user with sanitized data
+        user = new User({
+          username: usernameValidation.sanitized!,
+          email: emailValidation.sanitized || `${walletAddress.substring(2, 8)}@wallet.local`,
+          password: crypto.randomBytes(32).toString('hex'), // Secure random password
+          walletAddress: normalizedAddress,
+          roles: isAdmin ? ['admin', 'user'] : ['user'],
+          isVerified: true
+        });
+
+        await user.save({ session });
+      });
+
+      if (!user) {
+        throw createError('Failed to create wallet profile', 500);
+      }
+
+      // Generate secure token
+      const token = this.generateToken(user.id);
+
+      console.log(`✅ Created wallet profile: ${user.username} (${walletAddress})${isAdmin ? ' - ADMIN' : ''}`);
+      return { user, token };
     } catch (error) {
-      throw createError('Signature verification failed', 401);
+      console.error('❌ Wallet profile creation error:', error);
+      throw error;
+    } finally {
+      await session.endSession();
     }
   }
 

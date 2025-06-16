@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode, useRef, useCallback } from 'react';
 import { useWallet } from './WalletContext';
+import { authAPI, WalletUser } from '../services/authAPI';
 
 interface AuthContextType {
   isAuthenticated: boolean;
@@ -14,6 +15,9 @@ interface AuthContextType {
   // New Web3-first methods
   authenticateWithWallet: (walletAddress: string) => Promise<boolean>;
   createWalletProfile: (walletAddress: string, username: string, email?: string) => Promise<boolean>;
+  // Enhanced state management
+  isInitialized: boolean;
+  authenticationInProgress: boolean;
 }
 
 interface User {
@@ -48,6 +52,10 @@ interface AuthState {
   loading: boolean;
   error: string | null;
   isAuthenticated: boolean;
+  // Add new fields for robust state management
+  isInitialized: boolean;
+  authenticationInProgress: boolean;
+  lastSyncedWallet: string | null;
 }
 
 // Registration data interface for both email and wallet-based registration
@@ -66,6 +74,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     loading: true,
     error: null,
     isAuthenticated: false,
+    isInitialized: false,
+    authenticationInProgress: false,
+    lastSyncedWallet: null,
   });
   
   // Get wallet context
@@ -128,6 +139,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               loading: false,
               error: null,
               isAuthenticated: true,
+              isInitialized: true,
+              authenticationInProgress: false,
+              lastSyncedWallet: account || null,
             });
           } else {
             // Invalid stored user data
@@ -142,6 +156,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           loading: false,
           error: 'Authentication verification failed',
           isAuthenticated: false,
+          isInitialized: true,
+          authenticationInProgress: false,
+          lastSyncedWallet: null,
         });
       }
     };
@@ -215,6 +232,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setState(prevState => ({
         ...prevState,
         user: updatedUser,
+        lastSyncedWallet: account,
       }));
       // Update localStorage as well
       localStorage.setItem('user', JSON.stringify(updatedUser));
@@ -225,6 +243,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setState(prevState => ({
         ...prevState,
         user: updatedUser,
+        lastSyncedWallet: null,
       }));
       localStorage.setItem('user', JSON.stringify(updatedUser));
     }
@@ -236,6 +255,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       ...state,
       loading: true,
       error: null,
+      authenticationInProgress: true,
     });
     
     try {
@@ -275,6 +295,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           loading: false,
           error: null,
           isAuthenticated: true,
+          isInitialized: true,
+          authenticationInProgress: false,
+          lastSyncedWallet: account || null,
         });
         return true;
       } else {
@@ -285,6 +308,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         ...state,
         error: err.message || 'Login failed',
         loading: false,
+        authenticationInProgress: false,
       });
       return false;
     }
@@ -332,7 +356,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         user: newUser,
         loading: false,
         error: null,
-        isAuthenticated: true
+        isAuthenticated: true,
+        isInitialized: true,
+        authenticationInProgress: false,
+        lastSyncedWallet: account || null,
       });
 
       console.log(`User registered successfully: ${data.username} with wallet ${data.walletAddress}`);
@@ -354,6 +381,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       ...state,
       loading: true,
       error: null,
+      authenticationInProgress: true,
     });
     
     try {
@@ -380,6 +408,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setState({
           ...state,
           user: updatedUser,
+          authenticationInProgress: false,
         });
         localStorage.setItem('user', JSON.stringify(updatedUser));
         setState({
@@ -395,6 +424,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         ...state,
         error: err.message || 'Pro status request failed',
         loading: false,
+        authenticationInProgress: false,
       });
       return false;
     }
@@ -410,6 +440,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       loading: false,
       error: null,
       isAuthenticated: false,
+      isInitialized: true,
+      authenticationInProgress: false,
+      lastSyncedWallet: null,
     });
   };
 
@@ -419,106 +452,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   // Helper function to get user display name
-  // Web3-first authentication - check if wallet has existing account
-  const authenticateWithWallet = async (walletAddress: string): Promise<boolean> => {
-    try {
-      setState(prevState => ({ ...prevState, loading: true, error: null }));
-      
-      // Check if this wallet address has an existing account
-      const existingUser = localStorage.getItem(`wallet_user_${walletAddress.toLowerCase()}`);
-      
-      if (existingUser) {
-        const userData = JSON.parse(existingUser);
-        
-        // Check if this is the platform founder wallet and ensure admin role
-        const platformFounderWallet = '0x7FA50da5a8f998c9184E344279b205DE699Aa672';
-        const isAdmin = walletAddress.toLowerCase() === platformFounderWallet.toLowerCase();
-        
-        // Update roles if this is admin wallet but doesn't have admin role
-        if (isAdmin && !userData.roles.includes('admin')) {
-          userData.roles = ['admin', 'user'];
-          localStorage.setItem(`wallet_user_${walletAddress.toLowerCase()}`, JSON.stringify(userData));
-          console.log('Admin role granted to platform founder wallet');
-        }
-        
-        // Store as current user
-        localStorage.setItem('token', `wallet_token_${Date.now()}`);
-        localStorage.setItem('user', JSON.stringify(userData));
-        
-        setState({
-          user: userData,
-          loading: false,
-          error: null,
-          isAuthenticated: true
-        });
-        
-        console.log(`Wallet authentication successful for: ${walletAddress}${isAdmin ? ' (ADMIN)' : ''}`);
-        return true;
-      } else {
-        // No existing account for this wallet
-        setState(prevState => ({ ...prevState, loading: false }));
-        return false;
-      }
-    } catch (err) {
-      console.error('Wallet authentication error:', err);
-      setState(prevState => ({
-        ...prevState,
-        loading: false,
-        error: 'Wallet authentication failed.'
-      }));
-      return false;
-    }
-  };
-
-  // Create new wallet-based profile
-  const createWalletProfile = async (walletAddress: string, username: string, email?: string): Promise<boolean> => {
-    try {
-      setState(prevState => ({ ...prevState, loading: true, error: null }));
-      
-      // Validate username
-      if (!username || username.trim().length < 3) {
-        throw new Error('Username must be at least 3 characters long');
-      }
-      
-      // Check if this is the platform founder wallet (admin)
-      const platformFounderWallet = '0x7FA50da5a8f998c9184E344279b205DE699Aa672';
-      const isAdmin = walletAddress.toLowerCase() === platformFounderWallet.toLowerCase();
-      
-      // Create new wallet-based user
-      const newUser: User = {
-        id: `wallet_${walletAddress.toLowerCase()}`,
-        username: username.trim(),
-        email: email || `${walletAddress.toLowerCase().slice(0, 8)}@wallet.local`,
-        roles: isAdmin ? ['admin', 'user'] : ['user'],
-        walletAddress: walletAddress,
-        isWalletOnlyAccount: !email
-      };
-      
-      // Store wallet user separately and as current user
-      localStorage.setItem(`wallet_user_${walletAddress.toLowerCase()}`, JSON.stringify(newUser));
-      localStorage.setItem('token', `wallet_token_${Date.now()}`);
-      localStorage.setItem('user', JSON.stringify(newUser));
-      
-      setState({
-        user: newUser,
-        loading: false,
-        error: null,
-        isAuthenticated: true
-      });
-      
-      console.log(`Wallet profile created successfully for: ${username} (${walletAddress})${isAdmin ? ' - ADMIN ROLE GRANTED' : ''}`);
-      return true;
-    } catch (err: any) {
-      console.error('Wallet profile creation error:', err);
-      setState(prevState => ({
-        ...prevState,
-        loading: false,
-        error: err.message || 'Failed to create wallet profile.'
-      }));
-      return false;
-    }
-  };
-
   const getDisplayName = (): string => {
     if (!state.user) return 'Guest';
     
@@ -537,6 +470,195 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return state.user.email || 'User';
   };
 
+  // Web3-first authentication - check if wallet has existing account
+  const authenticateWithWallet = async (walletAddress: string): Promise<boolean> => {
+    try {
+      setState(prevState => ({ ...prevState, loading: true, error: null, authenticationInProgress: true }));
+      
+      // Use API to connect wallet (checks database for existing user)
+      const result = await authAPI.connectWallet(walletAddress);
+      
+      if (result.success && result.user) {
+        // Update state with authenticated user
+        setState({
+          user: result.user as any, // Convert WalletUser to User type
+          loading: false,
+          error: null,
+          isAuthenticated: true,
+          isInitialized: true,
+          authenticationInProgress: false,
+          lastSyncedWallet: walletAddress,
+        });
+        
+        console.log(`Wallet authentication successful: ${result.user.username} (${walletAddress})`);
+        return true;
+      } else if (result.needsProfile) {
+        // No existing account for this wallet
+        setState(prevState => ({ 
+          ...prevState, 
+          loading: false, 
+          authenticationInProgress: false 
+        }));
+        return false;
+      } else {
+        // API error
+        setState(prevState => ({
+          ...prevState,
+          loading: false,
+          authenticationInProgress: false,
+          error: 'Failed to connect to wallet service.'
+        }));
+        return false;
+      }
+    } catch (err) {
+      console.error('Wallet authentication error:', err);
+      setState(prevState => ({
+        ...prevState,
+        loading: false,
+        authenticationInProgress: false,
+        error: 'Wallet authentication failed.'
+      }));
+      return false;
+    }
+  };
+
+  // Create new wallet-based profile
+  const createWalletProfile = async (walletAddress: string, username: string, email?: string): Promise<boolean> => {
+    try {
+      setState(prevState => ({ ...prevState, loading: true, error: null, authenticationInProgress: true }));
+      
+      // Validate username
+      if (!username || username.trim().length < 3) {
+        throw new Error('Username must be at least 3 characters long');
+      }
+      
+      // Use API to create wallet profile
+      const result = await authAPI.createWalletProfile(walletAddress, username.trim(), email);
+      
+      if (result.success && result.user) {
+        // Update state with new user
+        setState({
+          user: result.user as any, // Convert WalletUser to User type
+          loading: false,
+          error: null,
+          isAuthenticated: true,
+          isInitialized: true,
+          authenticationInProgress: false,
+          lastSyncedWallet: walletAddress,
+        });
+        
+        console.log(`Wallet profile created successfully: ${result.user.username} (${walletAddress})`);
+        return true;
+      } else {
+        // Profile creation failed
+        setState(prevState => ({
+          ...prevState,
+          loading: false,
+          authenticationInProgress: false,
+          error: result.error || 'Failed to create wallet profile.'
+        }));
+        return false;
+      }
+    } catch (err: any) {
+      console.error('Wallet profile creation error:', err);
+      setState(prevState => ({
+        ...prevState,
+        loading: false,
+        authenticationInProgress: false,
+        error: err.message || 'Failed to create wallet profile.'
+      }));
+      return false;
+    }
+  };
+
+  // State validation and synchronization methods
+  const validateAuthState = useCallback(() => {
+    const { isAuthenticated, user, lastSyncedWallet } = state;
+    const hasToken = Boolean(localStorage.getItem('token'));
+    const hasStoredUser = Boolean(localStorage.getItem('user'));
+    
+    // Check for inconsistencies
+    const inconsistencies = [];
+    
+    if (isAuthenticated && !hasToken) {
+      inconsistencies.push('User authenticated but no token in localStorage');
+    }
+    
+    if (isAuthenticated && !user) {
+      inconsistencies.push('User authenticated but no user object in state');
+    }
+    
+    if (account && isAuthenticated && user?.walletAddress && 
+        account.toLowerCase() !== user.walletAddress.toLowerCase()) {
+      inconsistencies.push('Connected wallet differs from authenticated user wallet');
+    }
+    
+    if (lastSyncedWallet && account && 
+        lastSyncedWallet.toLowerCase() !== account.toLowerCase()) {
+      inconsistencies.push('Wallet state out of sync');
+    }
+    
+    if (inconsistencies.length > 0) {
+      console.warn('AuthContext state inconsistencies detected:', inconsistencies);
+      return false;
+    }
+    
+    return true;
+  }, [state, account]);
+
+  const syncWalletState = useCallback(async () => {
+    if (state.authenticationInProgress) {
+      console.log('Authentication in progress, skipping sync');
+      return;
+    }
+    
+    if (!state.isInitialized) {
+      console.log('Auth not initialized, skipping sync');
+      return;
+    }
+    
+    // If wallet is connected but we're not authenticated, try to authenticate
+    if (account && !state.isAuthenticated) {
+      console.log('Wallet connected but not authenticated, attempting sync authentication');
+      
+      setState(prevState => ({ ...prevState, authenticationInProgress: true }));
+      
+      try {
+        const success = await authenticateWithWallet(account);
+        if (!success) {
+          console.log('No existing account found for wallet during sync');
+        }
+      } catch (error) {
+        console.error('Error during wallet sync authentication:', error);
+      } finally {
+        setState(prevState => ({ ...prevState, authenticationInProgress: false }));
+      }
+    }
+    
+    // If we're authenticated but wallet is disconnected, clear wallet from user
+    if (state.isAuthenticated && state.user?.walletAddress && !account) {
+      console.log('Authenticated user has wallet but no wallet connected, clearing wallet');
+      const updatedUser = { ...state.user, walletAddress: undefined };
+      setState(prevState => ({
+        ...prevState,
+        user: updatedUser,
+        lastSyncedWallet: null,
+      }));
+      localStorage.setItem('user', JSON.stringify(updatedUser));
+    }
+  }, [account, state, authenticateWithWallet]);
+
+  // Validate state periodically and on key changes
+  useEffect(() => {
+    if (state.isInitialized && !state.authenticationInProgress) {
+      const isValid = validateAuthState();
+      if (!isValid) {
+        console.log('State validation failed, attempting sync');
+        syncWalletState();
+      }
+    }
+  }, [state.isInitialized, state.authenticationInProgress, validateAuthState, syncWalletState]);
+
   const value = {
     isAuthenticated: state.isAuthenticated,
     user: state.user,
@@ -549,6 +671,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     getDisplayName,
     authenticateWithWallet,
     createWalletProfile,
+    isInitialized: state.isInitialized,
+    authenticationInProgress: state.authenticationInProgress,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
