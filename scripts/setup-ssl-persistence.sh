@@ -97,7 +97,7 @@ echo "🔄 $(date): Checking SSL certificate renewal..."
 sudo certbot renew --quiet
 
 # Check if renewal happened (certificates are newer than 1 hour)
-if [ $(find /etc/letsencrypt/live/wylloh.com-0001/ -name "*.pem" -newermt "1 hour ago" 2>/dev/null | wc -l) -gt 0 ]; then
+if [ $(find /etc/letsencrypt/live/wylloh.com/ -name "*.pem" -newermt "1 hour ago" 2>/dev/null | wc -l) -gt 0 ]; then
     echo "✅ $(date): Certificate renewed, updating protected directory..."
     
     # Backup old certificates
@@ -105,8 +105,8 @@ if [ $(find /etc/letsencrypt/live/wylloh.com-0001/ -name "*.pem" -newermt "1 hou
     sudo cp /etc/wylloh/ssl/wylloh.com.key /etc/wylloh/backups/wylloh.com.key.$(date +%Y%m%d_%H%M%S)
     
     # Copy renewed certificates to protected directory
-    sudo cp /etc/letsencrypt/live/wylloh.com-0001/fullchain.pem /etc/wylloh/ssl/wylloh.com.crt
-    sudo cp /etc/letsencrypt/live/wylloh.com-0001/privkey.pem /etc/wylloh/ssl/wylloh.com.key
+    sudo cp /etc/letsencrypt/live/wylloh.com/fullchain.pem /etc/wylloh/ssl/wylloh.com.crt
+    sudo cp /etc/letsencrypt/live/wylloh.com/privkey.pem /etc/wylloh/ssl/wylloh.com.key
     sudo chown wylloh:wylloh /etc/wylloh/ssl/*
     sudo chmod 644 /etc/wylloh/ssl/wylloh.com.crt
     sudo chmod 600 /etc/wylloh/ssl/wylloh.com.key
