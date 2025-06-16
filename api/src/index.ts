@@ -1,3 +1,13 @@
+// Node.js polyfills for browser APIs required by Helia/libp2p
+
+// Crypto polyfill setup function
+async function setupCryptoPolyfill() {
+  if (typeof globalThis.crypto === 'undefined') {
+    const crypto = await import('crypto');
+    globalThis.crypto = crypto.webcrypto as any;
+  }
+}
+
 import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
@@ -155,10 +165,17 @@ app.get('/', (req: Request, res: Response) => {
 app.use(errorHandler);
 
 // Start server
-app.listen(PORT, () => {
-  console.log(`API server running on port ${PORT}`);
-  console.log(`Security mode: ${isProduction ? 'Production' : 'Development'}`);
-});
+async function startServer() {
+  // Setup crypto polyfill first
+  await setupCryptoPolyfill();
+  
+  app.listen(PORT, () => {
+    console.log(`API server running on port ${PORT}`);
+    console.log(`Security mode: ${isProduction ? 'Production' : 'Development'}`);
+  });
+}
+
+startServer().catch(console.error);
 
 // Handle unhandled promise rejections
 process.on('unhandledRejection', (err) => {
