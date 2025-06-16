@@ -9,6 +9,7 @@ import { UserProvider } from './contexts/UserContext';
 import theme from './theme';
 import Layout from './components/layout/Layout';
 import AppRoutes from './routes';
+import Web3AuthManager from './components/wallet/Web3AuthManager';
 
 function App() {
   return (
@@ -19,6 +20,7 @@ function App() {
           <WalletProvider>
             <UserProvider>
               <PlatformProvider>
+                <Web3AuthManager />
                 <Layout>
                   <AppRoutes />
                 </Layout>

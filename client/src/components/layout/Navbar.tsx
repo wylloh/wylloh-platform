@@ -29,7 +29,8 @@ import {
   VerifiedUser,
   Search as SearchIcon,
   Cloud as CloudIcon,
-  Handshake as HandshakeIcon
+  Handshake as HandshakeIcon,
+  Person as PersonIcon
 } from '@mui/icons-material';
 import { useWallet } from '../../contexts/WalletContext';
 import { useAuth } from '../../contexts/AuthContext';
@@ -160,6 +161,7 @@ const Navbar: React.FC = () => {
   
   // User menu items
   const userMenuItems = [
+    { text: 'Profile', to: '/profile', icon: <PersonIcon /> },
     { text: 'Dashboard', to: '/dashboard', icon: <Dashboard /> },
     { text: 'Network', to: '/network', icon: <CloudIcon /> },
   ];

@@ -186,12 +186,12 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       if (accounts && accounts.length > 0) {
         console.log('WalletContext - Connected account:', accounts[0]);
         
-        // Dispatch wallet-account-changed event to trigger auto-login
-        const walletChangeEvent = new CustomEvent('wallet-account-changed', { 
+        // Dispatch wallet-connected event for Web3-first authentication
+        const walletConnectedEvent = new CustomEvent('wallet-connected', { 
           detail: { account: accounts[0] }
         });
-        window.dispatchEvent(walletChangeEvent);
-        console.log('WalletContext - Dispatched wallet-account-changed event for account:', accounts[0]);
+        window.dispatchEvent(walletConnectedEvent);
+        console.log('WalletContext - Dispatched wallet-connected event for account:', accounts[0]);
       }
     } catch (error) {
       console.error('Error connecting wallet:', error);

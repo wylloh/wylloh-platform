@@ -11,6 +11,9 @@ interface AuthContextType {
   loading: boolean;
   error: string | null;
   getDisplayName: () => string;
+  // New Web3-first methods
+  authenticateWithWallet: (walletAddress: string) => Promise<boolean>;
+  createWalletProfile: (walletAddress: string, username: string, email?: string) => Promise<boolean>;
 }
 
 interface User {
@@ -88,86 +91,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     previousAccountRef.current = account;
   }, [account, state.isAuthenticated]);
   
-  // Listen for the wallet-account-changed event
+  // Handle wallet account changes (logout if different wallet connects)
   useEffect(() => {
-    const handleWalletAccountChanged = (event: Event) => {
-      console.log('AuthContext - wallet-account-changed event received');
+    const handleWalletAccountChange = (event: Event) => {
       const newAccount = (event as CustomEvent)?.detail?.account;
-      console.log('AuthContext - New wallet account from event:', newAccount);
+      if (!newAccount) return;
 
-      if (!newAccount) return; // Ignore if no account detail
-
-      // Get current auth state values
-      const currentIsAuthenticated = state.isAuthenticated;
-      const currentUserWallet = state.user?.walletAddress;
-      
-      console.log('AuthContext - State before check:', { 
-          currentIsAuthenticated, 
-          currentUserWalletState: currentUserWallet?.toLowerCase(),
-          newAccountLower: newAccount.toLowerCase()
-      });
-
-      // Reset auto-login attempt flag for the new account
-      autoLoginAttemptedRef.current[newAccount] = false;
-
-      // Determine if the new account corresponds to a demo user
-      const demoWallets: Record<string, string> = {
-        '0x90f8bf6a479f320ead074411a4b0e7944ea8c9c1': 'pro@example.com',
-        '0x8db97c7cece249c2b98bdc0226cc4c2a57bf52fc': 'user@example.com',
-      };
-      const newAccountLower = newAccount.toLowerCase();
-      const isDemoAccount = !!demoWallets[newAccountLower];
-
-      // Scenario 1: User is currently authenticated
-      if (currentIsAuthenticated) {
-        // Scenario 1a: The new account (from event) is DIFFERENT from the current user's wallet in state
-        if (!currentUserWallet || currentUserWallet.toLowerCase() !== newAccountLower) {
-          console.log(`AuthContext - Wallet account changed from ${currentUserWallet || 'none'} to ${newAccount}. Logging out previous user.`);
-          // Logout previous user
-          setState(prevState => ({
-            ...prevState,
-            user: null,
-            error: null,
-            isAuthenticated: false,
-          }));
-          localStorage.removeItem('token');
-          localStorage.removeItem('user');
-
-          // Queue login attempt for the NEW account if it's a demo account
-          if (isDemoAccount) {
-             console.log(`AuthContext - Queuing login for new demo account: ${newAccount}`);
-             setTimeout(() => {
-                localStorage.setItem('pendingWalletLogin', newAccount);
-             }, 100); 
-          } else {
-             console.log('AuthContext - New account is not a demo account, login not queued.');
-          }
-
-        } else {
-          // Scenario 1b: The new account is the SAME as the logged-in user's account state.
-          console.log('AuthContext - Event received for the same authenticated account state. No logout/login needed.');
-        }
-      } 
-      // Scenario 2: User is NOT authenticated
-      else {
-         // Queue login attempt for the NEW account if it's a demo account
-         if (isDemoAccount) {
-            console.log('AuthContext - Not currently authenticated. Queuing login attempt for new demo account:', newAccount);
-            setTimeout(() => {
-               localStorage.setItem('pendingWalletLogin', newAccount);
-            }, 100);
-         } else {
-             console.log('AuthContext - Not authenticated, and new account is not a demo account. Login not queued.');
-         }
+      // If user is authenticated but with a different wallet, log them out
+      if (state.isAuthenticated && state.user?.walletAddress && 
+          state.user.walletAddress.toLowerCase() !== newAccount.toLowerCase()) {
+        console.log('AuthContext - Different wallet connected, logging out current user');
+        logout();
       }
     };
 
-    window.addEventListener('wallet-account-changed', handleWalletAccountChanged);
-
+    window.addEventListener('wallet-connected', handleWalletAccountChange);
     return () => {
-      window.removeEventListener('wallet-account-changed', handleWalletAccountChanged);
+      window.removeEventListener('wallet-connected', handleWalletAccountChange);
     };
-    // Use state dependencies, account from hook is unreliable here
   }, [state.isAuthenticated, state.user?.walletAddress]); 
   
   // Load user from localStorage on initial render
@@ -472,76 +413,112 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     });
   };
 
-  // Function to attempt auto-login with a wallet address
-  const attemptAutoLoginWithWallet = useCallback(async (walletAddress: string) => {
-    if (!walletAddress) return;
-    
-    console.log('AuthContext - Attempting auto-login with wallet:', walletAddress);
-    
-    // Make sure we're operating with a clean state before attempting login
-    // This prevents the previous user from remaining logged in
-    if (state.isAuthenticated) {
-      console.log('AuthContext - Logging out previous user before attempting auto-login');
-      localStorage.removeItem('token');
-      localStorage.removeItem('user');
-      // Update state immediately to ensure clean login
-      setState({
-        user: null,
-        loading: false,
-        error: null,
-        isAuthenticated: false,
-      });
-    }
-    
-    // Map of demo wallet addresses to emails (convert to lowercase for case-insensitivity)
-    const demoWallets: Record<string, string> = {
-      '0x90f8bf6a479f320ead074411a4b0e7944ea8c9c1': 'pro@example.com',
-      '0x8db97c7cece249c2b98bdc0226cc4c2a57bf52fc': 'user@example.com',
-    };
-    
-    // Ensure we have a lowercase version for case-insensitive comparison
-    const accountLower = walletAddress.toLowerCase();
-    
-    // Log the available wallets and the current wallet
-    console.log('AuthContext - Available wallets:', Object.keys(demoWallets));
-    console.log('AuthContext - Current wallet (lowercase):', accountLower);
-    
-    // If we recognize this wallet, auto-login that user (use lowercase for matching)
-    if (demoWallets[accountLower]) {
-      const email = demoWallets[accountLower];
-      console.log(`AuthContext - Auto-logging in as ${email} for wallet ${accountLower}`);
-      
-      try {
-        // Add a small delay to ensure previous state changes have taken effect
-        await new Promise(resolve => setTimeout(resolve, 100));
-        
-        // Use the existing login function
-        const success = await login(email, 'password');
-        console.log('AuthContext - Auto-login result:', success ? 'SUCCESS' : 'FAILED', 'for', email);
-        
-        if (success) {
-          // Additional confirmation of the login
-          console.log('AuthContext - Successfully logged in as:', email);
-        }
-      } catch (error) {
-        console.error('AuthContext - Error during auto-login:', error);
-      }
-    } else {
-      console.log('AuthContext - Wallet not recognized for auto-login:', accountLower);
-    }
-  }, [login, state.isAuthenticated]);
-  
-  // Check for pending wallet login after functions are defined
+  // Clean up any old pending wallet login data
   useEffect(() => {
-    const pendingWallet = localStorage.getItem('pendingWalletLogin');
-    if (pendingWallet) {
-      console.log('AuthContext - Found pending wallet login:', pendingWallet);
-      attemptAutoLoginWithWallet(pendingWallet);
-      localStorage.removeItem('pendingWalletLogin');
-    }
-  }, [attemptAutoLoginWithWallet]);
+    localStorage.removeItem('pendingWalletLogin');
+  }, []);
 
   // Helper function to get user display name
+  // Web3-first authentication - check if wallet has existing account
+  const authenticateWithWallet = async (walletAddress: string): Promise<boolean> => {
+    try {
+      setState(prevState => ({ ...prevState, loading: true, error: null }));
+      
+      // Check if this wallet address has an existing account
+      const existingUser = localStorage.getItem(`wallet_user_${walletAddress.toLowerCase()}`);
+      
+      if (existingUser) {
+        const userData = JSON.parse(existingUser);
+        
+        // Check if this is the platform founder wallet and ensure admin role
+        const platformFounderWallet = '0x7FA50da5a8f998c9184E344279b205DE699Aa672';
+        const isAdmin = walletAddress.toLowerCase() === platformFounderWallet.toLowerCase();
+        
+        // Update roles if this is admin wallet but doesn't have admin role
+        if (isAdmin && !userData.roles.includes('admin')) {
+          userData.roles = ['admin', 'user'];
+          localStorage.setItem(`wallet_user_${walletAddress.toLowerCase()}`, JSON.stringify(userData));
+          console.log('Admin role granted to platform founder wallet');
+        }
+        
+        // Store as current user
+        localStorage.setItem('token', `wallet_token_${Date.now()}`);
+        localStorage.setItem('user', JSON.stringify(userData));
+        
+        setState({
+          user: userData,
+          loading: false,
+          error: null,
+          isAuthenticated: true
+        });
+        
+        console.log(`Wallet authentication successful for: ${walletAddress}${isAdmin ? ' (ADMIN)' : ''}`);
+        return true;
+      } else {
+        // No existing account for this wallet
+        setState(prevState => ({ ...prevState, loading: false }));
+        return false;
+      }
+    } catch (err) {
+      console.error('Wallet authentication error:', err);
+      setState(prevState => ({
+        ...prevState,
+        loading: false,
+        error: 'Wallet authentication failed.'
+      }));
+      return false;
+    }
+  };
+
+  // Create new wallet-based profile
+  const createWalletProfile = async (walletAddress: string, username: string, email?: string): Promise<boolean> => {
+    try {
+      setState(prevState => ({ ...prevState, loading: true, error: null }));
+      
+      // Validate username
+      if (!username || username.trim().length < 3) {
+        throw new Error('Username must be at least 3 characters long');
+      }
+      
+      // Check if this is the platform founder wallet (admin)
+      const platformFounderWallet = '0x7FA50da5a8f998c9184E344279b205DE699Aa672';
+      const isAdmin = walletAddress.toLowerCase() === platformFounderWallet.toLowerCase();
+      
+      // Create new wallet-based user
+      const newUser: User = {
+        id: `wallet_${walletAddress.toLowerCase()}`,
+        username: username.trim(),
+        email: email || `${walletAddress.toLowerCase().slice(0, 8)}@wallet.local`,
+        roles: isAdmin ? ['admin', 'user'] : ['user'],
+        walletAddress: walletAddress,
+        isWalletOnlyAccount: !email
+      };
+      
+      // Store wallet user separately and as current user
+      localStorage.setItem(`wallet_user_${walletAddress.toLowerCase()}`, JSON.stringify(newUser));
+      localStorage.setItem('token', `wallet_token_${Date.now()}`);
+      localStorage.setItem('user', JSON.stringify(newUser));
+      
+      setState({
+        user: newUser,
+        loading: false,
+        error: null,
+        isAuthenticated: true
+      });
+      
+      console.log(`Wallet profile created successfully for: ${username} (${walletAddress})${isAdmin ? ' - ADMIN ROLE GRANTED' : ''}`);
+      return true;
+    } catch (err: any) {
+      console.error('Wallet profile creation error:', err);
+      setState(prevState => ({
+        ...prevState,
+        loading: false,
+        error: err.message || 'Failed to create wallet profile.'
+      }));
+      return false;
+    }
+  };
+
   const getDisplayName = (): string => {
     if (!state.user) return 'Guest';
     
@@ -569,7 +546,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     requestProStatus,
     loading: state.loading,
     error: state.error,
-    getDisplayName
+    getDisplayName,
+    authenticateWithWallet,
+    createWalletProfile,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
