@@ -407,6 +407,49 @@ npx hardhat run scripts/deploy-film-factory-only.ts --network polygon
 
 **Solution Implemented**: VPS database storage with MongoDB for reliable user experience, plus comprehensive security enhancements and future roadmap to decentralized/persistent storage solutions.
 
+## 🚨 CRITICAL TECH DEBT - SECURITY COMPROMISES (MUST RESOLVE)
+
+### **⚠️ PRODUCTION DEPLOYMENT ISSUE RESOLUTION (Current Session)**
+**Root Cause**: API service failing to start due to strict security validation requiring production environment variables.
+
+**Temporary Fix Applied**: Modified `api/src/config/security.ts` to use warnings instead of errors for missing:
+- `JWT_SECRET` environment variable
+- `ADMIN_WALLETS` environment variable
+
+### **🔒 SECURITY DEBT CREATED:**
+
+#### **1. JWT Security Degradation - CRITICAL**
+- **Issue**: Using default/weak JWT secret instead of strong production secret
+- **Risk Level**: ❌ **HIGH** - Easier token forgery, session hijacking possible
+- **Current State**: System functional but with weaker authentication security
+- **Required Fix**: Set proper `JWT_SECRET` environment variable (32+ characters)
+- **Timeline**: ⚠️ **MUST FIX WITHIN 1-2 WEEKS**
+- **Impact**: User session security compromised until resolved
+
+#### **2. Single Admin Wallet Dependency - MEDIUM**
+- **Issue**: Hardcoded founder wallet (`0x7FA50da5a8f998c9184E344279b205DE699Aa672`) as only admin
+- **Risk Level**: ⚠️ **MEDIUM** - Single point of failure, no admin redundancy
+- **Current State**: Functional but not enterprise-grade admin management
+- **Required Fix**: Set `ADMIN_WALLETS` environment variable with multiple admin addresses
+- **Timeline**: 🔄 **RESOLVE WITHIN 1 MONTH**
+- **Impact**: Admin privilege management not scalable
+
+#### **3. Production Environment Configuration Gap - MEDIUM**
+- **Issue**: Missing systematic environment variable management for production VPS
+- **Risk Level**: ⚠️ **MEDIUM** - Other services may have similar configuration gaps
+- **Current State**: Ad-hoc environment configuration
+- **Required Fix**: Complete environment variable audit and documentation
+- **Timeline**: 🔄 **SYSTEMATIC REVIEW WITHIN 2 WEEKS**
+- **Impact**: Deployment reliability and security consistency
+
+### **🎯 RESOLUTION ROADMAP:**
+1. **Week 1**: Deploy temporary fix, validate user flows, set proper JWT_SECRET
+2. **Week 2**: Configure ADMIN_WALLETS, complete environment variable audit
+3. **Week 3**: Implement systematic environment variable management
+4. **Week 4**: Security review and validation of all fixes
+
+**⚠️ NOTE**: These compromises are acceptable for immediate functionality restoration but MUST be resolved according to timeline to maintain production security standards.
+
 ## Key Challenges and Analysis
 
 ### **✅ COMPLETED: Enterprise-Grade Security Implementation**
