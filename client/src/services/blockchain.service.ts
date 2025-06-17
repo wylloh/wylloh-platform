@@ -25,6 +25,7 @@ const wyllohTokenAbi = [
 // Marketplace ABI for direct token purchases
 const marketplaceAbi = [
   // Write functions
+  "function purchaseTokens(address tokenContract, uint256 tokenId, uint256 quantity) payable",
   "function buyTokens(uint256 tokenId, uint256 quantity) payable",
   "function listTokens(uint256 tokenId, uint256 quantity, uint256 price)",
   "function setTokenPrice(uint256 tokenId, uint256 newPrice)",
@@ -847,305 +848,93 @@ class BlockchainService {
    * @param quantity Number of tokens to purchase
    * @param price Price per token in ETH (NOT total price)
    */
+  /**
+   * Purchase tokens through marketplace contract (PRODUCTION VERSION)
+   * Clean implementation for content access token purchases
+   * @param contentId The content ID/token ID to purchase
+   * @param quantity Number of tokens to purchase (unlocks content access)
+   * @param price Price per token in MATIC
+   */
   async purchaseTokens(contentId: string, quantity: number, price: number): Promise<boolean> {
     if (!this.isInitialized()) {
-      console.warn('BlockchainService not initialized for purchaseTokens');
-      return false;
+      throw new Error('Blockchain service not initialized');
     }
-    
+
+    if (!this.marketplaceContract) {
+      throw new Error('Marketplace contract not configured');
+    }
+
+    if (!window.ethereum || !this.provider) {
+      throw new Error('MetaMask not available');
+    }
+
     try {
-      console.log('BlockchainService: Starting token purchase process with params:', {
-        contentId, 
-        quantity, 
-        price,
-        contractAddress: this.contractAddress
-      });
+      console.log('🚀 Production token purchase for content access:', { contentId, quantity, price });
       
       // Validate inputs
-      if (!contentId || !quantity || quantity <= 0) {
-        throw new Error('Invalid token ID or quantity');
+      if (!contentId || quantity <= 0 || price <= 0) {
+        throw new Error('Invalid purchase parameters');
       }
-      
-      // Ensure price is a valid number
-      if (typeof price !== 'number' || isNaN(price) || price <= 0) {
-        console.error(`Invalid price: ${price}`);
-        throw new Error('Invalid price format. Please provide a valid positive number.');
-      }
-      
-      // Generate the correct BigNumber token ID from the contentId string
-      const tokenIdBytes = ethers.utils.solidityKeccak256(['string'], [contentId]);
-      const tokenIdBN = ethers.BigNumber.from(tokenIdBytes);
-      console.log(`Generated BigNumber token ID for purchase: ${tokenIdBN.toString()}`);
 
-      console.log(`Purchasing ${quantity} tokens with ID ${tokenIdBN.toString()} at price ${price} ETH`);
+      // Generate token ID from content ID (consistent with minting)
+      const tokenIdBytes = ethers.utils.solidityKeccak256(['string'], [contentId]);
+      const tokenId = ethers.BigNumber.from(tokenIdBytes);
       
-      // Calculate total price
-      const totalPrice = quantity * price;
+      // Calculate total price in wei (price is per token in MATIC)
+      const totalPrice = ethers.utils.parseEther((quantity * price).toString());
       
-      // Convert to string with fixed decimal places to avoid floating point issues
-      const totalPriceString = totalPrice.toFixed(18);
+      // Get buyer's signer
+      const signer = this.provider.getSigner();
+      const buyerAddress = await signer.getAddress();
       
-      // Parse to BigNumber
-      const totalPriceWei = ethers.utils.parseEther(totalPriceString);
+      console.log(`Buyer: ${buyerAddress}, Token ID: ${tokenId.toString()}, Quantity: ${quantity}, Total: ${ethers.utils.formatEther(totalPrice)} MATIC`);
       
-      console.log(`Total price: ${totalPrice} ETH (${totalPriceWei.toString()} wei)`);
-      
-      // For demo mode, either use direct blockchain transactions if available or simulate
-      if (window.ethereum && this.provider) {
-        try {
-          // Get a signer for the transaction
-          const signer = this.provider.getSigner();
-          const signerAddress = await signer.getAddress();
-          
-          console.log(`Using buyer address: ${signerAddress}`);
-          
-          // Get content details to find the creator's address
-          const content = await contentService.getContentById(contentId);
-          if (!content) {
-            throw new Error(`Content with ID ${contentId} not found`);
-          }
-          
-          // Get the creator address from content
-          const creatorAddress = content.creatorAddress;
-          
-          // Validate creator address
-          const isValidAddress = creatorAddress && ethers.utils.isAddress(creatorAddress);
-          const sellerAddress = isValidAddress ? creatorAddress : null;
-          
-          if (!sellerAddress) {
-            throw new Error('Invalid creator address for this content. Cannot process purchase.');
-          }
-          
-          console.log(`Using creator/seller address: ${sellerAddress}`);
-          
-          // Check if token contract exists at the address
-          const contractCode = await this.provider.getCode(this.contractAddress);
-          if (contractCode === '0x') {
-            console.error(`No contract found at address ${this.contractAddress}`);
-            throw new Error(`No token contract found at ${this.contractAddress}. Please check the contract deployment.`);
-          }
-          
-          // Check if seller has enough tokens to transfer
-          console.log(`Checking token balance for seller ${sellerAddress}`);
-          const sellerBalance = await this.tokenContract!.balanceOf(sellerAddress, tokenIdBN);
-          console.log(`Seller token balance: ${sellerBalance.toString()} tokens`);
-          
-          if (sellerBalance.toNumber() < quantity) {
-            console.error(`Seller doesn't have enough tokens: has ${sellerBalance}, needs ${quantity}`);
-            throw new Error(`Creator doesn't have enough tokens available for this purchase (has ${sellerBalance}, needs ${quantity})`);
-          }
-          
-          // Verify that buyer is not the same as seller (important!)
-          if (signerAddress.toLowerCase() === sellerAddress!.toLowerCase()) {
-            console.error('Buyer and seller addresses are the same, aborting purchase');
-            throw new Error('Cannot purchase from yourself');
-          }
-          
-          // Check if user has enough balance before proceeding
-          const buyerBalance = await this.provider.getBalance(signerAddress);
-          console.log(`Buyer balance: ${ethers.utils.formatEther(buyerBalance)} ETH`);
-          
-          if (buyerBalance.lt(totalPriceWei)) {
-            console.error(`Insufficient funds: ${ethers.utils.formatEther(buyerBalance)} ETH available, ${totalPrice} ETH required`);
-            throw new Error(`Insufficient funds: ${ethers.utils.formatEther(buyerBalance)} ETH available, ${totalPrice} ETH required`);
-          }
-          
-          // 1. First, send payment to creator
-          console.log(`Sending payment of ${totalPrice} ETH from ${signerAddress} to creator ${sellerAddress}`);
-          const paymentTx = await signer.sendTransaction({
-            to: sellerAddress,
-            value: totalPriceWei
-          });
-          
-          console.log('Payment transaction submitted:', paymentTx.hash);
-          const paymentReceipt = await paymentTx.wait();
-          console.log('Payment confirmed in block:', paymentReceipt.blockNumber);
-          
-          // 2. Transfer tokens through marketplace contract
-          console.log(`Token contract address: ${this.contractAddress}`);
-          
-          // 3. Transfer tokens from creator to buyer
-          console.log(`Transferring ${quantity} tokens of ID ${tokenIdBN.toString()} from ${sellerAddress} to ${signerAddress}`);
-          
-          // For debugging, check the balance once more before transfer
-          const preTransferBalance = await this.tokenContract!.balanceOf(sellerAddress, tokenIdBN);
-          console.log(`Seller balance immediately before transfer: ${preTransferBalance.toString()} tokens`);
-            
-            // Check approvals - requires the OPERATOR (marketplace) address
-            
-            // Add explicit logging here to check the marketplace address value
-            console.log(`DEBUG: Checking marketplaceAddress inside purchaseTokens: [${this.marketplaceAddress}]`);
-            
-            if (!this.marketplaceAddress || !ethers.utils.isAddress(this.marketplaceAddress)) {
-              console.error("Marketplace address is not configured or invalid. Cannot check/set approval.");
-              throw new Error("Marketplace address is not configured. Approval cannot be handled.");
-            }
-            
-            const operatorAddress = this.marketplaceAddress; // The marketplace contract needs approval
-            console.log(`Checking if seller (${sellerAddress}) has approved operator (${operatorAddress})...`);
-            
-            const isApproved = await tokenContract.isApprovedForAll(sellerAddress!, operatorAddress);
-            console.log(`Is seller approved for operator (${operatorAddress})? ${isApproved}`);
-            
-            // In development mode, ensure approval is set if needed, *by the seller*
-            if (!isApproved && (process.env.NODE_ENV === 'development' || process.env.REACT_APP_DEMO_MODE === 'true')) {
-              console.log(`Setting approval for operator ${operatorAddress}... (Needs seller's signature)`);
-              
-              try {
-                // This MUST be signed by the seller (creatorSigner)
-                const approveTx = await tokenWithCreatorSigner.setApprovalForAll(
-                   operatorAddress, // The address to approve (Marketplace Contract)
-                   true            // Approve status
-                 );
-                console.log('Approval transaction submitted:', approveTx.hash);
-                const approveReceipt = await approveTx.wait();
-                console.log('Approval confirmed in block:', approveReceipt.blockNumber);
-              } catch (approvalError) {
-                 console.error("Failed to set approval:", approvalError);
-                 // Decide if this is critical. For now, we'll log and proceed, maybe transfer fails.
-                 // throw new Error("Failed to set approval for marketplace contract."); 
-                 console.warn("Proceeding without confirmed approval, transfer might fail.");
-              }
-            }
-            
-            // Use safeTransferFrom to send tokens
-            let transferTx;
-            try {
-              transferTx = await tokenWithCreatorSigner.safeTransferFrom(
-                sellerAddress,
-                signerAddress,
-                tokenIdBN,
-                quantity,
-                "0x", // data - empty for simple transfer
-                { gasLimit: 500000 }
-              );
-            } catch (transferError) {
-              console.error('Initial safeTransferFrom failed:', transferError);
-              
-              // Try alternate method with just "transferFrom" if available
-              console.log('Attempting alternate transfer method...');
-              try {
-                if (tokenWithCreatorSigner.transferFrom) {
-                  console.log('Using transferFrom method...');
-                  transferTx = await tokenWithCreatorSigner.transferFrom(
-                    sellerAddress,
-                    signerAddress,
-                    tokenIdBN,
-                    quantity,
-                    { gasLimit: 500000 }
-                  );
-                } else {
-                  throw new Error('No alternative transfer method available');
-                }
-              } catch (altTransferError) {
-                console.error('Alternative transfer method also failed:', altTransferError);
-                throw altTransferError;
-              }
-            }
-            
-            console.log('Transfer transaction submitted:', transferTx.hash);
-            const transferReceipt = await transferTx.wait();
-            console.log('Transfer confirmed in block:', transferReceipt.blockNumber);
-            
-            // Verify the transfer succeeded
-            const sellerBalanceAfter = await tokenContract.balanceOf(sellerAddress!, tokenIdBN);
-            const buyerBalanceAfter = await tokenContract.balanceOf(signerAddress, tokenIdBN);
-            
-            console.log(`Seller balance after transfer: ${sellerBalanceAfter.toString()} tokens`);
-            console.log(`Buyer balance after transfer: ${buyerBalanceAfter.toString()} tokens`);
-            
-            if (buyerBalanceAfter.toNumber() < quantity) {
-              console.warn(`Buyer received fewer tokens than expected: ${buyerBalanceAfter} < ${quantity}`);
-            }
-          } catch (transferError) {
-            console.error('Error transferring tokens after payment was sent:', transferError);
-            // Mark that payment was sent but token transfer failed
-            const paymentSentError = new Error('Payment was sent but token transfer failed');
-            (paymentSentError as any).paymentSent = true;
-            (paymentSentError as any).originalError = transferError;
-            throw paymentSentError;
-          }
-          
-          // 4. Update local storage through contentService
-          await contentService.purchaseToken(contentId, quantity);
-          
-          return true;
-        } catch (error: any) {
-          console.error('Blockchain transaction error:', error);
-          
-          // Check if payment was sent but token transfer failed
-          if (error.paymentSent) {
-            console.error('Payment was sent but token transfer failed');
-            throw new Error('Payment was sent but token transfer failed');
-          }
-          
-          // Check for specific errors
-          if (error.message && error.message.includes('insufficient funds')) {
-            // Don't record purchase if there are insufficient funds
-            console.error('Purchase failed due to insufficient funds');
-            throw new Error('Insufficient funds to complete purchase');
-          }
-          
-          if (error.message && error.message.includes('cannot estimate gas')) {
-            console.log('Gas estimation failed, falling back to mint operation');
-            
-            try {
-              // Alternative approach: mint new tokens directly to buyer
-              // This is a simplified approach for the demo
-              const signer = this.provider.getSigner();
-              const signerAddress = await signer.getAddress();
-              
-              // For demo, connect to token contract with first account (creator/admin)
-              const creatorProvider = new ethers.providers.JsonRpcProvider('http://localhost:8545');
-              const creatorAddress = (await creatorProvider.listAccounts())[0];
-              const creatorSigner = creatorProvider.getSigner(creatorAddress);
-              
-              // Connect token contract with creator's signer
-              const tokenWithCreatorSigner = this.tokenContract!.connect(creatorSigner);
-              
-              // Mint tokens directly to buyer
-              console.log(`Minting ${quantity} tokens of ID ${tokenIdBN.toString()} to ${signerAddress}`);
-              const mintTx = await tokenWithCreatorSigner.mint(
-                signerAddress,
-                tokenIdBN,
-                quantity,
-                "0x" // No data
-              );
-              
-              console.log('Mint transaction submitted:', mintTx.hash);
-              const mintReceipt = await mintTx.wait();
-              console.log('Mint confirmed in block:', mintReceipt.blockNumber);
-              
-              // Update local storage
-              await contentService.purchaseToken(contentId, quantity);
-              return true;
-            } catch (mintError) {
-              console.error('Mint operation failed:', mintError);
-              // Propagate error to prevent local storage update for failed transactions
-              throw mintError;
-            }
-          }
-          
-          // Re-throw the error to prevent local storage update for failed transactions
-          throw error;
-        }
-      } else {
-        // No ethereum provider available, simulate the transaction
-        console.log('No Ethereum provider available, simulating transaction');
-        
-        // Update local storage through contentService
-        await contentService.purchaseToken(contentId, quantity);
-        
-        return true;
+      // Check buyer has sufficient balance
+      const buyerBalance = await this.provider.getBalance(buyerAddress);
+      if (buyerBalance.lt(totalPrice)) {
+        throw new Error(`Insufficient balance: ${ethers.utils.formatEther(buyerBalance)} MATIC available, ${ethers.utils.formatEther(totalPrice)} MATIC required`);
       }
+
+      // Connect marketplace contract with signer
+      const marketplaceWithSigner = this.marketplaceContract.connect(signer);
+      
+      // Execute marketplace purchase transaction
+      const purchaseTx = await marketplaceWithSigner.purchaseTokens(
+        this.contractAddress, // token contract address
+        tokenId,              // token ID
+        quantity,             // quantity to purchase (unlocks content access)
+        {
+          value: totalPrice,
+          gasLimit: 500000
+        }
+      );
+
+      console.log('Purchase transaction submitted:', purchaseTx.hash);
+      const receipt = await purchaseTx.wait();
+      console.log('Purchase confirmed in block:', receipt.blockNumber);
+
+      // Verify buyer received tokens (content access keys)
+      const buyerTokenBalance = await this.tokenContract!.balanceOf(buyerAddress, tokenId);
+      console.log(`Buyer token balance after purchase: ${buyerTokenBalance.toString()} tokens`);
+
+      if (buyerTokenBalance.toNumber() < quantity) {
+        throw new Error('Purchase failed: content access tokens not received');
+      }
+
+      // Update local storage through contentService
+      await contentService.purchaseToken(contentId, quantity);
+
+      console.log(`✅ Successfully purchased ${quantity} tokens for content ${contentId} - content access unlocked`);
+      return true;
     } catch (error) {
-      console.error('Error purchasing tokens:', error);
-      throw error; // Re-throw to allow proper error handling
+      console.error('❌ Error purchasing content access tokens:', error);
+      throw error;
     }
   }
 
   /**
-   * Verify token was properly minted to creator
+   * Verify token was properly minted to creator (PRODUCTION VERSION)
+   * Clean implementation without Ganache dependencies
    * @param contentId The content ID/token ID to check
    * @param creatorAddress The creator's wallet address
    * @returns Object containing success flag and balance
@@ -1157,14 +946,14 @@ class BlockchainService {
     }
     
     try {
-      console.log(`Verifying token creation for contentId ${contentId}`);
+      console.log(`🔍 Verifying token creation for contentId ${contentId}`);
       
       // Generate token ID from contentId the same way it was created
       const tokenIdBytes = ethers.utils.solidityKeccak256(['string'], [contentId]);
       const tokenId = ethers.BigNumber.from(tokenIdBytes);
       console.log(`Generated token ID for verification: ${tokenId.toString()}`);
       
-      // If no creator address provided, try to get the first account
+      // If no creator address provided, try to get the current account
       let ownerAddress = creatorAddress;
       if (!ownerAddress && window.ethereum) {
         try {
@@ -1181,40 +970,31 @@ class BlockchainService {
         return { success: false, balance: 0, tokenAddress: this.contractAddress };
       }
       
-      // Check balance using multiple methods for reliability
+      // Check balance using the current provider (production-ready)
       try {
-        // Method 1: Direct contract balance check
         const balance = await this.getTokenBalance(ownerAddress, tokenId.toString());
-        console.log(`Token balance for ${ownerAddress} is ${balance}`);
-        
-        // Method 2: Try using direct Ganache provider
-        const ganacheProvider = new ethers.providers.JsonRpcProvider('http://localhost:8545');
-        const tokenContract = new ethers.Contract(
-          this.contractAddress,
-          wyllohTokenAbi,
-          ganacheProvider
-        );
-        
-        const ganacheBalance = await tokenContract.balanceOf(ownerAddress, tokenId);
-        console.log(`Token balance from Ganache provider: ${ganacheBalance.toString()}`);
-        
-        // Use the maximum balance reported by either method
-        const maxBalance = Math.max(balance, ganacheBalance.toNumber());
+        console.log(`✅ Token balance for ${ownerAddress}: ${balance} tokens`);
         
         // Success if the balance is greater than 0
-        const success = maxBalance > 0;
+        const success = balance > 0;
+        
+        if (success) {
+          console.log(`🎉 Token verification successful - creator has ${balance} tokens`);
+        } else {
+          console.warn(`⚠️ Token verification failed - creator has 0 tokens`);
+        }
         
         return { 
           success, 
-          balance: maxBalance,
+          balance,
           tokenAddress: this.contractAddress
         };
       } catch (error) {
-        console.error('Error checking token balance:', error);
+        console.error('❌ Error checking token balance:', error);
         return { success: false, balance: 0, tokenAddress: this.contractAddress };
       }
     } catch (error) {
-      console.error('Error verifying token creation:', error);
+      console.error('❌ Error verifying token creation:', error);
       return { success: false, balance: 0, tokenAddress: this.contractAddress };
     }
   }
