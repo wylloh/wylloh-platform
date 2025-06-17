@@ -81,9 +81,9 @@ export const getProjectIpfsUrl = (cid: string): string => {
   const isDemoMode = true; // Always true for demo purposes
   
   if (isDemoMode) {
-    console.log('Demo mode: Using local IPFS gateway for CID:', cid);
-    // First try the local gateway
-    return `http://localhost:8080/ipfs/${normalizeCid(cid)}`;
+    console.log('Development mode: Using configured IPFS gateway for CID:', cid);
+    // Use configured IPFS gateway
+    return `${process.env.REACT_APP_IPFS_GATEWAY || '/api/ipfs'}/${normalizeCid(cid)}`;
   }
   
   return getIpfsUrl(cid, DEFAULT_PROJECT_GATEWAY);
@@ -154,9 +154,9 @@ export const getStreamUrl = (cid: string): string => {
   const isDemoMode = true; // Always true for demo purposes
   
   if (isDemoMode) {
-    console.log('Demo mode: Using local IPFS gateway for streaming CID:', cid);
-    // Use local gateway for streaming in demo mode
-    return `http://localhost:8080/ipfs/${normalizeCid(cid)}`;
+    console.log('Development mode: Using configured IPFS gateway for streaming CID:', cid);
+    // Use configured IPFS gateway for streaming in development mode
+    return `${process.env.REACT_APP_IPFS_GATEWAY || '/api/ipfs'}/${normalizeCid(cid)}`;
   }
   
   // For reliable streaming in production, use a public gateway

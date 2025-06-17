@@ -104,7 +104,7 @@ export interface AnalyticsHealthStatus {
 export type TimeRange = 'day' | 'week' | 'month' | 'year';
 
 class WalletAnalyticsService {
-  private readonly baseUrl = `${process.env.REACT_APP_BLOCKCHAIN_CRAWLER_URL || 'http://localhost:3001'}/api/analytics`;
+  private readonly baseUrl = `${process.env.REACT_APP_BLOCKCHAIN_CRAWLER_URL || '/api'}/analytics`;
   
   /**
    * Get transaction analytics for a specific wallet

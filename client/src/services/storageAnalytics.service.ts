@@ -135,7 +135,7 @@ export interface StorageAnalyticsSummary {
 }
 
 class StorageAnalyticsService {
-  private readonly baseUrl = `${process.env.REACT_APP_STORAGE_SERVICE_URL || 'http://localhost:4001'}`;
+  private readonly baseUrl = `${process.env.REACT_APP_STORAGE_SERVICE_URL || '/storage'}`;
   
   /**
    * Get basic storage service health

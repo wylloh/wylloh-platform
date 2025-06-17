@@ -3,7 +3,9 @@ import MarketplaceContract from '../../../artifacts/contracts/marketplace/Wylloh
 
 export async function getMarketplaceContract() {
   // Connect to local Ganache
-  const provider = new ethers.providers.JsonRpcProvider('http://localhost:8545');
+  const provider = new ethers.providers.JsonRpcProvider(
+  process.env.REACT_APP_WEB3_PROVIDER || 'https://polygon-rpc.com'
+);
   
   // Get the contract address from environment
   const contractAddress = process.env.REACT_APP_MARKETPLACE_CONTRACT;

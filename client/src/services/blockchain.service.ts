@@ -149,9 +149,9 @@ class BlockchainService {
       } else {
         console.log('No Ethereum provider detected, running in demo mode');
         
-        // Initialize provider with fallback RPC URL
-        const rpcUrl = process.env.REACT_APP_WEB3_PROVIDER || 'http://localhost:8545';
-        console.log(`Using fallback RPC URL: ${rpcUrl}`);
+        // Initialize provider with production-ready RPC URL
+        const rpcUrl = process.env.REACT_APP_WEB3_PROVIDER || 'https://polygon-rpc.com';
+        console.log(`Using RPC URL: ${rpcUrl}`);
         
         this.provider = new ethers.providers.JsonRpcProvider(rpcUrl);
         
@@ -535,25 +535,12 @@ class BlockchainService {
         const signerAddress = accounts[0];
         console.log(`Using account address for token creation: ${signerAddress}`);
         
-        // Check if this is one of our demo accounts to ensure proper capitalization
-        // as MetaMask might return accounts with different capitalization
-        const demoWallets = {
-          '0x90F8bf6A479f320ead074411a4B0e7944Ea8c9C1': true,
-          '0x8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC': true
-        };
-        
-        // Use the properly capitalized version if it's a demo wallet
-        const normalizedAccount = Object.keys(demoWallets).find(
-          wallet => wallet.toLowerCase() === signerAddress.toLowerCase()
-        ) || signerAddress;
-        
-        // Dispatch wallet-account-changed event to trigger auto-login
-        // This is needed because our changes to createToken broke the auto-login flow
+        // Dispatch wallet-account-changed event for Web3AuthManager coordination
         const walletChangeEvent = new CustomEvent('wallet-account-changed', { 
-          detail: { account: normalizedAccount }
+          detail: { account: signerAddress }
         });
         window.dispatchEvent(walletChangeEvent);
-        console.log('Dispatched wallet-account-changed event for:', normalizedAccount);
+        console.log('Dispatched wallet-account-changed event for:', signerAddress);
         
         // Create fresh Web3Provider after account request
         const web3Provider = new ethers.providers.Web3Provider(window.ethereum);
@@ -626,20 +613,21 @@ class BlockchainService {
         }
         */
       
-      // Display debugging info about Ganache accounts
-      if (process.env.NODE_ENV === 'development' || process.env.REACT_APP_DEMO_MODE === 'true') {
+      // Display debugging info about development accounts
+      if (process.env.NODE_ENV === 'development') {
         try {
-          const jsonRpcProvider = new ethers.providers.JsonRpcProvider('http://localhost:8545');
+          const rpcUrl = process.env.REACT_APP_WEB3_PROVIDER || 'https://polygon-rpc.com';
+          const jsonRpcProvider = new ethers.providers.JsonRpcProvider(rpcUrl);
           const accounts = await jsonRpcProvider.listAccounts();
-          console.log('Available Ganache accounts:', accounts);
+          console.log('Available development accounts:', accounts);
           
-          // Check balances
+          // Check balances for first 2 accounts if available
           for (const account of accounts.slice(0, 2)) {
             const balance = await jsonRpcProvider.getBalance(account);
-            console.log(`Account ${account} has ${ethers.utils.formatEther(balance)} ETH`);
+            console.log(`Account ${account} has ${ethers.utils.formatEther(balance)} MATIC`);
           }
         } catch (e) {
-          console.log('Error fetching Ganache accounts for debugging:', e);
+          console.log('Error fetching development accounts for debugging:', e);
         }
       }
       

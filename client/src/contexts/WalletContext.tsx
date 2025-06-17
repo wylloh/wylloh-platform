@@ -40,8 +40,8 @@ const injected = new InjectedConnector({
 const walletconnect = new WalletConnectConnector({
   rpc: {
     [POLYGON_MAINNET_ID]: 'https://polygon-rpc.com',
-
-    [GANACHE_ID]: 'http://localhost:8545',
+    // Development network configuration
+    [GANACHE_ID]: process.env.REACT_APP_WEB3_PROVIDER || 'https://polygon-rpc.com',
   },
   qrcode: true,
 });

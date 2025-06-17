@@ -82,7 +82,7 @@ class RoyaltyService {
 
   constructor() {
     this.provider = new ethers.providers.JsonRpcProvider(
-      process.env.ETHEREUM_RPC_URL || 'http://localhost:8545'
+      process.env.ETHEREUM_RPC_URL || 'https://polygon-rpc.com'
     );
     
     this.contractAddress = process.env.ROYALTY_DISTRIBUTOR_ADDRESS || '';

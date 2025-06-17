@@ -41,8 +41,8 @@ const app: express.Application = express();
 // Set port
 const PORT = process.env.PORT || process.env.API_PORT || 3001;
 
-// Connect to MongoDB
-const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/wylloh';
+// Connect to MongoDB - Production ready configuration
+const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://mongodb:27017/wylloh';
 mongoose.connect(MONGODB_URI)
   .then(() => {
     console.log('Connected to MongoDB');
@@ -91,8 +91,6 @@ const corsOptions = {
     if (!origin) return callback(null, true);
     
     const allowedOrigins = [
-      'http://localhost:3000',
-      'http://localhost:3001',
       'https://wylloh.com',
       'https://www.wylloh.com',
       'https://app.wylloh.com'

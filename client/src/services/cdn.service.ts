@@ -17,8 +17,8 @@ const PROJECT_GATEWAY = process.env.REACT_APP_IPFS_GATEWAY || '/api/ipfs';
 // Edge server for adaptive streaming
 const EDGE_SERVER = process.env.REACT_APP_EDGE_SERVER || 'https://stream.wylloh.io';
 
-// Demo mode local gateway
-const LOCAL_GATEWAY = 'http://localhost:8080/ipfs';
+// Development mode IPFS gateway
+const LOCAL_GATEWAY = process.env.REACT_APP_LOCAL_IPFS_GATEWAY || 'http://ipfs:8080/ipfs';
 
 // Default cache time in milliseconds (10 minutes)
 const DEFAULT_CACHE_TIME = 10 * 60 * 1000;

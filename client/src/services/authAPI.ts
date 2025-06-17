@@ -4,7 +4,7 @@
  */
 
 // 🔒 SECURITY: Correct API URL configuration
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:4000';
+const API_BASE_URL = process.env.REACT_APP_API_URL || '/api';
 
 interface APIResponse<T = any> {
   success: boolean;
