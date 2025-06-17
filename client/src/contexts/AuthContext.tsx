@@ -220,50 +220,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     });
     
     try {
-      // In a real app, this would be an API call
-      // Simulating API call for development
-      
-      // Mock successful login
-      const mockResponse = {
-        success: true,
-        data: {
-          token: 'mock-jwt-token',
-          user: {
-            id: '1',
-            username: 'testuser',
-            email: email,
-            roles: ['user'], // Default role
-            // Explicitly set walletAddress using the *current* account from the hook
-            walletAddress: account || undefined,
-            proStatus: undefined // Pro status must be requested and verified through proper flow
-          }
-        }
-      };
-      
-      // For demo purposes, add admin role for specific test email
-      if (email === 'admin@example.com') {
-        mockResponse.data.user.roles.push('admin');
-      }
-      
-      if (mockResponse.success) {
-        const { token, user } = mockResponse.data;
-        
-        localStorage.setItem('token', token);
-        localStorage.setItem('user', JSON.stringify(user));
-        
-        setState({
-          user,
-          loading: false,
-          error: null,
-          isAuthenticated: true,
-          isInitialized: true,
-          authenticationInProgress: false,
-          lastSyncedWallet: account || null,
-        });
-        return true;
-      } else {
-        throw new Error('Invalid credentials');
-      }
+      // TODO: Remove traditional email/password login entirely
+      // This is a legacy method - Web3 authentication should use authenticateWithWallet instead
+      console.warn('Traditional email/password login is deprecated - use Web3 authentication');
+      throw new Error('Email/password login is no longer supported. Please use wallet authentication.');
     } catch (err: any) {
       setState({
         ...state,
@@ -284,10 +244,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         error: null
       }));
 
-      // In a real app, send registration data to server
-      // For demo, we'll simulate this with a delay
-      await new Promise(resolve => setTimeout(resolve, 1000));
-
       // Validate input
       if (!data.username) {
         throw new Error('Username is required');
@@ -298,33 +254,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         throw new Error('Wallet address is required for wallet-based registration');
       }
 
-      // Create a demo user with a token
-      const newUser: User = {
-        id: `user_${Date.now()}`,
-        username: data.username,
-        email: data.email || `wallet_user_${Date.now().toString(36)}@example.com`, // Generate temp email if not provided
-        roles: ['user'],
-        walletAddress: data.walletAddress,
-        isWalletOnlyAccount: !data.email // Flag to indicate this is a wallet-only account
-      };
+      // Use proper API for wallet profile creation
+      const result = await authAPI.createWalletProfile(data.walletAddress, data.username, data.email);
+      
+      if (result.success && result.user) {
+        // Update state with new user from API
+        setState({
+          user: result.user as any,
+          loading: false,
+          error: null,
+          isAuthenticated: true,
+          isInitialized: true,
+          authenticationInProgress: false,
+          lastSyncedWallet: data.walletAddress,
+        });
 
-      // Store token and user in localStorage
-      localStorage.setItem('token', `demo_token_${Date.now()}`);
-      localStorage.setItem('user', JSON.stringify(newUser));
-
-      // Update state
-      setState({
-        user: newUser,
-        loading: false,
-        error: null,
-        isAuthenticated: true,
-        isInitialized: true,
-        authenticationInProgress: false,
-        lastSyncedWallet: account || null,
-      });
-
-      console.log(`User registered successfully: ${data.username} with wallet ${data.walletAddress}`);
-      return true;
+        console.log(`User registered successfully: ${data.username} with wallet ${data.walletAddress}`);
+        return true;
+      } else {
+        throw new Error(result.error || 'Registration failed');
+      }
     } catch (err) {
       console.error('Registration error:', err);
       setState(prevState => ({

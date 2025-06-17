@@ -51,7 +51,7 @@ interface EnhancedWalletModalProps {
 
 const EnhancedWalletModal: React.FC<EnhancedWalletModalProps> = ({ open, onClose }) => {
   const { connect, account, active, provider } = useWallet();
-  const { login, register, isAuthenticated } = useAuth();
+  const { login, register, isAuthenticated, authenticateWithWallet } = useAuth();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -128,8 +128,8 @@ const EnhancedWalletModal: React.FC<EnhancedWalletModalProps> = ({ open, onClose
         // In a real implementation, this would create a signature with the wallet
         // and send it to the backend for authentication
         
-        // For demo purposes, we'll just use the email/password login
-        const success = await login(loginEmail, password);
+        // Use Web3 wallet-based authentication instead of email/password
+        const success = await authenticateWithWallet(account);
         
         if (success) {
           setMode('login');
@@ -179,7 +179,7 @@ const EnhancedWalletModal: React.FC<EnhancedWalletModalProps> = ({ open, onClose
           registrationData.email = email;
         }
         
-        // For demo purposes, we'll register with username/email and associate with wallet
+        // Register using Web3 wallet-based registration
         const success = await register(registrationData);
         
         if (success) {
