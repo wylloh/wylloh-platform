@@ -167,52 +167,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   // Auto-login based on wallet address for demo purposes
+  // Web3 authentication is handled by Web3AuthManager - no auto-login needed
   useEffect(() => {
-    const autoLoginForDemo = async () => {
-      // Only try to auto-login if not already authenticated and we have a wallet address
-      // Also respect the skipAutoConnect flag from WalletContext
-      if (!state.isAuthenticated && account && !state.loading && !active) {
-        // Skip if we've already tried to auto-login with this account
-        if (autoLoginAttemptedRef.current[account]) {
-          return;
-        }
-        
-        console.log('Debug - Auto-login check:', { 
-          isAuthenticated: state.isAuthenticated, 
-          account, 
-          loading: state.loading,
-          active,
-          accountLowerCase: account.toLowerCase(),
-        });
-        
-        // Mark that we've attempted login with this account
-        autoLoginAttemptedRef.current[account] = true;
-        
-        // Map of demo wallet addresses to emails (convert to lowercase for case-insensitive matching)
-        const demoWallets: Record<string, string> = {
-          '0x90f8bf6a479f320ead074411a4b0e7944ea8c9c1': 'pro@example.com',
-          '0x8db97c7cece249c2b98bdc0226cc4c2a57bf52fc': 'user@example.com',
-        };
-        
-        // If we recognize this wallet, auto-login that user (use lowercase for matching)
-        const accountLower = account.toLowerCase();
-        if (demoWallets[accountLower]) {
-          console.log(`Auto-logging in as ${demoWallets[accountLower]} for demo`);
-          try {
-            // Use the existing login function
-            const success = await login(demoWallets[accountLower], 'password');
-            console.log('Auto-login result:', success);
-          } catch (error) {
-            console.error('Error during auto-login:', error);
-          }
-        } else {
-          console.log('Wallet not recognized for auto-login:', accountLower);
-          console.log('Available wallets:', Object.keys(demoWallets));
-        }
-      }
-    };
-    
-    autoLoginForDemo();
+    console.log('AuthContext: Wallet connection state changed', { 
+      active, 
+      account, 
+      isAuthenticated: state.isAuthenticated 
+    });
   }, [account, state.isAuthenticated, state.loading, active]);
 
   // Update user wallet address when wallet connection changes
@@ -274,7 +235,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             roles: ['user'], // Default role
             // Explicitly set walletAddress using the *current* account from the hook
             walletAddress: account || undefined,
-            proStatus: email === 'pro@example.com' ? 'verified' as const : undefined // Demo only: pre-verified pro for demo
+            proStatus: undefined // Pro status must be requested and verified through proper flow
           }
         }
       };

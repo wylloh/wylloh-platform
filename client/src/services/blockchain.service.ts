@@ -129,17 +129,8 @@ class BlockchainService {
               const connectedAccount = accounts[0];
               console.log('Found already connected account during initialization:', connectedAccount);
               
-              // Check if this is one of our demo accounts to ensure proper capitalization
-              // as MetaMask might return accounts with different capitalization
-              const demoWallets = {
-                '0x90F8bf6A479f320ead074411a4B0e7944Ea8c9C1': true,
-                '0x8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC': true
-              };
-              
-              // Use the properly capitalized version if it's a demo wallet
-              const normalizedAccount = Object.keys(demoWallets).find(
-                wallet => wallet.toLowerCase() === connectedAccount.toLowerCase()
-              ) || connectedAccount;
+              // Use the connected account directly - no demo wallet normalization needed
+              const normalizedAccount = connectedAccount;
               
               // Dispatch wallet-account-changed event to trigger auto-login
               const walletChangeEvent = new CustomEvent('wallet-account-changed', { 
@@ -299,17 +290,8 @@ class BlockchainService {
         if (accounts && accounts.length > 0) {
           const connectedAccount = accounts[0];
           
-          // Check if this is one of our demo accounts to ensure proper capitalization
-          // as MetaMask might return accounts with different capitalization
-          const demoWallets = {
-            '0x90F8bf6A479f320ead074411a4B0e7944Ea8c9C1': true,
-            '0x8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC': true
-          };
-          
-          // Use the properly capitalized version if it's a demo wallet
-          const normalizedAccount = Object.keys(demoWallets).find(
-            wallet => wallet.toLowerCase() === connectedAccount.toLowerCase()
-          ) || connectedAccount;
+          // Use the connected account directly - no demo wallet normalization needed
+          const normalizedAccount = connectedAccount;
           
           const walletChangeEvent = new CustomEvent('wallet-account-changed', { 
             detail: { account: normalizedAccount }

@@ -155,39 +155,7 @@ const ConnectWalletButton: React.FC = () => {
     }
   }, [active, account, isAuthenticated, user?.username]);
 
-  // Direct login attempt for recognized wallets - this is actually a good pattern for production
-  useEffect(() => {
-    // Only attempt if we have an account, are not authenticated, and active
-    if (active && account && !isAuthenticated) {
-      console.log('ConnectWalletButton - Attempting wallet auto-login for:', account);
-      
-      // Demo wallet mapping (lowercase for case-insensitivity)
-      const demoWallets: Record<string, string> = {
-        '0x90f8bf6a479f320ead074411a4b0e7944ea8c9c1': 'pro@example.com',
-        '0x8db97c7cece249c2b98bdc0226cc4c2a57bf52fc': 'user@example.com',
-      };
-      
-      const accountLower = account.toLowerCase();
-      if (demoWallets[accountLower]) {
-        // We found a matching wallet address
-        const email = demoWallets[accountLower];
-        console.log(`ConnectWalletButton - Auto-login with wallet: ${getWalletDisplayName(account)}`);
-        
-        // Attempt login - this matches production Web3 behavior where connecting a wallet
-        // automatically logs in the associated account
-        login(email, 'password')
-          .then(success => {
-            console.log(`Auto-login ${success ? 'successful' : 'failed'} for ${email}`);
-          })
-          .catch(error => {
-            console.error(`Auto-login error for ${email}:`, error);
-          });
-      } else {
-        // In production, we would show a registration form for new wallets
-        console.log('Unrecognized wallet - would prompt for registration in production');
-      }
-    }
-  }, [active, account, isAuthenticated, login]);
+  // Web3 authentication is handled by Web3AuthManager - no auto-login logic needed here
 
   const handleClickOpen = () => {
     console.log('Opening wallet dialog');
@@ -248,18 +216,12 @@ const ConnectWalletButton: React.FC = () => {
     };
   }, []);
 
-  // Get wallet display name (keep this functionality for the demo)
+  // Get wallet display name - production version
   const getWalletDisplayName = (address: string | null | undefined): string => {
     if (!address) return 'Not Connected';
     
-    const lowerAddress = address.toLowerCase();
-    if (lowerAddress === '0x90f8bf6a479f320ead074411a4b0e7944ea8c9c1') {
-      return 'Creator Wallet (Pro)';
-    } else if (lowerAddress === '0x8db97c7cece249c2b98bdc0226cc4c2a57bf52fc') {
-      return 'Consumer Wallet (User)';
-    }
-    
-    return 'Unknown Wallet';
+    // In production, just show the wallet address
+    return `${address.slice(0, 6)}...${address.slice(-4)}`;
   };
 
   // Listen for wallet connection changes
