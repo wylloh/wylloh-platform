@@ -209,7 +209,9 @@ class KeyManagementService {
         
         try {
           // Second attempt with different provider
-          const provider = new ethers.providers.JsonRpcProvider('http://localhost:8545');
+          const provider = new ethers.providers.JsonRpcProvider(
+      process.env.REACT_APP_WEB3_PROVIDER || 'https://polygon-rpc.com'
+    );
           // Use raw contract call for verification
           const contractAddress = blockchainService['contractAddress'];
           const abi = ["function balanceOf(address account, uint256 id) view returns (uint256)"];

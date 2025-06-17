@@ -60,9 +60,8 @@ class CdnService {
   private isDemoMode: boolean;
   
   constructor() {
-    // Use demo mode if in development or explicitly set
-    this.isDemoMode = process.env.NODE_ENV === 'development' || 
-                     process.env.REACT_APP_DEMO_MODE === 'true';
+    // Use development mode for local IPFS gateway prioritization
+    this.isDemoMode = process.env.NODE_ENV === 'development';
                      
     // Initialize default performance metrics for all gateways
     this.initializeGatewayPerformance();
@@ -101,7 +100,7 @@ class CdnService {
       // Always add project gateway 
       if (PROJECT_GATEWAY) gateways.push(PROJECT_GATEWAY);
       
-      // Add local gateway in demo mode
+      // Add local gateway in development mode
       if (this.isDemoMode) gateways.push(LOCAL_GATEWAY);
       
       // Add user nodes (if any are registered)
@@ -186,7 +185,7 @@ class CdnService {
    * @returns The URL of the fastest gateway
    */
   getFastestGateway(): string {
-    // In demo mode, prioritize local gateway if available
+    // In development mode, prioritize local gateway if available
     if (this.isDemoMode) {
       const localGatewayMetrics = this.gatewayPerformance.get(LOCAL_GATEWAY);
       if (localGatewayMetrics?.available) {

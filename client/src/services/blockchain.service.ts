@@ -790,26 +790,7 @@ class BlockchainService {
 
       console.log(`Checking token balance for address ${address} and token ID ${tokenIdBN.toString()}`);
       
-      // If in demo mode, try different providers to ensure we get the balance
-      if (process.env.REACT_APP_DEMO_MODE === 'true' || process.env.NODE_ENV === 'development') {
-        try {
-          // Try with local provider first for demo mode
-          const localProvider = new ethers.providers.JsonRpcProvider('http://localhost:8545');
-          const localTokenContract = new ethers.Contract(
-            this.contractAddress,
-            wyllohTokenAbi,
-            localProvider
-          );
-          
-          const balanceBN = await localTokenContract.balanceOf(address, tokenIdBN);
-          const balance = balanceBN.toNumber();
-          console.log(`Token balance result (local provider): ${balance}`);
-          return balance;
-        } catch (localError) {
-          console.warn('Error getting balance with local provider, falling back to web3 provider:', localError);
-          // Fall back to web3 provider
-        }
-      }
+      // Get balance using the configured provider
       
       // Standard approach with web3 provider
       const balanceBN = await this.tokenContract!.balanceOf(address, tokenIdBN);
@@ -927,125 +908,31 @@ class BlockchainService {
           // Get the creator address from content
           const creatorAddress = content.creatorAddress;
           
-          // If creatorAddress is empty or invalid, fall back to the first Ganache account
+          // Validate creator address
           const isValidAddress = creatorAddress && ethers.utils.isAddress(creatorAddress);
-          let sellerAddress = isValidAddress ? creatorAddress : null;
-          
-          console.log(`Content creator address from content record:`, creatorAddress);
+          const sellerAddress = isValidAddress ? creatorAddress : null;
           
           if (!sellerAddress) {
-            // Fall back to first account as creator for demo
-            console.log('Creator address is invalid, falling back to first Ganache account');
-            const accounts = await this.provider.listAccounts();
-            sellerAddress = accounts[0];
-            console.log(`Using fallback seller address: ${sellerAddress}`);
+            throw new Error('Invalid creator address for this content. Cannot process purchase.');
           }
           
           console.log(`Using creator/seller address: ${sellerAddress}`);
           
-          // Connect to Ganache directly as backup for reliable queries
-          const ganacheProvider = new ethers.providers.JsonRpcProvider('http://localhost:8545');
-          
           // Check if token contract exists at the address
-          const contractCode = await ganacheProvider.getCode(this.contractAddress);
+          const contractCode = await this.provider.getCode(this.contractAddress);
           if (contractCode === '0x') {
             console.error(`No contract found at address ${this.contractAddress}`);
             throw new Error(`No token contract found at ${this.contractAddress}. Please check the contract deployment.`);
           }
           
-          // Get all Ganache accounts and their balances for debugging
-          const allAccounts = await ganacheProvider.listAccounts();
-          console.log('All available Ganache accounts:');
-          
-          for (const account of allAccounts.slice(0, 3)) {
-            const balance = await ganacheProvider.getBalance(account);
-            console.log(`Account ${account} has ${ethers.utils.formatEther(balance)} ETH`);
-            
-            // Check token balance for each account to identify where tokens might be
-            try {
-              const tokenContract = new ethers.Contract(
-                this.contractAddress,
-                wyllohTokenAbi,
-                ganacheProvider
-              );
-              
-              const tokenBalance = await tokenContract.balanceOf(account, tokenIdBN);
-              console.log(`Account ${account} has ${tokenBalance.toString()} tokens for token ID ${tokenIdBN.toString()}`);
-              
-              // If we find an account with tokens but it's not the seller, suggest using this account
-              if (tokenBalance.toNumber() > 0 && account.toLowerCase() !== sellerAddress!.toLowerCase()) {
-                console.log(`Found tokens on account ${account} which is different from seller ${sellerAddress}`);
-                console.log(`Considering using account ${account} as seller instead`);
-                
-                // If seller has 0 tokens but this account has tokens, use this account instead
-                const sellerBalanceCheck = await tokenContract.balanceOf(sellerAddress!, tokenIdBN);
-                if (sellerBalanceCheck.toNumber() === 0) {
-                  console.log(`Seller has 0 tokens but account ${account} has ${tokenBalance.toString()} tokens`);
-                  console.log(`Switching seller to account ${account}`);
-                  sellerAddress = account;
-                }
-              }
-            } catch (tokenBalanceError) {
-              console.error(`Error checking token balance for account ${account}:`, tokenBalanceError);
-            }
-          }
-          
-          // Check if seller has enough tokens to transfer using the Ganache provider for reliability
-          const tokenContract = new ethers.Contract(
-            this.contractAddress,
-            wyllohTokenAbi,
-            ganacheProvider
-          );
-          
+          // Check if seller has enough tokens to transfer
           console.log(`Checking token balance for seller ${sellerAddress}`);
-          const sellerBalance = await tokenContract.balanceOf(sellerAddress!, tokenIdBN);
-          console.log(`Seller token balance from Ganache: ${sellerBalance.toString()} tokens`);
+          const sellerBalance = await this.tokenContract!.balanceOf(sellerAddress, tokenIdBN);
+          console.log(`Seller token balance: ${sellerBalance.toString()} tokens`);
           
           if (sellerBalance.toNumber() < quantity) {
             console.error(`Seller doesn't have enough tokens: has ${sellerBalance}, needs ${quantity}`);
-            
-            // In demo mode, we can try to mint more tokens to the seller before failing
-            if (process.env.REACT_APP_DEMO_MODE === 'true' || process.env.NODE_ENV === 'development') {
-              console.log('Demo mode: attempting to mint additional tokens to seller');
-              
-              try {
-                // Connect to provider with first account (admin)
-                const accounts = await ganacheProvider.listAccounts();
-                const adminSigner = ganacheProvider.getSigner(accounts[0]);
-                
-                // Connect token contract with admin signer
-                const tokenWithAdminSigner = tokenContract.connect(adminSigner);
-                
-                // Mint additional tokens to seller
-                const mintAmount = quantity - sellerBalance.toNumber() + 5; // Add some buffer
-                console.log(`Minting ${mintAmount} additional tokens to seller ${sellerAddress}`);
-                
-                const mintTx = await tokenWithAdminSigner.mint(
-                  sellerAddress!,
-                  tokenIdBN,
-                  mintAmount,
-                  "0x" // No data
-                );
-                
-                console.log('Mint transaction submitted:', mintTx.hash);
-                const mintReceipt = await mintTx.wait();
-                console.log('Mint confirmed in block:', mintReceipt.blockNumber);
-                
-                // Check updated balance
-                const updatedBalance = await tokenContract.balanceOf(sellerAddress!, tokenIdBN);
-                console.log(`Updated seller balance: ${updatedBalance.toString()} tokens`);
-                
-                if (updatedBalance.toNumber() < quantity) {
-                  console.error(`Failed to mint enough tokens for seller: has ${updatedBalance}, needs ${quantity}`);
-                  throw new Error(`Failed to mint enough tokens for seller: has ${updatedBalance}, needs ${quantity}`);
-                }
-              } catch (mintError) {
-                console.error('Error minting additional tokens to seller:', mintError);
-                throw new Error(`Creator doesn't have enough tokens available for this purchase (has ${sellerBalance}, needs ${quantity})`);
-              }
-            } else {
-              throw new Error(`Creator doesn't have enough tokens available for this purchase (has ${sellerBalance}, needs ${quantity})`);
-            }
+            throw new Error(`Creator doesn't have enough tokens available for this purchase (has ${sellerBalance}, needs ${quantity})`);
           }
           
           // Verify that buyer is not the same as seller (important!)
@@ -1074,35 +961,15 @@ class BlockchainService {
           const paymentReceipt = await paymentTx.wait();
           console.log('Payment confirmed in block:', paymentReceipt.blockNumber);
           
-          // 2. Connect to token contract with creator's signer
-          // For demo, we'll impersonate the creator by using their account directly
-          const creatorProvider = new ethers.providers.JsonRpcProvider('http://localhost:8545');
-          
-          // Print details about the contract we're connecting to
+          // 2. Transfer tokens through marketplace contract
           console.log(`Token contract address: ${this.contractAddress}`);
           
-          // Check if contract exists at this address
-          const code = await creatorProvider.getCode(this.contractAddress);
-          if (code === '0x') {
-            console.error(`No contract found at address ${this.contractAddress}`);
-            // Mark that payment was sent but token transfer failed
-            const paymentSentError = new Error(`No contract found at address ${this.contractAddress}`);
-            (paymentSentError as any).paymentSent = true;
-            throw paymentSentError;
-          }
+          // 3. Transfer tokens from creator to buyer
+          console.log(`Transferring ${quantity} tokens of ID ${tokenIdBN.toString()} from ${sellerAddress} to ${signerAddress}`);
           
-          try {
-            const creatorSigner = creatorProvider.getSigner(sellerAddress!);
-            
-            // Connect token contract with creator's signer
-            const tokenWithCreatorSigner = this.tokenContract!.connect(creatorSigner);
-            
-            // 3. Transfer tokens from creator to buyer
-            console.log(`Transferring ${quantity} tokens of ID ${tokenIdBN.toString()} from ${sellerAddress} to ${signerAddress}`);
-            
-            // For debugging, check the balance once more before transfer
-            const preTransferBalance = await tokenContract.balanceOf(sellerAddress!, tokenIdBN);
-            console.log(`Seller balance immediately before transfer: ${preTransferBalance.toString()} tokens`);
+          // For debugging, check the balance once more before transfer
+          const preTransferBalance = await this.tokenContract!.balanceOf(sellerAddress, tokenIdBN);
+          console.log(`Seller balance immediately before transfer: ${preTransferBalance.toString()} tokens`);
             
             // Check approvals - requires the OPERATOR (marketplace) address
             

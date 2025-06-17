@@ -2,7 +2,7 @@ import { ethers } from 'ethers';
 import MarketplaceContract from '../../../artifacts/contracts/marketplace/WyllohMarketplace.sol/WyllohMarketplace.json';
 
 export async function getMarketplaceContract() {
-  // Connect to local Ganache
+  // Connect to configured blockchain network
   const provider = new ethers.providers.JsonRpcProvider(
   process.env.REACT_APP_WEB3_PROVIDER || 'https://polygon-rpc.com'
 );

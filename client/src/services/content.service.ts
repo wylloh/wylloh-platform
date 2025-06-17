@@ -521,7 +521,7 @@ class ContentService {
           } else if (blockchainError.message.includes('rejected')) {
             throw new Error('You rejected the transaction. Please approve the MetaMask transaction to create tokens.');
           } else if (blockchainError.message.includes('network') || blockchainError.message.includes('chainId')) {
-            throw new Error('Network error. Please make sure MetaMask is connected to the Ganache network (localhost:8545).');
+            throw new Error('Network error. Please make sure MetaMask is connected to the correct network.');
           }
         }
         
