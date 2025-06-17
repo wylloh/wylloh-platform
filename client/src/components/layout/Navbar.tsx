@@ -96,7 +96,7 @@ const Navbar: React.FC = () => {
   const [mobileMenuAnchorEl, setMobileMenuAnchorEl] = useState<null | HTMLElement>(null);
   const [userMenuAnchorEl, setUserMenuAnchorEl] = useState<null | HTMLElement>(null);
   const { active, account, connect, disconnect } = useWallet();
-  const { isAuthenticated, user, logout } = useAuth();
+  const { isAuthenticated, user, logout, loading: authLoading } = useAuth();
   const navigate = useNavigate();
   
   // For elevated app bar when scrolling
@@ -107,6 +107,9 @@ const Navbar: React.FC = () => {
   
   const isMobileMenuOpen = Boolean(mobileMenuAnchorEl);
   const isUserMenuOpen = Boolean(userMenuAnchorEl);
+  
+  // Only show user menu when fully authenticated (not during loading)
+  const shouldShowUserMenu = isAuthenticated && !authLoading && user;
   
   const handleMobileMenuOpen = (event: React.MouseEvent<HTMLElement>) => {
     setMobileMenuAnchorEl(event.currentTarget);
@@ -247,7 +250,7 @@ const Navbar: React.FC = () => {
               </Box>
               
               {/* User menu - only show if authenticated */}
-              {isAuthenticated && (
+              {shouldShowUserMenu && (
                 <Tooltip title="Open user menu">
                   <IconButton onClick={handleUserMenuOpen} sx={{ p: 0 }}>
                     <Avatar alt="User" src="/static/images/avatar/1.jpg" />
@@ -313,7 +316,7 @@ const Navbar: React.FC = () => {
             </ListItemText>
           </MenuItem>
           
-          {isAuthenticated ? (
+          {shouldShowUserMenu ? (
             <>
               {userMenuItems.map((item) => (
                 <MenuItem 
