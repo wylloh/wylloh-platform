@@ -45,6 +45,7 @@ import SkeletonLoader from '../components/common/SkeletonLoader';
 import ErrorBoundary from '../components/common/ErrorBoundary';
 import { useResponsiveDesign } from '../hooks/useResponsiveDesign';
 import { usePerformanceOptimization } from '../hooks/usePerformanceOptimization';
+import { useAuth } from '../contexts/AuthContext';
 
 interface FeaturedContent {
   id: string;
@@ -57,6 +58,7 @@ interface FeaturedContent {
 
 const HomePage: React.FC = () => {
   const { active, connect } = useWallet();
+  const { isAuthenticated, loading: authLoading } = useAuth();
   const theme = useTheme();
   const { breakpoints, config, card } = useResponsiveDesign();
   const { debounce, createPerformanceMonitor } = usePerformanceOptimization();
@@ -71,13 +73,24 @@ const HomePage: React.FC = () => {
 
   useEffect(() => {
     const timer = setTimeout(() => {
-      if (!active) {
+      // Only show connect prompt if:
+      // 1. Authentication is not loading
+      // 2. User is not authenticated
+      // 3. Wallet is not active/connected
+      if (!authLoading && !isAuthenticated && !active) {
         setShowConnectPrompt(true);
       }
     }, 2000);
 
     return () => clearTimeout(timer);
-  }, [active]);
+  }, [active, isAuthenticated, authLoading]);
+
+  // Hide connect prompt when wallet connects or user authenticates
+  useEffect(() => {
+    if (active || isAuthenticated) {
+      setShowConnectPrompt(false);
+    }
+  }, [active, isAuthenticated]);
 
   useEffect(() => {
     const fetchFeaturedContent = async () => {
@@ -91,14 +104,16 @@ const HomePage: React.FC = () => {
         setFeaturedContent(data);
       } catch (error) {
         console.error('Error fetching featured content:', error);
-        enqueueSnackbar('Failed to load featured content', { variant: 'error' });
+        // Silently handle the error - don't show notification to users
+        // since featured content is optional and we don't want to alarm users
+        // enqueueSnackbar('Failed to load featured content', { variant: 'error' });
       } finally {
         setIsLoading(false);
       }
     };
 
     fetchFeaturedContent();
-  }, [enqueueSnackbar]);
+  }, []);
 
   const features = [
     {
@@ -502,7 +517,7 @@ const HomePage: React.FC = () => {
       )}
 
       {/* Wallet Connection Prompt */}
-      {showConnectPrompt && !active && (
+      {showConnectPrompt && !active && !isAuthenticated && !authLoading && (
         <Fade in>
           <Paper 
             sx={{ 

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Box,
   Paper,
@@ -28,72 +28,115 @@ import {
 } from '@mui/icons-material';
 import { ProVerificationData } from '../../contexts/AuthContext';
 
-// Mock user data with pending Pro verification requests
-const mockPendingUsers = [
-  {
-    id: '101',
-    username: 'johndoe',
-    email: 'john@example.com',
-    dateProRequested: '2023-06-15T10:30:00Z',
-    walletAddress: '0x1234...5678',
-    proStatus: 'pending',
-    proVerificationData: {
-      fullName: 'John Doe',
-      biography: 'Independent filmmaker with 10 years of experience in documentary shorts.',
-      professionalLinks: {
-        imdb: 'https://www.imdb.com/name/nm1234567',
-        website: 'https://johndoe-films.com',
-        vimeo: 'https://vimeo.com/johndoe',
-        linkedin: ''
-      },
-      filmographyHighlights: 'Director: "Urban Wildlife" (2020), "The Last Frontier" (2019)\nCinematographer: "Ocean\'s Beat" (2021)'
-    }
-  },
-  {
-    id: '102',
-    username: 'sarahsmith',
-    email: 'sarah@example.com',
-    dateProRequested: '2023-06-16T14:20:00Z',
-    walletAddress: '0x9876...4321',
-    proStatus: 'pending',
-    proVerificationData: {
-      fullName: 'Sarah Smith',
-      biography: 'Animation director specializing in stop-motion. Graduate of USC Film School.',
-      professionalLinks: {
-        imdb: 'https://www.imdb.com/name/nm7654321',
-        website: 'https://sarahanimates.com',
-        vimeo: 'https://vimeo.com/sarahsmith',
-        linkedin: 'https://linkedin.com/in/sarahsmith'
-      },
-      filmographyHighlights: 'Director: "Clay Dreams" (2021)\nAnimator: "Puppet Life" (2020), "Miniature World" (2018)'
-    }
-  }
-];
+interface PendingUser {
+  id: string;
+  username: string;
+  email: string;
+  dateProRequested: string;
+  walletAddress: string;
+  proStatus: 'pending';
+  proVerificationData: ProVerificationData;
+}
 
 const ProVerificationPanel: React.FC = () => {
-  const [pendingUsers] = useState(mockPendingUsers);
-  const [selectedUser, setSelectedUser] = useState<any | null>(null);
+  const [pendingUsers, setPendingUsers] = useState<PendingUser[]>([]);
+  const [selectedUser, setSelectedUser] = useState<PendingUser | null>(null);
   const [rejectionReason, setRejectionReason] = useState('');
   const [showRejectionDialog, setShowRejectionDialog] = useState(false);
   const [actionCompleted, setActionCompleted] = useState<{id: string, action: 'approved' | 'rejected'} | null>(null);
 
-  const handleOpenUserDetails = (user: any) => {
+  // Load pending Pro verification requests from localStorage
+  useEffect(() => {
+    const loadPendingUsers = () => {
+      const users: PendingUser[] = [];
+      
+      // Scan all localStorage keys for wallet users
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key?.startsWith('wallet_user_')) {
+          try {
+            const userData = JSON.parse(localStorage.getItem(key) || '{}');
+            if (userData.proStatus === 'pending' && userData.proVerificationData) {
+              users.push({
+                id: userData.id,
+                username: userData.username,
+                email: userData.email,
+                dateProRequested: userData.dateProRequested || new Date().toISOString(),
+                walletAddress: userData.walletAddress,
+                proStatus: 'pending',
+                proVerificationData: userData.proVerificationData
+              });
+            }
+          } catch (error) {
+            console.error('Error parsing user data:', error);
+          }
+        }
+      }
+      
+      // Sort by request date (newest first)
+      users.sort((a, b) => new Date(b.dateProRequested).getTime() - new Date(a.dateProRequested).getTime());
+      setPendingUsers(users);
+    };
+
+    loadPendingUsers();
+    
+    // Set up interval to refresh pending users (in case of updates from other tabs)
+    const interval = setInterval(loadPendingUsers, 5000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const handleOpenUserDetails = (user: PendingUser) => {
     setSelectedUser(user);
+    setActionCompleted(null);
   };
 
   const handleCloseUserDetails = () => {
     setSelectedUser(null);
     setRejectionReason('');
+    setActionCompleted(null);
+  };
+
+  const updateUserProStatus = (walletAddress: string, newStatus: 'verified' | 'rejected', reason?: string) => {
+    const userKey = `wallet_user_${walletAddress.toLowerCase()}`;
+    const userData = JSON.parse(localStorage.getItem(userKey) || '{}');
+    
+    if (userData) {
+      userData.proStatus = newStatus;
+      userData.dateProVerified = new Date().toISOString();
+      if (reason) {
+        userData.proRejectionReason = reason;
+      }
+      
+      localStorage.setItem(userKey, JSON.stringify(userData));
+      
+      // Also update current user if they're the same
+      const currentUser = localStorage.getItem('user');
+      if (currentUser) {
+        const currentUserData = JSON.parse(currentUser);
+        if (currentUserData.walletAddress?.toLowerCase() === walletAddress.toLowerCase()) {
+          localStorage.setItem('user', JSON.stringify(userData));
+        }
+      }
+    }
   };
 
   const handleApprove = (userId: string) => {
-    // In a real implementation, this would call an API to update the user's status
-    console.log(`Approving Pro status for user ID: ${userId}`);
+    const user = pendingUsers.find(u => u.id === userId);
+    if (!user) return;
+    
+    console.log(`Approving Pro status for user: ${user.username} (${user.walletAddress})`);
+    
+    // Update user status in localStorage
+    updateUserProStatus(user.walletAddress, 'verified');
+    
+    // Update UI
     setActionCompleted({id: userId, action: 'approved'});
-    // Close the dialog after a short delay
+    
+    // Refresh pending users list
     setTimeout(() => {
+      setPendingUsers(prev => prev.filter(u => u.id !== userId));
       handleCloseUserDetails();
-    }, 1500);
+    }, 2000);
   };
 
   const handleOpenRejectionDialog = () => {
@@ -102,17 +145,27 @@ const ProVerificationPanel: React.FC = () => {
 
   const handleCloseRejectionDialog = () => {
     setShowRejectionDialog(false);
+    setRejectionReason('');
   };
 
   const handleReject = (userId: string) => {
-    // In a real implementation, this would call an API to update the user's status
-    console.log(`Rejecting Pro status for user ID: ${userId}. Reason: ${rejectionReason}`);
+    const user = pendingUsers.find(u => u.id === userId);
+    if (!user) return;
+    
+    console.log(`Rejecting Pro status for user: ${user.username} (${user.walletAddress}). Reason: ${rejectionReason}`);
+    
+    // Update user status in localStorage
+    updateUserProStatus(user.walletAddress, 'rejected', rejectionReason);
+    
+    // Update UI
     setActionCompleted({id: userId, action: 'rejected'});
     setShowRejectionDialog(false);
-    // Close the dialog after a short delay
+    
+    // Refresh pending users list
     setTimeout(() => {
+      setPendingUsers(prev => prev.filter(u => u.id !== userId));
       handleCloseUserDetails();
-    }, 1500);
+    }, 2000);
   };
 
   return (

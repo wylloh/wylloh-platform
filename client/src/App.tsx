@@ -6,10 +6,30 @@ import { AuthProvider } from './contexts/AuthContext';
 import { WalletProvider } from './contexts/WalletContext';
 import { PlatformProvider } from './contexts/PlatformContext';
 import { UserProvider } from './contexts/UserContext';
+import { useAuth } from './contexts/AuthContext';
 import theme from './theme';
 import Layout from './components/layout/Layout';
 import AppRoutes from './routes';
 import Web3AuthManager from './components/wallet/Web3AuthManager';
+import AuthenticationLoader from './components/common/AuthenticationLoader';
+
+// Main app content component that has access to auth context
+function AppContent() {
+  const { authenticationInProgress } = useAuth();
+
+  return (
+    <>
+      <Web3AuthManager />
+      <AuthenticationLoader 
+        show={authenticationInProgress} 
+        message="Connecting wallet..." 
+      />
+      <Layout>
+        <AppRoutes />
+      </Layout>
+    </>
+  );
+}
 
 function App() {
   return (
@@ -20,10 +40,7 @@ function App() {
           <WalletProvider>
             <UserProvider>
               <PlatformProvider>
-                <Web3AuthManager />
-                <Layout>
-                  <AppRoutes />
-                </Layout>
+                <AppContent />
               </PlatformProvider>
             </UserProvider>
           </WalletProvider>
