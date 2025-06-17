@@ -27,6 +27,7 @@ import {
   Settings
 } from '@mui/icons-material';
 import { useAuth } from '../contexts/AuthContext';
+import { useWallet } from '../contexts/WalletContext';
 import RequestProStatusButton from '../components/profile/RequestProStatusButton';
 import { useNavigate } from 'react-router-dom';
 
@@ -53,23 +54,58 @@ const mockUserContent = [
 ];
 
 const ProfilePage: React.FC = () => {
-  const { user, isAuthenticated } = useAuth();
+  const { user, isAuthenticated, loading } = useAuth();
+  const { connect, active } = useWallet();
   const [selectedTab, setSelectedTab] = React.useState(0);
   const navigate = useNavigate();
 
+  // Show loading state while authentication is in progress
+  if (loading) {
+    return (
+      <Container maxWidth="md" sx={{ py: 4 }}>
+        <Alert severity="info">
+          Loading your profile...
+        </Alert>
+      </Container>
+    );
+  }
+
+  // Web3-first authentication prompt
   if (!isAuthenticated || !user) {
     return (
       <Container maxWidth="md" sx={{ py: 4 }}>
-        <Alert severity="warning">
-          Please log in to view your profile.
+        <Alert severity="info" sx={{ mb: 3 }}>
+          Connect your wallet to access your profile and unlock Web3 features.
         </Alert>
-        <Button 
-          variant="contained" 
-          sx={{ mt: 2 }}
-          onClick={() => navigate('/login')}
-        >
-          Go to Login
-        </Button>
+        
+        <Paper sx={{ p: 3, textAlign: 'center' }}>
+          <Wallet sx={{ fontSize: 64, color: 'primary.main', mb: 2 }} />
+          <Typography variant="h5" gutterBottom>
+            Connect Your Wallet
+          </Typography>
+          <Typography variant="body1" color="text.secondary" sx={{ mb: 3 }}>
+            Your profile is secured by your Web3 wallet. Connect to access your content, 
+            manage your collection, and request Pro creator status.
+          </Typography>
+          
+          <Button 
+            variant="contained" 
+            size="large"
+            startIcon={<Wallet />}
+            onClick={connect}
+            sx={{ mr: 2 }}
+          >
+            Connect Wallet
+          </Button>
+          
+          <Button 
+            variant="outlined" 
+            size="large"
+            onClick={() => navigate('/')}
+          >
+            Browse as Guest
+          </Button>
+        </Paper>
       </Container>
     );
   }

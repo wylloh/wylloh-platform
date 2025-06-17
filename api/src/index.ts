@@ -39,7 +39,7 @@ import { authMiddleware } from './middleware/authMiddleware';
 const app: express.Application = express();
 
 // Set port
-const PORT = process.env.API_PORT || 4000;
+const PORT = process.env.PORT || process.env.API_PORT || 3001;
 
 // Connect to MongoDB
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/wylloh';

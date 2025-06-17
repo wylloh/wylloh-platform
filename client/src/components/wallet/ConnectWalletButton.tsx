@@ -20,7 +20,8 @@ import {
   AccountBalanceWallet as WalletIcon,
   OpenInNew as OpenInNewIcon,
   CheckCircle as CheckCircleIcon,
-  Warning as WarningIcon
+  Warning as WarningIcon,
+  Person as PersonIcon
 } from '@mui/icons-material';
 import { useWallet } from '../../contexts/WalletContext';
 import { useAuth } from '../../contexts/AuthContext';
@@ -47,7 +48,7 @@ const ConnectWalletButton: React.FC = () => {
     shouldShowAutoConnectPrompt,
     setShouldShowAutoConnectPrompt
   } = useWallet();
-  const { isAuthenticated, login } = useAuth();
+  const { isAuthenticated, user, login } = useAuth();
   const [open, setOpen] = useState(false);
   const [balance, setBalance] = useState<string | null>(null);
   const [isMetaMaskInstalled, setIsMetaMaskInstalled] = useState<boolean | null>(null);
@@ -64,18 +65,23 @@ const ConnectWalletButton: React.FC = () => {
   
   // Flag to track whether user has seen the modal
   const hasSeenModalRef = useRef<boolean>(false);
+  
+  // Reference to track previous active state
+  const previousActive = useRef(active);
 
-  // Debug logs
-  console.log('ConnectWalletButton rendered with:', { 
+  // Enhanced debug logs for connection state
+  console.log('🔍 ConnectWalletButton DEBUG:', { 
     account, 
     active, 
     chainId, 
     isCorrectNetwork,
     connecting, 
+    isAuthenticated,
+    username: user?.username,
     provider: provider ? 'Provider exists' : 'No provider',
-    window: typeof window !== 'undefined' ? 'Window exists' : 'No window',
     contextIsMetaMaskInstalled,
-    shouldShowAutoConnectPrompt
+    shouldShowAutoConnectPrompt,
+    timestamp: new Date().toISOString()
   });
 
   // Show auto-connect modal when shouldShowAutoConnectPrompt changes
@@ -138,14 +144,16 @@ const ConnectWalletButton: React.FC = () => {
       walletActive: active,
       walletAccount: account,
       walletType: getWalletDisplayName(account),
+      isAuthenticated,
+      username: user?.username,
       timestamp: new Date().toISOString()
     };
     
     if (process.env.NODE_ENV === 'development') {
       setWalletDebugInfo(JSON.stringify(info, null, 2));
-      console.log('Wallet Button Debug:', info);
+      console.log('🔍 Wallet Button Debug:', info);
     }
-  }, [active, account]);
+  }, [active, account, isAuthenticated, user?.username]);
 
   // Direct login attempt for recognized wallets - this is actually a good pattern for production
   useEffect(() => {
@@ -198,21 +206,11 @@ const ConnectWalletButton: React.FC = () => {
       return;
     }
     
-    // Prevent rapid re-clicks
-    if (connecting) {
-      console.log('Already connecting, ignoring click');
-      return;
-    }
-    
-    // Reset the auto-connect attempt flag
-    autoConnectAttemptedRef.current = false;
-    
-    console.log('Calling connect function');
     try {
       await connect();
-      console.log('Connect function completed');
+      console.log('✅ Wallet connection successful');
     } catch (error) {
-      console.error('Error in handleConnect:', error);
+      console.error('❌ Error in handleConnect:', error);
     }
   };
 
@@ -321,9 +319,6 @@ const ConnectWalletButton: React.FC = () => {
     
     return () => clearTimeout(timer);
   }, [active, account]);
-  
-  // Reference to track previous active state
-  const previousActive = useRef(active);
 
   // Handler for opening the wallet modal
   const handleOpenWalletModal = () => {
@@ -339,45 +334,97 @@ const ConnectWalletButton: React.FC = () => {
     setWalletModalOpen(false);
   };
 
-  // Show different button states based on connection status
+  // Enhanced button rendering with proper state handling
   const renderButton = () => {
-    if (active && account) {
-      // Connected state
-      return (
-        <Box sx={{ display: 'flex', alignItems: 'center' }}>
-          <Chip
-            icon={<WalletIcon />}
-            label={shortenAddress(account)}
-            variant="outlined"
-            onClick={handleDisconnect}
-            color={isCorrectNetwork ? 'primary' : 'error'}
-            sx={{ 
-              borderRadius: '16px',
-              '&:hover': {
-                backgroundColor: 'rgba(25, 118, 210, 0.08)',
-              },
-            }}
-          />
-        </Box>
-      );
-    } else {
-      // Not connected state
+    console.log('🎨 Rendering button with state:', { active, account, isAuthenticated, username: user?.username });
+    
+    // Loading state
+    if (connecting) {
       return (
         <Button
           variant="outlined"
-          startIcon={<WalletIcon />}
-          onClick={handleOpenWalletModal}
+          disabled
+          startIcon={<CircularProgress size={16} />}
           sx={{ borderRadius: '16px' }}
         >
-          Connect
+          Connecting...
         </Button>
       );
     }
+    
+    // Connected and authenticated - show username
+    if (active && account && isAuthenticated && user?.username) {
+      return (
+        <Chip
+          icon={<PersonIcon />}
+          label={user.username}
+          variant="outlined"
+          onClick={handleDisconnect}
+          color="primary"
+          sx={{ 
+            borderRadius: '16px',
+            fontWeight: 500,
+            '&:hover': {
+              backgroundColor: 'rgba(25, 118, 210, 0.08)',
+            },
+          }}
+        />
+      );
+    }
+    
+    // Connected but not authenticated - show wallet address
+    if (active && account) {
+      return (
+        <Chip
+          icon={<WalletIcon />}
+          label={shortenAddress(account)}
+          variant="outlined"
+          onClick={handleDisconnect}
+          color={isCorrectNetwork ? 'secondary' : 'error'}
+          sx={{ 
+            borderRadius: '16px',
+            '&:hover': {
+              backgroundColor: 'rgba(156, 39, 176, 0.08)',
+            },
+          }}
+        />
+      );
+    }
+    
+    // Not connected state
+    return (
+      <Button
+        variant="outlined"
+        startIcon={<WalletIcon />}
+        onClick={handleOpenWalletModal}
+        sx={{ borderRadius: '16px' }}
+      >
+        Connect
+      </Button>
+    );
   };
 
   return (
     <>
       {renderButton()}
+      
+      {/* Debug info in development */}
+      {process.env.NODE_ENV === 'development' && (
+        <Box sx={{ position: 'fixed', top: 10, right: 10, zIndex: 9999, maxWidth: 300 }}>
+          <Paper sx={{ p: 1, fontSize: '0.7rem', backgroundColor: 'rgba(0,0,0,0.8)', color: 'white' }}>
+            <Typography variant="caption">ConnectWalletButton Debug:</Typography>
+            <pre style={{ fontSize: '0.6rem', margin: 0, whiteSpace: 'pre-wrap' }}>
+              {JSON.stringify({
+                active,
+                account: account ? shortenAddress(account) : null,
+                isAuthenticated,
+                username: user?.username,
+                connecting
+              }, null, 2)}
+            </pre>
+          </Paper>
+        </Box>
+      )}
       
       {connectionIndicator.show && (
         <Box 
