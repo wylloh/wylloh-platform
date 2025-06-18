@@ -80,11 +80,11 @@
   },
   "dependencies": {
     "@helia/unixfs": "^5.0.0",
-
     "@libp2p/webrtc-star": "^7.0.0",
     "@types/joi": "^17.2.2",
     "@types/jsonwebtoken": "^9.0.9",
     "@types/mongoose": "^5.11.96",
+    "axios": "1.10.0",
     "helia": "^5.3.0",
     "joi": "^17.13.3",
     "jsonwebtoken": "^9.0.2",
