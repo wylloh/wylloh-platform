@@ -1,0 +1,13 @@
+{
+  "network": "polygon-mainnet",
+  "chainId": 137,
+  "primaryTreasury": "0x7FA50da5a8f998c9184E344279b205DE699Aa672",
+  "operationalTreasury": "0x2Ae0D658e356e2b687e604Af13aFAc3f4E265504",
+  "emergencyReserve": "0x28D42d7Eb6F5f1e98E4404e69637e877F7010737",
+  "platformFeePercentage": 500,
+  "platformFeeDescription": "5% platform fee (500 basis points) for sustainable operations",
+  "treasuryType": "multi-signature",
+  "description": "Wylloh platform treasury addresses for Polygon mainnet smart contract integration",
+  "lastUpdated": "2024-12-19T00:00:00.000Z",
+  "status": "production-ready"
+} 

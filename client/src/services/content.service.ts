@@ -56,10 +56,10 @@ interface ApiResponse<T> {
   error?: string;
 }
 
-// Production content data - minimal examples for demonstration
+// Production content data - loaded from API only
 const productionContent: Content[] = [
-  // This would typically be populated from your backend API
-  // For now, keeping empty for production
+  // Content is loaded from backend API and blockchain
+  // No hardcoded content in production
 ];
 
 // Local storage keys
@@ -181,17 +181,16 @@ class ContentService {
       const apiContent = response.data.data || [];
       const localContent = this.getLocalContent();
       
-      // Combine API content, local content, and mock content with unique IDs
+      // In production, prioritize API content, fall back to local cache
       const combinedContent = this.deduplicateContent([
         ...apiContent, 
-        ...localContent,
-        ...productionContent
+        ...localContent
       ]);
       
       return combinedContent;
     } catch (error) {
-      console.warn('API unavailable, returning local and mock data:', error);
-      return this.deduplicateContent([...this.getLocalContent(), ...productionContent]);
+      console.warn('API unavailable, returning cached local data only:', error);
+      return this.getLocalContent();
     }
   }
 
@@ -202,14 +201,9 @@ class ContentService {
     } catch (error) {
       console.warn('API unavailable, checking local content:', error);
       
-      // First check local content
+      // Check local cached content only
       const localContent = this.getLocalContent();
-      const localMatch = localContent.find(content => content.id === id);
-      
-      if (localMatch) return localMatch;
-      
-      // Then check mock content
-      return productionContent.find(content => content.id === id);
+      return localContent.find(content => content.id === id);
     }
   }
 
@@ -219,11 +213,11 @@ class ContentService {
       const apiContent = response.data.data || [];
       const localContent = this.getLocalContent();
       
-      // For demo purposes, include mock content in creator's content
-      return this.deduplicateContent([...apiContent, ...localContent, ...productionContent]);
+      // Production: API content with local cache fallback
+      return this.deduplicateContent([...apiContent, ...localContent]);
     } catch (error) {
-      console.warn('API unavailable, returning local and mock content:', error);
-      return this.deduplicateContent([...this.getLocalContent(), ...productionContent]);
+      console.warn('API unavailable, returning cached creator content:', error);
+      return this.getLocalContent();
     }
   }
 

@@ -2,37 +2,60 @@ import { ethers } from 'ethers';
 import { GANACHE_ID } from '../constants/blockchain';
 import { contentService } from './content.service';
 
-// Complete ABI for the WyllohToken contract (with all necessary functions for tokenization & transfers)
+// Complete ABI for the WyllohToken contract (Single Contract - All Films)
 const wyllohTokenAbi = [
   // Read functions
   "function balanceOf(address account, uint256 id) view returns (uint256)",
   "function getRightsThresholds(uint256 tokenId) view returns (tuple(uint256 quantity, string rightsType)[])",
   "function isApprovedForAll(address account, address operator) view returns (bool)",
+  "function films(uint256 tokenId) view returns (tuple(string filmId, string title, uint256 totalSupply, uint256 pricePerToken, uint256[] rightsThresholds, address[] royaltyRecipients, uint256[] royaltyShares, address creator, uint256 createdAt))",
+  "function nextTokenId() view returns (uint256)",
+  "function getFilmsByCreator(address creator) view returns (uint256[] memory)",
+  "function uri(uint256 tokenId) view returns (string memory)",
   
-  // Write functions
+  // Write functions - Single Contract Model
   "function safeTransferFrom(address from, address to, uint256 id, uint256 amount, bytes data)",
   "function setApprovalForAll(address operator, bool approved)",
-  "function mint(address to, uint256 id, uint256 amount, bytes data)",
-  "function create(address to, uint256 id, uint256 amount, string memory contentId, string memory contentHash, string memory contentType, string memory tokenURI, address royaltyRecipient, uint96 royaltyPercentage)",
-  "function setRightsThresholds(uint256 tokenId, tuple(uint256 quantity, string rightsType)[] thresholds)",
+  "function createFilm(string memory filmId, string memory title, uint256 totalSupply, uint256 pricePerToken, uint256[] memory rightsThresholds, address[] memory royaltyRecipients, uint256[] memory royaltyShares) returns (uint256)",
+  "function setFilmMetadata(uint256 tokenId, string memory metadataUri)",
+  "function updateRoyaltyRecipients(uint256 tokenId, address[] memory recipients, uint256[] memory shares)",
   
   // Events
   "event TransferSingle(address indexed operator, address indexed from, address indexed to, uint256 id, uint256 value)",
   "event ApprovalForAll(address indexed account, address indexed operator, bool approved)",
-  "event TokenCreated(uint256 indexed tokenId, address indexed creator, uint256 initialSupply)"
+  "event FilmCreated(uint256 indexed tokenId, string indexed filmId, string title, address indexed creator)",
+  "event FilmMetadataUpdated(uint256 indexed tokenId, string metadataUri)",
+  "event RoyaltyRecipientsUpdated(uint256 indexed tokenId, address[] recipients, uint256[] shares)"
 ];
 
-// Marketplace ABI for direct token purchases
+// Marketplace ABI for Wylloh token purchases
 const marketplaceAbi = [
-  // Write functions
+  // Write functions - Single Contract Integration
   "function purchaseTokens(address tokenContract, uint256 tokenId, uint256 quantity) payable",
   "function buyTokens(uint256 tokenId, uint256 quantity) payable",
   "function listTokens(uint256 tokenId, uint256 quantity, uint256 price)",
   "function setTokenPrice(uint256 tokenId, uint256 newPrice)",
+  "function getListingPrice(uint256 tokenId) view returns (uint256)",
+  "function getAvailableTokens(uint256 tokenId) view returns (uint256)",
   
   // Events
   "event TokensPurchased(address indexed buyer, address indexed seller, uint256 indexed tokenId, uint256 quantity, uint256 totalPrice)",
   "event TokensListed(address indexed seller, uint256 indexed tokenId, uint256 quantity, uint256 price)"
+];
+
+// Treasury Integration ABI for platform fees
+const treasuryIntegrationAbi = [
+  // Treasury configuration functions
+  "function setPlatformTreasury(address treasuryAddress)",
+  "function setPlatformFeePercentage(uint256 feePercentage)",
+  "function withdrawPlatformFees()",
+  "function getPlatformTreasury() view returns (address)",
+  "function getPlatformFeePercentage() view returns (uint256)",
+  "function getAccumulatedFees() view returns (uint256)",
+  
+  // Events
+  "event PlatformTreasuryUpdated(address indexed oldTreasury, address indexed newTreasury)",
+  "event PlatformFeesWithdrawn(address indexed treasury, uint256 amount)"
 ];
 
 // Film Factory ABI for creating film contracts
@@ -50,8 +73,8 @@ const filmFactoryAbi = [
 ];
 
 // Default contract addresses - should be configured at app startup
-const DEFAULT_CONTRACT_ADDRESS = '0x5FbDB2315678afecb367f032d93F642f64180aa3';
-const DEFAULT_MARKETPLACE_ADDRESS = '0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512';
+const DEFAULT_CONTRACT_ADDRESS = '0x0000000000000000000000000000000000000000'; // Will be set via environment or config
+const DEFAULT_MARKETPLACE_ADDRESS = '0x0000000000000000000000000000000000000000'; // Will be set via environment or config
 
 /**
  * Service for interacting with the blockchain contracts
@@ -71,51 +94,17 @@ class BlockchainService {
    */
   initialize(): void {
     try {
-      console.log('Initializing blockchain service...');
+      console.log('🚀 Initializing blockchain service for production...');
+
+      // Load contract addresses from configuration
+      this.loadContractAddresses();
 
       // Check if window.ethereum exists
       if (window.ethereum) {
         console.log('MetaMask detected, connecting to provider...');
         this.provider = new ethers.providers.Web3Provider(window.ethereum as any);
         
-        // Get contract address from environment variables or fallback to default
-        const contractAddress = process.env.REACT_APP_CONTRACT_ADDRESS || DEFAULT_CONTRACT_ADDRESS;
-        
-        // Explicitly log the value of the env var before reading
-        console.log(`Reading process.env.REACT_APP_MARKETPLACE_ADDRESS: [${process.env.REACT_APP_MARKETPLACE_ADDRESS}]`);
-        const marketplaceAddress = process.env.REACT_APP_MARKETPLACE_ADDRESS;
-        
-        console.log(`Using token contract address: ${contractAddress}`);
-        console.log(`Using marketplace address from initial load: ${marketplaceAddress || 'Not configured'}`);
-        
-        this.contractAddress = contractAddress;
-        this.marketplaceAddress = marketplaceAddress || '';
-        
-        // Connect to token contract
-        if (this.contractAddress) {
-          console.log('Connecting to token contract...');
-          this.tokenContract = new ethers.Contract(
-            this.contractAddress,
-            wyllohTokenAbi,
-            this.provider
-          );
-          console.log('Token contract connected successfully');
-        } else {
-          console.error('Token contract address not configured');
-        }
-        
-        // Connect to marketplace contract if address is provided
-        if (this.marketplaceAddress) {
-          console.log('Connecting to marketplace contract...');
-          this.marketplaceContract = new ethers.Contract(
-            this.marketplaceAddress,
-            marketplaceAbi,
-            this.provider
-          );
-          console.log('Marketplace contract connected successfully');
-        } else {
-          console.log('Marketplace contract not configured');
-        }
+        this.initializeContracts();
         
         // Check if contracts exist on the blockchain
         this.checkContractExistence();
@@ -146,9 +135,9 @@ class BlockchainService {
           });
         
         this._initialized = true;
-        console.log('Blockchain service initialized successfully');
+        console.log('✅ Blockchain service initialized successfully with MetaMask');
       } else {
-        console.log('No Ethereum provider detected, running in demo mode');
+        console.log('No Ethereum provider detected, initializing with RPC provider...');
         
         // Initialize provider with production-ready RPC URL
         const rpcUrl = process.env.REACT_APP_WEB3_PROVIDER || 'https://polygon-rpc.com';
@@ -156,52 +145,165 @@ class BlockchainService {
         
         this.provider = new ethers.providers.JsonRpcProvider(rpcUrl);
         
-        // Get contract address from environment variables or fallback to default
-        const contractAddress = process.env.REACT_APP_CONTRACT_ADDRESS || DEFAULT_CONTRACT_ADDRESS;
-        const marketplaceAddress = process.env.REACT_APP_MARKETPLACE_ADDRESS;
-        
-        console.log(`Using token contract address: ${contractAddress}`);
-        console.log(`Using marketplace address from initial load: ${marketplaceAddress || 'Not configured'}`);
-        
-        this.contractAddress = contractAddress;
-        this.marketplaceAddress = marketplaceAddress || '';
-        
-        // Connect to token contract
-        if (this.contractAddress && this.provider) {
-          console.log('Connecting to token contract...');
-          this.tokenContract = new ethers.Contract(
-            this.contractAddress,
-            wyllohTokenAbi,
-            this.provider
-          );
-          console.log('Token contract connected successfully');
-        } else {
-          console.error('Token contract address not configured');
-        }
-        
-        // Connect to marketplace contract if address is provided
-        if (this.marketplaceAddress && this.provider) {
-          console.log('Connecting to marketplace contract...');
-          this.marketplaceContract = new ethers.Contract(
-            this.marketplaceAddress,
-            marketplaceAbi,
-            this.provider
-          );
-          console.log('Marketplace contract connected successfully');
-        } else {
-          console.log('Marketplace contract not configured');
-        }
+        this.initializeContracts();
         
         // Check if contracts exist on the blockchain
         this.checkContractExistence();
         
         this._initialized = true;
-        console.log('Blockchain service initialized in demo mode');
+        console.log('✅ Blockchain service initialized with RPC provider');
       }
     } catch (error) {
-      console.error('Error initializing blockchain service:', error);
+      console.error('❌ Error initializing blockchain service:', error);
       this._initialized = false;
     }
+  }
+
+  /**
+   * Load contract addresses from various sources in priority order:
+   * 1. Environment variables
+   * 2. Deployed addresses configuration file
+   * 3. Network-specific configuration files
+   */
+  private loadContractAddresses(): void {
+    console.log('📋 Loading contract addresses from configuration...');
+    
+    // Priority 1: Environment variables
+    if (process.env.REACT_APP_CONTRACT_ADDRESS) {
+      this.contractAddress = process.env.REACT_APP_CONTRACT_ADDRESS;
+      console.log(`📄 Token contract from env: ${this.contractAddress}`);
+    }
+    
+    if (process.env.REACT_APP_MARKETPLACE_ADDRESS) {
+      this.marketplaceAddress = process.env.REACT_APP_MARKETPLACE_ADDRESS;
+      console.log(`🏪 Marketplace contract from env: ${this.marketplaceAddress}`);
+    }
+    
+    if (process.env.REACT_APP_FILM_FACTORY_ADDRESS) {
+      this.filmFactoryAddress = process.env.REACT_APP_FILM_FACTORY_ADDRESS;
+      console.log(`🏭 Film factory contract from env: ${this.filmFactoryAddress}`);
+    }
+    
+    // Priority 2: Try to load from deployed addresses config
+    try {
+      const deployedAddresses = require('../config/deployedAddresses.json');
+      if (!this.contractAddress && deployedAddresses.tokenAddress) {
+        this.contractAddress = deployedAddresses.tokenAddress;
+        console.log(`📄 Token contract from config: ${this.contractAddress}`);
+      }
+      if (!this.marketplaceAddress && deployedAddresses.marketplaceAddress) {
+        this.marketplaceAddress = deployedAddresses.marketplaceAddress;
+        console.log(`🏪 Marketplace contract from config: ${this.marketplaceAddress}`);
+      }
+    } catch (error) {
+      console.log('ℹ️ No deployed addresses config found, continuing...');
+    }
+    
+    // Priority 3: Try to load from network-specific config (Polygon)
+    try {
+      const polygonAddresses = require('../config/polygonAddresses.json');
+      if (!this.contractAddress && polygonAddresses.historicFilmContract) {
+        this.contractAddress = polygonAddresses.historicFilmContract;
+        console.log(`📄 Token contract from Polygon config: ${this.contractAddress}`);
+      }
+      if (!this.filmFactoryAddress && polygonAddresses.factoryAddress) {
+        this.filmFactoryAddress = polygonAddresses.factoryAddress;
+        console.log(`🏭 Film factory from Polygon config: ${this.filmFactoryAddress}`);
+      }
+    } catch (error) {
+      console.log('ℹ️ No Polygon addresses config found, continuing...');
+    }
+    
+    // Validation
+    if (!this.contractAddress || this.contractAddress === DEFAULT_CONTRACT_ADDRESS) {
+      console.warn('⚠️ No valid token contract address configured');
+    }
+    if (!this.marketplaceAddress || this.marketplaceAddress === DEFAULT_MARKETPLACE_ADDRESS) {
+      console.warn('⚠️ No valid marketplace contract address configured');
+    }
+    if (!this.filmFactoryAddress) {
+      console.warn('⚠️ No film factory contract address configured');
+    }
+    
+    console.log('📋 Contract address loading complete');
+  }
+
+  /**
+   * Load treasury configuration for platform fee integration
+   */
+  private async loadTreasuryConfiguration(): Promise<{
+    primaryTreasury?: string;
+    operationalTreasury?: string;
+    emergencyReserve?: string;
+  }> {
+    try {
+      // Load treasury addresses from configuration
+      const treasuryConfig = require('../config/treasury-addresses.json');
+      return {
+        primaryTreasury: treasuryConfig.primaryTreasury,
+        operationalTreasury: treasuryConfig.operationalTreasury,
+        emergencyReserve: treasuryConfig.emergencyReserve
+      };
+    } catch (error) {
+      console.warn('⚠️ Treasury configuration not found, using fallback');
+      // Fallback to hardcoded treasury address from environment
+      return {
+        primaryTreasury: process.env.REACT_APP_TREASURY_ADDRESS || '0x7FA50da5a8f998c9184E344279b205DE699Aa672'
+      };
+    }
+  }
+
+  /**
+   * Initialize contract instances with loaded addresses
+   */
+  private initializeContracts(): void {
+    console.log('🔗 Initializing contract instances...');
+    
+    if (!this.provider) {
+      console.error('❌ Provider not available for contract initialization');
+      return;
+    }
+    
+    // Connect to token contract
+    if (this.contractAddress && this.contractAddress !== DEFAULT_CONTRACT_ADDRESS) {
+      console.log('📄 Connecting to token contract...');
+      this.tokenContract = new ethers.Contract(
+        this.contractAddress,
+        wyllohTokenAbi,
+        this.provider
+      );
+      console.log('✅ Token contract connected successfully');
+    } else {
+      console.warn('⚠️ Token contract address not configured, skipping...');
+    }
+    
+    // Connect to marketplace contract if address is provided
+    if (this.marketplaceAddress && this.marketplaceAddress !== DEFAULT_MARKETPLACE_ADDRESS) {
+      console.log('🏪 Connecting to marketplace contract...');
+      this.marketplaceContract = new ethers.Contract(
+        this.marketplaceAddress,
+        marketplaceAbi,
+        this.provider
+      );
+      console.log('✅ Marketplace contract connected successfully');
+    } else {
+      console.warn('⚠️ Marketplace contract not configured, skipping...');
+    }
+    
+    // Connect to film factory contract if address is provided
+    if (this.filmFactoryAddress) {
+      console.log('🏭 Connecting to film factory contract...');
+      this.filmFactoryContract = new ethers.Contract(
+        this.filmFactoryAddress,
+        filmFactoryAbi,
+        this.provider
+      );
+      console.log('✅ Film factory contract connected successfully');
+    } else {
+      console.warn('⚠️ Film factory contract not configured, skipping...');
+    }
+    
+    console.log('🔗 Contract initialization complete');
   }
 
   /**
@@ -466,12 +568,124 @@ class BlockchainService {
   }
 
   /**
-   * Create a new token for content (legacy method - now uses film factory)
-   * @param contentId Content ID to create token for
-   * @param initialSupply Initial token supply
-   * @param tokenMetadata Metadata for the token
-   * @param royaltyPercentage Royalty percentage for secondary sales
-   * @returns Transaction hash
+   * Create a new film token on the Wylloh platform (Single Contract Model)
+   * @param filmData Film creation parameters
+   * @returns New token ID
+   */
+  async createFilm(filmData: {
+    filmId: string;
+    title: string;
+    totalSupply: number;
+    pricePerToken: number; // In MATIC
+    rightsThresholds: number[];
+    royaltyRecipients: string[];
+    royaltyShares: number[];
+    metadataUri?: string;
+  }): Promise<{ tokenId: number; transactionHash: string }> {
+    if (!this.isInitialized()) {
+      throw new Error('Blockchain service not initialized');
+    }
+
+    if (!this.tokenContract) {
+      throw new Error('Token contract not configured');
+    }
+
+    try {
+      console.log('🎬 Creating film on Wylloh platform:', {
+        filmId: filmData.filmId,
+        title: filmData.title,
+        totalSupply: filmData.totalSupply,
+        pricePerToken: filmData.pricePerToken,
+        contractAddress: this.contractAddress
+      });
+
+      // Get signer from MetaMask
+      if (!window.ethereum) {
+        throw new Error('MetaMask not available');
+      }
+
+      const web3Provider = new ethers.providers.Web3Provider(window.ethereum);
+      const signer = web3Provider.getSigner();
+      const tokenContractWithSigner = this.tokenContract.connect(signer);
+
+      // Validate treasury integration
+      const treasury = await this.loadTreasuryConfiguration();
+      const enhancedRoyaltyRecipients = [...filmData.royaltyRecipients];
+      const enhancedRoyaltyShares = [...filmData.royaltyShares];
+
+      // Add platform treasury to royalty recipients (5% platform fee)
+      if (treasury.primaryTreasury) {
+        enhancedRoyaltyRecipients.push(treasury.primaryTreasury);
+        enhancedRoyaltyShares.push(500); // 5% in basis points
+      }
+
+      // Convert price to wei
+      const priceInWei = ethers.utils.parseEther(filmData.pricePerToken.toString());
+
+      console.log('📋 Film creation parameters:', {
+        filmId: filmData.filmId,
+        title: filmData.title,
+        totalSupply: filmData.totalSupply,
+        pricePerToken: ethers.utils.formatEther(priceInWei),
+        rightsThresholds: filmData.rightsThresholds,
+        royaltyRecipients: enhancedRoyaltyRecipients,
+        royaltyShares: enhancedRoyaltyShares
+      });
+
+      // Create film transaction
+      const tx = await tokenContractWithSigner.createFilm(
+        filmData.filmId,
+        filmData.title,
+        filmData.totalSupply,
+        priceInWei,
+        filmData.rightsThresholds,
+        enhancedRoyaltyRecipients,
+        enhancedRoyaltyShares,
+        {
+          gasLimit: 1000000 // Higher gas limit for film creation
+        }
+      );
+
+      console.log('🚀 Film creation transaction submitted:', tx.hash);
+      const receipt = await tx.wait();
+      console.log('✅ Film creation confirmed:', receipt);
+
+      // Extract token ID from events
+      const filmCreatedEvent = receipt.events?.find(
+        (event: any) => event.event === 'FilmCreated'
+      );
+      
+      if (!filmCreatedEvent) {
+        throw new Error('FilmCreated event not found in transaction receipt');
+      }
+
+      const tokenId = filmCreatedEvent.args.tokenId.toNumber();
+      console.log(`🎭 Film "${filmData.title}" created with token ID: ${tokenId}`);
+
+      // Set metadata URI if provided
+      if (filmData.metadataUri) {
+        console.log('📝 Setting film metadata...');
+        const metadataTx = await tokenContractWithSigner.setFilmMetadata(
+          tokenId,
+          filmData.metadataUri
+        );
+        await metadataTx.wait();
+        console.log('✅ Metadata set successfully');
+      }
+
+      return {
+        tokenId,
+        transactionHash: tx.hash
+      };
+    } catch (error) {
+      console.error('❌ Error creating film:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Legacy method for backward compatibility - redirects to createFilm
+   * @deprecated Use createFilm instead
    */
   async createToken(
     contentId: string, 
@@ -1076,6 +1290,120 @@ class BlockchainService {
       console.log(`Contract Address: ${this.contractAddress}`);
       console.log(`Token ID: ${tokenId}`);
       return false;
+    }
+  }
+
+  /**
+   * Get all films on the Wylloh platform
+   * @returns Array of film data
+   */
+  async getAllWyllohFilms(): Promise<Array<{
+    tokenId: number;
+    filmId: string;
+    title: string;
+    totalSupply: number;
+    pricePerToken: string;
+    creator: string;
+    createdAt: number;
+  }>> {
+    if (!this.isInitialized() || !this.tokenContract) {
+      throw new Error('Blockchain service not initialized');
+    }
+
+    try {
+      const nextTokenId = await this.tokenContract.nextTokenId();
+      const films = [];
+
+      for (let i = 1; i < nextTokenId.toNumber(); i++) {
+        const filmData = await this.tokenContract.films(i);
+        films.push({
+          tokenId: i,
+          filmId: filmData.filmId,
+          title: filmData.title,
+          totalSupply: filmData.totalSupply.toNumber(),
+          pricePerToken: ethers.utils.formatEther(filmData.pricePerToken),
+          creator: filmData.creator,
+          createdAt: filmData.createdAt.toNumber()
+        });
+      }
+
+      return films;
+    } catch (error) {
+      console.error('Error fetching Wylloh films:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get films created by a specific creator
+   * @param creatorAddress Creator's wallet address
+   * @returns Array of film token IDs
+   */
+  async getFilmsByCreator(creatorAddress: string): Promise<number[]> {
+    if (!this.isInitialized() || !this.tokenContract) {
+      throw new Error('Blockchain service not initialized');
+    }
+
+    try {
+      const filmIds = await this.tokenContract.getFilmsByCreator(creatorAddress);
+      return filmIds.map((id: any) => id.toNumber());
+    } catch (error) {
+      console.error('Error fetching creator films:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get user's Wylloh film collection for Library display
+   * @param userAddress User's wallet address
+   * @returns Array of user's films with balances and rights
+   */
+  async getUserWyllohLibrary(userAddress: string): Promise<Array<{
+    tokenId: number;
+    filmId: string;
+    title: string;
+    balance: number;
+    rightsLevel: string;
+    pricePerToken: string;
+  }>> {
+    if (!this.isInitialized() || !this.tokenContract) {
+      throw new Error('Blockchain service not initialized');
+    }
+
+    try {
+      const allFilms = await this.getAllWyllohFilms();
+      const userLibrary = [];
+
+      for (const film of allFilms) {
+        const balance = await this.getTokenBalance(userAddress, film.tokenId.toString());
+        
+        if (balance > 0) {
+          // Determine rights level based on balance and thresholds
+          const rightsThresholds = await this.getRightsThresholds(film.tokenId.toString());
+          let rightsLevel = 'Personal Viewing';
+          
+          for (const threshold of rightsThresholds.reverse()) {
+            if (balance >= threshold.quantity) {
+              rightsLevel = threshold.type;
+              break;
+            }
+          }
+
+          userLibrary.push({
+            tokenId: film.tokenId,
+            filmId: film.filmId,
+            title: film.title,
+            balance,
+            rightsLevel,
+            pricePerToken: film.pricePerToken
+          });
+        }
+      }
+
+      return userLibrary;
+    } catch (error) {
+      console.error('Error fetching user library:', error);
+      throw error;
     }
   }
 

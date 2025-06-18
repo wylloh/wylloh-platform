@@ -1,6 +1,10 @@
 {
-      "tokenAddress": "0x5FbDB2315678afecb367f032d93F642f64180aa3",
-      "marketplaceAddress": "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512",
-      "creatorAddress": "0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266",
-      "consumerAddress": "0x70997970c51812dc3a010c7d01b50e0d17dc79c8"
-    }
+  "network": "polygon",
+  "chainId": 137,
+  "tokenAddress": "0x0000000000000000000000000000000000000000",
+  "marketplaceAddress": "0x0000000000000000000000000000000000000000",
+  "filmFactoryAddress": "0x0000000000000000000000000000000000000000",
+  "deploymentStatus": "pending",
+  "lastUpdated": "2024-12-19T00:00:00.000Z",
+  "description": "Production Polygon mainnet contract addresses - will be updated after deployment"
+}

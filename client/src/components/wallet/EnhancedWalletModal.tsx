@@ -345,12 +345,15 @@ const EnhancedWalletModal: React.FC<EnhancedWalletModalProps> = ({ open, onClose
       );
     }
     
-    // Login mode
+    // Login mode - Web3-only authentication
     if (mode === 'login') {
       return (
         <Box>
           <Typography variant="h6" align="center" gutterBottom>
-            Log in with your wallet
+            Connect Your Wallet
+          </Typography>
+          <Typography variant="body2" align="center" color="text.secondary" sx={{ mb: 3 }}>
+            Wylloh uses Web3 wallet authentication. No passwords needed!
           </Typography>
           
           {!active ? (
@@ -361,6 +364,7 @@ const EnhancedWalletModal: React.FC<EnhancedWalletModalProps> = ({ open, onClose
                 startIcon={<WalletIcon />}
                 onClick={handleConnectWallet}
                 disabled={loading}
+                size="large"
               >
                 {loading ? <CircularProgress size={24} /> : 'Connect Wallet'}
               </Button>
@@ -368,43 +372,21 @@ const EnhancedWalletModal: React.FC<EnhancedWalletModalProps> = ({ open, onClose
           ) : (
             <Box>
               <Alert severity="success" sx={{ mb: 2 }}>
-                Wallet connected: {account?.slice(0, 6)}...{account?.slice(-4)}
+                ✅ Wallet Connected: {account?.slice(0, 6)}...{account?.slice(-4)}
               </Alert>
               
-              <TextField
-                margin="normal"
-                required
-                fullWidth
-                id="email"
-                label="Email Address"
-                name="email"
-                autoComplete="email"
-                value={loginEmail}
-                onChange={(e) => setLoginEmail(e.target.value)}
-              />
-              
-              <TextField
-                margin="normal"
-                required
-                fullWidth
-                name="password"
-                label="Password"
-                type="password"
-                id="password"
-                autoComplete="current-password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-              />
+              <Typography variant="body2" align="center" color="text.secondary" sx={{ mb: 2 }}>
+                Your wallet is connected! The system will automatically authenticate you.
+              </Typography>
               
               <Button
                 fullWidth
                 variant="contained"
                 color="primary"
-                onClick={handleLogin}
-                disabled={loading}
+                onClick={() => onClose()}
                 sx={{ mt: 2 }}
               >
-                {loading ? <CircularProgress size={24} /> : 'Log In'}
+                Continue to Platform
               </Button>
             </Box>
           )}

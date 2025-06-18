@@ -19,7 +19,6 @@ import {
   Visibility as TransparencyIcon,
   Palette as PaletteIcon,
   Schedule as ScheduleIcon,
-  AttachMoney as MoneyIcon,
   Group as GroupIcon,
   Verified as VerifiedIcon
 } from '@mui/icons-material';
@@ -113,7 +112,7 @@ const AITransparencyPage: React.FC = () => {
                 <ListItemText primary="Speed to Market" secondary="Rapid prototyping to validate platform concept" />
               </ListItem>
               <ListItem>
-                <ListItemIcon><MoneyIcon color="primary" /></ListItemIcon>
+                <ListItemIcon><ScheduleIcon color="primary" /></ListItemIcon>
                 <ListItemText primary="Resource Efficiency" secondary="Bootstrap development with limited initial resources" />
               </ListItem>
               <ListItem>
@@ -143,52 +142,7 @@ const AITransparencyPage: React.FC = () => {
         </Grid>
       </Paper>
 
-      {/* Platform Economics */}
-      <Paper sx={{ p: 4, mb: 4 }}>
-        <Typography variant="h4" gutterBottom sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
-          <MoneyIcon sx={{ mr: 2, color: 'primary.main' }} />
-          Platform Economics & Artist Support
-        </Typography>
-        
-        <Alert severity="success" sx={{ mb: 3 }}>
-          <Typography variant="h6" gutterBottom>Platform Transaction Fee: 2.5%</Typography>
-          <Typography variant="body2">
-            Minimal, transparent fee structure designed to ensure platform sustainability while maximizing creator earnings.
-          </Typography>
-        </Alert>
 
-        <Grid container spacing={3}>
-          <Grid item xs={12} md={6}>
-            <Typography variant="h6" gutterBottom>Revenue Distribution</Typography>
-            <List dense>
-              <ListItem>
-                <ListItemText primary="Creator Revenue: 97.5%" secondary="Goes directly to filmmakers" />
-              </ListItem>
-              <ListItem>
-                <ListItemText primary="Platform Fee: 2.5%" secondary="Supports infrastructure and community programs" />
-              </ListItem>
-            </List>
-          </Grid>
-          
-          <Grid item xs={12} md={6}>
-            <Typography variant="h6" gutterBottom>Fee Allocation</Typography>
-            <List dense>
-              <ListItem>
-                <ListItemText primary="Infrastructure & Hosting: ~40%" secondary="Server costs and technical infrastructure" />
-              </ListItem>
-              <ListItem>
-                <ListItemText primary="Development & Security: ~35%" secondary="Platform improvements and security" />
-              </ListItem>
-              <ListItem>
-                <ListItemText primary="Artist Collaboration Fund: ~15%" secondary="Supporting human artist transitions" />
-              </ListItem>
-              <ListItem>
-                <ListItemText primary="Community Programs: ~10%" secondary="Educational and community initiatives" />
-              </ListItem>
-            </List>
-          </Grid>
-        </Grid>
-      </Paper>
 
       {/* Artist Collaboration Roadmap */}
       <Paper sx={{ p: 4, mb: 4 }}>

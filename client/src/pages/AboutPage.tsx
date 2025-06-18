@@ -28,7 +28,8 @@ import {
   Api as ApiIcon,
   Autorenew as AutorenewIcon,
   Shield as ShieldIcon,
-  Visibility as VisibilityIcon
+  Visibility as VisibilityIcon,
+  AttachMoney as MoneyIcon
 } from '@mui/icons-material';
 
 const AboutPage: React.FC = () => {
@@ -325,6 +326,86 @@ const AboutPage: React.FC = () => {
             </Grid>
           ))}
         </Grid>
+      </Box>
+
+      {/* Platform Economics */}
+      <Box sx={{ mb: 6 }}>
+        <Typography variant="h4" gutterBottom sx={{ fontWeight: 600, mb: 4 }}>
+          Platform Economics & Sustainability
+        </Typography>
+        
+        <Paper elevation={0} sx={{ p: 4, mb: 4, border: '1px solid', borderColor: 'divider' }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
+            <Box sx={{ color: 'success.main', mr: 2 }}>
+              <MoneyIcon />
+            </Box>
+            <Typography variant="h5" sx={{ fontWeight: 600, color: 'success.main' }}>
+              Platform Transaction Fee: 5%
+            </Typography>
+          </Box>
+          
+          <Typography variant="body1" paragraph sx={{ lineHeight: 1.7, mb: 3 }}>
+            Sustainable, transparent fee structure designed to ensure platform longevity while maximizing creator earnings. 
+            Significantly lower than traditional platforms (20-30%).
+          </Typography>
+
+          <Grid container spacing={4}>
+            <Grid item xs={12} md={6}>
+              <Typography variant="h6" gutterBottom sx={{ fontWeight: 600 }}>
+                Revenue Distribution
+              </Typography>
+              <List dense>
+                <ListItem sx={{ px: 0 }}>
+                  <ListItemIcon><VerifiedUserIcon color="success" /></ListItemIcon>
+                  <ListItemText 
+                    primary="Creator Revenue: 95%" 
+                    secondary="Goes directly to filmmakers and collaborators" 
+                  />
+                </ListItem>
+                <ListItem sx={{ px: 0 }}>
+                  <ListItemIcon><SecurityIcon color="primary" /></ListItemIcon>
+                  <ListItemText 
+                    primary="Platform Fee: 5%" 
+                    secondary="Supports infrastructure, security, and community programs" 
+                  />
+                </ListItem>
+              </List>
+            </Grid>
+            
+            <Grid item xs={12} md={6}>
+              <Typography variant="h6" gutterBottom sx={{ fontWeight: 600 }}>
+                Platform Fee Allocation
+              </Typography>
+              <List dense>
+                <ListItem sx={{ px: 0 }}>
+                  <ListItemText 
+                    primary="Infrastructure & Security: ~50%" 
+                    secondary="Blockchain operations, IPFS storage, platform security" 
+                  />
+                </ListItem>
+                <ListItem sx={{ px: 0 }}>
+                  <ListItemText 
+                    primary="Development & Innovation: ~30%" 
+                    secondary="Platform improvements and new features" 
+                  />
+                </ListItem>
+                <ListItem sx={{ px: 0 }}>
+                  <ListItemText 
+                    primary="Community & Support: ~20%" 
+                    secondary="Creator support programs and community initiatives" 
+                  />
+                </ListItem>
+              </List>
+            </Grid>
+          </Grid>
+          
+          <Box sx={{ mt: 3, p: 2, bgcolor: 'success.50', borderRadius: 1 }}>
+            <Typography variant="body2" sx={{ fontWeight: 600, color: 'success.dark' }}>
+              💡 Why 5% is Fair: Traditional film distribution takes 20-30% in fees. 
+              Wylloh's 5% enables sustainable operations while ensuring creators keep 95% of revenue.
+            </Typography>
+          </Box>
+        </Paper>
       </Box>
 
       {/* Open Source Philosophy */}
