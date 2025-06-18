@@ -36,6 +36,11 @@ yarn-error.log*
 *.swo
 .DS_Store
 
+# Cursor AI - Sensitive internal files only
+.cursor/SECURITY_INCIDENT_RESPONSE.md
+.cursor/USER_FLOW_TESTING_INTERNAL.md
+.cursor/workspace.md
+
 # Hardhat
 cache/
 artifacts/
@@ -116,5 +121,4 @@ Thumbs.db
 # Security reports
 /reports/
 
-# Local development workspace
-.cursor/workspace.md
+# Local development workspace - MOVED TO CURSOR AI SECTION ABOVE
