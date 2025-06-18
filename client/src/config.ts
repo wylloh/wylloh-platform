@@ -10,4 +10,4 @@ export const ENDPOINTS = {
   API: isDevelopment ? 'http://localhost:3001' : API_BASE_URL,
   STORAGE: isDevelopment ? 'http://localhost:3002' : STORAGE_BASE_URL,
   IPFS: isDevelopment ? 'http://localhost:8080' : IPFS_BASE_URL,
-}; 
+};
