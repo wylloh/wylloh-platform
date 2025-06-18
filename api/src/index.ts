@@ -92,8 +92,7 @@ const corsOptions = {
     
     const allowedOrigins = [
       'https://wylloh.com',
-      'https://www.wylloh.com',
-      'https://app.wylloh.com'
+      'https://www.wylloh.com'
     ];
     
     if (process.env.NODE_ENV === 'development') {
