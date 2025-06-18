@@ -10,8 +10,8 @@ services:
       MONGO_INITDB_ROOT_USERNAME: ${MONGO_ROOT_USERNAME:-admin}
       MONGO_INITDB_ROOT_PASSWORD: ${MONGO_ROOT_PASSWORD:-wylloh2024!}
       MONGO_INITDB_DATABASE: ${MONGO_DATABASE:-wylloh}
-    ports:
-      - "27017:27017"
+    # SECURITY: Removed external port mapping - MongoDB only accessible via Docker internal network
+    # Services connect via: mongodb:27017 (internal service discovery)
     volumes:
       - mongodb_data:/data/db
       - ./scripts/mongo-init.js:/docker-entrypoint-initdb.d/mongo-init.js:ro
@@ -28,8 +28,8 @@ services:
     image: redis:7.2-alpine
     container_name: wylloh-redis
     restart: unless-stopped
-    ports:
-      - "6379:6379"
+    # SECURITY: Removed external port mapping - Redis only accessible via Docker internal network
+    # Services connect via: redis:6379 (internal service discovery)
     volumes:
       - redis_data:/data
     networks:
@@ -46,9 +46,10 @@ services:
     container_name: wylloh-ipfs
     restart: unless-stopped
     ports:
-      - "4001:4001"     # P2P port
-      - "5001:5001"     # API port
-      - "8080:8080"     # Gateway port
+      - "4001:4001"     # P2P port - REQUIRED for IPFS network connectivity
+      - "8080:8080"     # Gateway port - REQUIRED for public content access
+    # SECURITY: Removed 5001:5001 (IPFS API) - only accessible via Docker internal network
+    # API accessed via: ipfs:5001 (internal service discovery)
     volumes:
       - ipfs_data:/data/ipfs
     networks:
