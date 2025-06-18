@@ -391,8 +391,8 @@ export function WalletProvider({ children }: { children: ReactNode }) {
   // Eager connect attempt on initial load
   useEffect(() => {
     const attemptEagerConnection = async () => {
-      console.log('WalletContext: MetaMask detected, attempting eager connection...');
-      // Use the EagerConnect method
+      console.log('WalletContext: MetaMask detected, checking for already connected wallet...');
+      // FIXED: Only check if already connected, don't auto-connect
       try {
          // Check if MetaMask is installed
          if (!window.ethereum) {
@@ -400,26 +400,24 @@ export function WalletProvider({ children }: { children: ReactNode }) {
            return;
          }
          
-        console.log('WalletContext: Activating connector...');
-        // Attempt to activate the injected connector (MetaMask)
-        await activate(injected, undefined, false); // Suppress errors during activation
-        console.log('WalletContext: Activation attempt completed.');
-        
-        // Check account after activation attempt (use getAccount)
-        const account = await injected.getAccount();
-        if (account) {
-          console.log('WalletContext: Eager connected account:', account);
-          // Dispatch event to notify other parts of the app (like AuthContext)
+        // Check if already connected (without triggering connection)
+        const accounts = await window.ethereum.request({ method: 'eth_accounts' });
+        if (accounts && accounts.length > 0) {
+          console.log('WalletContext: Found already connected account during initialization:', accounts[0]);
+          // Only activate if already connected
+          await activate(injected, undefined, false);
+          
+          // Dispatch event for already connected wallet
           const walletChangeEvent = new CustomEvent('wallet-account-changed', { 
-             detail: { account: account }
+             detail: { account: accounts[0] }
           });
           window.dispatchEvent(walletChangeEvent);
-          console.log('WalletContext: Dispatched wallet-account-changed for eager connection');
+          console.log('Dispatched wallet-account-changed event with normalized account:', accounts[0]);
         } else {
-          console.log('WalletContext: Eager activation succeeded but no account returned.');
+          console.log('WalletContext: No connected accounts found, waiting for user action');
         }
       } catch (error) {
-        console.error('WalletContext: Error during eager activation attempt:', error);
+        console.error('WalletContext: Error during eager connection check:', error);
         // Don't show toast for eager connect failures
       }
     };
