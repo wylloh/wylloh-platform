@@ -4,9 +4,7 @@
  */
 
 import { User } from '../types/user.types';
-
-// API configuration - using consistent /api base path
-const API_BASE_URL = '/api';
+import { API_BASE_URL } from '../config';
 
 interface APIResponse<T = any> {
   success: boolean;
