@@ -3,8 +3,10 @@
  * Replaces localStorage with database persistence
  */
 
-// 🔒 SECURITY: Correct API URL configuration
-const API_BASE_URL = process.env.REACT_APP_API_URL || '/api';
+import { User } from '../types/user.types';
+
+// API configuration - using consistent /api base path
+const API_BASE_URL = '/api';
 
 interface APIResponse<T = any> {
   success: boolean;
@@ -19,6 +21,35 @@ interface WalletUser {
   email: string;
   roles: string[];
   walletAddress: string;
+}
+
+export interface WalletConnectRequest {
+  walletAddress: string;
+  chainId: number;
+  signature?: string;
+}
+
+export interface WalletConnectResponse {
+  success: boolean;
+  user?: User;
+  token?: string;
+  message?: string;
+  isNewWallet?: boolean;
+}
+
+export interface CreateProfileRequest {
+  walletAddress: string;
+  username: string;
+  email?: string;
+  profileType: 'consumer' | 'pro';
+  chainId: number;
+}
+
+export interface CreateProfileResponse {
+  success: boolean;
+  user?: User;
+  token?: string;
+  message?: string;
 }
 
 class AuthAPI {
@@ -40,31 +71,29 @@ class AuthAPI {
   /**
    * Connect wallet and authenticate (or check for existing profile)
    */
-  async connectWallet(walletAddress: string): Promise<{ success: boolean; user?: WalletUser; needsProfile?: boolean }> {
+  async connectWallet(request: WalletConnectRequest): Promise<WalletConnectResponse> {
     try {
-      const response = await fetch(`${API_BASE_URL}/api/auth/wallet/connect`, {
-        method: 'POST',
-        headers: this.getHeaders(),
-        body: JSON.stringify({ walletAddress }),
+      console.log('🔗 Attempting wallet connection:', {
+        address: request.walletAddress,
+        chainId: request.chainId
       });
 
-      const data: APIResponse<WalletUser> = await response.json();
+      const response = await fetch(`${API_BASE_URL}/auth/wallet/connect`, {
+        method: 'POST',
+        headers: this.getHeaders(),
+        body: JSON.stringify(request),
+      });
 
-      if (data.success && data.user && data.token) {
-        // Store authentication data
-        localStorage.setItem('token', data.token);
-        localStorage.setItem('user', JSON.stringify(data.user));
-        
-        console.log(`Wallet authenticated successfully: ${data.user.username} (${walletAddress})`);
-        return { success: true, user: data.user };
-      } else {
-        // User doesn't exist, needs to create profile
-        console.log(`No profile found for wallet: ${walletAddress}`);
-        return { success: false, needsProfile: true };
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }
+
+      const data = await response.json();
+      console.log('✅ Wallet connection response:', data);
+      return data;
     } catch (error) {
-      console.error('Wallet connect API error:', error);
-      return { success: false };
+      console.error('❌ Wallet connect API error:', error);
+      throw error;
     }
   }
 
@@ -73,7 +102,7 @@ class AuthAPI {
    */
   async createWalletProfile(walletAddress: string, username: string, email?: string): Promise<{ success: boolean; user?: WalletUser; error?: string }> {
     try {
-      const response = await fetch(`${API_BASE_URL}/api/auth/wallet/create-profile`, {
+      const response = await fetch(`${API_BASE_URL}/auth/wallet/create-profile`, {
         method: 'POST',
         headers: this.getHeaders(),
         body: JSON.stringify({ walletAddress, username, email }),
