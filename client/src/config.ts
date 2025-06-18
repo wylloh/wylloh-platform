@@ -1,2 +1,2 @@
-// API configuration - Production ready with proper fallback
-export const API_BASE_URL = process.env.REACT_APP_API_URL || '/api'; 
+// Updated for Vite environment variables - simple and working approach
+export const API_BASE_URL = '/api'; 
