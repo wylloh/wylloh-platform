@@ -160,12 +160,12 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       console.log('WalletContext - MetaMask installed check:', installed);
       setIsMetaMaskInstalled(installed);
       
-      // Set flag to show auto-connect prompt for users with MetaMask
-      // Only if they haven't seen the modal before and we're not already connected
-      if (installed && !active && !localStorage.getItem('hasSeenWalletModal') && !skipAutoConnect) {
-        console.log('WalletContext - Should show auto-connect prompt:', true);
-        setShouldShowAutoConnectPrompt(true);
-      }
+      // DISABLED: Auto-connect prompt for better UX
+      // Let users manually connect when they're ready instead of immediately showing popup
+      // if (installed && !active && !localStorage.getItem('hasSeenWalletModal') && !skipAutoConnect) {
+      //   console.log('WalletContext - Should show auto-connect prompt:', true);
+      //   setShouldShowAutoConnectPrompt(true);
+      // }
     };
     
     checkMetaMaskInstalled();
