@@ -11,18 +11,10 @@ export default defineConfig({
     minify: 'terser'
   },
   
-  // Development server with API proxy (essential fix)
+  // Development server
   server: {
     port: 3000,
-    host: true,
-    proxy: {
-      // Proxy API calls to backend service
-      '/api': {
-        target: 'http://localhost:3001',
-        changeOrigin: true,
-        secure: false
-      }
-    }
+    host: true
   },
   
   // Define global variables for Web3 compatibility
