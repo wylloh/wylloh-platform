@@ -31,6 +31,9 @@ interface User {
   dateProRequested?: string;
   dateProVerified?: string;
   isWalletOnlyAccount?: boolean;
+  profile?: {
+    displayName: string;
+  };
 }
 
 // Export the interface to make it available to other components
@@ -385,8 +388,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       setState(prevState => ({ ...prevState, loading: true, error: null, authenticationInProgress: true }));
       
+      // Get current chainId from wallet context
+      const { ethereum } = window as any;
+      let chainId = 137; // Default to Polygon mainnet
+      
+      if (ethereum) {
+        try {
+          const currentChainId = await ethereum.request({ method: 'eth_chainId' });
+          chainId = parseInt(currentChainId, 16);
+        } catch (error) {
+          console.warn('Could not get chainId from wallet, using default:', error);
+        }
+      }
+      
       // Use API to connect wallet (checks database for existing user)
-      const result = await authAPI.connectWallet(walletAddress);
+      const result = await authAPI.connectWallet({
+        walletAddress,
+        chainId
+      });
       
       if (result.success && result.user) {
         // Update state with authenticated user
@@ -400,15 +419,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           lastSyncedWallet: walletAddress,
         });
         
-        console.log(`Wallet authentication successful: ${result.user.username} (${walletAddress})`);
+        console.log(`Wallet authentication successful: ${(result.user as any).username || (result.user as any).profile?.displayName || result.user.id} (${walletAddress})`);
         return true;
-      } else if (result.needsProfile) {
+      } else if (result.isNewWallet) {
         // No existing account for this wallet
         setState(prevState => ({ 
           ...prevState, 
           loading: false, 
           authenticationInProgress: false 
         }));
+        console.log('New wallet detected, profile creation needed');
         return false;
       } else {
         // API error
@@ -416,17 +436,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           ...prevState,
           loading: false,
           authenticationInProgress: false,
-          error: 'Failed to connect to wallet service.'
+          error: result.message || 'Failed to connect to wallet service.'
         }));
         return false;
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error('Wallet authentication error:', err);
       setState(prevState => ({
         ...prevState,
         loading: false,
         authenticationInProgress: false,
-        error: 'Wallet authentication failed.'
+        error: err.message || 'Wallet authentication failed.'
       }));
       return false;
     }
