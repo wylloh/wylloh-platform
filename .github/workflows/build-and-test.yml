@@ -219,6 +219,7 @@ jobs:
         MONGO_ROOT_USERNAME=admin
         MONGO_ROOT_PASSWORD=${{ secrets.MONGO_ROOT_PASSWORD }}
         MONGO_DATABASE=wylloh
+        MONGODB_URI=mongodb://admin:${{ secrets.MONGO_ROOT_PASSWORD }}@mongodb:27017/wylloh?authSource=admin
         
         # Redis Configuration
         REDIS_URL=redis://redis:6379
