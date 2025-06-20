@@ -74,7 +74,7 @@ services:
     environment:
       NODE_ENV: ${NODE_ENV:-production}
       PORT: 3001
-      MONGODB_URI: mongodb://mongodb:27017/${MONGO_DATABASE:-wylloh}
+      MONGODB_URI: ${MONGODB_URI:-mongodb://mongodb:27017/wylloh}
       REDIS_URL: redis://redis:6379
       IPFS_API_URL: http://ipfs:5001
       IPFS_GATEWAY_URL: http://ipfs:8080
@@ -126,7 +126,7 @@ services:
       PORT: 3002
       IPFS_API_URL: http://ipfs:5001
       IPFS_GATEWAY_URL: http://ipfs:8080
-      MONGODB_URI: mongodb://mongodb:27017/${MONGO_DATABASE:-wylloh}
+      MONGODB_URI: ${MONGODB_URI:-mongodb://mongodb:27017/wylloh}
       REDIS_URL: redis://redis:6379
     depends_on:
       mongodb:
