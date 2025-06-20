@@ -104,15 +104,20 @@ class AuthService {
     // 🔒 SECURITY: Use secure admin wallet checking
     const isAdmin = isAdminWallet(normalizedAddress);
 
-    // 🔒 SECURITY: Use database transaction to prevent race conditions
-    const session = await mongoose.startSession();
+    // 🏗️ ARCHITECTURE: Transaction setup (disabled for single MongoDB instance)
+    // TODO: Enable when scaling to replica set (just uncomment these lines)
+    // const session = await mongoose.startSession();
     
     try {
       let user: IUser | null = null;
       
-      await session.withTransaction(async () => {
+      // 🏗️ ARCHITECTURE: Replica-set ready structure (transactions disabled for now)
+      // When we scale to replica sets, just uncomment the session.withTransaction wrapper
+      // await session.withTransaction(async () => {
+        
         // Find user with this wallet address
-        user = await User.findOne({ walletAddress: normalizedAddress }).session(session);
+        user = await User.findOne({ walletAddress: normalizedAddress });
+        // For replica sets: add .session(session)
 
         if (!user) {
           // Create new user if this wallet is not associated with any account
@@ -128,24 +133,28 @@ class AuthService {
             isVerified: true // Wallet connection serves as verification
           });
 
-          await user.save({ session });
+          await user.save();
+          // For replica sets: add { session }
           console.log(`✅ Created new wallet user: ${username} (${walletAddress})${isAdmin ? ' - ADMIN' : ''}`);
         } else {
           // Update existing user with admin role if needed
           if (isAdmin && !user.roles.includes('admin')) {
             user.roles.push('admin');
-            await user.save({ session });
+            await user.save();
+            // For replica sets: add { session }
             console.log(`✅ Granted admin role to: ${user.username}`);
           }
         }
 
         // Update last login
         user.lastLogin = new Date();
-        await user.save({ session });
-      });
+        await user.save();
+        // For replica sets: add { session }
+        
+      // }); // Uncomment this closing brace when enabling transactions
 
       if (!user) {
-        throw createError('Failed to authenticate wallet', 500);
+        throw createError('Unable to authenticate wallet. Please try again.', 500);
       }
 
       // Generate secure token
@@ -154,9 +163,20 @@ class AuthService {
       return { user, token };
     } catch (error) {
       console.error('❌ Wallet authentication error:', error);
-      throw error;
+      
+      // 🎨 UX: Convert technical errors to user-friendly messages
+      if (error.message && error.message.includes('duplicate key')) {
+        throw createError('This wallet is already registered. Please try connecting again.', 400);
+      }
+      if (error.message && error.message.includes('validation')) {
+        throw createError('Invalid wallet information. Please check your wallet and try again.', 400);
+      }
+      
+      // Generic user-friendly error for any other database issues
+      throw createError('Unable to authenticate wallet. Please try again.', 500);
     } finally {
-      await session.endSession();
+      // 🏗️ ARCHITECTURE: Session cleanup (for replica sets)
+      // await session.endSession(); // Uncomment when enabling transactions
     }
   }
 
@@ -195,21 +215,27 @@ class AuthService {
     // 🔒 SECURITY: Use secure admin wallet checking
     const isAdmin = isAdminWallet(normalizedAddress);
 
-    // 🔒 SECURITY: Use database transaction to prevent race conditions
-    const session = await mongoose.startSession();
+    // 🏗️ ARCHITECTURE: Transaction setup (disabled for single MongoDB instance)
+    // TODO: Enable when scaling to replica set (just uncomment these lines)
+    // const session = await mongoose.startSession();
     
     try {
       let user: IUser | null = null;
       
-      await session.withTransaction(async () => {
+      // 🏗️ ARCHITECTURE: Replica-set ready structure (transactions disabled for now)
+      // When we scale to replica sets, just uncomment the session.withTransaction wrapper
+      // await session.withTransaction(async () => {
+        
         // Check if user already exists
-        const existingUser = await User.findOne({ walletAddress: normalizedAddress }).session(session);
+        const existingUser = await User.findOne({ walletAddress: normalizedAddress });
+        // For replica sets: add .session(session)
         if (existingUser) {
           throw createError('Wallet already has an associated profile', 400);
         }
 
         // Check if username is taken
-        const existingUsername = await User.findOne({ username: usernameValidation.sanitized }).session(session);
+        const existingUsername = await User.findOne({ username: usernameValidation.sanitized });
+        // For replica sets: add .session(session)
         if (existingUsername) {
           throw createError('Username already taken', 400);
         }
@@ -224,11 +250,13 @@ class AuthService {
           isVerified: true
         });
 
-        await user.save({ session });
-      });
+        await user.save();
+        // For replica sets: add { session }
+        
+      // }); // Uncomment this closing brace when enabling transactions
 
       if (!user) {
-        throw createError('Failed to create wallet profile', 500);
+        throw createError('Unable to create profile. Please try again.', 500);
       }
 
       // Generate secure token
@@ -238,9 +266,30 @@ class AuthService {
       return { user, token };
     } catch (error) {
       console.error('❌ Wallet profile creation error:', error);
-      throw error;
+      
+      // 🎨 UX: Convert technical errors to user-friendly messages
+      if (error.message && error.message.includes('duplicate key')) {
+        if (error.message.includes('username')) {
+          throw createError('Username already taken. Please choose a different username.', 400);
+        }
+        if (error.message.includes('walletAddress')) {
+          throw createError('This wallet already has a profile. Please try connecting again.', 400);
+        }
+      }
+      if (error.message && error.message.includes('validation')) {
+        throw createError('Invalid profile information. Please check your details and try again.', 400);
+      }
+      
+      // Pass through our custom error messages
+      if (error.statusCode) {
+        throw error;
+      }
+      
+      // Generic user-friendly error for any other database issues
+      throw createError('Unable to create profile. Please try again.', 500);
     } finally {
-      await session.endSession();
+      // 🏗️ ARCHITECTURE: Session cleanup (for replica sets)
+      // await session.endSession(); // Uncomment when enabling transactions
     }
   }
 
