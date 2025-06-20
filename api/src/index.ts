@@ -143,21 +143,21 @@ app.get('/health', (req: Request, res: Response) => {
   res.status(200).json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
-// Apply routes
-app.use('/api/auth', authRoutes);
-app.use('/api/users', userRoutes);
-app.use('/api/content', contentRoutes);
-app.use('/api/tokens', tokenRoutes);
-app.use('/api/store', storeRoutes);
-app.use('/api/featured-content', featuredContentRoutes);
-app.use('/api/libraries', libraryRoutes);
+// Apply routes (subdomain architecture - no /api prefix needed)
+app.use('/auth', authRoutes);
+app.use('/users', userRoutes);
+app.use('/content', contentRoutes);
+app.use('/tokens', tokenRoutes);
+app.use('/store', storeRoutes);
+app.use('/featured-content', featuredContentRoutes);
+app.use('/libraries', libraryRoutes);
 
 // Root route
 app.get('/', (req: Request, res: Response) => {
   res.json({
     message: 'Welcome to Wylloh API',
     version: '1.0.0',
-    docs: '/api/docs'
+    docs: '/docs'
   });
 });
 
