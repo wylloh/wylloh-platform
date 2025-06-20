@@ -82,12 +82,14 @@ class AuthService {
   }
 
   /**
-   * Login or register with wallet (Web3-first approach) - SECURE VERSION
+   * Authenticate with wallet (Web3-first approach) - SECURE VERSION
+   * NOTE: This method only authenticates EXISTING users. For new wallets, returns isNewWallet=true
    * @param walletAddress Wallet address
-   * @param userData Optional user data for profile creation
+   * @param userData Optional user data (unused - kept for API compatibility)
    * @param clientIP Client IP for rate limiting
+   * @returns { user, token } for existing users OR { isNewWallet: true } for new wallets
    */
-  async walletAuth(walletAddress: string, userData?: { username?: string, email?: string }, clientIP?: string) {
+  async walletAuth(walletAddress: string, userData?: { username?: string, email?: string }, clientIP?: string): Promise<{ user: IUser; token: string } | { isNewWallet: true; walletAddress: string; message: string }> {
     // 🔒 SECURITY: Validate wallet address format
     if (!validateWalletAddress(walletAddress)) {
       throw createError('Invalid wallet address format', 400);
@@ -120,23 +122,18 @@ class AuthService {
         // For replica sets: add .session(session)
 
         if (!user) {
-          // Create new user if this wallet is not associated with any account
-          const username = userData?.username || `user_${walletAddress.substring(2, 8)}`;
-          const email = userData?.email || `${walletAddress.substring(2, 8)}@wallet.local`;
+          // 🎯 NEW WALLET DETECTED: Don't auto-create, let frontend handle profile creation
+          console.log(`🆕 New wallet detected: ${walletAddress} - profile creation needed`);
           
-          user = new User({
-            username,
-            email,
-            password: crypto.randomBytes(32).toString('hex'), // Secure random password
+          // Return special response indicating new wallet needs profile creation
+          return { 
+            isNewWallet: true, 
             walletAddress: normalizedAddress,
-            roles: isAdmin ? ['admin', 'user'] : ['user'],
-            isVerified: true // Wallet connection serves as verification
-          });
-
-          await user.save();
-          // For replica sets: add { session }
-          console.log(`✅ Created new wallet user: ${username} (${walletAddress})${isAdmin ? ' - ADMIN' : ''}`);
+            message: 'New wallet detected. Profile creation required.' 
+          };
         } else {
+          // 🔄 EXISTING USER: Authenticate and update
+          
           // Update existing user with admin role if needed
           if (isAdmin && !user.roles.includes('admin')) {
             user.roles.push('admin');
@@ -144,12 +141,14 @@ class AuthService {
             // For replica sets: add { session }
             console.log(`✅ Granted admin role to: ${user.username}`);
           }
-        }
 
-        // Update last login
-        user.lastLogin = new Date();
-        await user.save();
-        // For replica sets: add { session }
+          // Update last login
+          user.lastLogin = new Date();
+          await user.save();
+          // For replica sets: add { session }
+          
+          console.log(`✅ Existing wallet authenticated: ${user.username} (${walletAddress})`);
+        }
         
       // }); // Uncomment this closing brace when enabling transactions
 

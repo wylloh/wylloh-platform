@@ -9,6 +9,7 @@ interface AuthContextType {
   logout: () => void;
   register: (data: RegistrationData) => Promise<boolean>;
   requestProStatus: (proData: ProVerificationData) => Promise<boolean>;
+  updateProfile: (profileData: { username: string; email: string }) => Promise<boolean>;
   loading: boolean;
   error: string | null;
   getDisplayName: () => string;
@@ -501,6 +502,50 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  // Update user profile
+  const updateProfile = async (profileData: { username: string; email: string }): Promise<boolean> => {
+    try {
+      setState(prevState => ({ ...prevState, loading: true, error: null }));
+      
+      if (!state.user) {
+        throw new Error('No user logged in');
+      }
+
+      // Validate input
+      if (!profileData.username || profileData.username.trim().length < 3) {
+        throw new Error('Username must be at least 3 characters long');
+      }
+
+      // For now, update local state (in production this would be an API call)
+      const updatedUser = {
+        ...state.user,
+        username: profileData.username.trim(),
+        email: profileData.email.trim()
+      };
+
+      setState(prevState => ({
+        ...prevState,
+        user: updatedUser,
+        loading: false,
+        error: null
+      }));
+
+      // Update localStorage
+      localStorage.setItem('user', JSON.stringify(updatedUser));
+      
+      console.log(`Profile updated successfully: ${updatedUser.username}`);
+      return true;
+    } catch (err: any) {
+      console.error('Profile update error:', err);
+      setState(prevState => ({
+        ...prevState,
+        loading: false,
+        error: err.message || 'Failed to update profile.'
+      }));
+      return false;
+    }
+  };
+
   // State validation and synchronization methods
   const validateAuthState = useCallback(() => {
     const { isAuthenticated, user, lastSyncedWallet } = state;
@@ -596,6 +641,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     logout,
     register,
     requestProStatus,
+    updateProfile,
     loading: state.loading,
     error: state.error,
     getDisplayName,

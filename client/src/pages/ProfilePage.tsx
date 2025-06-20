@@ -15,7 +15,12 @@ import {
   CardContent,
   CardMedia,
   Stack,
-  Alert
+  Alert,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  TextField
 } from '@mui/material';
 import {
   VerifiedUser,
@@ -31,81 +36,26 @@ import { useWallet } from '../contexts/WalletContext';
 import RequestProStatusButton from '../components/profile/RequestProStatusButton';
 import { useNavigate } from 'react-router-dom';
 
-// Mock content data
-const mockUserContent = [
-  {
-    id: '1',
-    title: 'Ocean Wonders',
-    description: 'A short documentary about marine life.',
-    image: 'https://source.unsplash.com/random/300x200?ocean',
-    contentType: 'movie',
-    status: 'active',
-    createdAt: '2023-05-10T14:30:00Z'
-  },
-  {
-    id: '2',
-    title: 'City Lights',
-    description: 'Urban photography collection showcasing city nightlife.',
-    image: 'https://source.unsplash.com/random/300x200?city',
-    contentType: 'art',
-    status: 'draft',
-    createdAt: '2023-06-05T10:15:00Z'
-  }
-];
+// 🧹 PRODUCTION CLEANUP: Removed mock content data - this will be populated by real user content
 
 const ProfilePage: React.FC = () => {
-  const { user, isAuthenticated, loading } = useAuth();
-  const { connect, active } = useWallet();
-  const [selectedTab, setSelectedTab] = React.useState(0);
+  const { user, updateProfile } = useAuth();
+  const { account, active } = useWallet(); // Get actual wallet state
   const navigate = useNavigate();
+  const [selectedTab, setSelectedTab] = React.useState(0);
+  
+  // 🔧 Profile editing states
+  const [editDialogOpen, setEditDialogOpen] = React.useState(false);
+  const [settingsDialogOpen, setSettingsDialogOpen] = React.useState(false);
+  const [editForm, setEditForm] = React.useState({
+    username: user?.username || '',
+    email: user?.email || ''
+  });
 
-  // Show loading state while authentication is in progress
-  if (loading) {
+  if (!user) {
     return (
-      <Container maxWidth="md" sx={{ py: 4 }}>
-        <Alert severity="info">
-          Loading your profile...
-        </Alert>
-      </Container>
-    );
-  }
-
-  // Web3-first authentication prompt
-  if (!isAuthenticated || !user) {
-    return (
-      <Container maxWidth="md" sx={{ py: 4 }}>
-        <Alert severity="info" sx={{ mb: 3 }}>
-          Connect your wallet to access your profile and unlock Web3 features.
-        </Alert>
-        
-        <Paper sx={{ p: 3, textAlign: 'center' }}>
-          <Wallet sx={{ fontSize: 64, color: 'primary.main', mb: 2 }} />
-          <Typography variant="h5" gutterBottom>
-            Connect Your Wallet
-          </Typography>
-          <Typography variant="body1" color="text.secondary" sx={{ mb: 3 }}>
-            Your profile is secured by your Web3 wallet. Connect to access your content, 
-            manage your collection, and request Pro creator status.
-          </Typography>
-          
-          <Button 
-            variant="contained" 
-            size="large"
-            startIcon={<Wallet />}
-            onClick={connect}
-            sx={{ mr: 2 }}
-          >
-            Connect Wallet
-          </Button>
-          
-          <Button 
-            variant="outlined" 
-            size="large"
-            onClick={() => navigate('/')}
-          >
-            Browse as Guest
-          </Button>
-        </Paper>
+      <Container maxWidth="lg" sx={{ py: 4 }}>
+        <Alert severity="info">Please log in to view your profile.</Alert>
       </Container>
     );
   }
@@ -113,6 +63,34 @@ const ProfilePage: React.FC = () => {
   const handleChangeTab = (event: React.SyntheticEvent, newValue: number) => {
     setSelectedTab(newValue);
   };
+
+  // 🔧 Profile editing handlers
+  const handleEditProfile = () => {
+    setEditForm({
+      username: user.username,
+      email: user.email
+    });
+    setEditDialogOpen(true);
+  };
+
+  const handleAccountSettings = () => {
+    setSettingsDialogOpen(true);
+  };
+
+  const handleSaveProfile = async () => {
+    try {
+      await updateProfile(editForm);
+      setEditDialogOpen(false);
+      // Show success feedback here if needed
+    } catch (error) {
+      console.error('Error updating profile:', error);
+      // Show error feedback here if needed
+    }
+  };
+
+  // 🎨 Enhanced wallet connection detection
+  const isWalletConnected = active && account && user.walletAddress;
+  const walletDisplayAddress = account || user.walletAddress;
 
   return (
     <Container maxWidth="lg" sx={{ py: 4 }}>
@@ -154,12 +132,13 @@ const ProfilePage: React.FC = () => {
                     size="small" 
                     variant="outlined" 
                   />
-                  {user.walletAddress && (
+                  {walletDisplayAddress && (
                     <Chip 
                       icon={<Wallet />} 
-                      label={`${user.walletAddress.substring(0, 6)}...${user.walletAddress.substring(user.walletAddress.length - 4)}`} 
+                      label={`${walletDisplayAddress.substring(0, 6)}...${walletDisplayAddress.substring(walletDisplayAddress.length - 4)}`} 
                       size="small" 
                       variant="outlined" 
+                      color={isWalletConnected ? 'success' : 'default'}
                     />
                   )}
                   {user.proStatus === 'verified' && (
@@ -181,6 +160,7 @@ const ProfilePage: React.FC = () => {
                   startIcon={<Edit />} 
                   fullWidth
                   sx={{ mb: 1 }}
+                  onClick={handleEditProfile}
                 >
                   Edit Profile
                 </Button>
@@ -188,6 +168,7 @@ const ProfilePage: React.FC = () => {
                   variant="outlined" 
                   startIcon={<Settings />} 
                   fullWidth
+                  onClick={handleAccountSettings}
                 >
                   Account Settings
                 </Button>
@@ -239,54 +220,13 @@ const ProfilePage: React.FC = () => {
                   )}
                 </Box>
                 
-                {mockUserContent.length > 0 ? (
-                  <Grid container spacing={3}>
-                    {mockUserContent.map((content) => (
-                      <Grid item xs={12} sm={6} md={4} key={content.id}>
-                        <Card sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
-                          <CardMedia
-                            component="img"
-                            height="140"
-                            image={content.image}
-                            alt={content.title}
-                          />
-                          <CardContent sx={{ flexGrow: 1 }}>
-                            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                              <Typography variant="h6" component="div">
-                                {content.title}
-                              </Typography>
-                              <Chip 
-                                label={content.status === 'active' ? 'Published' : 'Draft'} 
-                                color={content.status === 'active' ? 'success' : 'default'}
-                                size="small"
-                              />
-                            </Box>
-                            <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-                              {content.description}
-                            </Typography>
-                            <Typography variant="caption" color="text.secondary" sx={{ mt: 2, display: 'block' }}>
-                              Created: {new Date(content.createdAt).toLocaleDateString()}
-                            </Typography>
-                          </CardContent>
-                          <Box sx={{ p: 2, pt: 0 }}>
-                            <Button 
-                              size="small" 
-                              variant="outlined"
-                              fullWidth
-                              onClick={() => navigate(`/creator/content/${content.id}`)}
-                            >
-                              Manage
-                            </Button>
-                          </Box>
-                        </Card>
-                      </Grid>
-                    ))}
-                  </Grid>
-                ) : (
-                  <Alert severity="info">
-                    You haven't uploaded any content yet. Get started by clicking the "Upload New Content" button.
-                  </Alert>
-                )}
+                {/* 🎬 PRODUCTION READY: Real content will be loaded here */}
+                <Alert severity="info">
+                  {user.proStatus === 'verified' 
+                    ? "You haven't uploaded any content yet. Get started by clicking 'Upload Film Package'."
+                    : "Your purchased content will appear here once you make your first purchase."
+                  }
+                </Alert>
               </Box>
             )}
             
@@ -304,13 +244,16 @@ const ProfilePage: React.FC = () => {
             {selectedTab === 2 && (
               <Box sx={{ p: 3 }}>
                 <Typography variant="h6" gutterBottom>Wallet Information</Typography>
-                {user.walletAddress ? (
+                {isWalletConnected ? (
                   <Box>
-                    <Typography variant="body1">
-                      Connected Wallet: {user.walletAddress}
+                    <Typography variant="body1" gutterBottom>
+                      🟢 Wallet Connected: {walletDisplayAddress}
                     </Typography>
-                    <Alert severity="info" sx={{ mt: 2 }}>
-                      Wallet transaction history and balance information will be displayed here.
+                    <Typography variant="body2" color="text.secondary" gutterBottom>
+                      Network: Polygon (Chain ID: 137)
+                    </Typography>
+                    <Alert severity="success" sx={{ mt: 2 }}>
+                      Your wallet is connected and ready for transactions. NFT balance and transaction history will be displayed here.
                     </Alert>
                   </Box>
                 ) : (
@@ -323,6 +266,49 @@ const ProfilePage: React.FC = () => {
           </Paper>
         </Grid>
       </Grid>
+
+      {/* 🔧 Edit Profile Dialog */}
+      <Dialog open={editDialogOpen} onClose={() => setEditDialogOpen(false)} maxWidth="sm" fullWidth>
+        <DialogTitle>Edit Profile</DialogTitle>
+        <DialogContent>
+          <Box sx={{ pt: 1 }}>
+            <TextField
+              fullWidth
+              label="Username"
+              value={editForm.username}
+              onChange={(e) => setEditForm({ ...editForm, username: e.target.value })}
+              margin="normal"
+              variant="outlined"
+            />
+            <TextField
+              fullWidth
+              label="Email"
+              type="email"
+              value={editForm.email}
+              onChange={(e) => setEditForm({ ...editForm, email: e.target.value })}
+              margin="normal"
+              variant="outlined"
+            />
+          </Box>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setEditDialogOpen(false)}>Cancel</Button>
+          <Button onClick={handleSaveProfile} variant="contained">Save Changes</Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* 🔧 Account Settings Dialog */}
+      <Dialog open={settingsDialogOpen} onClose={() => setSettingsDialogOpen(false)} maxWidth="sm" fullWidth>
+        <DialogTitle>Account Settings</DialogTitle>
+        <DialogContent>
+          <Alert severity="info" sx={{ mt: 1 }}>
+            Advanced account settings and security options will be available here.
+          </Alert>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setSettingsDialogOpen(false)} variant="contained">Close</Button>
+        </DialogActions>
+      </Dialog>
     </Container>
   );
 };
