@@ -413,10 +413,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         chainId
       });
       
-      if (result.success && result.user) {
-        // Update state with authenticated user
+      if (result.success && result.user && result.token) {
+        // ✅ MONGODB-FIRST ARCHITECTURE: Store token for API calls, user state from MongoDB
+        localStorage.setItem('token', result.token);
+        localStorage.setItem('user', JSON.stringify(result.user));
+        
+        // Update state with authenticated user from MongoDB
         setState({
-          user: result.user as any, // Convert WalletUser to User type
+          user: result.user as any,
           loading: false,
           error: null,
           isAuthenticated: true,
@@ -425,25 +429,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           lastSyncedWallet: walletAddress,
         });
         
-        console.log(`Wallet authentication successful: ${(result.user as any).username || (result.user as any).profile?.displayName || result.user.id} (${walletAddress})`);
+        console.log(`✅ MongoDB authentication successful: ${(result.user as any).username} (${walletAddress})`);
         return true;
-      } else if (result.isNewWallet) {
-        // No existing account for this wallet
+      } else if (result.success && result.isNewWallet) {
+        // New wallet needs profile creation
         setState(prevState => ({ 
           ...prevState, 
           loading: false, 
           authenticationInProgress: false 
         }));
-        console.log('New wallet detected, profile creation needed');
+        console.log('🆕 New wallet detected, profile creation needed');
         return false;
       } else {
-        // API error
+        // API error or authentication failed
         setState(prevState => ({
           ...prevState,
           loading: false,
           authenticationInProgress: false,
-          error: result.message || 'Failed to connect to wallet service.'
+          error: result.message || 'Failed to authenticate with MongoDB.'
         }));
+        console.error('❌ MongoDB authentication failed:', result);
         return false;
       }
     } catch (err: any) {
@@ -507,7 +512,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  // Update user profile
+  // Update user profile - MONGODB VERSION
   const updateProfile = async (profileData: { username: string; email: string }): Promise<boolean> => {
     try {
       setState(prevState => ({ ...prevState, loading: true, error: null }));
@@ -521,27 +526,31 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         throw new Error('Username must be at least 3 characters long');
       }
 
-      // For now, update local state (in production this would be an API call)
-      const updatedUser = {
-        ...state.user,
-        username: profileData.username.trim(),
-        email: profileData.email.trim()
-      };
-
-      setState(prevState => ({
-        ...prevState,
-        user: updatedUser,
-        loading: false,
-        error: null
-      }));
-
-      // Update localStorage
-      localStorage.setItem('user', JSON.stringify(updatedUser));
+      // Use API to update profile in MongoDB
+      const result = await authAPI.updateProfile(profileData);
       
-      console.log(`Profile updated successfully: ${updatedUser.username}`);
-      return true;
+      if (result.success && result.user) {
+        // Update state with updated user from MongoDB
+        setState(prevState => ({
+          ...prevState,
+          user: result.user as any, // Convert WalletUser to User type
+          loading: false,
+          error: null
+        }));
+        
+        console.log(`✅ Profile updated in MongoDB: ${result.user.username}`);
+        return true;
+      } else {
+        // Profile update failed
+        setState(prevState => ({
+          ...prevState,
+          loading: false,
+          error: result.error || 'Failed to update profile.'
+        }));
+        return false;
+      }
     } catch (err: any) {
-      console.error('Profile update error:', err);
+      console.error('❌ Profile update error:', err);
       setState(prevState => ({
         ...prevState,
         loading: false,

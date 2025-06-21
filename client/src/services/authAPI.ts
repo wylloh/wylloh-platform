@@ -148,6 +148,34 @@ class AuthAPI {
   }
 
   /**
+   * Update user profile
+   */
+  async updateProfile(profileData: { username: string; email: string }): Promise<{ success: boolean; user?: WalletUser; error?: string }> {
+    try {
+      const response = await fetch(`${API_BASE_URL}/users/profile`, {
+        method: 'PUT',
+        headers: this.getHeaders(true), // Include auth token
+        body: JSON.stringify(profileData),
+      });
+
+      const data = await response.json();
+
+      if (data.success && data.user) {
+        // Update stored user data
+        localStorage.setItem('user', JSON.stringify(data.user));
+        
+        console.log(`✅ Profile updated in MongoDB: ${data.user.username}`);
+        return { success: true, user: data.user };
+      } else {
+        return { success: false, error: data.message || 'Failed to update profile' };
+      }
+    } catch (error) {
+      console.error('❌ Update profile API error:', error);
+      return { success: false, error: 'Network error' };
+    }
+  }
+
+  /**
    * Check if user is authenticated
    */
   isAuthenticated(): boolean {

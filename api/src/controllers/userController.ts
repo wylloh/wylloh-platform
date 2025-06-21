@@ -124,30 +124,53 @@ export const getProfile = asyncHandler(async (req: Request, res: Response) => {
 });
 
 /**
- * Update user profile
+ * Update user profile - MONGODB VERSION
  * @route PUT /api/users/profile
  */
 export const updateProfile = asyncHandler(async (req: Request, res: Response) => {
-  const userId = req.user?.id;
+  const userId = (req as any).user?.id;
   const { username, email } = req.body;
 
-  // Find user
-  const userIndex = users.findIndex(user => user.id === userId);
-  if (userIndex === -1) {
+  // Validate input
+  if (!username && !email) {
+    throw createError('Please provide username or email to update', 400);
+  }
+
+  if (username && username.trim().length < 3) {
+    throw createError('Username must be at least 3 characters long', 400);
+  }
+
+  // Find user in MongoDB
+  const user = await User.findById(userId);
+  if (!user) {
     throw createError('User not found', 404);
   }
 
-  // Update user
-  if (username) users[userIndex].username = username;
-  if (email) users[userIndex].email = email;
+  // Check if username is already taken (if updating username)
+  if (username && username.trim() !== user.username) {
+    const existingUser = await User.findOne({ username: username.trim() });
+    if (existingUser) {
+      throw createError('Username already taken', 400);
+    }
+  }
+
+  // Update user in MongoDB
+  if (username) user.username = username.trim();
+  if (email) user.email = email.trim();
+  
+  await user.save();
 
   res.status(200).json({
-    message: 'User profile updated',
+    success: true,
+    message: 'Profile updated successfully',
     user: {
-      id: users[userIndex].id,
-      username: users[userIndex].username,
-      email: users[userIndex].email,
-      roles: users[userIndex].roles
+      id: user.id,
+      username: user.username,
+      email: user.email,
+      roles: user.roles,
+      walletAddress: user.walletAddress,
+      isVerified: user.isVerified,
+      proStatus: user.proStatus
     }
   });
 });
