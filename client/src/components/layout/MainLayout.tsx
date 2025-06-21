@@ -95,7 +95,7 @@ const MainLayout: React.FC = () => {
                 <ListItemIcon>
                   <VideoLibraryIcon />
                 </ListItemIcon>
-                <ListItemText primary="My Collection" />
+                <ListItemText primary="Manage Library" />
               </ListItemButton>
             </ListItem>
             {user?.proStatus === 'verified' && (

@@ -193,7 +193,7 @@ const ProfilePage: React.FC = () => {
               }}
             >
               <Tab 
-                label={user.proStatus === 'verified' ? "My Content" : "My Collection"} 
+                label={user.proStatus === 'verified' ? "My Content" : "Manage Library"} 
                 icon={<MovieCreation />} 
                 iconPosition="start" 
               />

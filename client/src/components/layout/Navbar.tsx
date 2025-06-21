@@ -162,10 +162,10 @@ const Navbar: React.FC = () => {
     { text: 'Upload', to: '/creator/upload', icon: <FileUpload /> },
   ] : [];
   
-  // User menu items
+  // User menu items (Dashboard only for Pro users)
   const userMenuItems = [
     { text: 'Profile', to: '/profile', icon: <PersonIcon /> },
-    { text: 'Dashboard', to: '/dashboard', icon: <Dashboard /> },
+    ...(user?.proStatus === 'verified' ? [{ text: 'Dashboard', to: '/dashboard', icon: <Dashboard /> }] : []),
     { text: 'Network', to: '/network', icon: <CloudIcon /> },
   ];
   

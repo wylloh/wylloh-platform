@@ -35,6 +35,7 @@ import LibraryAnalytics from '../../components/library/LibraryAnalytics';
 import EnhancedContentCard from '../../components/common/EnhancedContentCard';
 import ContentStatusBadge from '../../components/common/ContentStatusBadge';
 import { WalletContext } from '../../contexts/WalletContext';
+import { useAuth } from '../../contexts/AuthContext';
 import { libraryService, LibraryItem } from '../../services/library.service';
 import { Content } from '../../services/content.service';
 import { format } from 'date-fns';
@@ -133,6 +134,7 @@ const LibraryPage: React.FC<LibraryPageProps> = ({ isPro = false }) => {
   const queryParams = new URLSearchParams(location.search);
   const tabFromUrl = queryParams.get('tab');
   const { provider, account, connect } = useContext(WalletContext);
+  const { isAuthenticated, user } = useAuth();
   
   // Set initial tab value based on URL query param
   const initialTabValue = tabFromUrl === 'analytics' ? 1 : 0;
@@ -142,8 +144,9 @@ const LibraryPage: React.FC<LibraryPageProps> = ({ isPro = false }) => {
   const [libraryData, setLibraryData] = useState<any>(null);
   const [content, setContent] = useState<ContentItem[]>([]);
   
-  // Check wallet connection status
-  const isWalletConnected = !!account;
+  // ENTERPRISE FIX: Use authentication state instead of just wallet connection
+  // This prevents loading issues due to wallet state synchronization
+  const canAccessLibrary = isAuthenticated && user;
 
   // Dialog states
   const [lendDialogOpen, setLendDialogOpen] = useState(false);
@@ -161,8 +164,8 @@ const LibraryPage: React.FC<LibraryPageProps> = ({ isPro = false }) => {
   const [buyerEmail, setBuyerEmail] = useState('');
 
   useEffect(() => {
-    // Don't fetch data if wallet isn't connected
-    if (!isWalletConnected) {
+    // Don't fetch data if user isn't authenticated
+    if (!canAccessLibrary) {
       setLoading(false);
       return;
     }
@@ -266,7 +269,7 @@ const LibraryPage: React.FC<LibraryPageProps> = ({ isPro = false }) => {
     if (libraryId) {
       fetchLibraryData();
     }
-  }, [libraryId, isWalletConnected]);
+  }, [libraryId, canAccessLibrary]);
 
   // Update tabValue when URL query changes
   useEffect(() => {
@@ -346,8 +349,8 @@ const LibraryPage: React.FC<LibraryPageProps> = ({ isPro = false }) => {
     setBuyerEmail('');
   };
 
-  // Show wallet connection prompt if not connected
-  if (!isWalletConnected) {
+  // Show authentication prompt if not authenticated
+  if (!canAccessLibrary) {
     return (
       <Container maxWidth="md" sx={{ py: 8, textAlign: 'center' }}>
         <Box sx={{ mb: 4 }}>
