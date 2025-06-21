@@ -86,7 +86,17 @@ router.post('/wallet/connect', asyncHandler(async (req: Request, res: Response) 
     const clientIP = req.ip || req.connection.remoteAddress || 'unknown';
     const result = await authService.walletAuth(walletAddress, undefined, clientIP);
     
-    // 🔒 SECURITY: Only return safe user data
+    // Check if this is a new wallet that needs profile creation
+    if ('isNewWallet' in result) {
+      return res.status(200).json({
+        success: true,
+        isNewWallet: true,
+        walletAddress: result.walletAddress,
+        message: result.message
+      });
+    }
+    
+    // 🔒 SECURITY: Only return safe user data for existing users
     res.status(200).json({
       success: true,
       token: result.token,
