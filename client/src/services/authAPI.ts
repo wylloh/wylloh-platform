@@ -176,6 +176,31 @@ class AuthAPI {
   }
 
   /**
+   * Request Pro status verification
+   */
+  async requestProStatus(proData: { fullName: string; biography: string; professionalLinks: any; filmographyHighlights?: string }): Promise<{ success: boolean; message?: string; error?: string }> {
+    try {
+      const response = await fetch(`${API_BASE_URL}/users/pro-status/request`, {
+        method: 'POST',
+        headers: this.getHeaders(true), // Include auth token
+        body: JSON.stringify(proData),
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        console.log(`✅ Pro status request submitted successfully`);
+        return { success: true, message: data.message };
+      } else {
+        return { success: false, error: data.message || 'Failed to submit Pro status request' };
+      }
+    } catch (error) {
+      console.error('❌ Pro status request API error:', error);
+      return { success: false, error: 'Network error' };
+    }
+  }
+
+  /**
    * Check if user is authenticated
    */
   isAuthenticated(): boolean {

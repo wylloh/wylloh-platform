@@ -303,23 +303,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         throw new Error('You must be logged in to request Pro status');
       }
       
-      // Make API call to submit Pro status request
-      const response = await fetch('/api/users/pro-status/request', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        },
-        body: JSON.stringify(proData)
-      });
+      // Use authAPI service to submit Pro status request
+      const result = await authAPI.requestProStatus(proData);
       
-      const data = await response.json();
-      
-      if (!response.ok) {
-        throw new Error(data.message || 'Failed to submit Pro status request');
-      }
-      
-      if (data.success) {
+      if (result.success) {
         const updatedUser = {
           ...state.user,
           proStatus: 'pending' as const,
@@ -336,7 +323,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         localStorage.setItem('user', JSON.stringify(updatedUser));
         return true;
       } else {
-        throw new Error('Failed to submit Pro status request');
+        throw new Error(result.error || 'Failed to submit Pro status request');
       }
     } catch (err: any) {
       setState({
@@ -645,6 +632,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     }
   }, [state.isInitialized, state.authenticationInProgress, validateAuthState, syncWalletState]);
+
+  // 🔧 ENTERPRISE FIX: Wallet transition tolerance (prevent aggressive clearing)
+  // Brief wallet disconnections during MetaMask operations are normal
+  // Only clear wallet from user state if disconnection persists
+  const WALLET_TRANSITION_TOLERANCE = 3000; // Increased from 1500ms to 3000ms for stability
 
   const value = {
     isAuthenticated: state.isAuthenticated,

@@ -29,6 +29,9 @@ const PlayerPage = React.lazy(() => import('./pages/player/PlayerPage'));
 // Auth pages
 const LoginPage = React.lazy(() => import('./pages/auth/LoginPage'));
 
+// Admin pages
+const ProVerificationPanel = React.lazy(() => import('./components/admin/ProVerificationPanel'));
+
 // Essential pages
 const CommunityPage = React.lazy(() => import('./pages/CommunityPage'));
 const AboutPage = React.lazy(() => import('./pages/AboutPage'));
@@ -93,6 +96,9 @@ const AppRoutes = () => {
         
         {/* Auth pages */}
         <Route path="/login" element={<LoginPage />} />
+        
+        {/* Admin pages */}
+        <Route path="/admin/pro-verification" element={<ProVerificationPanel />} />
         
         {/* Essential pages */}
         <Route path="/community" element={<CommunityPage />} />

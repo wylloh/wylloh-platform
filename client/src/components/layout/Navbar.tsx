@@ -253,7 +253,17 @@ const Navbar: React.FC = () => {
               {shouldShowUserMenu && (
                 <Tooltip title="Open user menu">
                   <IconButton onClick={handleUserMenuOpen} sx={{ p: 0 }}>
-                    <Avatar alt="User" src="/static/images/avatar/1.jpg" />
+                    <Avatar 
+                      alt={user?.username || 'User'} 
+                      sx={{ 
+                        bgcolor: 'primary.main',
+                        width: 32,
+                        height: 32,
+                        fontSize: '0.875rem'
+                      }}
+                    >
+                      {user?.username?.charAt(0).toUpperCase() || 'U'}
+                    </Avatar>
                   </IconButton>
                 </Tooltip>
               )}

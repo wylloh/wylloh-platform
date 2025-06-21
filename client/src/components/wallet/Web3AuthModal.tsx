@@ -235,7 +235,8 @@ const Web3AuthModal: React.FC<Web3AuthModalProps> = ({ open, onClose }) => {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               margin="normal"
-              helperText="Only used for important platform communications"
+              helperText="For important notifications only. We'll use on-platform messaging for everything else."
+              placeholder="your.email@example.com"
             />
             
             <FormControlLabel

@@ -211,8 +211,10 @@ class AuthService {
 
     const normalizedAddress = walletAddress.toLowerCase();
     
-    // 🔒 SECURITY: Use secure admin wallet checking
-    const isAdmin = isAdminWallet(normalizedAddress);
+    // 🔒 SECURITY: Remove automatic admin role assignment during public onboarding
+    // Admin roles should ONLY be assigned manually by existing admins
+    // This prevents potential security vulnerabilities in the onboarding flow
+    // const isAdmin = isAdminWallet(normalizedAddress); // REMOVED FOR SECURITY
 
     // 🏗️ ARCHITECTURE: Transaction setup (disabled for single MongoDB instance)
     // TODO: Enable when scaling to replica set (just uncomment these lines)
@@ -239,13 +241,13 @@ class AuthService {
           throw createError('Username already taken', 400);
         }
 
-        // Create new user with sanitized data
+        // Create new user with sanitized data - SECURE DEFAULT ROLES
         user = new User({
           username: usernameValidation.sanitized!,
-          email: emailValidation.sanitized || `${walletAddress.substring(2, 8)}@wallet.local`,
+          email: emailValidation.sanitized || null, // No fake email - use null for no email provided
           password: crypto.randomBytes(32).toString('hex'), // Secure random password
           walletAddress: normalizedAddress,
-          roles: isAdmin ? ['admin', 'user'] : ['user'],
+          roles: ['user'], // 🔒 SECURITY: Only assign user role - admin roles must be assigned manually
           isVerified: true
         });
 
@@ -261,7 +263,7 @@ class AuthService {
       // Generate secure token
       const token = this.generateToken(user.id);
 
-      console.log(`✅ Created wallet profile: ${user.username} (${walletAddress})${isAdmin ? ' - ADMIN' : ''}`);
+      console.log(`✅ Created wallet profile: ${user.username} (${walletAddress}) - Standard user role assigned`);
       return { user, token };
     } catch (error) {
       console.error('❌ Wallet profile creation error:', error);

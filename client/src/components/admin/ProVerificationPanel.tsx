@@ -49,7 +49,7 @@ const ProVerificationPanel: React.FC = () => {
   useEffect(() => {
     const loadPendingUsers = async () => {
       try {
-        const response = await fetch('/api/users/pro-status/pending', {
+        const response = await fetch(`${process.env.REACT_APP_API_BASE_URL || 'https://api.wylloh.com'}/users/pro-status/pending`, {
           headers: {
             'Authorization': `Bearer ${localStorage.getItem('token')}`
           }
@@ -97,47 +97,40 @@ const ProVerificationPanel: React.FC = () => {
     setActionCompleted(null);
   };
 
-  const updateUserProStatus = (walletAddress: string, newStatus: 'verified' | 'rejected', reason?: string) => {
-    const userKey = `wallet_user_${walletAddress.toLowerCase()}`;
-    const userData = JSON.parse(localStorage.getItem(userKey) || '{}');
-    
-    if (userData) {
-      userData.proStatus = newStatus;
-      userData.dateProVerified = new Date().toISOString();
-      if (reason) {
-        userData.proRejectionReason = reason;
-      }
-      
-      localStorage.setItem(userKey, JSON.stringify(userData));
-      
-      // Also update current user if they're the same
-      const currentUser = localStorage.getItem('user');
-      if (currentUser) {
-        const currentUserData = JSON.parse(currentUser);
-        if (currentUserData.walletAddress?.toLowerCase() === walletAddress.toLowerCase()) {
-          localStorage.setItem('user', JSON.stringify(userData));
-        }
-      }
-    }
-  };
-
-  const handleApprove = (userId: string) => {
+  const handleApprove = async (userId: string) => {
     const user = pendingUsers.find(u => u.id === userId);
     if (!user) return;
     
-    console.log(`Approving Pro status for user: ${user.username} (${user.walletAddress})`);
-    
-    // Update user status in localStorage
-    updateUserProStatus(user.walletAddress, 'verified');
-    
-    // Update UI
-    setActionCompleted({id: userId, action: 'approved'});
-    
-    // Refresh pending users list
-    setTimeout(() => {
-      setPendingUsers(prev => prev.filter(u => u.id !== userId));
-      handleCloseUserDetails();
-    }, 2000);
+    try {
+      console.log(`Approving Pro status for user: ${user.username} (${user.walletAddress})`);
+      
+      const response = await fetch(`${process.env.REACT_APP_API_BASE_URL || 'https://api.wylloh.com'}/users/pro-status/${userId}/approve`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to approve Pro status');
+      }
+      
+      const data = await response.json();
+      
+      if (data.success) {
+        // Update UI
+        setActionCompleted({id: userId, action: 'approved'});
+        
+        // Refresh pending users list
+        setTimeout(() => {
+          setPendingUsers(prev => prev.filter(u => u.id !== userId));
+          handleCloseUserDetails();
+        }, 2000);
+      }
+    } catch (error) {
+      console.error('Error approving Pro status:', error);
+    }
   };
 
   const handleOpenRejectionDialog = () => {
@@ -149,24 +142,44 @@ const ProVerificationPanel: React.FC = () => {
     setRejectionReason('');
   };
 
-  const handleReject = (userId: string) => {
+  const handleReject = async (userId: string) => {
     const user = pendingUsers.find(u => u.id === userId);
     if (!user) return;
     
-    console.log(`Rejecting Pro status for user: ${user.username} (${user.walletAddress}). Reason: ${rejectionReason}`);
-    
-    // Update user status in localStorage
-    updateUserProStatus(user.walletAddress, 'rejected', rejectionReason);
-    
-    // Update UI
-    setActionCompleted({id: userId, action: 'rejected'});
-    setShowRejectionDialog(false);
-    
-    // Refresh pending users list
-    setTimeout(() => {
-      setPendingUsers(prev => prev.filter(u => u.id !== userId));
-      handleCloseUserDetails();
-    }, 2000);
+    try {
+      console.log(`Rejecting Pro status for user: ${user.username} (${user.walletAddress}). Reason: ${rejectionReason}`);
+      
+      const response = await fetch(`${process.env.REACT_APP_API_BASE_URL || 'https://api.wylloh.com'}/users/pro-status/${userId}/reject`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          reason: rejectionReason
+        })
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to reject Pro status');
+      }
+      
+      const data = await response.json();
+      
+      if (data.success) {
+        // Update UI
+        setActionCompleted({id: userId, action: 'rejected'});
+        setShowRejectionDialog(false);
+        
+        // Refresh pending users list
+        setTimeout(() => {
+          setPendingUsers(prev => prev.filter(u => u.id !== userId));
+          handleCloseUserDetails();
+        }, 2000);
+      }
+    } catch (error) {
+      console.error('Error rejecting Pro status:', error);
+    }
   };
 
   return (

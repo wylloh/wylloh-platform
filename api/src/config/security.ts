@@ -41,8 +41,8 @@ export const SECURITY_CONFIG = {
   JWT_REFRESH_EXPIRES_IN: process.env.JWT_REFRESH_EXPIRES_IN || '7d',
   
   // Rate limiting
-  WALLET_CONNECT_RATE_LIMIT: parseInt(process.env.WALLET_CONNECT_RATE_LIMIT || '10'),
-  PROFILE_CREATE_RATE_LIMIT: parseInt(process.env.PROFILE_CREATE_RATE_LIMIT || '5'),
+  WALLET_CONNECT_RATE_LIMIT: parseInt(process.env.WALLET_CONNECT_RATE_LIMIT || '50'),
+  PROFILE_CREATE_RATE_LIMIT: parseInt(process.env.PROFILE_CREATE_RATE_LIMIT || '20'),
   RATE_LIMIT_WINDOW_MS: parseInt(process.env.RATE_LIMIT_WINDOW_MS || '60000'),
   
   // Password requirements

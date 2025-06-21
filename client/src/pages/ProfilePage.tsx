@@ -29,11 +29,14 @@ import {
   MovieCreation,
   Edit,
   BarChart,
-  Settings
+  Settings,
+  Email,
+  EmailOutlined
 } from '@mui/icons-material';
 import { useAuth } from '../contexts/AuthContext';
 import { useWallet } from '../contexts/WalletContext';
 import RequestProStatusButton from '../components/profile/RequestProStatusButton';
+import AdminBadge from '../components/common/AdminBadge';
 import { useNavigate } from 'react-router-dom';
 
 // 🧹 PRODUCTION CLEANUP: Removed mock content data - this will be populated by real user content
@@ -49,7 +52,7 @@ const ProfilePage: React.FC = () => {
   const [settingsDialogOpen, setSettingsDialogOpen] = React.useState(false);
   const [editForm, setEditForm] = React.useState({
     username: user?.username || '',
-    email: user?.email || ''
+    email: user?.email && !user.email.includes('@wallet.local') ? user.email : ''
   });
 
   if (!user) {
@@ -68,7 +71,7 @@ const ProfilePage: React.FC = () => {
   const handleEditProfile = () => {
     setEditForm({
       username: user.username,
-      email: user.email
+      email: user.email && !user.email.includes('@wallet.local') ? user.email : ''
     });
     setEditDialogOpen(true);
   };
@@ -114,6 +117,11 @@ const ProfilePage: React.FC = () => {
               <Grid item xs={12} sm={7}>
                 <Typography variant="h4" gutterBottom>
                   {user.username}
+                  {user?.roles?.includes('admin') && (
+                    <Box component="span" sx={{ ml: 1, verticalAlign: 'middle' }}>
+                      <AdminBadge variant="chip" size="small" />
+                    </Box>
+                  )}
                   {user.proStatus === 'verified' && (
                     <VerifiedUser 
                       color="secondary" 
@@ -126,12 +134,23 @@ const ProfilePage: React.FC = () => {
                   )}
                 </Typography>
                 <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mb: 1 }}>
-                  <Chip 
-                    icon={<Person />} 
-                    label={user.email} 
-                    size="small" 
-                    variant="outlined" 
-                  />
+                  {user.email && !user.email.includes('@wallet.local') ? (
+                    <Chip 
+                      icon={<Email />} 
+                      label={user.email} 
+                      size="small" 
+                      variant="outlined" 
+                    />
+                  ) : (
+                    <Chip 
+                      icon={<EmailOutlined />} 
+                      label="No email • On-platform messaging only" 
+                      size="small" 
+                      variant="outlined"
+                      color="default"
+                      sx={{ opacity: 0.7 }}
+                    />
+                  )}
                   {walletDisplayAddress && (
                     <Chip 
                       icon={<Wallet />} 
@@ -282,12 +301,14 @@ const ProfilePage: React.FC = () => {
             />
             <TextField
               fullWidth
-              label="Email"
+              label="Email (Optional)"
               type="email"
               value={editForm.email}
               onChange={(e) => setEditForm({ ...editForm, email: e.target.value })}
               margin="normal"
               variant="outlined"
+              helperText="Only used for important platform notifications. Leave blank to use on-platform messaging only."
+              placeholder="your.email@example.com"
             />
           </Box>
         </DialogContent>
