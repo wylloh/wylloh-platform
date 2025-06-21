@@ -16,6 +16,22 @@ export interface IUser extends Document {
   resetPasswordToken?: string;
   resetPasswordExpire?: Date;
   emailVerificationToken?: string;
+  // 🚀 PRO STATUS FIELDS - Database-backed Pro authorization system
+  proStatus?: 'none' | 'pending' | 'verified' | 'rejected';
+  proVerificationData?: {
+    fullName: string;
+    biography: string;
+    professionalLinks: {
+      imdb?: string;
+      website?: string;
+      vimeo?: string;
+      linkedin?: string;
+    };
+    filmographyHighlights: string;
+  };
+  dateProRequested?: Date;
+  dateProApproved?: Date;
+  proRejectionReason?: string;
   comparePassword(candidatePassword: string): Promise<boolean>;
 }
 
@@ -76,6 +92,32 @@ const UserSchema: Schema = new Schema(
       type: Date
     },
     emailVerificationToken: {
+      type: String
+    },
+    proStatus: {
+      type: String,
+      enum: ['none', 'pending', 'verified', 'rejected']
+    },
+    proVerificationData: {
+      type: {
+        fullName: String,
+        biography: String,
+        professionalLinks: {
+          imdb: String,
+          website: String,
+          vimeo: String,
+          linkedin: String
+        },
+        filmographyHighlights: String
+      }
+    },
+    dateProRequested: {
+      type: Date
+    },
+    dateProApproved: {
+      type: Date
+    },
+    proRejectionReason: {
       type: String
     }
   },

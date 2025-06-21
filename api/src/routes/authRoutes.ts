@@ -86,31 +86,20 @@ router.post('/wallet/connect', asyncHandler(async (req: Request, res: Response) 
     const clientIP = req.ip || req.connection.remoteAddress || 'unknown';
     const result = await authService.walletAuth(walletAddress, undefined, clientIP);
     
-    // 🎯 Handle both existing user authentication and new wallet detection
-    if ('isNewWallet' in result) {
-      // New wallet detected - needs profile creation
-      res.status(200).json({
-        success: false,
-        isNewWallet: true,
-        walletAddress: result.walletAddress,
-        message: result.message || 'New wallet detected. Please create your profile.'
-      });
-    } else {
-      // Existing user authenticated successfully
-      res.status(200).json({
-        success: true,
-        token: result.token,
-        user: {
-          id: result.user.id,
-          username: result.user.username,
-          email: result.user.email,
-          roles: result.user.roles,
-          walletAddress: result.user.walletAddress,
-          isVerified: result.user.isVerified,
-          lastLogin: result.user.lastLogin
-        }
-      });
-    }
+    // 🔒 SECURITY: Only return safe user data
+    res.status(200).json({
+      success: true,
+      token: result.token,
+      user: {
+        id: result.user.id,
+        username: result.user.username,
+        email: result.user.email,
+        roles: result.user.roles,
+        walletAddress: result.user.walletAddress,
+        isVerified: result.user.isVerified,
+        lastLogin: result.user.lastLogin
+      }
+    });
   } catch (error: any) {
     console.error('❌ Wallet connect error:', error);
     

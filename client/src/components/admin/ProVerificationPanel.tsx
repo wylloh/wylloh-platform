@@ -45,42 +45,43 @@ const ProVerificationPanel: React.FC = () => {
   const [showRejectionDialog, setShowRejectionDialog] = useState(false);
   const [actionCompleted, setActionCompleted] = useState<{id: string, action: 'approved' | 'rejected'} | null>(null);
 
-  // Load pending Pro verification requests from localStorage
+  // Load pending Pro verification requests from API
   useEffect(() => {
-    const loadPendingUsers = () => {
-      const users: PendingUser[] = [];
-      
-      // Scan all localStorage keys for wallet users
-      for (let i = 0; i < localStorage.length; i++) {
-        const key = localStorage.key(i);
-        if (key?.startsWith('wallet_user_')) {
-          try {
-            const userData = JSON.parse(localStorage.getItem(key) || '{}');
-            if (userData.proStatus === 'pending' && userData.proVerificationData) {
-              users.push({
-                id: userData.id,
-                username: userData.username,
-                email: userData.email,
-                dateProRequested: userData.dateProRequested || new Date().toISOString(),
-                walletAddress: userData.walletAddress,
-                proStatus: 'pending',
-                proVerificationData: userData.proVerificationData
-              });
-            }
-          } catch (error) {
-            console.error('Error parsing user data:', error);
+    const loadPendingUsers = async () => {
+      try {
+        const response = await fetch('/api/users/pro-status/pending', {
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('token')}`
           }
+        });
+        
+        if (!response.ok) {
+          throw new Error('Failed to load pending requests');
         }
+        
+        const data = await response.json();
+        
+        if (data.success) {
+          const users: PendingUser[] = data.data.map((user: any) => ({
+            id: user._id,
+            username: user.username,
+            email: user.email,
+            dateProRequested: user.dateProRequested || new Date().toISOString(),
+            walletAddress: user.walletAddress,
+            proStatus: 'pending',
+            proVerificationData: user.proVerificationData
+          }));
+          
+          setPendingUsers(users);
+        }
+      } catch (error) {
+        console.error('Error loading pending users:', error);
       }
-      
-      // Sort by request date (newest first)
-      users.sort((a, b) => new Date(b.dateProRequested).getTime() - new Date(a.dateProRequested).getTime());
-      setPendingUsers(users);
     };
 
     loadPendingUsers();
     
-    // Set up interval to refresh pending users (in case of updates from other tabs)
+    // Set up interval to refresh pending users
     const interval = setInterval(loadPendingUsers, 5000);
     return () => clearInterval(interval);
   }, []);

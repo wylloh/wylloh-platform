@@ -299,22 +299,30 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     });
     
     try {
-      // In a real app, this would be an API call
-      // Simulating API call for development
-      
       if (!state.user) {
         throw new Error('You must be logged in to request Pro status');
       }
       
-      // Mock successful pro status request
-      const mockResponse = {
-        success: true
-      };
+      // Make API call to submit Pro status request
+      const response = await fetch('/api/users/pro-status/request', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        },
+        body: JSON.stringify(proData)
+      });
       
-      if (mockResponse.success) {
+      const data = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(data.message || 'Failed to submit Pro status request');
+      }
+      
+      if (data.success) {
         const updatedUser = {
           ...state.user,
-          proStatus: 'pending' as const, // Use const assertion
+          proStatus: 'pending' as const,
           proVerificationData: proData,
           dateProRequested: new Date().toISOString()
         };
@@ -323,12 +331,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           ...state,
           user: updatedUser,
           authenticationInProgress: false,
-        });
-        localStorage.setItem('user', JSON.stringify(updatedUser));
-        setState({
-          ...state,
           loading: false,
         });
+        localStorage.setItem('user', JSON.stringify(updatedUser));
         return true;
       } else {
         throw new Error('Failed to submit Pro status request');

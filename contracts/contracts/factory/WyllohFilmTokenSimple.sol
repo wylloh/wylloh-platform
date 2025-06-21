@@ -38,6 +38,11 @@ contract WyllohFilmTokenSimple is
     uint256 public maxSupply;
     string public baseTokenURI;
     
+    // 🚀 BETA PROGRAM STATUS - Smart beta implementation
+    bool public betaPhase = true;
+    uint256 public constant CONTRACT_VERSION = 1;
+    string public constant PLATFORM_STATUS = "BETA";
+    
     // Rights thresholds - token quantities that unlock different rights
     struct RightsThreshold {
         uint256 quantity;     // Number of tokens needed
@@ -62,6 +67,7 @@ contract WyllohFilmTokenSimple is
     event TokensUnstacked(address indexed user, uint256 amount);
     event RightsThresholdUpdated(uint256 quantity, string rightsLevel, bool enabled);
     event TokensMinted(address indexed to, uint256 amount, uint256 totalSupply);
+    event BetaGraduated(uint256 timestamp, string filmId);
 
     /**
      * @dev Constructor for film token contract
@@ -238,6 +244,26 @@ contract WyllohFilmTokenSimple is
         rightsThresholds[index].enabled = enabled;
         
         emit RightsThresholdUpdated(quantity, rightsLevel, enabled);
+    }
+
+    /**
+     * @dev Graduate film from beta status (admin only)
+     * Professional upgrade path without contract redeployment
+     */
+    function graduateFromBeta() external onlyRole(ADMIN_ROLE) {
+        require(betaPhase, "Film already graduated from beta");
+        betaPhase = false;
+        emit BetaGraduated(block.timestamp, filmId);
+    }
+    
+    /**
+     * @dev Get beta status information
+     * @return isBeta Whether film is in beta
+     * @return version Contract version
+     * @return status Platform status
+     */
+    function getBetaStatus() external view returns (bool isBeta, uint256 version, string memory status) {
+        return (betaPhase, CONTRACT_VERSION, PLATFORM_STATUS);
     }
 
     /**

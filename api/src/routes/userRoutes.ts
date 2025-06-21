@@ -1,6 +1,7 @@
 import express, { Request, Response } from 'express';
 import { asyncHandler } from '../middleware/errorHandler';
 import { authMiddleware, roleAuthorization } from '../middleware/authMiddleware';
+import { requestProStatus, getPendingProRequests, approveProStatus, rejectProStatus } from '../controllers/userController';
 
 // Note: Controllers will be implemented later
 // This sets up the structure for routes
@@ -91,5 +92,33 @@ router.get('/', authMiddleware, roleAuthorization(['admin']), asyncHandler(async
     message: 'Get all users route (admin only) - To be implemented'
   });
 }));
+
+/**
+ * @route   POST /api/users/pro-status/request
+ * @desc    Request Pro status verification
+ * @access  Private
+ */
+router.post('/pro-status/request', authMiddleware, asyncHandler(requestProStatus));
+
+/**
+ * @route   GET /api/users/pro-status/pending
+ * @desc    Get all pending Pro status requests (admin only)
+ * @access  Private/Admin
+ */
+router.get('/pro-status/pending', authMiddleware, roleAuthorization(['admin']), asyncHandler(getPendingProRequests));
+
+/**
+ * @route   PUT /api/users/pro-status/:userId/approve
+ * @desc    Approve Pro status request (admin only)
+ * @access  Private/Admin
+ */
+router.put('/pro-status/:userId/approve', authMiddleware, roleAuthorization(['admin']), asyncHandler(approveProStatus));
+
+/**
+ * @route   PUT /api/users/pro-status/:userId/reject
+ * @desc    Reject Pro status request (admin only)
+ * @access  Private/Admin
+ */
+router.put('/pro-status/:userId/reject', authMiddleware, roleAuthorization(['admin']), asyncHandler(rejectProStatus));
 
 export default router;
