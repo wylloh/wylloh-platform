@@ -2,6 +2,9 @@ import React from 'react';
 import { Chip, Box } from '@mui/material';
 import { styled } from '@mui/material/styles';
 
+// Import the Wylloh logo asset
+import LogoWhite from '../../assets/logo-white.svg';
+
 const AdminChip = styled(Chip)(({ theme }) => ({
   backgroundColor: theme.palette.primary.main,
   color: theme.palette.primary.contrastText,
@@ -21,19 +24,15 @@ const AdminChip = styled(Chip)(({ theme }) => ({
 
 const WyllohLogoIcon = () => (
   <Box
-    component="svg"
-    width="14"
-    height="14"
-    viewBox="0 0 24 24"
-    sx={{ 
-      fill: 'currentColor',
-      filter: 'brightness(0) invert(1)', // Make it white
+    component="img"
+    src={LogoWhite}
+    alt="Wylloh Logo"
+    sx={{
+      width: '14px',
+      height: '14px',
+      filter: 'brightness(0) invert(1)', // Ensure it's white on colored background
     }}
-  >
-    {/* Simplified Wylloh logo - tree/mountain shape */}
-    <path d="M12 2L2 20h20L12 2zm0 3.5L18.5 18h-13L12 5.5z" />
-    <circle cx="12" cy="12" r="2" />
-  </Box>
+  />
 );
 
 interface AdminBadgeProps {
@@ -57,9 +56,19 @@ const AdminBadge: React.FC<AdminBadgeProps> = ({
           backgroundColor: 'primary.main',
           borderRadius: '50%',
           ml: 0.5,
+          p: 0.25, // Small padding to prevent logo from touching edges
         }}
       >
-        <WyllohLogoIcon />
+        <Box
+          component="img"
+          src={LogoWhite}
+          alt="Wylloh Logo"
+          sx={{
+            width: size === 'small' ? '10px' : '12px',
+            height: size === 'small' ? '10px' : '12px',
+            filter: 'brightness(0) invert(1)', // Ensure it's white on colored background
+          }}
+        />
       </Box>
     );
   }

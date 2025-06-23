@@ -160,7 +160,11 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       console.log('WalletContext - MetaMask installed check:', installed);
       setIsMetaMaskInstalled(installed);
       
-      // DISABLED: Auto-connect prompt for better UX
+      // SECURITY FIX: Disable automatic wallet detection that bypasses user consent
+      // This was causing automatic authentication without user approval
+      // Users must explicitly click Connect Wallet for proper security
+      
+      // DISABLED: Auto-connect prompt for better UX and security
       // Let users manually connect when they're ready instead of immediately showing popup
       // if (installed && !active && !localStorage.getItem('hasSeenWalletModal') && !skipAutoConnect) {
       //   console.log('WalletContext - Should show auto-connect prompt:', true);
@@ -170,6 +174,28 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     
     checkMetaMaskInstalled();
   }, [active, skipAutoConnect]);
+
+  // SECURITY ENHANCEMENT: Check for already connected wallet but require user consent
+  useEffect(() => {
+    const checkExistingConnection = async () => {
+      const { ethereum } = window as any;
+      if (ethereum && ethereum.isMetaMask && !active) {
+        try {
+          // Check if MetaMask has connected accounts but don't auto-connect
+          const accounts = await ethereum.request({ method: 'eth_accounts' });
+          if (accounts && accounts.length > 0) {
+            console.log('WalletContext: Found already connected account during initialization:', accounts[0]);
+            // Don't auto-authenticate - user must click Connect Wallet for security
+            console.log('WalletContext: User must explicitly connect for security compliance');
+          }
+        } catch (error) {
+          console.log('WalletContext: Error checking existing connection:', error);
+        }
+      }
+    };
+    
+    checkExistingConnection();
+  }, [active]);
 
   // Connect wallet
   const connect = async () => {

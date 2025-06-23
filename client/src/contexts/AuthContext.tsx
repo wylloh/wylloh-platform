@@ -337,10 +337,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   // Logout function
-  const logout = () => {
-    console.log('AuthContext - Logging out user:', state.user?.email);
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
+  const logout = useCallback(() => {
+    console.log('AuthContext - Logout initiated');
+    
+    // Clear authentication state
     setState({
       user: null,
       loading: false,
@@ -350,7 +350,34 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       authenticationInProgress: false,
       lastSyncedWallet: null,
     });
-  };
+    
+    // Clear localStorage
+    localStorage.removeItem('user');
+    localStorage.removeItem('token');
+    localStorage.removeItem('walletAddress');
+    
+    // SECURITY FIX: Force wallet disconnection on explicit logout
+    // Override enterprise session persistence for security compliance
+    try {
+      const { ethereum } = window as any;
+      if (ethereum && ethereum.isMetaMask) {
+        // Clear MetaMask connection state
+        ethereum.request({
+          method: 'wallet_revokePermissions',
+          params: [{ eth_accounts: {} }],
+        }).catch((error: any) => {
+          console.log('Wallet permissions revocation not supported:', error);
+        });
+      }
+    } catch (error) {
+      console.log('Error during wallet disconnection:', error);
+    }
+    
+    // Force page reload to ensure complete session clear
+    setTimeout(() => {
+      window.location.reload();
+    }, 100);
+  }, []);
 
   // Clean up any old pending wallet login data
   useEffect(() => {
@@ -593,33 +620,37 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return;
     }
     
-    // If wallet is connected but we're not authenticated, try to authenticate
-    if (account && !state.isAuthenticated) {
-      console.log('Wallet connected but not authenticated, attempting sync authentication');
+    // SECURITY FIX: Disable automatic wallet sync authentication
+    // This was causing automatic login without user consent
+    // Users must explicitly click Connect Wallet for proper security
+    
+    // DISABLED: Automatic wallet authentication for security compliance
+    // if (account && !state.isAuthenticated) {
+    //   console.log('Wallet connected but not authenticated, attempting sync authentication');
+    //   
+    //   setState(prevState => ({ ...prevState, authenticationInProgress: true }));
+    //   
+    //   try {
+    //     const success = await authenticateWithWallet(account);
+    //     if (!success) {
+    //       console.log('No existing account found for wallet during sync');
+    //     }
+    //   } catch (error) {
+    //     console.error('Error during wallet sync authentication:', error);
+    //   } finally {
+    //     setState(prevState => ({ ...prevState, authenticationInProgress: false }));
+    //   }
+    // }
+    
+    // ENTERPRISE APPROACH: Separate session management from wallet connection state
+    // Authenticated users remain authenticated even if wallet temporarily disconnects
+    if (state.isAuthenticated && state.user?.walletAddress && !account && !state.authenticationInProgress) {
+      console.log('Authenticated user wallet disconnected - maintaining session (enterprise pattern)');
       
-      setState(prevState => ({ ...prevState, authenticationInProgress: true }));
-      
-      try {
-        const success = await authenticateWithWallet(account);
-        if (!success) {
-          console.log('No existing account found for wallet during sync');
-        }
-      } catch (error) {
-        console.error('Error during wallet sync authentication:', error);
-      } finally {
-        setState(prevState => ({ ...prevState, authenticationInProgress: false }));
-      }
+      // Enterprise pattern: Session persistence independent of wallet connection
+      // User remains logged in, but wallet-dependent features become unavailable
+      // This prevents accidental logouts during MetaMask operations
     }
-    
-      // ENTERPRISE APPROACH: Separate session management from wallet connection state
-  // Authenticated users remain authenticated even if wallet temporarily disconnects
-  if (state.isAuthenticated && state.user?.walletAddress && !account && !state.authenticationInProgress) {
-    console.log('Authenticated user wallet disconnected - maintaining session (enterprise pattern)');
-    
-    // Enterprise pattern: Session persistence independent of wallet connection
-    // User remains logged in, but wallet-dependent features become unavailable
-    // This prevents accidental logouts during MetaMask operations
-  }
   }, [account, state, authenticateWithWallet]);
 
   // Validate state periodically and on key changes
