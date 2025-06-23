@@ -93,13 +93,8 @@ class TransactionService {
     } catch (error) {
       console.error('Error fetching transactions:', error);
       
-      // In development, return sample data
-      if (process.env.NODE_ENV === 'development') {
-        console.log('Using sample data for transactions due to error');
-        return SAMPLE_TRANSACTIONS;
-      }
-      
-      throw error;
+      // Return empty array instead of sample data for production readiness
+      return [];
     }
   }
   
@@ -115,13 +110,8 @@ class TransactionService {
     } catch (error) {
       console.error(`Error fetching transactions for content ${contentId}:`, error);
       
-      // In development, filter sample data
-      if (process.env.NODE_ENV === 'development') {
-        const filteredTransactions = SAMPLE_TRANSACTIONS.filter(tx => tx.contentId === contentId);
-        return filteredTransactions;
-      }
-      
-      throw error;
+      // Return empty array instead of sample data for production readiness
+      return [];
     }
   }
   
@@ -157,24 +147,7 @@ class TransactionService {
     provider: providers.Provider
   ): Promise<{ owned: boolean; verificationTimestamp: string }> {
     try {
-      // For development testing - simple verification logic
-      if (process.env.NODE_ENV === 'development' && !provider) {
-        // Mock verification using the first sample transaction
-        const isOwned = SAMPLE_TRANSACTIONS.some(tx => 
-          tx.contentId === contentId && 
-          tx.transactionType === 'purchase' && 
-          !SAMPLE_TRANSACTIONS.some(sale => 
-            sale.contentId === contentId && 
-            sale.transactionType === 'sale' && 
-            sale.transactionDate > tx.transactionDate
-          )
-        );
-        
-        return {
-          owned: isOwned,
-          verificationTimestamp: new Date().toISOString()
-        };
-      }
+      // Removed development mock verification - always use real blockchain verification
       
       // Get chain ID based on blockchain name
       let chainId = 1; // Default to Ethereum

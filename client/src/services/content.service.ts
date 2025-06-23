@@ -289,19 +289,8 @@ class ContentService {
    */
   async tokenizeContent(id: string, tokenizationData: any): Promise<Content | undefined> {
     try {
-      // Check for demo/development mode to allow forced re-tokenization
-      const isDemoMode = process.env.REACT_APP_DEMO_MODE === 'true';
-      const forceTokenization = (process.env.NODE_ENV === 'development' || isDemoMode) && 
-                               tokenizationData.forceRetokenize === true;
-      
-      console.log('Environment:', process.env.NODE_ENV);
-      console.log('Demo Mode:', isDemoMode);
-      console.log('Force tokenization enabled:', forceTokenization);
-      console.log('forceRetokenize flag value:', tokenizationData.forceRetokenize);
-      
-      if (forceTokenization) {
-        console.log('Development/Demo mode: Bypassing tokenization check');
-      }
+      // Removed demo mode bypass for production readiness
+      // All tokenization must go through proper blockchain verification
       
       // Try to get the content from both local storage and API
       const localContent = this.getLocalContent();
@@ -311,8 +300,8 @@ class ContentService {
         throw new Error('Content not found');
       }
       
-      // Check if already tokenized (skip check if force tokenization is enabled)
-      if (content.tokenized && !forceTokenization) {
+      // Check if already tokenized - no bypassing allowed
+      if (content.tokenized) {
         console.log('Content is already tokenized:', content);
         throw new Error('Content is already tokenized');
       }
@@ -354,7 +343,6 @@ class ContentService {
           description: content.description,
           rightsThresholds: rightsThresholds,
           royaltyPercentage: tokenizationData.royaltyPercentage,
-          forceRetokenize: forceTokenization
         });
         
         // Inform user to check MetaMask
@@ -1052,13 +1040,13 @@ class ContentService {
   
   // Get content thumbnail URL with CDN optimization
   getContentThumbnailUrl(cid: string, fallbackCid?: string): string {
-    if (!cid && !fallbackCid) {
-      // If no CID is provided, return a placeholder
-      return 'https://via.placeholder.com/400x300?text=No+Thumbnail';
+    if (!cid) {
+      // Return a professional default thumbnail instead of placeholder
+      return '/images/default-content-thumbnail.jpg';
     }
     
     // Use CDN service for optimized thumbnail URL
-    return cdnService.getThumbnailUrl(cid || fallbackCid || '');
+    return cdnService.getThumbnailUrl(cid);
   }
   
   // Get content preview URL with CDN optimization

@@ -103,22 +103,40 @@ export const optionalAuthMiddleware = (req: Request, res: Response, next: NextFu
 };
 
 /**
- * Role-based authorization middleware
- * Requires user to have specified roles
+ * Role-based authorization middleware - ENTERPRISE SECURITY
+ * Fetches fresh user roles from database for each request
  */
 export const roleAuthorization = (roles: string[]) => {
-  return (req: Request, res: Response, next: NextFunction) => {
-    if (!req.user) {
-      return next(createError('Unauthorized - Login required', 401));
+  return async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      if (!req.user) {
+        return next(createError('Unauthorized - Login required', 401));
+      }
+      
+      // SECURITY: Fetch fresh user data from database
+      // This ensures roles are always current and cannot be tampered with
+      const User = require('../models/User').default;
+      const user = await User.findById(req.user.id);
+      
+      if (!user) {
+        return next(createError('User not found', 404));
+      }
+      
+      // Check if user has any of the required roles
+      const hasRole = roles.some(role => user.roles && user.roles.includes(role));
+      
+      if (!hasRole) {
+        return next(createError('Forbidden - Insufficient permissions', 403));
+      }
+      
+      // Add fresh user data to request for use in controllers
+      req.user.roles = user.roles;
+      req.user.username = user.username;
+      
+      next();
+    } catch (error) {
+      next(createError('Authorization check failed', 500));
     }
-    
-    const hasRole = roles.some(role => req.user.roles.includes(role));
-    
-    if (!hasRole) {
-      return next(createError('Forbidden - Insufficient permissions', 403));
-    }
-    
-    next();
   };
 };
 

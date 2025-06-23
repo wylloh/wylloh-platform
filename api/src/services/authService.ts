@@ -58,12 +58,17 @@ class AuthService {
   }
 
   /**
-   * Generate JWT token
+   * Generate JWT token - SECURE: Only contains user ID
    * @param userId User ID
    */
   generateToken(userId: string): string {
     const secret = process.env.JWT_SECRET || 'defaultsecret';
-    return jwt.sign({ id: userId }, secret, {
+    
+    // SECURITY: Only store user ID in token
+    // Roles are fetched fresh from database on each request for security
+    return jwt.sign({ 
+      id: userId
+    }, secret, {
       expiresIn: '30d'
     });
   }
