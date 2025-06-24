@@ -10,6 +10,7 @@ interface AuthContextType {
   register: (data: RegistrationData) => Promise<boolean>;
   requestProStatus: (proData: ProVerificationData) => Promise<boolean>;
   updateProfile: (profileData: { username: string; email: string }) => Promise<boolean>;
+  refreshUser: () => Promise<boolean>;
   loading: boolean;
   error: string | null;
   getDisplayName: () => string;
@@ -199,20 +200,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         user: updatedUser,
         lastSyncedWallet: account,
       }));
-      // Update localStorage as well
+      // Update localStorage with synced wallet
       localStorage.setItem('user', JSON.stringify(updatedUser));
-    } else if (state.isAuthenticated && state.user && !account && state.user.walletAddress && !state.authenticationInProgress) {
-      // Handle case where wallet disconnects while user is logged in
-      // ENTERPRISE APPROACH: Only clear wallet if user explicitly disconnects
-      // Don't clear on temporary MetaMask state transitions
-      console.log('AuthContext - Wallet disconnected, preserving user session (enterprise approach)');
-      
-      // Option 1: Preserve user session, just note wallet disconnection
-      // Option 2: Only clear if this is a deliberate logout action
-      // For now, we maintain the authenticated session even if wallet disconnects
-      // This follows enterprise patterns where session != wallet connection state
     }
-  }, [account, state.isAuthenticated, state.user]); // Rerun when account or auth state changes
+  }, [account, state.isAuthenticated, state.user]);
+
+  // 🔄 PHASE 1: Context-Aware Refresh - App focus/visibility detection
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (!document.hidden && state.isAuthenticated && state.user) {
+        console.log('🔄 AuthContext: App regained focus, refreshing user data');
+        refreshUser();
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [state.isAuthenticated, state.user]);
 
   // Login function
   const login = async (email: string, password: string): Promise<boolean> => {
@@ -526,50 +532,77 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  // Update user profile - MONGODB VERSION
+  // Update user profile
   const updateProfile = async (profileData: { username: string; email: string }): Promise<boolean> => {
+    setState({
+      ...state,
+      loading: true,
+      error: null,
+    });
+    
     try {
-      setState(prevState => ({ ...prevState, loading: true, error: null }));
-      
-      if (!state.user) {
-        throw new Error('No user logged in');
-      }
-
-      // Validate input
-      if (!profileData.username || profileData.username.trim().length < 3) {
-        throw new Error('Username must be at least 3 characters long');
-      }
-
-      // Use API to update profile in MongoDB
+      // Use authAPI service to update profile
       const result = await authAPI.updateProfile(profileData);
       
       if (result.success && result.user) {
-        // Update state with updated user from MongoDB
-        setState(prevState => ({
-          ...prevState,
-          user: result.user as any, // Convert WalletUser to User type
-          loading: false,
-          error: null
-        }));
+        const updatedUser = {
+          ...state.user,
+          ...result.user,
+        };
         
-        console.log(`✅ Profile updated in MongoDB: ${result.user.username}`);
+        setState({
+          ...state,
+          user: updatedUser,
+          loading: false,
+        });
         return true;
       } else {
-        // Profile update failed
-        setState(prevState => ({
-          ...prevState,
-          loading: false,
-          error: result.error || 'Failed to update profile.'
-        }));
-        return false;
+        throw new Error(result.error || 'Failed to update profile');
       }
     } catch (err: any) {
-      console.error('❌ Profile update error:', err);
-      setState(prevState => ({
-        ...prevState,
+      setState({
+        ...state,
+        error: err.message || 'Profile update failed',
         loading: false,
-        error: err.message || 'Failed to update profile.'
-      }));
+      });
+      return false;
+    }
+  };
+
+  // Refresh user data from server
+  const refreshUser = async (): Promise<boolean> => {
+    setState({
+      ...state,
+      loading: true,
+      error: null,
+    });
+    
+    try {
+      // Use authAPI service to refresh user data
+      const result = await authAPI.refreshUser();
+      
+      if (result.success && result.user) {
+        const updatedUser = {
+          ...state.user,
+          ...result.user,
+        };
+        
+        setState({
+          ...state,
+          user: updatedUser,
+          loading: false,
+        });
+        console.log('✅ User data refreshed in AuthContext');
+        return true;
+      } else {
+        throw new Error(result.error || 'Failed to refresh user data');
+      }
+    } catch (err: any) {
+      setState({
+        ...state,
+        error: err.message || 'Failed to refresh user data',
+        loading: false,
+      });
       return false;
     }
   };
@@ -677,6 +710,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     register,
     requestProStatus,
     updateProfile,
+    refreshUser,
     loading: state.loading,
     error: state.error,
     getDisplayName,

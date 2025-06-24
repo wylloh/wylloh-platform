@@ -208,6 +208,33 @@ class AuthAPI {
     const user = localStorage.getItem('user');
     return !!(token && user);
   }
+
+  /**
+   * Refresh user data from server
+   */
+  async refreshUser(): Promise<{ success: boolean; user?: WalletUser; error?: string }> {
+    try {
+      const response = await fetch(`${API_BASE_URL}/users/profile`, {
+        method: 'GET',
+        headers: this.getHeaders(true), // Include auth token
+      });
+
+      const data = await response.json();
+
+      if (data.success && data.user) {
+        // Update stored user data with latest from server
+        localStorage.setItem('user', JSON.stringify(data.user));
+        
+        console.log(`✅ User data refreshed from server: ${data.user.username}`);
+        return { success: true, user: data.user };
+      } else {
+        return { success: false, error: data.message || 'Failed to refresh user data' };
+      }
+    } catch (error) {
+      console.error('❌ Refresh user API error:', error);
+      return { success: false, error: 'Network error' };
+    }
+  }
 }
 
 export const authAPI = new AuthAPI();

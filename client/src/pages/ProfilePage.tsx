@@ -42,7 +42,7 @@ import { useNavigate } from 'react-router-dom';
 // 🧹 PRODUCTION CLEANUP: Removed mock content data - this will be populated by real user content
 
 const ProfilePage: React.FC = () => {
-  const { user, updateProfile } = useAuth();
+  const { user, updateProfile, refreshUser } = useAuth();
   const { account, active } = useWallet(); // Get actual wallet state
   const navigate = useNavigate();
   const [selectedTab, setSelectedTab] = React.useState(0);
@@ -54,6 +54,14 @@ const ProfilePage: React.FC = () => {
     username: user?.username || '',
     email: user?.email && !user.email.includes('@wallet.local') ? user.email : ''
   });
+
+  // 🔄 PHASE 1: Context-Aware Refresh - Profile page navigation
+  React.useEffect(() => {
+    if (user) {
+      console.log('🔄 ProfilePage: Refreshing user data for latest Pro status');
+      refreshUser();
+    }
+  }, []); // Only run on mount
 
   if (!user) {
     return (

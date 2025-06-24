@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useRef } from 'react';
 import { 
   Container, 
   Typography, 
@@ -8,22 +8,54 @@ import {
   Link as MuiLink,
   Paper,
   Alert,
-  AlertTitle
+  AlertTitle,
+  TextField,
+  Grid,
+  LinearProgress,
+  Chip,
+  Card,
+  CardContent,
+  Divider,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
+  FormHelperText,
+  Switch,
+  FormControlLabel,
+  Stepper,
+  Step,
+  StepLabel,
+  StepContent
 } from '@mui/material';
 import { 
   ArrowBack as ArrowBackIcon,
-  CloudUpload as CloudUploadIcon
+  CloudUpload as CloudUploadIcon,
+  Movie,
+  Info,
+  Security,
+  Publish
 } from '@mui/icons-material';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import UploadForm from '../../components/creator/UploadForm';
 
 const UploadPage: React.FC = () => {
-  const { isAuthenticated, user } = useAuth();
+  const { user, refreshUser } = useAuth();
+  const navigate = useNavigate();
+  const fileInputRef = useRef<HTMLInputElement>(null);
   
   // Check if user has verified Pro status
   const isProVerified = user?.proStatus === 'verified';
-  
+
+  // 🔄 PHASE 1: Context-Aware Refresh - Pro feature access
+  React.useEffect(() => {
+    if (user) {
+      console.log('🔄 Pro Upload: Refreshing user data for Pro status verification');
+      refreshUser();
+    }
+  }, []); // Only run on mount
+
   return (
     <Container maxWidth="lg">
       <Box sx={{ pt: 4, pb: 8 }}>
@@ -57,7 +89,7 @@ const UploadPage: React.FC = () => {
         </Box>
         
         {/* Content based on authentication status */}
-        {!isAuthenticated ? (
+        {!user ? (
           <Paper sx={{ p: 3, mb: 3 }}>
             <Alert severity="warning">
               <AlertTitle>Authentication Required</AlertTitle>

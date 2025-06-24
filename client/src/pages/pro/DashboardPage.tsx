@@ -85,7 +85,7 @@ function a11yProps(index: number) {
 }
 
 const DashboardPage: React.FC = () => {
-  const { user, isAuthenticated } = useAuth();
+  const { user, isAuthenticated, refreshUser } = useAuth();
   const [loading, setLoading] = useState(true);
   const [content, setContent] = useState<Content[]>([]);
   const [tabValue, setTabValue] = useState(0);
@@ -107,6 +107,14 @@ const DashboardPage: React.FC = () => {
   // Tokenize dialog state
   const [tokenizeDialogOpen, setTokenizeDialogOpen] = useState(false);
   const [contentToTokenize, setContentToTokenize] = useState<string | null>(null);
+  
+  // 🔄 PHASE 1: Context-Aware Refresh - Pro feature access
+  useEffect(() => {
+    if (user) {
+      console.log('🔄 Pro Dashboard: Refreshing user data for Pro status verification');
+      refreshUser();
+    }
+  }, []); // Only run on mount
   
   // Load content data
   useEffect(() => {
