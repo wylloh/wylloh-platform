@@ -134,25 +134,44 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const token = localStorage.getItem('token');
         
         if (token) {
-          // In a real app, validate the token with the server
-          // For now, we'll just simulate this
-          const userData = JSON.parse(localStorage.getItem('user') || '{}');
-          
-          if (userData && userData.id) {
-            setState({
-              user: userData,
-              loading: false,
-              error: null,
-              isAuthenticated: true,
-              isInitialized: true,
-              authenticationInProgress: false,
-              lastSyncedWallet: account || null,
-            });
-          } else {
-            // Invalid stored user data
+          // 🔒 ENTERPRISE SECURITY: Verify token with server, no localStorage user data
+          try {
+            const result = await authAPI.refreshUser();
+            if (result.success && result.user) {
+              setState({
+                user: result.user as any,
+                loading: false,
+                error: null,
+                isAuthenticated: true,
+                isInitialized: true,
+                authenticationInProgress: false,
+                lastSyncedWallet: null,
+              });
+            } else {
+              // Invalid token or user not found
+              localStorage.removeItem('token');
+              setState(prevState => ({
+                ...prevState,
+                loading: false,
+                isInitialized: true,
+              }));
+            }
+          } catch (error) {
+            // Token verification failed
             localStorage.removeItem('token');
-            localStorage.removeItem('user');
+            setState(prevState => ({
+              ...prevState,
+              loading: false,
+              error: 'Session expired. Please log in again.',
+              isInitialized: true,
+            }));
           }
+        } else {
+          setState(prevState => ({
+            ...prevState,
+            loading: false,
+            isInitialized: true,
+          }));
         }
       } catch (err) {
         console.error('Auth check error:', err);
@@ -200,8 +219,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         user: updatedUser,
         lastSyncedWallet: account,
       }));
-      // Update localStorage with synced wallet
-      localStorage.setItem('user', JSON.stringify(updatedUser));
+      // 🔒 ENTERPRISE SECURITY: No localStorage user data writes
     }
   }, [account, state.isAuthenticated, state.user]);
 
@@ -326,7 +344,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           authenticationInProgress: false,
           loading: false,
         });
-        localStorage.setItem('user', JSON.stringify(updatedUser));
+        // 🔒 ENTERPRISE SECURITY: No localStorage user data writes
         return true;
       } else {
         throw new Error(result.error || 'Failed to submit Pro status request');
@@ -357,8 +375,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       lastSyncedWallet: null,
     });
     
-    // Clear localStorage
-    localStorage.removeItem('user');
+    // 🔒 ENTERPRISE SECURITY: Clear only JWT token, no user data in localStorage
     localStorage.removeItem('token');
     localStorage.removeItem('walletAddress');
     
@@ -434,9 +451,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       });
       
       if (result.success && result.user && result.token) {
-        // ✅ MONGODB-FIRST ARCHITECTURE: Store token for API calls, user state from MongoDB
+        // ✅ ENTERPRISE SECURITY: Store only JWT token, fetch user data from server
         localStorage.setItem('token', result.token);
-        localStorage.setItem('user', JSON.stringify(result.user));
         
         // Update state with authenticated user from MongoDB
         setState({
@@ -493,22 +509,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         throw new Error('Username must be at least 3 characters long');
       }
       
-      // Use API to create wallet profile
-      const result = await authAPI.createWalletProfile(walletAddress, username.trim(), email);
+      // Use API to create wallet profile in MongoDB
+      const result = await authAPI.createWalletProfile(walletAddress, username.trim(), email?.trim());
       
       if (result.success && result.user) {
-        // Update state with new user
-        setState({
+        // ✅ ENTERPRISE SECURITY: User data managed by server, only token stored locally
+        setState(prevState => ({
+          ...prevState,
           user: result.user as any, // Convert WalletUser to User type
-          loading: false,
-          error: null,
           isAuthenticated: true,
-          isInitialized: true,
+          loading: false,
           authenticationInProgress: false,
           lastSyncedWallet: walletAddress,
-        });
+        }));
         
-        console.log(`Wallet profile created successfully: ${result.user.username} (${walletAddress})`);
+        console.log(`✅ Wallet profile created in MongoDB: ${result.user.username} (${walletAddress})`);
         return true;
       } else {
         // Profile creation failed

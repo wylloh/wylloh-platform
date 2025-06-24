@@ -109,9 +109,8 @@ class AuthAPI {
       const data: APIResponse<WalletUser> = await response.json();
 
       if (data.success && data.user && data.token) {
-        // Store authentication data
+        // 🔒 ENTERPRISE SECURITY: Store only JWT token, no user data in localStorage
         localStorage.setItem('token', data.token);
-        localStorage.setItem('user', JSON.stringify(data.user));
         
         console.log(`Wallet profile created successfully: ${data.user.username} (${walletAddress})`);
         return { success: true, user: data.user };
@@ -128,14 +127,7 @@ class AuthAPI {
    * Get current user from stored token
    */
   getCurrentUser(): WalletUser | null {
-    try {
-      const userStr = localStorage.getItem('user');
-      if (userStr) {
-        return JSON.parse(userStr);
-      }
-    } catch (error) {
-      console.error('Error parsing stored user:', error);
-    }
+    // 🔒 ENTERPRISE SECURITY: No localStorage user data - always fetch from server
     return null;
   }
 
@@ -144,7 +136,7 @@ class AuthAPI {
    */
   clearAuth(): void {
     localStorage.removeItem('token');
-    localStorage.removeItem('user');
+    // 🔒 ENTERPRISE SECURITY: No user data in localStorage to clear
   }
 
   /**
@@ -161,9 +153,7 @@ class AuthAPI {
       const data = await response.json();
 
       if (data.success && data.user) {
-        // Update stored user data
-        localStorage.setItem('user', JSON.stringify(data.user));
-        
+        // 🔒 ENTERPRISE SECURITY: No localStorage writes - return fresh server data
         console.log(`✅ Profile updated in MongoDB: ${data.user.username}`);
         return { success: true, user: data.user };
       } else {
@@ -222,9 +212,7 @@ class AuthAPI {
       const data = await response.json();
 
       if (data.success && data.user) {
-        // Update stored user data with latest from server
-        localStorage.setItem('user', JSON.stringify(data.user));
-        
+        // 🔒 ENTERPRISE SECURITY: No localStorage writes - return fresh server data
         console.log(`✅ User data refreshed from server: ${data.user.username}`);
         return { success: true, user: data.user };
       } else {
