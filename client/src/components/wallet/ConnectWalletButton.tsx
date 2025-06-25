@@ -224,24 +224,33 @@ const ConnectWalletButton: React.FC = () => {
     return `${address.slice(0, 6)}...${address.slice(-4)}`;
   };
 
-  // Listen for wallet connection changes
+  // Listen for wallet connection changes - only show for actual changes
   useEffect(() => {
+    let lastAccount = account;
+    
     const handleWalletChanged = (event: Event) => {
-      // Display indicator when wallet changes
-      setConnectionIndicator({
-        show: true,
-        message: 'Wallet changed. Updating connection...',
-        type: 'info'
-      });
+      const customEvent = event as CustomEvent;
+      const newAccount = customEvent.detail?.account;
       
-      // Hide after 5 seconds
-      setTimeout(() => {
+      // Only show indicator if this is actually a different account
+      if (newAccount && newAccount !== lastAccount) {
+        lastAccount = newAccount;
+        
         setConnectionIndicator({
-          show: false,
-          message: '',
+          show: true,
+          message: 'Wallet changed. Updating connection...',
           type: 'info'
         });
-      }, 5000);
+        
+        // Hide after 3 seconds
+        setTimeout(() => {
+          setConnectionIndicator({
+            show: false,
+            message: '',
+            type: 'info'
+          });
+        }, 3000);
+      }
     };
     
     window.addEventListener('wallet-account-changed', handleWalletChanged);
@@ -249,7 +258,7 @@ const ConnectWalletButton: React.FC = () => {
     return () => {
       window.removeEventListener('wallet-account-changed', handleWalletChanged);
     };
-  }, []);
+  }, [account]);
   
   // Show connection status changes
   useEffect(() => {

@@ -48,10 +48,9 @@ const UploadPage: React.FC = () => {
   // Check if user has verified Pro status
   const isProVerified = user?.proStatus === 'verified';
 
-  // 🔄 PHASE 1: Context-Aware Refresh - Pro feature access
+  // 🔄 Pro Upload refresh
   React.useEffect(() => {
     if (user) {
-      console.log('🔄 Pro Upload: Refreshing user data for Pro status verification');
       refreshUser();
     }
   }, []); // Only run on mount

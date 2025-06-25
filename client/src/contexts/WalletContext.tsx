@@ -298,6 +298,12 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       if (newAccount.toLowerCase() !== account?.toLowerCase()) {
         console.log('WalletContext - Account has changed from', account, 'to', newAccount);
         
+        // 🔒 SECURITY: Immediately dispatch logout event for security
+        const walletSwitchEvent = new CustomEvent('wallet-switched-logout', { 
+          detail: { oldAccount: account, newAccount: newAccount }
+        });
+        window.dispatchEvent(walletSwitchEvent);
+        
         // Show prompt to connect the new wallet
         setWalletPrompt({
           show: true,

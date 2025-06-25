@@ -19,6 +19,20 @@ interface WalletUser {
   email: string;
   roles: string[];
   walletAddress: string;
+  proStatus?: 'pending' | 'verified' | 'rejected';
+  proVerificationData?: {
+    fullName: string;
+    biography: string;
+    professionalLinks: {
+      imdb?: string;
+      website?: string;
+      vimeo?: string;
+      linkedin?: string;
+    };
+    filmographyHighlights?: string;
+  };
+  dateProRequested?: string;
+  dateProApproved?: string;
 }
 
 export interface WalletConnectRequest {

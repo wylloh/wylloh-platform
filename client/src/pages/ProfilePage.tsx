@@ -55,13 +55,7 @@ const ProfilePage: React.FC = () => {
     email: user?.email && !user.email.includes('@wallet.local') ? user.email : ''
   });
 
-  // 🔄 PHASE 1: Context-Aware Refresh - Profile page navigation
-  React.useEffect(() => {
-    if (user) {
-      console.log('🔄 ProfilePage: Refreshing user data for latest Pro status');
-      refreshUser();
-    }
-  }, []); // Only run on mount
+  // Note: Pro status refresh moved to HomePage for immediate access after login
 
   if (!user) {
     return (

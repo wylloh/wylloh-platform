@@ -108,10 +108,9 @@ const DashboardPage: React.FC = () => {
   const [tokenizeDialogOpen, setTokenizeDialogOpen] = useState(false);
   const [contentToTokenize, setContentToTokenize] = useState<string | null>(null);
   
-  // 🔄 PHASE 1: Context-Aware Refresh - Pro feature access
+  // 🔄 Pro Dashboard refresh
   useEffect(() => {
     if (user) {
-      console.log('🔄 Pro Dashboard: Refreshing user data for Pro status verification');
       refreshUser();
     }
   }, []); // Only run on mount

@@ -58,7 +58,7 @@ interface FeaturedContent {
 
 const HomePage: React.FC = () => {
   const { active, connect } = useWallet();
-  const { isAuthenticated, loading: authLoading } = useAuth();
+  const { isAuthenticated, loading: authLoading, user, refreshUser } = useAuth();
   const theme = useTheme();
   const { breakpoints, config, card } = useResponsiveDesign();
   const { debounce, createPerformanceMonitor } = usePerformanceOptimization();
@@ -91,6 +91,8 @@ const HomePage: React.FC = () => {
       setShowConnectPrompt(false);
     }
   }, [active, isAuthenticated]);
+
+  // Note: Pro status refresh moved to AuthContext for session-level management
 
   useEffect(() => {
     const fetchFeaturedContent = async () => {

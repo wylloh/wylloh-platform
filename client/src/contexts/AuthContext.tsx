@@ -84,6 +84,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     lastSyncedWallet: null,
   });
   
+  // Session-level Pro status refresh tracking
+  const sessionProRefreshCompletedRef = useRef(false);
+  
   // Get wallet context
   const { account, active } = useWallet();
   
@@ -121,9 +124,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     };
 
+    // 🔒 SECURITY: Handle immediate logout when wallet switches
+    const handleWalletSwitchLogout = (event: Event) => {
+      const { oldAccount, newAccount } = (event as CustomEvent)?.detail || {};
+      if (state.isAuthenticated) {
+        console.log('🔒 AuthContext - Wallet switched, force logout for security');
+        logout();
+      }
+    };
+
     window.addEventListener('wallet-connected', handleWalletAccountChange);
+    window.addEventListener('wallet-switched-logout', handleWalletSwitchLogout);
+    
     return () => {
       window.removeEventListener('wallet-connected', handleWalletAccountChange);
+      window.removeEventListener('wallet-switched-logout', handleWalletSwitchLogout);
     };
   }, [state.isAuthenticated, state.user?.walletAddress]); 
   
@@ -190,6 +205,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     checkAuth();
   }, []);
 
+  // Session-level Pro Status Refresh will be added after refreshUser is defined
+
   // Auto-login based on wallet address for demo purposes
   // Web3 authentication is handled by Web3AuthManager - no auto-login needed
   useEffect(() => {
@@ -223,20 +240,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [account, state.isAuthenticated, state.user]);
 
-  // 🔄 PHASE 1: Context-Aware Refresh - App focus/visibility detection
-  useEffect(() => {
-    const handleVisibilityChange = () => {
-      if (!document.hidden && state.isAuthenticated && state.user) {
-        console.log('🔄 AuthContext: App regained focus, refreshing user data');
-        refreshUser();
-      }
-    };
-
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    return () => {
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
-    };
-  }, [state.isAuthenticated, state.user]);
+  // 🔄 PHASE 1: Context-Aware Refresh - Moved to after refreshUser definition
 
   // Login function
   const login = async (email: string, password: string): Promise<boolean> => {
@@ -602,12 +606,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           ...result.user,
         };
         
+        // Log only for target wallet
+        if (result.user.walletAddress?.toLowerCase() === '0x2ae0d658e356e2b687e604af13afac3f4e265504') {
+          console.log('🔍 Pro status update:', {
+            old: state.user?.proStatus,
+            new: result.user.proStatus
+          });
+        }
+        
         setState({
           ...state,
           user: updatedUser,
           loading: false,
         });
-        console.log('✅ User data refreshed in AuthContext');
         return true;
       } else {
         throw new Error(result.error || 'Failed to refresh user data');
@@ -621,6 +632,77 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return false;
     }
   };
+
+  // 🎯 Session-level Pro Status Refresh (Industry Standard)
+  // Runs once per session regardless of which page user lands on
+  useEffect(() => {
+    const performSessionProRefresh = async () => {
+      if (!state.isAuthenticated || !state.user?.walletAddress || 
+          state.loading || sessionProRefreshCompletedRef.current) {
+        return;
+      }
+
+      try {
+        console.log('AuthContext: Performing session-level Pro status refresh for:', state.user.walletAddress);
+        
+        // Special logging for the target wallet
+        if (state.user.walletAddress === '0x2Ae0D658e356e2b687e604Af13aFAc3f4E265504') {
+          console.log('🎯 AuthContext: Target Pro wallet detected - session refresh');
+        }
+
+        const success = await refreshUser();
+        if (success) {
+          sessionProRefreshCompletedRef.current = true;
+          console.log('AuthContext: Session Pro status refresh completed');
+        }
+      } catch (error) {
+        console.error('AuthContext: Session Pro status refresh failed:', error);
+      }
+    };
+
+    // Only run once when user is fully authenticated and loaded
+    if (state.isAuthenticated && state.user && !state.loading && state.isInitialized) {
+      performSessionProRefresh();
+    }
+  }, [state.isAuthenticated, state.user?.walletAddress, state.loading, state.isInitialized]);
+
+  // Reset session refresh flag on logout
+  useEffect(() => {
+    if (!state.isAuthenticated) {
+      sessionProRefreshCompletedRef.current = false;
+    }
+  }, [state.isAuthenticated]);
+
+  // 🔄 PHASE 1: Enhanced Visibility Detection for Pro Status Sync
+  useEffect(() => {
+    console.log('🔄 Setting up enhanced visibility change detection for Pro status sync');
+    
+    const handleVisibilityChange = () => {
+      if (!document.hidden && state.isAuthenticated && state.user) {
+        console.log('🔄 Tab became visible - refreshing user data for Pro status sync');
+        console.log('Current user proStatus:', state.user.proStatus);
+        console.log('User wallet:', state.user.walletAddress);
+        
+        // Enhanced refresh with promise handling
+        refreshUser().then((success) => {
+          if (success) {
+            console.log('✅ User refresh completed after visibility change');
+          } else {
+            console.error('❌ User refresh failed after visibility change');
+          }
+        }).catch((error) => {
+          console.error('❌ User refresh error after visibility change:', error);
+        });
+      }
+    };
+
+    // Listen for visibility changes (tab focus/blur)
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [state.isAuthenticated, state.user, refreshUser]);
 
   // State validation and synchronization methods
   const validateAuthState = useCallback(() => {
