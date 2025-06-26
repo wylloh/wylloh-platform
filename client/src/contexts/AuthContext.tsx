@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode, useRef, useCallback } from 'react';
 import { useWallet } from './WalletContext';
 import { authAPI, WalletUser } from '../services/authAPI';
+import websocketService from '../services/websocketService';
 
 interface AuthContextType {
   isAuthenticated: boolean;
@@ -588,50 +589,52 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  // Refresh user data from server
-  const refreshUser = async (): Promise<boolean> => {
-    setState({
-      ...state,
+  // Refresh user data from server - FIXED: Use useCallback to prevent infinite loops
+  const refreshUser = useCallback(async (): Promise<boolean> => {
+    setState(prevState => ({
+      ...prevState,
       loading: true,
       error: null,
-    });
+    }));
     
     try {
       // Use authAPI service to refresh user data
       const result = await authAPI.refreshUser();
       
       if (result.success && result.user) {
-        const updatedUser = {
-          ...state.user,
-          ...result.user,
-        };
-        
-        // Log only for target wallet
-        if (result.user.walletAddress?.toLowerCase() === '0x2ae0d658e356e2b687e604af13afac3f4e265504') {
-          console.log('🔍 Pro status update:', {
-            old: state.user?.proStatus,
-            new: result.user.proStatus
-          });
-        }
-        
-        setState({
-          ...state,
-          user: updatedUser,
-          loading: false,
+        setState(prevState => {
+          const updatedUser: User = {
+            ...prevState.user!,
+            ...result.user!,
+          };
+          
+          // Log only for target wallet
+          if (result.user!.walletAddress?.toLowerCase() === '0x2ae0d658e356e2b687e604af13afac3f4e265504') {
+            console.log('🔍 Pro status update:', {
+              old: prevState.user?.proStatus,
+              new: result.user!.proStatus
+            });
+          }
+          
+          return {
+            ...prevState,
+            user: updatedUser,
+            loading: false,
+          };
         });
         return true;
       } else {
         throw new Error(result.error || 'Failed to refresh user data');
       }
     } catch (err: any) {
-      setState({
-        ...state,
-        error: err.message || 'Failed to refresh user data',
+      setState(prevState => ({
+        ...prevState,
+        error: (err as Error).message || 'Failed to refresh user data',
         loading: false,
-      });
+      }));
       return false;
     }
-  };
+  }, []); // Empty dependency array - function is stable
 
   // 🎯 Session-level Pro Status Refresh (Industry Standard)
   // Runs once per session regardless of which page user lands on
@@ -673,36 +676,76 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [state.isAuthenticated]);
 
-  // 🔄 PHASE 1: Enhanced Visibility Detection for Pro Status Sync
+  // 🔌 ENTERPRISE WEBSOCKET INTEGRATION
+  // Real-time Pro status updates without client-side polling
   useEffect(() => {
-    console.log('🔄 Setting up enhanced visibility change detection for Pro status sync');
-    
-    const handleVisibilityChange = () => {
-      if (!document.hidden && state.isAuthenticated && state.user) {
-        console.log('🔄 Tab became visible - refreshing user data for Pro status sync');
-        console.log('Current user proStatus:', state.user.proStatus);
-        console.log('User wallet:', state.user.walletAddress);
-        
-        // Enhanced refresh with promise handling
-        refreshUser().then((success) => {
-          if (success) {
-            console.log('✅ User refresh completed after visibility change');
-          } else {
-            console.error('❌ User refresh failed after visibility change');
+    const setupWebSocket = async () => {
+      if (state.isAuthenticated && state.user && !state.loading) {
+        const token = localStorage.getItem('token');
+        if (token) {
+          try {
+            console.log('🔌 Setting up WebSocket connection for authenticated user');
+            
+            // Connect to WebSocket server
+            await websocketService.connect(token);
+            
+            // Set up Pro status update handler
+            websocketService.on('pro:status:update', (data: any) => {
+              console.log('🎯 Received Pro status update:', data);
+              
+              setState(prevState => ({
+                ...prevState,
+                user: prevState.user ? {
+                  ...prevState.user,
+                  proStatus: data.proStatus,
+                  dateProApproved: data.dateProApproved
+                } : null
+              }));
+            });
+
+            // Set up Pro verification celebration
+            websocketService.on('pro:verified', (data: any) => {
+              console.log('🎉 Pro status verified!', data.message);
+              
+              setState(prevState => ({
+                ...prevState,
+                user: prevState.user ? {
+                  ...prevState.user,
+                  proStatus: 'verified',
+                  dateProApproved: data.timestamp
+                } : null
+              }));
+              
+              // Could trigger a celebration UI here
+              // e.g., toast notification, confetti, etc.
+            });
+
+            console.log('✅ WebSocket real-time Pro status updates enabled');
+            
+          } catch (error) {
+            console.error('❌ WebSocket connection failed:', error);
+            // Graceful degradation - user can still use the app
           }
-        }).catch((error) => {
-          console.error('❌ User refresh error after visibility change:', error);
-        });
+        }
       }
     };
 
-    // Listen for visibility changes (tab focus/blur)
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    
+    setupWebSocket();
+
+    // Cleanup WebSocket on logout
     return () => {
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      if (!state.isAuthenticated) {
+        websocketService.disconnect();
+      }
     };
-  }, [state.isAuthenticated, state.user, refreshUser]);
+  }, [state.isAuthenticated, state.user?.id, state.loading]);
+
+  // Clean up WebSocket on logout
+  useEffect(() => {
+    if (!state.isAuthenticated) {
+      websocketService.disconnect();
+    }
+  }, [state.isAuthenticated]);
 
   // State validation and synchronization methods
   const validateAuthState = useCallback(() => {

@@ -2,6 +2,7 @@ import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 import { createError } from './errorHandler.js';
 import env from '../config/env.js';
+import axios from 'axios';
 
 // Extend Express Request interface to include user property
 declare global {
@@ -83,4 +84,66 @@ export const encryptionMiddleware = (req: Request, res: Response, next: NextFunc
   }
   
   next();
+};
+
+/**
+ * Middleware to verify user has verified Pro status
+ * Required for content upload operations
+ * Calls main API service to verify Pro status
+ */
+export const proStatusMiddleware = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    // Get user ID from authenticated request
+    const userId = req.user?.id;
+    
+    if (!userId) {
+      throw createError('Authentication required', 401);
+    }
+
+    // Call main API service to verify Pro status
+    const API_BASE_URL = process.env.API_BASE_URL || 'http://wylloh_api:3001';
+    
+    try {
+      const response = await axios.get(`${API_BASE_URL}/users/profile`, {
+        headers: {
+          'Authorization': req.headers.authorization
+        }
+      });
+
+      const user = response.data.data;
+      
+      if (user.proStatus !== 'verified') {
+        console.log(`🚫 Storage: Pro status check failed for user ${user.username}: ${user.proStatus}`);
+        
+        const message = user.proStatus === 'pending' 
+          ? 'Pro status verification is pending. Please wait for admin approval.'
+          : user.proStatus === 'rejected'
+          ? 'Pro status verification was rejected. Please contact support.'
+          : 'Pro status verification required. Please submit your Pro application.';
+          
+        throw createError(message, 403);
+      }
+
+      // Log successful verification
+      console.log(`✅ Storage: Pro status verified for user ${user.username} (${user.walletAddress})`);
+      
+      // Add full user data to request
+      req.user = { ...req.user, ...user };
+      
+      next();
+    } catch (apiError: any) {
+      if (apiError.response?.status === 403) {
+        throw createError('Pro status verification required for content uploads', 403);
+      }
+      throw createError('Unable to verify Pro status', 500);
+    }
+  } catch (error: any) {
+    console.error('❌ Storage Pro status middleware error:', error.message);
+    
+    res.status(error.statusCode || 500).json({
+      success: false,
+      message: error.message || 'Pro status verification failed',
+      code: 'PRO_STATUS_REQUIRED'
+    });
+  }
 };

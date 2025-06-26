@@ -3,6 +3,7 @@ import jwt from 'jsonwebtoken';
 import bcrypt from 'bcrypt';
 import { createError, asyncHandler } from '../middleware/errorHandler';
 import User from '../models/User';
+import websocketService from '../services/websocketService';
 
 // Note: This is a placeholder implementation
 // In a real implementation, you would use a database model for users
@@ -349,6 +350,12 @@ export const approveProStatus = async (req: Request, res: Response) => {
     
     await user.save();
 
+    // 🎉 REAL-TIME NOTIFICATION: Pro status approved
+    console.log(`🎉 Pro status approved for ${user.username} (${user.walletAddress})`);
+    
+    // Send real-time WebSocket notification to user
+    await websocketService.notifyProStatusChange(userId, 'verified');
+
     res.status(200).json({
       success: true,
       message: 'Pro status approved successfully',
@@ -391,6 +398,12 @@ export const rejectProStatus = async (req: Request, res: Response) => {
     user.proRejectionReason = reason || 'No reason provided';
     
     await user.save();
+
+    // 🚫 REAL-TIME NOTIFICATION: Pro status rejected
+    console.log(`🚫 Pro status rejected for ${user.username} (${user.walletAddress})`);
+    
+    // Send real-time WebSocket notification to user
+    await websocketService.notifyProStatusChange(userId, 'rejected');
 
     res.status(200).json({
       success: true,

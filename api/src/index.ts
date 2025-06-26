@@ -18,6 +18,8 @@ import mongoose from 'mongoose';
 import bodyParser from 'body-parser';
 import { Request, Response, NextFunction } from 'express';
 import { validateSecurityConfig } from './config/security';
+import { createServer } from 'http';
+import websocketService from './services/websocketService';
 
 // Load environment variables
 dotenv.config();
@@ -177,9 +179,16 @@ async function startServer() {
     process.exit(1);
   }
   
-  app.listen(PORT, () => {
+  // Create HTTP server with WebSocket support
+  const server = createServer(app);
+  
+  // Initialize WebSocket service
+  websocketService.initializeWebSocket(server);
+  
+  server.listen(PORT, () => {
     console.log(`✅ API server running on port ${PORT}`);
     console.log(`🔒 Security mode: ${isProduction ? 'Production' : 'Development'}`);
+    console.log(`🔌 WebSocket service ready for real-time Pro status updates`);
   });
 }
 

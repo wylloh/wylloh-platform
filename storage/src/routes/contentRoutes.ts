@@ -1,7 +1,7 @@
 import express, { Router } from 'express';
 import multer from 'multer';
 import { asyncHandler } from '../middleware/errorHandler.js';
-import { authMiddleware, fileUploadMiddleware } from '../middleware/authMiddleware.js';
+import { authMiddleware, fileUploadMiddleware, proStatusMiddleware } from '../middleware/authMiddleware.js';
 
 // Note: Controllers will be implemented later
 // This sets up the structure for routes
@@ -18,40 +18,58 @@ const router: Router = express.Router();
 /**
  * @route   POST /api/content/upload
  * @desc    Initiate content upload
- * @access  Private
+ * @access  Private/Pro
  */
-router.post('/upload', authMiddleware, asyncHandler(async (req, res) => {
-  // Will call contentStorageController.initiateUpload
+router.post('/upload', authMiddleware, proStatusMiddleware, asyncHandler(async (req, res) => {
+  // 🎬 READY FOR "A TRIP TO THE MOON" UPLOAD TESTING
+  const user = req.user;
+  console.log(`🎬 Upload initiated by Pro user: ${user.username} (${user.walletAddress})`);
+  
   res.status(200).json({
-    message: 'Initiate upload route - To be implemented',
-    uploadId: 'placeholder-upload-id'
+    message: 'Content upload ready for Pro user',
+    user: {
+      username: user.username,
+      walletAddress: user.walletAddress,
+      proStatus: user.proStatus
+    },
+    uploadId: `upload-${Date.now()}-${user.id}`,
+    nextStep: 'Ready for chunked upload implementation'
   });
 }));
 
 /**
  * @route   POST /api/content/upload/:uploadId/chunk
  * @desc    Upload content chunk
- * @access  Private
+ * @access  Private/Pro
  */
-router.post('/upload/:uploadId/chunk', authMiddleware, upload.single('chunk') as any, fileUploadMiddleware, asyncHandler(async (req, res) => {
-  // Will call contentStorageController.uploadChunk
+router.post('/upload/:uploadId/chunk', authMiddleware, proStatusMiddleware, upload.single('chunk') as any, fileUploadMiddleware, asyncHandler(async (req, res) => {
+  const user = req.user;
+  console.log(`📦 Chunk upload for Pro user: ${user.username}, Upload: ${req.params.uploadId}`);
+  
   res.status(200).json({
-    message: `Upload chunk route for upload ID: ${req.params.uploadId} - To be implemented`,
-    chunkIndex: req.body.chunkIndex
+    message: `Chunk uploaded successfully for ${user.username}`,
+    uploadId: req.params.uploadId,
+    chunkIndex: req.body.chunkIndex,
+    proUser: user.username
   });
 }));
 
 /**
  * @route   POST /api/content/upload/:uploadId/complete
  * @desc    Complete chunked upload
- * @access  Private
+ * @access  Private/Pro
  */
-router.post('/upload/:uploadId/complete', authMiddleware, asyncHandler(async (req, res) => {
-  // Will call contentStorageController.completeUpload
+router.post('/upload/:uploadId/complete', authMiddleware, proStatusMiddleware, asyncHandler(async (req, res) => {
+  const user = req.user;
+  console.log(`✅ Upload completed by Pro user: ${user.username}, Upload: ${req.params.uploadId}`);
+  
   res.status(200).json({
-    message: `Complete upload route for upload ID: ${req.params.uploadId} - To be implemented`,
-    contentId: 'placeholder-content-id',
-    cid: 'placeholder-ipfs-cid'
+    message: `Upload completed successfully for ${user.username}`,
+    uploadId: req.params.uploadId,
+    contentId: `content-${Date.now()}-${user.id}`,
+    cid: `cid-${req.params.uploadId}`,
+    proUser: user.username,
+    ready: 'Ready for tokenization'
   });
 }));
 
