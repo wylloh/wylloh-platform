@@ -18,6 +18,7 @@ const ContentDetailsPage = React.lazy(() => import('./pages/store/ContentDetails
 
 // Pro pages
 const EnhancedDashboardPage = React.lazy(() => import('./pages/pro/EnhancedDashboardPage'));
+const UploadPage = React.lazy(() => import('./pages/pro/UploadPage'));
 const TagManagementPage = React.lazy(() => import('./pages/pro/TagManagementPage'));
 
 // Library pages
@@ -90,6 +91,9 @@ const AppRoutes = () => {
         
         {/* Pro routes */}
         <Route path="/pro/dashboard" element={<EnhancedDashboardPage />} />
+        <Route path="/dashboard" element={<Navigate to="/pro/dashboard" replace />} />
+        <Route path="/pro/upload" element={<UploadPage />} />
+        <Route path="/upload" element={<Navigate to="/pro/upload" replace />} />
         <Route path="/pro/analytics" element={<AnalyticsDashboardPage />} />
         <Route path="/pro/tags" element={<TagManagementPage />} />
         <Route path="/pro" element={<Navigate to="/pro/dashboard" replace />} />
