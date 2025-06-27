@@ -14,7 +14,7 @@ RUN apk add --no-cache \
 
 # Copy workspace root files for proper yarn workspace setup
 COPY package.json yarn.lock ./
-COPY ./api/package*.json ./
+COPY ./api/package.json ./api/
 
 # Install all dependencies (including dev dependencies for building)
 # Use workspace root context for proper TypeScript installation
@@ -47,7 +47,7 @@ RUN adduser -S wylloh -u 1001
 
 # Copy workspace root files for proper yarn workspace setup
 COPY package.json yarn.lock ./
-COPY ./api/package*.json ./
+COPY ./api/package.json ./api/
 
 # Install only production dependencies
 RUN yarn install --production --frozen-lockfile && yarn cache clean
