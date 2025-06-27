@@ -101,7 +101,7 @@ export async function encryptContent(
   let contentBuffer: ArrayBuffer;
   if (typeof content === 'string') {
     const encoder = new TextEncoder();
-    contentBuffer = encoder.encode(content).buffer;
+    contentBuffer = encoder.encode(content).buffer as ArrayBuffer;
   } else {
     contentBuffer = content;
   }
