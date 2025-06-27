@@ -112,19 +112,21 @@ export class RecommendationController {
   /**
    * Get similar content based on a specific content item
    */
-  static async getSimilarContent(req: Request, res: Response) {
+  static async getSimilarContent(req: Request, res: Response): Promise<void> {
     try {
       const { contentId } = req.params;
       const { limit = 10, offset = 0 } = req.query;
       
       if (!contentId || !isValidObjectId(contentId)) {
-        return res.status(400).json({ message: 'Invalid content ID' });
+        res.status(400).json({ message: 'Invalid content ID' });
+        return;
       }
       
       // Get the source content
       const sourceContent = await Content.findById(contentId);
       if (!sourceContent) {
-        return res.status(404).json({ message: 'Content not found' });
+        res.status(404).json({ message: 'Content not found' });
+        return;
       }
       
       // Extract metadata for matching
@@ -220,17 +222,17 @@ export class RecommendationController {
       // Sort by similarity score
       similarContentWithScore.sort((a, b) => b.score - a.score);
       
-      return res.json(similarContentWithScore);
+      res.json(similarContentWithScore);
     } catch (error) {
       console.error('Error in getSimilarContent:', error);
-      return res.status(500).json({ message: 'Server error' });
+      res.status(500).json({ message: 'Server error' });
     }
   }
   
   /**
    * Get trending content
    */
-  static async getTrendingContent(req: Request, res: Response) {
+  static async getTrendingContent(req: Request, res: Response): Promise<void> {
     try {
       const { contentType, limit = 10, offset = 0 } = req.query;
       
@@ -270,17 +272,17 @@ export class RecommendationController {
         score: content.trendingScore
       }));
       
-      return res.json(trendingWithReason);
+      res.json(trendingWithReason);
     } catch (error) {
       console.error('Error in getTrendingContent:', error);
-      return res.status(500).json({ message: 'Server error' });
+      res.status(500).json({ message: 'Server error' });
     }
   }
   
   /**
    * Get new releases
    */
-  static async getNewReleases(req: Request, res: Response) {
+  static async getNewReleases(req: Request, res: Response): Promise<void> {
     try {
       const { contentType, limit = 10, offset = 0 } = req.query;
       
@@ -327,23 +329,24 @@ export class RecommendationController {
         };
       });
       
-      return res.json(newReleasesWithReason);
+      res.json(newReleasesWithReason);
     } catch (error) {
       console.error('Error in getNewReleases:', error);
-      return res.status(500).json({ message: 'Server error' });
+      res.status(500).json({ message: 'Server error' });
     }
   }
   
   /**
    * Get genre-based recommendations
    */
-  static async getGenreRecommendations(req: Request, res: Response) {
+  static async getGenreRecommendations(req: Request, res: Response): Promise<void> {
     try {
       const { genre } = req.params;
       const { contentType, limit = 10, offset = 0 } = req.query;
       
       if (!genre) {
-        return res.status(400).json({ message: 'Genre is required' });
+        res.status(400).json({ message: 'Genre is required' });
+        return;
       }
       
       // Build query
@@ -374,10 +377,10 @@ export class RecommendationController {
       // Sort by score for some variety
       genreContentWithReason.sort((a, b) => b.score - a.score);
       
-      return res.json(genreContentWithReason);
+      res.json(genreContentWithReason);
     } catch (error) {
       console.error('Error in getGenreRecommendations:', error);
-      return res.status(500).json({ message: 'Server error' });
+      res.status(500).json({ message: 'Server error' });
     }
   }
   
@@ -385,23 +388,26 @@ export class RecommendationController {
    * Record content view for a user
    * Used to improve future recommendations
    */
-  static async recordContentView(req: Request, res: Response) {
+  static async recordContentView(req: Request, res: Response): Promise<void> {
     try {
       const userId = req.user?.id;
       const { contentId } = req.params;
       
       if (!userId) {
-        return res.status(401).json({ message: 'Unauthorized' });
+        res.status(401).json({ message: 'Unauthorized' });
+        return;
       }
       
       if (!contentId || !isValidObjectId(contentId)) {
-        return res.status(400).json({ message: 'Invalid content ID' });
+        res.status(400).json({ message: 'Invalid content ID' });
+        return;
       }
       
       // Check if content exists
       const content = await Content.findById(contentId);
       if (!content) {
-        return res.status(404).json({ message: 'Content not found' });
+        res.status(404).json({ message: 'Content not found' });
+        return;
       }
       
       // Increment content views
@@ -417,10 +423,10 @@ export class RecommendationController {
         { upsert: true }
       );
       
-      return res.json({ message: 'Content view recorded successfully' });
+      res.json({ message: 'Content view recorded successfully' });
     } catch (error) {
       console.error('Error in recordContentView:', error);
-      return res.status(500).json({ message: 'Server error' });
+      res.status(500).json({ message: 'Server error' });
     }
   }
 }
