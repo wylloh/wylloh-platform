@@ -4,7 +4,7 @@ import { LibraryAnalytics } from '../models/library-analytics.model';
 
 export const libraryController = {
   // Get a specific library
-  async getLibrary(req: Request, res: Response) {
+  async getLibrary(req: Request, res: Response): Promise<void> {
     try {
       const library = await Library.findById(req.params.libraryId);
       if (!library) {
@@ -18,7 +18,7 @@ export const libraryController = {
   },
 
   // Get library content
-  async getLibraryContent(req: Request, res: Response) {
+  async getLibraryContent(req: Request, res: Response): Promise<void> {
     try {
       const library = await Library.findById(req.params.libraryId);
       if (!library) {
@@ -32,7 +32,7 @@ export const libraryController = {
   },
 
   // Add content to library
-  async addContent(req: Request, res: Response) {
+  async addContent(req: Request, res: Response): Promise<void> {
     try {
       const { contentId, purchasePrice, licenseType } = req.body;
       const library = await Library.findById(req.params.libraryId);
@@ -71,13 +71,14 @@ export const libraryController = {
   },
 
   // Lend content
-  async lendContent(req: Request, res: Response) {
+  async lendContent(req: Request, res: Response): Promise<void> {
     try {
       const { email, duration } = req.body;
       const library = await Library.findById(req.params.libraryId);
       
       if (!library) {
-        return res.status(404).json({ message: 'Library not found' });
+        res.status(404).json({ message: 'Library not found' });
+        return;
       }
 
       const contentItem = library.items.find(
@@ -85,11 +86,13 @@ export const libraryController = {
       );
 
       if (!contentItem) {
-        return res.status(404).json({ message: 'Content not found in library' });
+        res.status(404).json({ message: 'Content not found in library' });
+        return;
       }
 
       if (contentItem.isLent) {
-        return res.status(400).json({ message: 'Content is already lent' });
+        res.status(400).json({ message: 'Content is already lent' });
+        return;
       }
 
       contentItem.isLent = true;
@@ -115,12 +118,13 @@ export const libraryController = {
   },
 
   // Return lent content
-  async returnContent(req: Request, res: Response) {
+  async returnContent(req: Request, res: Response): Promise<void> {
     try {
       const library = await Library.findById(req.params.libraryId);
       
       if (!library) {
-        return res.status(404).json({ message: 'Library not found' });
+        res.status(404).json({ message: 'Library not found' });
+        return;
       }
 
       const contentItem = library.items.find(
@@ -128,11 +132,13 @@ export const libraryController = {
       );
 
       if (!contentItem) {
-        return res.status(404).json({ message: 'Content not found in library' });
+        res.status(404).json({ message: 'Content not found in library' });
+        return;
       }
 
       if (!contentItem.isLent) {
-        return res.status(400).json({ message: 'Content is not lent' });
+        res.status(400).json({ message: 'Content is not lent' });
+        return;
       }
 
       contentItem.isLent = false;
@@ -147,13 +153,14 @@ export const libraryController = {
   },
 
   // Update content value
-  async updateContentValue(req: Request, res: Response) {
+  async updateContentValue(req: Request, res: Response): Promise<void> {
     try {
       const { newValue } = req.body;
       const library = await Library.findById(req.params.libraryId);
       
       if (!library) {
-        return res.status(404).json({ message: 'Library not found' });
+        res.status(404).json({ message: 'Library not found' });
+        return;
       }
 
       const contentItem = library.items.find(
@@ -161,7 +168,8 @@ export const libraryController = {
       );
 
       if (!contentItem) {
-        return res.status(404).json({ message: 'Content not found in library' });
+        res.status(404).json({ message: 'Content not found in library' });
+        return;
       }
 
       const valueDifference = newValue - contentItem.currentValue;
