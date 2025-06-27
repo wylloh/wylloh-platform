@@ -14,13 +14,14 @@ export class RecommendationController {
    * Get personalized recommendations for a user
    * Uses user watch history, preferences, and behavior
    */
-  static async getPersonalizedRecommendations(req: Request, res: Response) {
+  static async getPersonalizedRecommendations(req: Request, res: Response): Promise<void> {
     try {
       const userId = req.user?.id;
       const { contentType, limit = 10, offset = 0 } = req.query;
       
       if (!userId) {
-        return res.status(401).json({ message: 'Unauthorized' });
+        res.status(401).json({ message: 'Unauthorized' });
+        return;
       }
       
       // Get user watch history
@@ -101,10 +102,10 @@ export class RecommendationController {
       // Sort by score
       recommendationsWithReason.sort((a, b) => b.score - a.score);
       
-      return res.json(recommendationsWithReason);
+      res.json(recommendationsWithReason);
     } catch (error) {
       console.error('Error in getPersonalizedRecommendations:', error);
-      return res.status(500).json({ message: 'Server error' });
+      res.status(500).json({ message: 'Server error' });
     }
   }
   

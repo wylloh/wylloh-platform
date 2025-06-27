@@ -1,7 +1,7 @@
 import express, { Request, Response } from 'express';
 import { asyncHandler } from '../middleware/errorHandler';
 import { authMiddleware, roleAuthorization } from '../middleware/authMiddleware';
-import { requestProStatus, getPendingProRequests, approveProStatus, rejectProStatus, updateProfile } from '../controllers/userController';
+import { requestProStatus, getPendingProRequests, approveProStatus, rejectProStatus, updateProfile, getProfile } from '../controllers/userController';
 
 // Note: Controllers will be implemented later
 // This sets up the structure for routes
@@ -37,13 +37,7 @@ router.post('/login', asyncHandler(async (req: Request, res: Response) => {
  * @desc    Get user profile
  * @access  Private
  */
-router.get('/profile', authMiddleware, asyncHandler(async (req: Request, res: Response) => {
-  // Will call userController.getProfile
-  res.status(200).json({
-    message: 'User profile route - To be implemented',
-    user: (req as any).user
-  });
-}));
+router.get('/profile', authMiddleware, asyncHandler(getProfile));
 
 /**
  * @route   PUT /api/users/profile

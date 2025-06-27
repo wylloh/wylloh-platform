@@ -8,7 +8,8 @@ export const libraryController = {
     try {
       const library = await Library.findById(req.params.libraryId);
       if (!library) {
-        return res.status(404).json({ message: 'Library not found' });
+        res.status(404).json({ message: 'Library not found' });
+        return;
       }
       res.json(library);
     } catch (error) {
@@ -21,7 +22,8 @@ export const libraryController = {
     try {
       const library = await Library.findById(req.params.libraryId);
       if (!library) {
-        return res.status(404).json({ message: 'Library not found' });
+        res.status(404).json({ message: 'Library not found' });
+        return;
       }
       res.json(library.items);
     } catch (error) {
@@ -36,7 +38,8 @@ export const libraryController = {
       const library = await Library.findById(req.params.libraryId);
       
       if (!library) {
-        return res.status(404).json({ message: 'Library not found' });
+        res.status(404).json({ message: 'Library not found' });
+        return;
       }
 
       library.items.push({

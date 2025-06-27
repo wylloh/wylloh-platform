@@ -100,26 +100,32 @@ export const login = asyncHandler(async (req: Request, res: Response) => {
 });
 
 /**
- * Get user profile
+ * Get user profile - MONGODB VERSION
  * @route GET /api/users/profile
  */
 export const getProfile = asyncHandler(async (req: Request, res: Response) => {
-  // User is already attached to request by authMiddleware
-  const userId = req.user?.id;
+  const userId = (req as any).user?.id;
 
-  // Find user
-  const user = users.find(user => user.id === userId);
+  // Find user in MongoDB
+  const user = await User.findById(userId);
   if (!user) {
     throw createError('User not found', 404);
   }
 
   res.status(200).json({
-    message: 'User profile retrieved',
+    success: true,
+    message: 'User profile retrieved successfully',
     user: {
       id: user.id,
       username: user.username,
       email: user.email,
-      roles: user.roles
+      roles: user.roles,
+      walletAddress: user.walletAddress,
+      isVerified: user.isVerified,
+      proStatus: user.proStatus,
+      proVerificationData: user.proVerificationData,
+      dateProRequested: user.dateProRequested,
+      dateProApproved: user.dateProApproved
     }
   });
 });
