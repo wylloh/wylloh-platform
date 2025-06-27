@@ -6,7 +6,7 @@ export const validateRequest = (schema: {
   query?: Joi.ObjectSchema;
   body?: Joi.ObjectSchema;
 }) => {
-  return (req: Request, res: Response, next: NextFunction) => {
+  return (req: Request, res: Response, next: NextFunction): void => {
     const validationOptions = {
       abortEarly: false,
       allowUnknown: true,
@@ -30,7 +30,8 @@ export const validateRequest = (schema: {
       const errorMessage = error.details
         .map((detail) => detail.message)
         .join(', ');
-      return res.status(400).json({ error: errorMessage });
+      res.status(400).json({ error: errorMessage });
+      return;
     }
 
     next();
