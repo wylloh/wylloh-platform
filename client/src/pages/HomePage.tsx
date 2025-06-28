@@ -35,7 +35,7 @@ import {
   ExpandMore as ExpandMoreIcon,
   CheckCircle as CheckIcon
 } from '@mui/icons-material';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { useWallet } from '../contexts/WalletContext';
 import { useSnackbar } from 'notistack';
 import ResponsiveBanner from '../components/common/ResponsiveBanner';
@@ -59,6 +59,7 @@ interface FeaturedContent {
 const HomePage: React.FC = () => {
   const { active, connect } = useWallet();
   const { isAuthenticated, loading: authLoading, user, refreshUser } = useAuth();
+  const location = useLocation();
   const theme = useTheme();
   const { breakpoints, config, card } = useResponsiveDesign();
   const { debounce, createPerformanceMonitor } = usePerformanceOptimization();
@@ -71,7 +72,14 @@ const HomePage: React.FC = () => {
   // Performance monitoring
   const performanceUtils = usePerformanceOptimization();
 
+  // Check if user was redirected here for authentication
+  const needsAuth = location.state?.needsAuth;
+  const redirectedFrom = location.state?.from?.pathname;
+
   useEffect(() => {
+    // Show connect prompt immediately if redirected for auth, otherwise wait 2 seconds
+    const delay = needsAuth ? 0 : 2000;
+    
     const timer = setTimeout(() => {
       // Only show connect prompt if:
       // 1. Authentication is not loading
@@ -80,17 +88,22 @@ const HomePage: React.FC = () => {
       if (!authLoading && !isAuthenticated && !active) {
         setShowConnectPrompt(true);
       }
-    }, 2000);
+    }, delay);
 
     return () => clearTimeout(timer);
-  }, [active, isAuthenticated, authLoading]);
+  }, [active, isAuthenticated, authLoading, needsAuth]);
 
   // Hide connect prompt when wallet connects or user authenticates
   useEffect(() => {
     if (active || isAuthenticated) {
       setShowConnectPrompt(false);
+      
+      // Clear location state after successful authentication
+      if (needsAuth && (active || isAuthenticated)) {
+        window.history.replaceState({}, document.title, location.pathname);
+      }
     }
-  }, [active, isAuthenticated]);
+  }, [active, isAuthenticated, needsAuth, location.pathname]);
 
   // Note: Pro status refresh moved to AuthContext for session-level management
 
@@ -538,11 +551,19 @@ const HomePage: React.FC = () => {
             <Stack direction="row" spacing={2} alignItems="center">
               <Box sx={{ flexGrow: 1 }}>
                 <Typography variant="h6" gutterBottom color="text.primary">
-                  Connect your wallet to get started
+                  {needsAuth ? 'Authentication Required' : 'Connect your wallet to get started'}
                 </Typography>
                 <Typography variant="body2" color="text.secondary">
-                  Access your film library and discover new titles on the store.
+                  {needsAuth 
+                    ? `You need to connect your wallet to access ${redirectedFrom ? redirectedFrom.replace('/pro/', '').replace('/', '') : 'Pro features'}.`
+                    : 'Access your film library and discover new titles on the store.'
+                  }
                 </Typography>
+                {needsAuth && (
+                  <Typography variant="body2" color="warning.main" sx={{ mt: 1 }}>
+                    Web3-first platform • No passwords required
+                  </Typography>
+                )}
               </Box>
               <Button 
                 variant="contained" 

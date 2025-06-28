@@ -69,9 +69,9 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
     );
   }
 
-  // Check if user is authenticated
+  // Check if user is authenticated - Web3-first: redirect to home with Connect prompt
   if (!isAuthenticated) {
-    return <Navigate to="/login" state={{ from: location }} replace />;
+    return <Navigate to="/" state={{ from: location, needsAuth: true }} replace />;
   }
 
   // Check if Pro verification is required and if user has verified status

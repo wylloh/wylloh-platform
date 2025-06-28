@@ -30,8 +30,8 @@ const PlayerPage = React.lazy(() => import('./pages/player/PlayerPage'));
 // Auth pages
 const LoginPage = React.lazy(() => import('./pages/auth/LoginPage'));
 
-// Auth components
-const ProtectedRoute = React.lazy(() => import('./components/auth/ProtectedRoute'));
+// Auth components - NOT lazy loaded for security (immediate protection)
+import ProtectedRoute from './components/auth/ProtectedRoute';
 
 // Admin pages
 const ProVerificationPanel = React.lazy(() => import('./components/admin/ProVerificationPanel'));
