@@ -101,7 +101,7 @@ const MainLayout: React.FC = () => {
             {user?.proStatus === 'verified' && (
               <>
                 <ListItem disablePadding>
-                  <ListItemButton component={Link} to="/creator/dashboard">
+                  <ListItemButton component={Link} to="/pro/dashboard">
                     <ListItemIcon>
                       <DashboardIcon />
                     </ListItemIcon>
@@ -109,7 +109,7 @@ const MainLayout: React.FC = () => {
                   </ListItemButton>
                 </ListItem>
                 <ListItem disablePadding>
-                  <ListItemButton component={Link} to="/creator/upload">
+                  <ListItemButton component={Link} to="/pro/upload">
                     <ListItemIcon>
                       <UploadIcon />
                     </ListItemIcon>

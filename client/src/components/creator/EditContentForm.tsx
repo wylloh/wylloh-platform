@@ -281,7 +281,7 @@ const EditContentForm: React.FC<EditContentFormProps> = ({ contentId, onSuccess 
         if (onSuccess) {
           onSuccess();
         } else {
-          navigate('/creator/dashboard');
+          navigate('/pro/dashboard');
         }
       }, 1500);
     } catch (err: any) {
@@ -292,7 +292,7 @@ const EditContentForm: React.FC<EditContentFormProps> = ({ contentId, onSuccess 
   
   // Handle cancel
   const handleCancel = () => {
-    navigate('/creator/dashboard');
+            navigate('/pro/dashboard');
   };
   
   if (loading) {

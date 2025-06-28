@@ -30,6 +30,9 @@ const PlayerPage = React.lazy(() => import('./pages/player/PlayerPage'));
 // Auth pages
 const LoginPage = React.lazy(() => import('./pages/auth/LoginPage'));
 
+// Auth components
+const ProtectedRoute = React.lazy(() => import('./components/auth/ProtectedRoute'));
+
 // Admin pages
 const ProVerificationPanel = React.lazy(() => import('./components/admin/ProVerificationPanel'));
 
@@ -89,20 +92,40 @@ const AppRoutes = () => {
         <Route path="/library/:libraryId" element={<LibraryPage />} />
         <Route path="/collection" element={<Navigate to="/library" replace />} />
         
-        {/* Pro routes */}
-        <Route path="/pro/dashboard" element={<EnhancedDashboardPage />} />
+        {/* Pro routes - Enterprise-grade route-level protection */}
+        <Route path="/pro/dashboard" element={
+          <ProtectedRoute requireProVerified={true}>
+            <EnhancedDashboardPage />
+          </ProtectedRoute>
+        } />
         <Route path="/dashboard" element={<Navigate to="/pro/dashboard" replace />} />
-        <Route path="/pro/upload" element={<UploadPage />} />
+        <Route path="/pro/upload" element={
+          <ProtectedRoute requireProVerified={true}>
+            <UploadPage />
+          </ProtectedRoute>
+        } />
         <Route path="/upload" element={<Navigate to="/pro/upload" replace />} />
-        <Route path="/pro/analytics" element={<AnalyticsDashboardPage />} />
-        <Route path="/pro/tags" element={<TagManagementPage />} />
+        <Route path="/pro/analytics" element={
+          <ProtectedRoute requireProVerified={true}>
+            <AnalyticsDashboardPage />
+          </ProtectedRoute>
+        } />
+        <Route path="/pro/tags" element={
+          <ProtectedRoute requireProVerified={true}>
+            <TagManagementPage />
+          </ProtectedRoute>
+        } />
         <Route path="/pro" element={<Navigate to="/pro/dashboard" replace />} />
         
         {/* Auth pages */}
         <Route path="/login" element={<LoginPage />} />
         
-        {/* Admin pages */}
-        <Route path="/admin/pro-verification" element={<ProVerificationPanel />} />
+        {/* Admin pages - Enterprise-grade admin protection */}
+        <Route path="/admin/pro-verification" element={
+          <ProtectedRoute requireAdmin={true}>
+            <ProVerificationPanel />
+          </ProtectedRoute>
+        } />
         
         {/* Essential pages */}
         <Route path="/community" element={<CommunityPage />} />

@@ -70,7 +70,7 @@ function a11yProps(index: number) {
  * Enhanced Pro Dashboard Page with improved content management and analytics
  */
 const EnhancedDashboardPage: React.FC = () => {
-  const { user, isAuthenticated } = useAuth();
+  const { user, isAuthenticated, refreshUser } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   
@@ -84,6 +84,8 @@ const EnhancedDashboardPage: React.FC = () => {
   
   // Check if user has verified Pro status
   const isProVerified = user?.proStatus === 'verified';
+  
+  // Pro status verification handled at route level for enterprise scalability
   
   // Load content data
   useEffect(() => {

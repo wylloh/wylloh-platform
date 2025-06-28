@@ -156,10 +156,9 @@ const Navbar: React.FC = () => {
     { text: 'Partnerships', to: '/partnerships', icon: <HandshakeIcon /> },
   ];
   
-  // Pro links (if authenticated)
+  // Pro links (if authenticated) - Upload removed from top nav, available in Dashboard
   const creatorLinks = isAuthenticated && user?.proStatus === 'verified' ? [
-    { text: 'Dashboard', to: '/creator/dashboard', icon: <Dashboard /> },
-    { text: 'Upload', to: '/creator/upload', icon: <FileUpload /> },
+          { text: 'Dashboard', to: '/pro/dashboard', icon: <Dashboard /> },
   ] : [];
   
   // User menu items (Dashboard only for Pro users)

@@ -19,7 +19,7 @@ const EditContentPage: React.FC = () => {
   
   // Handle success callback
   const handleSuccess = () => {
-    navigate('/creator/dashboard');
+    navigate('/pro/dashboard');
   };
   
   return (
@@ -30,7 +30,7 @@ const EditContentPage: React.FC = () => {
           <MuiLink component={Link} to="/" underline="hover" color="inherit">
             Home
           </MuiLink>
-          <MuiLink component={Link} to="/creator/dashboard" underline="hover" color="inherit">
+          <MuiLink component={Link} to="/pro/dashboard" underline="hover" color="inherit">
             Creator Dashboard
           </MuiLink>
           <Typography color="text.primary">Edit Content</Typography>
@@ -39,7 +39,7 @@ const EditContentPage: React.FC = () => {
         {/* Back button */}
         <Button
           component={Link}
-          to="/creator/dashboard"
+          to="/pro/dashboard"
           startIcon={<ArrowBackIcon />}
           sx={{ mb: 3 }}
         >

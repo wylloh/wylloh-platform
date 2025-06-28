@@ -216,7 +216,7 @@ const TokenizePublishPage: React.FC = () => {
       // If content is already tokenized, redirect to dashboard
       if (content?.tokenized || isAlreadyTokenized) {
         console.log('Content is already tokenized, skipping tokenization');
-        navigate('/creator/dashboard', {
+        navigate('/pro/dashboard', {
           state: {
             success: true,
             message: `${contentInfo.title} is already tokenized. No changes were needed.`
@@ -317,7 +317,7 @@ const TokenizePublishPage: React.FC = () => {
         
         if (verificationResult.success && verificationResult.balance > 0) {
           // Navigate to creator dashboard with success message
-          navigate('/creator/dashboard', {
+          navigate('/pro/dashboard', {
             state: {
               success: true,
               message: `${contentInfo.title} has been tokenized and published to the marketplace.`
@@ -357,7 +357,7 @@ const TokenizePublishPage: React.FC = () => {
         errorMessage = `${contentInfo.title} is already tokenized. Please refresh the dashboard.`;
         // Redirect to dashboard after showing error
         setTimeout(() => {
-          navigate('/creator/dashboard');
+          navigate('/pro/dashboard');
         }, 3000);
       } else if (err.message && err.message.includes('MetaMask')) {
         if (err.message.includes('rejected')) {
@@ -380,7 +380,7 @@ const TokenizePublishPage: React.FC = () => {
   // Handle skip confirmation
   const handleSkipConfirm = () => {
     setSkipDialogOpen(false);
-    navigate('/creator/dashboard');
+          navigate('/pro/dashboard');
   };
   
   // Handle opening skip dialog
@@ -692,7 +692,7 @@ const TokenizePublishPage: React.FC = () => {
   const renderHeader = () => (
     <Box sx={{ mb: 4 }}>
       <Breadcrumbs aria-label="breadcrumb" sx={{ mb: 2 }}>
-        <MuiLink component={Link} to="/creator/dashboard" color="inherit">
+        <MuiLink component={Link} to="/pro/dashboard" color="inherit">
           Creator Dashboard
         </MuiLink>
         <Typography color="text.primary">Tokenize</Typography>
@@ -705,7 +705,7 @@ const TokenizePublishPage: React.FC = () => {
         </Typography>
         <Button
           component={Link}
-          to="/creator/dashboard"
+          to="/pro/dashboard"
           startIcon={<ArrowBackIcon />}
           variant="outlined"
         >
@@ -734,7 +734,7 @@ const TokenizePublishPage: React.FC = () => {
           <Button
             variant="contained"
             component={Link}
-            to="/creator/dashboard"
+            to="/pro/dashboard"
             sx={{ mt: 3 }}
           >
             Back to Dashboard
@@ -759,7 +759,7 @@ const TokenizePublishPage: React.FC = () => {
           <Button
             variant="contained"
             component={Link}
-            to="/creator/dashboard"
+            to="/pro/dashboard"
             sx={{ mt: 2 }}
           >
             Return to Dashboard
@@ -799,7 +799,7 @@ const TokenizePublishPage: React.FC = () => {
           <MuiLink component={Link} to="/" underline="hover" color="inherit">
             Home
           </MuiLink>
-          <MuiLink component={Link} to="/creator/dashboard" underline="hover" color="inherit">
+          <MuiLink component={Link} to="/pro/dashboard" underline="hover" color="inherit">
             Creator Dashboard
           </MuiLink>
           <Typography color="text.primary">Tokenize & Publish</Typography>
@@ -808,7 +808,7 @@ const TokenizePublishPage: React.FC = () => {
         {/* Back button */}
         <Button
           component={Link}
-          to="/creator/dashboard"
+          to="/pro/dashboard"
           startIcon={<ArrowBackIcon />}
           sx={{ mb: 3 }}
         >

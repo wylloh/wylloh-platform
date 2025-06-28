@@ -183,7 +183,7 @@ const AnalyticsDashboardPage: React.FC = () => {
           <Typography variant="body1" paragraph>
             You need to tokenize your content before you can view analytics.
           </Typography>
-          <Button variant="contained" href="/creator/dashboard">
+          <Button variant="contained" href="/pro/dashboard">
             Go to Dashboard
           </Button>
         </Paper>

@@ -37,7 +37,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useWallet } from '../contexts/WalletContext';
 import RequestProStatusButton from '../components/profile/RequestProStatusButton';
 import AdminBadge from '../components/common/AdminBadge';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 
 // 🧹 PRODUCTION CLEANUP: Removed mock content data - this will be populated by real user content
 
@@ -45,6 +45,7 @@ const ProfilePage: React.FC = () => {
   const { user, updateProfile, refreshUser } = useAuth();
   const { account, active } = useWallet(); // Get actual wallet state
   const navigate = useNavigate();
+  const location = useLocation();
   const [selectedTab, setSelectedTab] = React.useState(0);
   
   // 🔧 Profile editing states
@@ -56,6 +57,10 @@ const ProfilePage: React.FC = () => {
   });
 
   // Note: Pro status refresh moved to HomePage for immediate access after login
+
+  // Check if user was redirected here for Pro verification
+  const needsProVerification = location.state?.needsProVerification;
+  const redirectedFrom = location.state?.from?.pathname;
 
   if (!user) {
     return (
@@ -100,6 +105,24 @@ const ProfilePage: React.FC = () => {
   return (
     <Container maxWidth="lg" sx={{ py: 4 }}>
       <Grid container spacing={3}>
+        {/* Pro Verification Alert */}
+        {needsProVerification && (
+          <Grid item xs={12}>
+            <Alert severity="info" sx={{ mb: 2 }}>
+              <Typography variant="body1" gutterBottom>
+                <strong>Pro Verification Required</strong>
+              </Typography>
+              <Typography variant="body2">
+                You need verified Pro status to access {redirectedFrom ? redirectedFrom.replace('/pro/', '') : 'Pro features'}. 
+                {user.proStatus === 'pending' 
+                  ? ' Your verification request is pending admin approval.' 
+                  : ' Click "Request Pro Status" below to get started.'
+                }
+              </Typography>
+            </Alert>
+          </Grid>
+        )}
+        
         {/* Profile Header */}
         <Grid item xs={12}>
           <Paper sx={{ p: 3, borderRadius: 2 }}>
@@ -234,7 +257,7 @@ const ProfilePage: React.FC = () => {
                       variant="contained" 
                       color="primary"
                       startIcon={<MovieCreation />}
-                      onClick={() => navigate('/creator/upload')}
+                      onClick={() => navigate('/pro/upload')}
                     >
                       Upload Film Package
                     </Button>

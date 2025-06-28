@@ -637,7 +637,7 @@ const UploadForm: React.FC = () => {
       if (!formData.tokenization.enabled) {
         // Navigate to dashboard after short delay if tokenization is not enabled
         setTimeout(() => {
-          navigate('/creator/dashboard', {
+          navigate('/pro/dashboard', {
             state: {
               message: 'Content uploaded successfully! You can tokenize it later from your dashboard.'
             }
