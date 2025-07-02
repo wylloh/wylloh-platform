@@ -26,6 +26,7 @@ const Footer: React.FC = () => {
       title: 'Organization',
       links: [
         { name: 'About', path: '/about' },
+        { name: 'Investors', path: '/investors' },
         { name: 'Contribute', path: '/contribute' },
         { name: 'Press', path: '/press' },
         { name: 'Contact', path: '/contact' }

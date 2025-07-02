@@ -68,8 +68,11 @@ import { getProjectIpfsUrl } from '../../utils/ipfs';
 import { generatePlaceholderImage } from '../../utils/placeholders';
 import { Content } from '../../services/content.service';
 import { blockchainService } from '../../services/blockchain.service';
+import { enhancedBlockchainService } from '../../services/enhancedBlockchain.service';
 import { keyManagementService } from '../../services/keyManagement.service';
 import DeviceManagementPanel from '../../components/content/DeviceManagementPanel';
+import { StripeOnrampModal } from '../../components/payment';
+import { formatCurrency } from '../../utils/formatting';
 
 // Add interfaces for content types
 interface SecondaryMarketListing {
@@ -108,6 +111,7 @@ interface DetailedContent extends Content {
   views: number;
   sales: number;
   encryptionKey?: string;
+  currency?: string;
 }
 
 // Production content data - would be fetched from API in production
@@ -164,6 +168,11 @@ const ContentDetailsPage: React.FC = () => {
   // Ownership check state
   const [userOwnsContent, setUserOwnsContent] = useState(false);
   const [ownedTokens, setOwnedTokens] = useState(0);
+  
+  // Stripe onramp state
+  const [showStripeModal, setShowStripeModal] = useState(false);
+  const [stripeRequired, setStripeRequired] = useState(false);
+  const [stripeAvailable, setStripeAvailable] = useState(false);
 
   const fetchContent = async () => {
     if (!id) return;
@@ -187,7 +196,18 @@ const ContentDetailsPage: React.FC = () => {
 
   useEffect(() => {
     fetchContent();
+    checkStripeAvailability();
   }, [id]);
+
+  const checkStripeAvailability = async () => {
+    try {
+      const available = await enhancedBlockchainService.isStripeOnrampAvailable();
+      setStripeAvailable(available);
+      console.log('💳 Stripe availability:', available);
+    } catch (error) {
+      console.error('❌ Error checking Stripe availability:', error);
+    }
+  };
 
   // Check if user owns content
   useEffect(() => {
@@ -305,17 +325,44 @@ const ContentDetailsPage: React.FC = () => {
     
     try {
       setIsPurchasing(true);
+      setStripeRequired(false);
       
-      // Get the token price 
-      const tokenPrice = content.price || 0.01;
-      console.log(`Purchasing ${quantity} tokens at ${tokenPrice} ETH each`);
+      // Get the token price in USDC
+      const tokenPrice = content.price || 19.99; // Default to $19.99 for parity with traditional digital platforms
+      const totalPrice = Number(quantity) * tokenPrice;
+      console.log(`🎬 Starting enhanced purchase flow for ${quantity} tokens at $${tokenPrice} USDC each (Total: $${totalPrice})`);
       
-      // Purchase the content token using blockchain service - pass per-token price, not total
-      await blockchainService.purchaseTokens(
+      // Validate purchase requirements
+      const validation = await enhancedBlockchainService.validatePurchaseRequirements(
         content.id,
-        Number(quantity),
-        tokenPrice  // Now passing the per-token price, not the total price
+        totalPrice.toString(),
+        account
       );
+
+      if (!validation.valid) {
+        throw new Error(validation.error || 'Invalid purchase requirements');
+      }
+
+      // Attempt purchase with smart Stripe fallback
+      const result = await enhancedBlockchainService.purchaseWithSmartFallback({
+        contentId: content.id,
+        contentTitle: content.title,
+        price: totalPrice.toString(),
+        walletAddress: account,
+        onStripeRequired: () => {
+          console.log('💳 Stripe onramp required');
+          setStripeRequired(true);
+          if (stripeAvailable) {
+            setShowStripeModal(true);
+          } else {
+            throw new Error('Insufficient USDC balance. Please add USDC to your wallet manually.');
+          }
+        }
+      });
+
+      if (result.success && !result.usedStripe) {
+        // Direct blockchain purchase succeeded - continue with existing success logic
+        console.log('✅ Direct purchase successful:', result.transactionHash);
       
       // After successful purchase, store the content key
       if (content.encryptionKey) {
@@ -364,32 +411,36 @@ const ContentDetailsPage: React.FC = () => {
         setOwnedTokens(Number(quantity));
       }
       
-      // Show success message
-      setSnackbarMessage('Content purchased successfully! You now have access.');
-      setSnackbarSeverity('success');
-      setSnackbarOpen(true);
-      
-      // Close dialog
-      handlePurchaseDialogClose();
-      
-      // Redirect to collection after a short delay to show the success message
-      setTimeout(() => {
-        setRedirectToCollection(true);
-      }, 1500);
+        // Show success message
+        setSnackbarMessage('Content purchased successfully! You now have access.');
+        setSnackbarSeverity('success');
+        setSnackbarOpen(true);
+        
+        // Close dialog
+        handlePurchaseDialogClose();
+        
+        // Redirect to collection after a short delay to show the success message
+        setTimeout(() => {
+          setRedirectToCollection(true);
+        }, 1500);
+      } else if (result.usedStripe) {
+        // Stripe onramp initiated - purchase will complete after funding
+        console.log('💳 Stripe onramp initiated - waiting for user to complete funding');
+        return; // Don't set isPurchasing to false yet
+      } else if (result.error) {
+        // Enhanced error handling
+        throw new Error(result.error);
+      }
     } catch (error: any) {
-      console.error('Error purchasing content:', error);
+      console.error('❌ Enhanced purchase error:', error);
       
-      // Format a more user-friendly error message based on the error
-      let errorMessage = 'Failed to purchase content. Please try again.';
+      // Use enhanced error formatting
+      let errorMessage = error.message 
+        ? enhancedBlockchainService.formatErrorForUser(error.message)
+        : 'Failed to purchase content. Please try again.';
       
-      if (error.message) {
-        if (error.message.includes('insufficient funds')) {
-          errorMessage = 'Insufficient funds in your wallet to complete this purchase.';
-        } else if (error.message.includes('user rejected')) {
-          errorMessage = 'Transaction was rejected. Please try again when ready.';
-        } else if (error.message.includes('Contract address')) {
-          errorMessage = 'Contract configuration issue. Please contact support.';
-        } else if (error.message.includes('Payment was sent but token transfer failed')) {
+      // Special handling for fallback purchase record creation
+      if (error.message && error.message.includes('Payment was sent but token transfer failed')) {
           errorMessage = 'Payment was processed but token transfer failed. The system will attempt to credit your tokens. Please check your collection in a few minutes.';
           
           // Create a fallback local record of the purchase since payment went through
@@ -398,7 +449,7 @@ const ContentDetailsPage: React.FC = () => {
             console.log('Creating fallback local purchase record since payment was processed');
             const purchased = await contentService.getPurchasedContent();
             const existingPurchase = purchased.find(item => item.id === content.id);
-            const tokenPriceForFallback = content.price || 0.01; // Get token price again to avoid scope issues
+            const tokenPriceForFallback = content.price || 19.99; // Get token price again to avoid scope issues
             
             if (existingPurchase) {
               existingPurchase.purchaseQuantity += Number(quantity);
@@ -434,21 +485,107 @@ const ContentDetailsPage: React.FC = () => {
           } catch (fallbackError) {
             console.error('Failed to create fallback purchase record:', fallbackError);
           }
-        } else if (error.message.includes('enough tokens')) {
-          errorMessage = 'The creator does not have enough tokens available to complete this sale.';
         } else {
-          // Include part of the original error for debugging
-          const shortErrorMsg = error.message.substring(0, 100) + (error.message.length > 100 ? '...' : '');
-          errorMessage = `Transaction failed: ${shortErrorMsg}`;
+          // For other errors, just use the enhanced error message
+          console.log('Using enhanced error formatting for:', error.message);
         }
-      }
       
       setSnackbarMessage(errorMessage);
       setSnackbarSeverity('error');
       setSnackbarOpen(true);
     } finally {
-      setIsPurchasing(false);
+      if (!showStripeModal) {
+        setIsPurchasing(false);
+      }
     }
+  };
+
+  const completePurchaseAfterFunding = async () => {
+    if (!content || !account) return;
+
+    try {
+      console.log('🎉 Completing purchase after Stripe funding...');
+      const tokenPrice = content.price || 19.99;
+      const totalPrice = Number(quantity) * tokenPrice;
+      
+      const result = await enhancedBlockchainService.completePurchaseAfterFunding(
+        content.id,
+        totalPrice.toString(),
+        account
+      );
+
+      if (result.success) {
+        // Continue with existing success logic
+        if (content.encryptionKey) {
+          await keyManagementService.storeContentKey(
+            content.id,
+            content.encryptionKey,
+            account
+          );
+        }
+
+        // Update purchased content status
+        const purchased = await contentService.getPurchasedContent();
+        const existingPurchase = purchased.find(item => item.id === content.id);
+        
+        if (existingPurchase) {
+          existingPurchase.purchaseQuantity += Number(quantity);
+          localStorage.setItem('purchased_content', JSON.stringify(purchased));
+        } else {
+          const newPurchase = {
+            ...content,
+            purchaseDate: new Date().toISOString(),
+            purchasePrice: tokenPrice,
+            purchaseQuantity: Number(quantity)
+          };
+          purchased.push(newPurchase);
+          localStorage.setItem('purchased_content', JSON.stringify(purchased));
+        }
+
+        setIsPurchased(true);
+        setUserOwnsContent(true);
+        setOwnedTokens(prev => prev + Number(quantity));
+        
+        setSnackbarMessage('🎉 Payment completed! Content purchased successfully via credit card.');
+        setSnackbarSeverity('success');
+        setSnackbarOpen(true);
+        
+        console.log('✅ Post-funding purchase successful:', result.transactionHash);
+        
+        setTimeout(() => {
+          setRedirectToCollection(true);
+        }, 1500);
+      } else {
+        throw new Error(result.error || 'Failed to complete purchase after funding');
+      }
+    } catch (error) {
+      console.error('❌ Post-funding purchase error:', error);
+      setSnackbarMessage('Payment completed, but there was an issue finalizing your purchase. Please contact support.');
+      setSnackbarSeverity('warning');
+      setSnackbarOpen(true);
+    }
+  };
+
+  const handleStripeModalClose = () => {
+    setShowStripeModal(false);
+    setIsPurchasing(false);
+    setStripeRequired(false);
+  };
+
+  const handleStripeSuccess = () => {
+    console.log('🎉 Stripe onramp completed successfully');
+    setShowStripeModal(false);
+    completePurchaseAfterFunding();
+  };
+
+  const handleStripeError = (error: string) => {
+    console.error('❌ Stripe onramp error:', error);
+    setShowStripeModal(false);
+    setIsPurchasing(false);
+    setStripeRequired(false);
+    setSnackbarMessage(`Credit card payment failed: ${error}`);
+    setSnackbarSeverity('error');
+    setSnackbarOpen(true);
   };
 
   // Calculate total price
@@ -527,8 +664,29 @@ const ContentDetailsPage: React.FC = () => {
                 Math.round((content.available / content.totalSupply) * 100) : 0}% still available
             </Typography>
             <Typography variant="h5" color="primary" sx={{ mt: 2 }}>
-              {content.price || 0} ETH
+              {formatCurrency(content.price || 19.99, 'USDC')}
             </Typography>
+            
+            {/* Payment Method Info */}
+            {!userOwnsContent && stripeAvailable && (
+              <Alert severity="info" sx={{ mt: 2, mb: 1 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <Typography variant="body2">
+                    💳 Credit Card or 🪙 Wallet USDC • Powered by Stripe
+                  </Typography>
+                </Box>
+              </Alert>
+            )}
+            
+            {stripeRequired && stripeAvailable && (
+              <Alert severity="warning" sx={{ mt: 1, mb: 1 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <Typography variant="body2">
+                    ⚠️ Insufficient USDC balance detected. Add funds with your credit card.
+                  </Typography>
+                </Box>
+              </Alert>
+            )}
           </Box>
 
           {/* Secondary Market */}
@@ -545,7 +703,7 @@ const ContentDetailsPage: React.FC = () => {
                       secondary={`Seller: ${listing.seller}`}
                     />
                     <Typography variant="h6" color="primary">
-                      {listing.price} ETH
+                      {listing.price} USDC
                     </Typography>
                   </ListItem>
                 ))}
@@ -562,27 +720,39 @@ const ContentDetailsPage: React.FC = () => {
               fullWidth
               variant="outlined"
               inputProps={{ min: 1, max: content.available }}
-              helperText={`Total: ${totalPrice.toFixed(4)} ETH`}
+              helperText={`Total: ${formatCurrency(totalPrice, 'USDC')}`}
             />
           </Box>
 
           {isAuthenticated ? (
             active ? (
-              <Button
-                variant="contained"
-                color="primary"
-                fullWidth
-                size="large"
-                startIcon={purchaseInProgress ? null : <ShoppingCart />}
-                onClick={handlePurchaseDialogOpen}
-                disabled={purchaseInProgress || !isCorrectNetwork || Number(quantity) < 1 || (content.available ? Number(quantity) > content.available : true)}
-              >
-                {purchaseInProgress ? (
-                  <CircularProgress size={24} color="inherit" />
-                ) : (
-                  isCorrectNetwork ? 'Purchase Now' : 'Switch Network to Purchase'
+              <>
+                <Button
+                  variant="contained"
+                  color="primary"
+                  fullWidth
+                  size="large"
+                  startIcon={isPurchasing ? null : <ShoppingCart />}
+                  onClick={handlePurchaseDialogOpen}
+                  disabled={isPurchasing || !isCorrectNetwork || Number(quantity) < 1 || (content.available ? Number(quantity) > content.available : true)}
+                >
+                  {isPurchasing ? (
+                    <CircularProgress size={24} color="inherit" />
+                  ) : (
+                    isCorrectNetwork ? `Purchase ${formatCurrency(totalPrice, 'USDC')}` : 'Switch Network to Purchase'
+                  )}
+                </Button>
+                
+                {/* Payment Methods Info */}
+                {!userOwnsContent && (
+                  <Typography variant="caption" display="block" sx={{ mt: 1, textAlign: 'center', color: 'text.secondary' }}>
+                    {stripeAvailable 
+                      ? '💳 Credit Card • 🪙 Wallet USDC • 🔒 Secure Payment'
+                      : '🪙 USDC Wallet Payment Only'
+                    }
+                  </Typography>
                 )}
-              </Button>
+              </>
             ) : (
               <Button
                 variant="contained"
@@ -607,7 +777,7 @@ const ContentDetailsPage: React.FC = () => {
           )}
           <Box sx={{ mt: 2 }}>
             <Typography variant="body2" color="text.secondary" align="center">
-              Purchase includes perpetual license with resale rights
+              Purchase includes perpetual license with resale rights • Powered by blockchain technology
             </Typography>
           </Box>
         </CardContent>
@@ -924,8 +1094,8 @@ const ContentDetailsPage: React.FC = () => {
                       <TableCell>Date</TableCell>
                       <TableCell>Type</TableCell>
                       <TableCell align="right">Quantity</TableCell>
-                      <TableCell align="right">Price (ETH)</TableCell>
-                      <TableCell align="right">Total (ETH)</TableCell>
+                      <TableCell align="right">Price (USDC)</TableCell>
+                      <TableCell align="right">Total (USDC)</TableCell>
                     </TableRow>
                   </TableHead>
                   <TableBody>
@@ -1005,7 +1175,7 @@ const ContentDetailsPage: React.FC = () => {
         <DialogTitle>Purchase Content</DialogTitle>
         <DialogContent>
           <DialogContentText>
-            You are about to purchase {quantity} token(s) of "{content?.title}" for a total of {content?.price ? (content.price * Number(quantity)).toFixed(4) : '0.01'} ETH.
+            You are about to purchase {quantity} token(s) of "{content?.title}" for a total of {content?.price ? (content.price * Number(quantity)).toFixed(4) : '0.01'} USDC.
           </DialogContentText>
           
           <Box sx={{ mt: 2, mb: 1 }}>
@@ -1087,6 +1257,17 @@ const ContentDetailsPage: React.FC = () => {
           </Button>
         </DialogActions>
       </Dialog>
+
+      {/* Stripe Onramp Modal */}
+      <StripeOnrampModal
+        open={showStripeModal}
+        onClose={handleStripeModalClose}
+        walletAddress={account || ''}
+        requiredAmount={(content ? Number(quantity) * (content.price || 19.99) : 0).toString()}
+        contentTitle={content?.title || 'Content'}
+        onSuccess={handleStripeSuccess}
+        onError={handleStripeError}
+      />
 
       {/* Snackbar for notifications */}
       <Snackbar

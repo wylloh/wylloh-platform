@@ -59,26 +59,46 @@ const CopyrightPage: React.FC = () => {
         "Verification prevents unauthorized usage",
         "Transparent audit trail for all transactions"
       ]
+    },
+    {
+      icon: <VerifiedIcon />,
+      title: "Platform Value Creation",
+      description: "Open source infrastructure enables proprietary value through network effects",
+      details: [
+        "Filmmaker relationship network and industry trust reputation",
+        "Proprietary content curation standards and quality verification",
+        "Advanced audience analytics and content performance insights",
+        "Strategic industry partnerships and distribution relationships"
+      ]
     }
   ];
 
   const wyllohCopyright = [
     {
-      category: "Platform Brand",
+      category: "Platform Brand & Trademarks",
       items: [
-        "Wylloh™ name and trademark",
-        "Wylloh logo and visual identity",
-        "Platform user interface design",
-        "Marketing materials and copy"
+        "Wylloh™ name and trademark registration",
+        "Wylloh logo and visual identity system",
+        "'Wylloh Verified' certification marks for content",
+        "Platform user interface design and experience"
       ]
     },
     {
-      category: "Documentation",
+      category: "Proprietary Business Assets",
       items: [
-        "User guides and tutorials",
-        "Marketing content and messaging",
-        "Website copy and content",
-        "Brand guidelines and assets"
+        "Content curation methodologies and quality standards",
+        "Filmmaker network and industry relationship database",
+        "Advanced analytics algorithms and audience insights",
+        "Strategic partnership agreements and distribution channels"
+      ]
+    },
+    {
+      category: "Documentation & Content",
+      items: [
+        "User guides and educational materials",
+        "Marketing content and brand messaging",
+        "Website copy and informational content",
+        "Brand guidelines and asset libraries"
       ]
     }
   ];
@@ -296,6 +316,148 @@ const CopyrightPage: React.FC = () => {
             </Grid>
           ))}
         </Grid>
+      </Box>
+
+      {/* Open Source & Business Value */}
+      <Box sx={{ mb: 6 }}>
+        <Typography variant="h4" gutterBottom sx={{ fontWeight: 600, mb: 4 }}>
+          Open Source Infrastructure & Business Value
+        </Typography>
+        <Typography variant="body1" paragraph sx={{ lineHeight: 1.7, mb: 4 }}>
+          Wylloh's open source approach creates trust, accelerates innovation, and enables 
+          global adoption while building sustainable competitive advantages through network 
+          effects and proprietary business operations.
+        </Typography>
+        
+        <Grid container spacing={4}>
+          <Grid item xs={12} md={6}>
+            <Paper 
+              elevation={0} 
+              sx={{ 
+                p: 3,
+                border: '1px solid',
+                borderColor: 'divider',
+                height: '100%'
+              }}
+            >
+              <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+                <SecurityIcon sx={{ color: 'primary.main', mr: 2 }} />
+                <Typography variant="h6" sx={{ fontWeight: 600 }}>
+                  Open Source Benefits
+                </Typography>
+              </Box>
+              <List dense>
+                <ListItem sx={{ px: 0, py: 0.25 }}>
+                  <ListItemIcon sx={{ minWidth: 20 }}>
+                    <VerifiedIcon sx={{ fontSize: 16, color: 'success.main' }} />
+                  </ListItemIcon>
+                  <ListItemText 
+                    primary="Transparent, auditable smart contracts build filmmaker trust"
+                    primaryTypographyProps={{ variant: 'body2' }}
+                  />
+                </ListItem>
+                <ListItem sx={{ px: 0, py: 0.25 }}>
+                  <ListItemIcon sx={{ minWidth: 20 }}>
+                    <VerifiedIcon sx={{ fontSize: 16, color: 'success.main' }} />
+                  </ListItemIcon>
+                  <ListItemText 
+                    primary="Community development accelerates feature innovation"
+                    primaryTypographyProps={{ variant: 'body2' }}
+                  />
+                </ListItem>
+                <ListItem sx={{ px: 0, py: 0.25 }}>
+                  <ListItemIcon sx={{ minWidth: 20 }}>
+                    <VerifiedIcon sx={{ fontSize: 16, color: 'success.main' }} />
+                  </ListItemIcon>
+                  <ListItemText 
+                    primary="Market expansion through compatible platform adoption"
+                    primaryTypographyProps={{ variant: 'body2' }}
+                  />
+                </ListItem>
+                <ListItem sx={{ px: 0, py: 0.25 }}>
+                  <ListItemIcon sx={{ minWidth: 20 }}>
+                    <VerifiedIcon sx={{ fontSize: 16, color: 'success.main' }} />
+                  </ListItemIcon>
+                  <ListItemText 
+                    primary="Enhanced security through community code review"
+                    primaryTypographyProps={{ variant: 'body2' }}
+                  />
+                </ListItem>
+              </List>
+            </Paper>
+          </Grid>
+          <Grid item xs={12} md={6}>
+            <Paper 
+              elevation={0} 
+              sx={{ 
+                p: 3,
+                border: '1px solid',
+                borderColor: 'divider',
+                height: '100%'
+              }}
+            >
+              <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+                <BusinessIcon sx={{ color: 'secondary.main', mr: 2 }} />
+                <Typography variant="h6" sx={{ fontWeight: 600 }}>
+                  Competitive Advantages
+                </Typography>
+              </Box>
+              <List dense>
+                <ListItem sx={{ px: 0, py: 0.25 }}>
+                  <ListItemIcon sx={{ minWidth: 20 }}>
+                    <ContractIcon sx={{ fontSize: 16, color: 'secondary.main' }} />
+                  </ListItemIcon>
+                  <ListItemText 
+                    primary="Exclusive filmmaker relationships and industry network"
+                    primaryTypographyProps={{ variant: 'body2' }}
+                  />
+                </ListItem>
+                <ListItem sx={{ px: 0, py: 0.25 }}>
+                  <ListItemIcon sx={{ minWidth: 20 }}>
+                    <ContractIcon sx={{ fontSize: 16, color: 'secondary.main' }} />
+                  </ListItemIcon>
+                  <ListItemText 
+                    primary="Proprietary content curation and quality standards"
+                    primaryTypographyProps={{ variant: 'body2' }}
+                  />
+                </ListItem>
+                <ListItem sx={{ px: 0, py: 0.25 }}>
+                  <ListItemIcon sx={{ minWidth: 20 }}>
+                    <ContractIcon sx={{ fontSize: 16, color: 'secondary.main' }} />
+                  </ListItemIcon>
+                  <ListItemText 
+                    primary="Advanced analytics and audience behavior insights"
+                    primaryTypographyProps={{ variant: 'body2' }}
+                  />
+                </ListItem>
+                <ListItem sx={{ px: 0, py: 0.25 }}>
+                  <ListItemIcon sx={{ minWidth: 20 }}>
+                    <ContractIcon sx={{ fontSize: 16, color: 'secondary.main' }} />
+                  </ListItemIcon>
+                  <ListItemText 
+                    primary="Strategic partnerships and distribution channels"
+                    primaryTypographyProps={{ variant: 'body2' }}
+                  />
+                </ListItem>
+              </List>
+            </Paper>
+          </Grid>
+        </Grid>
+        
+        <Alert 
+          severity="success" 
+          icon={<InfoIcon />}
+          sx={{ mt: 4, p: 3 }}
+        >
+          <Typography variant="h6" gutterBottom sx={{ fontWeight: 600 }}>
+            Strategic Framework
+          </Typography>
+          <Typography variant="body1">
+            Open source infrastructure creates industry trust and adoption, while proprietary 
+            business operations generate sustainable competitive advantages through network effects, 
+            content curation, and strategic relationships that cannot be replicated through code alone.
+          </Typography>
+        </Alert>
       </Box>
 
       {/* Legal Compliance */}

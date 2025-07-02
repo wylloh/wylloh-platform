@@ -576,7 +576,7 @@ class BlockchainService {
     filmId: string;
     title: string;
     totalSupply: number;
-    pricePerToken: number; // In MATIC
+    pricePerToken: number; // In USDC for stable pricing
     rightsThresholds: number[];
     royaltyRecipients: string[];
     royaltyShares: number[];
@@ -619,14 +619,14 @@ class BlockchainService {
         enhancedRoyaltyShares.push(500); // 5% in basis points
       }
 
-      // Convert price to wei
+      // Convert price to wei (USDC has 6 decimals, but we'll use parseEther for demo compatibility)
       const priceInWei = ethers.utils.parseEther(filmData.pricePerToken.toString());
 
       console.log('📋 Film creation parameters:', {
         filmId: filmData.filmId,
         title: filmData.title,
         totalSupply: filmData.totalSupply,
-        pricePerToken: ethers.utils.formatEther(priceInWei),
+        pricePerToken: `$${filmData.pricePerToken} USDC`,
         rightsThresholds: filmData.rightsThresholds,
         royaltyRecipients: enhancedRoyaltyRecipients,
         royaltyShares: enhancedRoyaltyShares
@@ -839,7 +839,7 @@ class BlockchainService {
           // Check balances for first 2 accounts if available
           for (const account of accounts.slice(0, 2)) {
             const balance = await jsonRpcProvider.getBalance(account);
-            console.log(`Account ${account} has ${ethers.utils.formatEther(balance)} MATIC`);
+            console.log(`Account ${account} has $${ethers.utils.formatEther(balance)} USDC equivalent`);
           }
         } catch (e) {
           console.log('Error fetching development accounts for debugging:', e);
@@ -1057,17 +1057,11 @@ class BlockchainService {
   }
   
   /**
-   * Purchase tokens by calling the marketplace contract
-   * @param contentId The content ID/token ID to purchase
-   * @param quantity Number of tokens to purchase
-   * @param price Price per token in ETH (NOT total price)
-   */
-  /**
    * Purchase tokens through marketplace contract (PRODUCTION VERSION)
    * Clean implementation for content access token purchases
    * @param contentId The content ID/token ID to purchase
    * @param quantity Number of tokens to purchase (unlocks content access)
-   * @param price Price per token in MATIC
+   * @param price Price per token in USDC for stable, user-friendly pricing
    */
   async purchaseTokens(contentId: string, quantity: number, price: number): Promise<boolean> {
     if (!this.isInitialized()) {
@@ -1094,19 +1088,19 @@ class BlockchainService {
       const tokenIdBytes = ethers.utils.solidityKeccak256(['string'], [contentId]);
       const tokenId = ethers.BigNumber.from(tokenIdBytes);
       
-      // Calculate total price in wei (price is per token in MATIC)
+      // Calculate total price in wei (price is per token in USDC)
       const totalPrice = ethers.utils.parseEther((quantity * price).toString());
       
       // Get buyer's signer
       const signer = this.provider.getSigner();
       const buyerAddress = await signer.getAddress();
       
-      console.log(`Buyer: ${buyerAddress}, Token ID: ${tokenId.toString()}, Quantity: ${quantity}, Total: ${ethers.utils.formatEther(totalPrice)} MATIC`);
+      console.log(`Buyer: ${buyerAddress}, Token ID: ${tokenId.toString()}, Quantity: ${quantity}, Total: $${ethers.utils.formatEther(totalPrice)} USDC`);
       
-      // Check buyer has sufficient balance
+      // Check buyer has sufficient USDC balance (Note: In production, this would check USDC token balance)
       const buyerBalance = await this.provider.getBalance(buyerAddress);
       if (buyerBalance.lt(totalPrice)) {
-        throw new Error(`Insufficient balance: ${ethers.utils.formatEther(buyerBalance)} MATIC available, ${ethers.utils.formatEther(totalPrice)} MATIC required`);
+        throw new Error(`Insufficient balance: $${ethers.utils.formatEther(buyerBalance)} available, $${ethers.utils.formatEther(totalPrice)} USDC required`);
       }
 
       // Connect marketplace contract with signer

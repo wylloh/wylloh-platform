@@ -31,13 +31,20 @@ import {
   BarChart,
   Settings,
   Email,
-  EmailOutlined
+  EmailOutlined,
+  FlashOn,
+  AccountBalanceWallet,
+  Refresh,
+  History,
+  TrendingUp
 } from '@mui/icons-material';
 import { useAuth } from '../contexts/AuthContext';
 import { useWallet } from '../contexts/WalletContext';
 import RequestProStatusButton from '../components/profile/RequestProStatusButton';
 import AdminBadge from '../components/common/AdminBadge';
 import { useNavigate, useLocation } from 'react-router-dom';
+import { StripeOnrampModal } from '../components/payment/StripeOnrampModal';
+import { enhancedBlockchainService } from '../services/enhancedBlockchain.service';
 
 // 🧹 PRODUCTION CLEANUP: Removed mock content data - this will be populated by real user content
 
@@ -56,11 +63,61 @@ const ProfilePage: React.FC = () => {
     email: user?.email && !user.email.includes('@wallet.local') ? user.email : ''
   });
 
+  // 💰 Wallet management states
+  const [balances, setBalances] = React.useState({
+    matic: '0.00',
+    usdc: '0.00'
+  });
+  const [loadingBalances, setLoadingBalances] = React.useState(false);
+  const [stripeModalOpen, setStripeModalOpen] = React.useState(false);
+  const [chargeUpCurrency, setChargeUpCurrency] = React.useState<'MATIC' | 'USDC'>('USDC');
+
   // Note: Pro status refresh moved to HomePage for immediate access after login
 
   // Check if user was redirected here for Pro verification
   const needsProVerification = location.state?.needsProVerification;
   const redirectedFrom = location.state?.from?.pathname;
+
+  // 🎨 Enhanced wallet connection detection  
+  const isWalletConnected = active && account && user?.walletAddress;
+  const walletDisplayAddress = account || user?.walletAddress;
+
+  // 💰 Wallet balance fetching
+  const fetchWalletBalances = React.useCallback(async () => {
+    if (!account || !active) return;
+    
+    setLoadingBalances(true);
+    try {
+      // Get MATIC balance using ethers provider
+      let maticBalance = '0.00';
+      if (typeof window !== 'undefined' && (window as any).ethereum) {
+        const provider = new (await import('ethers')).ethers.providers.Web3Provider((window as any).ethereum);
+        const balance = await provider.getBalance(account);
+        maticBalance = (await import('ethers')).ethers.utils.formatEther(balance);
+        // Round to 4 decimal places
+        maticBalance = parseFloat(maticBalance).toFixed(4);
+      }
+      
+      // Get USDC balance
+      const usdcBalance = await enhancedBlockchainService.getUSDCBalance(account);
+      
+      setBalances({
+        matic: maticBalance,
+        usdc: usdcBalance
+      });
+    } catch (error) {
+      console.error('Error fetching wallet balances:', error);
+    } finally {
+      setLoadingBalances(false);
+    }
+  }, [account, active]);
+
+  // Fetch balances when wallet connects or tab is selected
+  React.useEffect(() => {
+    if (selectedTab === 2 && isWalletConnected) {
+      fetchWalletBalances();
+    }
+  }, [selectedTab, isWalletConnected, fetchWalletBalances]);
 
   if (!user) {
     return (
@@ -98,9 +155,18 @@ const ProfilePage: React.FC = () => {
     }
   };
 
-  // 🎨 Enhanced wallet connection detection
-  const isWalletConnected = active && account && user.walletAddress;
-  const walletDisplayAddress = account || user.walletAddress;
+  // 💰 Wallet handlers
+  const handleChargeUp = (currency: 'MATIC' | 'USDC') => {
+    setChargeUpCurrency(currency);
+    setStripeModalOpen(true);
+  };
+
+  const handleStripeSuccess = () => {
+    // Refresh balances after successful charge up
+    fetchWalletBalances();
+  };
+
+
 
   return (
     <Container maxWidth="lg" sx={{ py: 4 }}>
@@ -287,19 +353,159 @@ const ProfilePage: React.FC = () => {
             {/* Wallet Tab */}
             {selectedTab === 2 && (
               <Box sx={{ p: 3 }}>
-                <Typography variant="h6" gutterBottom>Wallet Information</Typography>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+                  <Typography variant="h6">⚡ Wallet Management</Typography>
+                  {isWalletConnected && (
+                    <Button 
+                      variant="outlined" 
+                      startIcon={<Refresh />}
+                      onClick={fetchWalletBalances}
+                      disabled={loadingBalances}
+                      size="small"
+                    >
+                      Refresh
+                    </Button>
+                  )}
+                </Box>
+
                 {isWalletConnected ? (
-                  <Box>
-                    <Typography variant="body1" gutterBottom>
-                      🟢 Wallet Connected: {walletDisplayAddress}
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary" gutterBottom>
-                      Network: Polygon (Chain ID: 137)
-                    </Typography>
-                    <Alert severity="success" sx={{ mt: 2 }}>
-                      Your wallet is connected and ready for transactions. NFT balance and transaction history will be displayed here.
-                    </Alert>
-                  </Box>
+                  <Grid container spacing={3}>
+                    {/* Connection Status */}
+                    <Grid item xs={12}>
+                      <Card sx={{ mb: 2 }}>
+                        <CardContent>
+                          <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+                            <AccountBalanceWallet color="success" sx={{ mr: 1 }} />
+                            <Typography variant="h6" color="success.main">
+                              🟢 Wallet Connected
+                            </Typography>
+                          </Box>
+                          <Typography variant="body2" color="text.secondary" gutterBottom>
+                            Address: {walletDisplayAddress}
+                          </Typography>
+                          <Typography variant="body2" color="text.secondary">
+                            Network: Polygon (Chain ID: 137)
+                          </Typography>
+                        </CardContent>
+                      </Card>
+                    </Grid>
+
+                    {/* Balance Cards */}
+                    <Grid item xs={12} md={6}>
+                      <Card>
+                        <CardContent>
+                          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+                            <Typography variant="h6" sx={{ display: 'flex', alignItems: 'center' }}>
+                              <TrendingUp sx={{ mr: 1, color: 'primary.main' }} />
+                              MATIC Balance
+                            </Typography>
+                            <Chip label="Gas Fees" size="small" color="primary" variant="outlined" />
+                          </Box>
+                          <Typography variant="h4" color="primary.main" gutterBottom>
+                            {loadingBalances ? '...' : balances.matic} MATIC
+                          </Typography>
+                          <Typography variant="body2" color="text.secondary" gutterBottom>
+                            For transaction fees & smart contract interactions
+                          </Typography>
+                          <Button 
+                            variant="contained" 
+                            color="primary"
+                            startIcon={<FlashOn />}
+                            fullWidth
+                            sx={{ mt: 2 }}
+                            onClick={() => handleChargeUp('MATIC')}
+                          >
+                            ⚡ Charge Up MATIC
+                          </Button>
+                        </CardContent>
+                      </Card>
+                    </Grid>
+
+                    <Grid item xs={12} md={6}>
+                      <Card>
+                        <CardContent>
+                          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+                            <Typography variant="h6" sx={{ display: 'flex', alignItems: 'center' }}>
+                              <AccountBalanceWallet sx={{ mr: 1, color: 'success.main' }} />
+                              USDC Balance
+                            </Typography>
+                            <Chip label="Purchases" size="small" color="success" variant="outlined" />
+                          </Box>
+                          <Typography variant="h4" color="success.main" gutterBottom>
+                            ${loadingBalances ? '...' : balances.usdc}
+                          </Typography>
+                          <Typography variant="body2" color="text.secondary" gutterBottom>
+                            For content purchases & marketplace transactions
+                          </Typography>
+                          <Button 
+                            variant="contained" 
+                            color="success"
+                            startIcon={<FlashOn />}
+                            fullWidth
+                            sx={{ mt: 2 }}
+                            onClick={() => handleChargeUp('USDC')}
+                          >
+                            ⚡ Charge Up USDC
+                          </Button>
+                        </CardContent>
+                      </Card>
+                    </Grid>
+
+                    {/* Currency Information */}
+                    <Grid item xs={12}>
+                      <Card>
+                        <CardContent>
+                          <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center' }}>
+                            <History sx={{ mr: 1 }} />
+                            Currency Guide
+                          </Typography>
+                          <Grid container spacing={2}>
+                            <Grid item xs={12} md={6}>
+                              <Box sx={{ p: 2, bgcolor: 'primary.light', borderRadius: 1, color: 'primary.contrastText' }}>
+                                <Typography variant="subtitle2" gutterBottom>
+                                  🔥 MATIC (Polygon)
+                                </Typography>
+                                <Typography variant="body2">
+                                  • Required for ALL blockchain transactions<br/>
+                                  • Gas fees for purchases, uploads, smart contracts<br/>
+                                  • Recommended: Keep 2-5 MATIC minimum<br/>
+                                  • Current rate: ~$0.40-0.60 per MATIC
+                                </Typography>
+                              </Box>
+                            </Grid>
+                            <Grid item xs={12} md={6}>
+                              <Box sx={{ p: 2, bgcolor: 'success.light', borderRadius: 1, color: 'success.contrastText' }}>
+                                <Typography variant="subtitle2" gutterBottom>
+                                  💵 USDC (USD Coin)
+                                </Typography>
+                                <Typography variant="body2">
+                                  • 1:1 USD-backed stablecoin<br/>
+                                  • Used for content purchases ($19.99, etc.)<br/>
+                                  • Stable value, no volatility<br/>
+                                  • Accepted globally on Wylloh platform
+                                </Typography>
+                              </Box>
+                            </Grid>
+                          </Grid>
+                        </CardContent>
+                      </Card>
+                    </Grid>
+
+                    {/* Pro Tips */}
+                    <Grid item xs={12}>
+                      <Alert severity="info" sx={{ mt: 2 }}>
+                        <Typography variant="body2" gutterBottom>
+                          <strong>💡 Pro Tips:</strong>
+                        </Typography>
+                        <Typography variant="body2">
+                          • <strong>Always keep MATIC:</strong> Even USDC purchases require MATIC for gas fees<br/>
+                          • <strong>Charge up proactively:</strong> Avoid transaction delays during purchases<br/>
+                          • <strong>Multiple currencies:</strong> Stripe supports both MATIC and USDC purchases<br/>
+                          • <strong>No conversion:</strong> USDC ↔ MATIC requires separate transactions (Stripe limitation)
+                        </Typography>
+                      </Alert>
+                    </Grid>
+                  </Grid>
                 ) : (
                   <Alert severity="warning">
                     You don't have a wallet connected to your account yet. Connect a wallet to access all features.
@@ -355,6 +561,17 @@ const ProfilePage: React.FC = () => {
           <Button onClick={() => setSettingsDialogOpen(false)} variant="contained">Close</Button>
         </DialogActions>
       </Dialog>
+
+      {/* Stripe Onramp Modal */}
+      <StripeOnrampModal
+        open={stripeModalOpen}
+        onClose={() => setStripeModalOpen(false)}
+        walletAddress={account || ''}
+        requiredAmount="50"
+        contentTitle={`${chargeUpCurrency} Wallet Charge Up`}
+        onSuccess={handleStripeSuccess}
+        onError={(error) => console.error('Stripe onramp error:', error)}
+      />
     </Container>
   );
 };
