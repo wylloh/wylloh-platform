@@ -13,6 +13,7 @@ const NotFoundPage = React.lazy(() => import('./pages/NotFoundPage'));
 const TransactionHistoryPage = React.lazy(() => import('./pages/TransactionHistoryPage'));
 const AnalyticsDashboardPage = React.lazy(() => import('./pages/AnalyticsDashboardPage'));
 
+
 // Store pages
 const ContentDetailsPage = React.lazy(() => import('./pages/store/ContentDetailsPage'));
 
@@ -39,6 +40,7 @@ const ProVerificationPanel = React.lazy(() => import('./components/admin/ProVeri
 // Essential pages
 const CommunityPage = React.lazy(() => import('./pages/CommunityPage'));
 const AboutPage = React.lazy(() => import('./pages/AboutPage'));
+const InvestorsPage = React.lazy(() => import('./pages/InvestorsPage'));
 const ContributePage = React.lazy(() => import('./pages/ContributePage'));
 const PressPage = React.lazy(() => import('./pages/PressPage'));
 const ProVerificationPage = React.lazy(() => import('./pages/ProVerificationPage'));
@@ -83,6 +85,7 @@ const AppRoutes = () => {
         <Route path="/store/content/:id" element={<ContentDetailsPage />} />
         <Route path="/marketplace" element={<Navigate to="/store" replace />} />
         <Route path="/marketplace/content/:id" element={<Navigate to="/store/content/:id" replace />} />
+
         
         {/* Player routes */}
         <Route path="/player/:id" element={<PlayerPage />} />
@@ -130,6 +133,7 @@ const AppRoutes = () => {
         {/* Essential pages */}
         <Route path="/community" element={<CommunityPage />} />
         <Route path="/about" element={<AboutPage />} />
+        <Route path="/investors" element={<InvestorsPage />} />
         <Route path="/contribute" element={<ContributePage />} />
         <Route path="/press" element={<PressPage />} />
         <Route path="/partnerships" element={<PartnershipsPage />} />

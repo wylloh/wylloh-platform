@@ -54,14 +54,19 @@ export const formatFileSize = (bytes: number): string => {
   /**
    * Format a currency value
    * @param value The numeric value
-   * @param currency The currency code (e.g., 'USD', 'ETH')
+   * @param currency The currency code (e.g., 'USD', 'USDC', 'ETH')
    * @param decimals Number of decimal places
    * @returns Formatted currency string
    */
-  export const formatCurrency = (value: number, currency: string = 'ETH', decimals: number = 4): string => {
+  export const formatCurrency = (value: number, currency: string = 'USDC', decimals: number = 2): string => {
+    // For USDC, display like traditional currency with $ symbol
+    if (currency === 'USDC') {
+      return `$${value.toFixed(decimals)}`;
+    }
+    
     // For crypto currencies, use more decimal places
     if (['ETH', 'MATIC', 'BTC'].includes(currency)) {
-      return `${value.toFixed(decimals)} ${currency}`;
+      return `${value.toFixed(4)} ${currency}`;
     }
     
     // For fiat currencies, use the Intl.NumberFormat

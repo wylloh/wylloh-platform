@@ -64,10 +64,18 @@ When you download films locally, you become part of our decentralized network:
 
 ## 💰 **Platform Economics**
 
-### **Transparent Pricing**
-- **Creator Revenue**: ~96.5% (after platform fee and gas costs)
+### **Stable USDC Pricing**
+- **Clear Pricing**: All content priced in USDC for price stability ($49.99, not volatile crypto amounts)
+- **Payment Options**: Credit card → USDC → instant access (Stripe integration)
+- **Creator Revenue**: ~96.5% (after platform fee and minimal gas costs)
 - **Platform Fee**: 2.5% for development and operations
-- **Gas Fees**: Variable network costs (typically 0.1-1%)
+- **Gas Fees**: Minimal on Polygon (~$0.01, covered by platform)
+
+### **Multiple Payment Methods**
+- **Credit/Debit Cards**: Instant USDC purchase via Stripe
+- **Existing USDC**: Direct wallet payment
+- **Apple Pay/Google Pay**: One-click mobile purchases
+- **Bank Transfers**: Lower fees for larger purchases
 
 ### **No Traditional Refunds**
 Due to blockchain technology's permanent nature:

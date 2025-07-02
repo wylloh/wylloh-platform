@@ -596,40 +596,40 @@ class ContentService {
           
           // Get price from content data
           let price = contentData.price;
-          console.log(`ContentService: Original price from content: ${price} (type: ${typeof price})`);
+          console.log(`ContentService: Original price from content: $${price} USDC (type: ${typeof price})`);
           
           // Handle potentially invalid price formats
           if (price === undefined || price === null) {
-            console.log('ContentService: Price is undefined/null, defaulting to 0.01');
-            price = 0.01;
+            console.log('ContentService: Price is undefined/null, defaulting to 19.99 USDC');
+            price = 19.99; // Default to $19.99 for parity with digital platforms
           } else if (typeof price === 'string') {
             if (price === '') {
-              console.log('ContentService: Price is an empty string, defaulting to 0.01');
-              price = 0.01;
+              console.log('ContentService: Price is an empty string, defaulting to 19.99 USDC');
+              price = 19.99;
             } else {
               // Try to convert string price to number
               try {
                 price = parseFloat(price);
                 if (isNaN(price)) {
-                  console.log('ContentService: Price string is not a valid number, defaulting to 0.01');
-                  price = 0.01;
+                  console.log('ContentService: Price string is not a valid number, defaulting to 19.99 USDC');
+                  price = 19.99;
                 }
               } catch (e) {
-                console.log('ContentService: Error parsing price string, defaulting to 0.01');
-                price = 0.01;
+                console.log('ContentService: Error parsing price string, defaulting to 19.99 USDC');
+                price = 19.99;
               }
             }
           }
           
-          console.log(`ContentService: Token price after validation: ${price} (type: ${typeof price})`);
+          console.log(`ContentService: Token price after validation: $${price} USDC (type: ${typeof price})`);
           console.log(`ContentService: Price is a valid number: ${!isNaN(Number(price))}`);
           console.log(`ContentService: Quantity: ${quantity} (type: ${typeof quantity})`);
           
           // Ensure price is a valid number
           const validPrice = Number(price);
           if (isNaN(validPrice) || validPrice <= 0) {
-            console.error(`ContentService: Invalid price: ${price}`);
-            throw new Error(`Invalid price: ${price}. Price must be a positive number.`);
+            console.error(`ContentService: Invalid price: $${price}`);
+            throw new Error(`Invalid price: $${price}. Price must be a positive number.`);
           }
           
           // Use blockchainService for the actual purchase
@@ -715,8 +715,8 @@ class ContentService {
           type: 'purchase',
           from: walletAddress,
           to: contentData.creatorAddress,
-          value: ((contentData.price || 0.01) * quantity).toFixed(4),
-          pricePerToken: (contentData.price || 0.01),
+          value: `$${((contentData.price || 19.99) * quantity).toFixed(2)} USDC`,
+          pricePerToken: `$${(contentData.price || 19.99)} USDC`,
           quantity: quantity,
           contentId: contentData.id,
           timestamp: new Date().toISOString()

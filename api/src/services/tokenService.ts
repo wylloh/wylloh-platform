@@ -317,7 +317,7 @@ class TokenService {
     sellerAddress: string,
     quantity: number,
     price: number,
-    currency: string = 'MATIC'
+    currency: string = 'USDC'
   ): Promise<{
     listingId: string;
     tokenId: string;

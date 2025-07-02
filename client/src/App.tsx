@@ -13,6 +13,7 @@ import AppRoutes from './routes';
 import Web3AuthManager from './components/wallet/Web3AuthManager';
 import AuthenticationLoader from './components/common/AuthenticationLoader';
 
+
 // Main app content component that has access to auth context
 function AppContent() {
   const { authenticationInProgress } = useAuth();

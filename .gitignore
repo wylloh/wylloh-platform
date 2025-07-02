@@ -36,7 +36,10 @@ yarn-error.log*
 *.swo
 .DS_Store
 
-# Cursor AI - Sensitive internal files only
+# Content Test
+film_test/
+
+# Cursor AI
 .cursor/SECURITY_INCIDENT_RESPONSE.md
 .cursor/USER_FLOW_TESTING_INTERNAL.md
 .cursor/workspace.md
