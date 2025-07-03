@@ -162,7 +162,7 @@ export const StripeOnrampModal: React.FC<StripeOnrampModalProps> = ({
                   <Typography variant="h6">Secure Credit Card Payment</Typography>
                 </Box>
                 <Typography variant="body2" color="text.secondary">
-                  • Pay with your credit card or Apple Pay<br/>
+                  • Pay with your credit card or digital wallet<br/>
                   • Powered by Stripe (bank-level security)<br/>
                   • Instant USDC delivery to your wallet<br/>
                   • No hidden fees or surprises

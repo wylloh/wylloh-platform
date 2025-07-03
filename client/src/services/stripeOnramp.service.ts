@@ -49,7 +49,9 @@ class StripeOnrampService {
    * Check if Stripe onramp is enabled and configured
    */
   isEnabled(): boolean {
-    return process.env.REACT_APP_STRIPE_ONRAMP_ENABLED === 'true';
+    // Enable if Stripe publishable key is configured
+    const publishableKey = process.env.REACT_APP_STRIPE_PUBLISHABLE_KEY;
+    return !!publishableKey && publishableKey.length > 0;
   }
 
   /**

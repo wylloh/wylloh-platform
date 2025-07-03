@@ -1,5 +1,5 @@
 import React from 'react';
-import { Link as RouterLink } from 'react-router-dom';
+import { Link as RouterLink, useNavigate } from 'react-router-dom';
 import {
   Box,
   Container,
@@ -20,6 +20,13 @@ import {
 const Footer: React.FC = () => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+  const navigate = useNavigate();
+  
+  // Scroll to top when navigating via footer links
+  const handleNavigation = (path: string) => {
+    navigate(path);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
   
   const footerLinks = [
     {
@@ -131,11 +138,10 @@ const Footer: React.FC = () => {
                 {section.links.map((link) => (
                   <Link
                     key={link.name}
-                    component={RouterLink}
-                    to={link.path}
+                    onClick={() => handleNavigation(link.path)}
                     color="text.secondary"
                     underline="hover"
-                    sx={{ display: 'block', mb: 1 }}
+                    sx={{ display: 'block', mb: 1, cursor: 'pointer' }}
                   >
                     {link.name}
                   </Link>
@@ -156,11 +162,10 @@ const Footer: React.FC = () => {
                     {section.links.map((link) => (
                       <Link
                         key={link.name}
-                        component={RouterLink}
-                        to={link.path}
+                        onClick={() => handleNavigation(link.path)}
                         color="text.secondary"
                         underline="hover"
-                        sx={{ display: 'block', mb: 1 }}
+                        sx={{ display: 'block', mb: 1, cursor: 'pointer' }}
                       >
                         {link.name}
                       </Link>

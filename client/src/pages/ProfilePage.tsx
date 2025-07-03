@@ -390,66 +390,106 @@ const ProfilePage: React.FC = () => {
                       </Card>
                     </Grid>
 
-                    {/* Balance Cards */}
-                    <Grid item xs={12} md={6}>
-                      <Card>
-                        <CardContent>
-                          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-                            <Typography variant="h6" sx={{ display: 'flex', alignItems: 'center' }}>
-                              <TrendingUp sx={{ mr: 1, color: 'primary.main' }} />
-                              MATIC Balance
-                            </Typography>
-                            <Chip label="Gas Fees" size="small" color="primary" variant="outlined" />
-                          </Box>
-                          <Typography variant="h4" color="primary.main" gutterBottom>
-                            {loadingBalances ? '...' : balances.matic} MATIC
-                          </Typography>
-                          <Typography variant="body2" color="text.secondary" gutterBottom>
-                            For transaction fees & smart contract interactions
-                          </Typography>
-                          <Button 
-                            variant="contained" 
-                            color="primary"
-                            startIcon={<FlashOn />}
-                            fullWidth
-                            sx={{ mt: 2 }}
-                            onClick={() => handleChargeUp('MATIC')}
-                          >
-                            ⚡ Charge Up MATIC
-                          </Button>
-                        </CardContent>
-                      </Card>
-                    </Grid>
+                    {user.proStatus === 'verified' ? (
+                      // Full wallet management for Pro users
+                      <>
+                        {/* Balance Cards for Pro Users */}
+                        <Grid item xs={12} md={6}>
+                          <Card>
+                            <CardContent>
+                              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+                                <Typography variant="h6" sx={{ display: 'flex', alignItems: 'center' }}>
+                                  <TrendingUp sx={{ mr: 1, color: 'primary.main' }} />
+                                  MATIC Balance
+                                </Typography>
+                                <Chip label="Gas Fees" size="small" color="primary" variant="outlined" />
+                              </Box>
+                              <Typography variant="h4" color="primary.main" gutterBottom>
+                                {loadingBalances ? '...' : balances.matic} MATIC
+                              </Typography>
+                              <Typography variant="body2" color="text.secondary" gutterBottom>
+                                For film uploads & contract creation
+                              </Typography>
+                              <Button 
+                                variant="contained" 
+                                color="primary"
+                                startIcon={<FlashOn />}
+                                fullWidth
+                                sx={{ mt: 2 }}
+                                onClick={() => handleChargeUp('MATIC')}
+                              >
+                                ⚡ Charge Up MATIC
+                              </Button>
+                            </CardContent>
+                          </Card>
+                        </Grid>
 
-                    <Grid item xs={12} md={6}>
-                      <Card>
-                        <CardContent>
-                          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-                            <Typography variant="h6" sx={{ display: 'flex', alignItems: 'center' }}>
-                              <AccountBalanceWallet sx={{ mr: 1, color: 'success.main' }} />
-                              USDC Balance
+                        <Grid item xs={12} md={6}>
+                          <Card>
+                            <CardContent>
+                              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+                                <Typography variant="h6" sx={{ display: 'flex', alignItems: 'center' }}>
+                                  <AccountBalanceWallet sx={{ mr: 1, color: 'success.main' }} />
+                                  USDC Balance
+                                </Typography>
+                                <Chip label="Film Purchases" size="small" color="success" variant="outlined" />
+                              </Box>
+                              <Typography variant="h4" color="success.main" gutterBottom>
+                                ${loadingBalances ? '...' : balances.usdc}
+                              </Typography>
+                              <Typography variant="body2" color="text.secondary" gutterBottom>
+                                For film purchases & marketplace transactions
+                              </Typography>
+                              <Button 
+                                variant="contained" 
+                                color="success"
+                                startIcon={<FlashOn />}
+                                fullWidth
+                                sx={{ mt: 2 }}
+                                onClick={() => handleChargeUp('USDC')}
+                              >
+                                ⚡ Charge Up USDC
+                              </Button>
+                            </CardContent>
+                          </Card>
+                        </Grid>
+                      </>
+                    ) : (
+                      // Simplified view for standard users
+                      <Grid item xs={12}>
+                        <Card>
+                          <CardContent sx={{ textAlign: 'center', py: 4 }}>
+                            <Typography variant="h6" gutterBottom>
+                              Ready for Film Purchases
                             </Typography>
-                            <Chip label="Purchases" size="small" color="success" variant="outlined" />
-                          </Box>
-                          <Typography variant="h4" color="success.main" gutterBottom>
-                            ${loadingBalances ? '...' : balances.usdc}
-                          </Typography>
-                          <Typography variant="body2" color="text.secondary" gutterBottom>
-                            For content purchases & marketplace transactions
-                          </Typography>
-                          <Button 
-                            variant="contained" 
-                            color="success"
-                            startIcon={<FlashOn />}
-                            fullWidth
-                            sx={{ mt: 2 }}
-                            onClick={() => handleChargeUp('USDC')}
-                          >
-                            ⚡ Charge Up USDC
-                          </Button>
-                        </CardContent>
-                      </Card>
-                    </Grid>
+                            <Typography variant="body1" color="text.secondary" paragraph>
+                              Your wallet is connected and ready! When you purchase films, we'll automatically handle 
+                              any payment details in the background.
+                            </Typography>
+                            <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+                              Current USDC Balance: <strong>${loadingBalances ? '...' : balances.usdc}</strong>
+                            </Typography>
+                            <Box sx={{ display: 'flex', gap: 2, justifyContent: 'center', flexWrap: 'wrap' }}>
+                              <Button 
+                                variant="contained" 
+                                color="primary"
+                                href="/store"
+                              >
+                                Browse Films
+                              </Button>
+                              <Button 
+                                variant="outlined" 
+                                color="success"
+                                startIcon={<FlashOn />}
+                                onClick={() => handleChargeUp('USDC')}
+                              >
+                                Add Funds
+                              </Button>
+                            </Box>
+                          </CardContent>
+                        </Card>
+                      </Grid>
+                    )}
 
                     {/* Currency Information */}
                     <Grid item xs={12}>
@@ -457,54 +497,102 @@ const ProfilePage: React.FC = () => {
                         <CardContent>
                           <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center' }}>
                             <History sx={{ mr: 1 }} />
-                            Currency Guide
+                            How Payments Work
                           </Typography>
-                          <Grid container spacing={2}>
-                            <Grid item xs={12} md={6}>
-                              <Box sx={{ p: 2, bgcolor: 'primary.light', borderRadius: 1, color: 'primary.contrastText' }}>
-                                <Typography variant="subtitle2" gutterBottom>
-                                  🔥 MATIC (Polygon)
-                                </Typography>
-                                <Typography variant="body2">
-                                  • Required for ALL blockchain transactions<br/>
-                                  • Gas fees for purchases, uploads, smart contracts<br/>
-                                  • Recommended: Keep 2-5 MATIC minimum<br/>
-                                  • Current rate: ~$0.40-0.60 per MATIC
-                                </Typography>
-                              </Box>
+                          
+                          {/* Simplified explanation for all users */}
+                          <Alert severity="info" sx={{ mb: 3 }}>
+                            <Typography variant="body2">
+                              <strong>🎬 Simple Film Purchases:</strong> When you buy films, our platform automatically handles the payment flow. 
+                              If you need more crypto, we'll guide you through a quick credit card top-up process.
+                            </Typography>
+                          </Alert>
+
+                          {user.proStatus === 'verified' ? (
+                            // Detailed currency info for Pro users only
+                            <Grid container spacing={2}>
+                              <Grid item xs={12} md={6}>
+                                <Box sx={{ p: 2, bgcolor: 'primary.light', borderRadius: 1, color: 'primary.contrastText' }}>
+                                  <Typography variant="subtitle2" gutterBottom>
+                                    ∞ MATIC (Polygon)
+                                  </Typography>
+                                  <Typography variant="body2">
+                                    • Required for blockchain transactions<br/>
+                                    • Gas fees for uploads, contracts, purchases<br/>
+                                    • Recommended: Keep 2-5 MATIC minimum<br/>
+                                    • Current rate: ~$0.40-0.60 per MATIC
+                                  </Typography>
+                                </Box>
+                              </Grid>
+                              <Grid item xs={12} md={6}>
+                                <Box sx={{ p: 2, bgcolor: 'success.light', borderRadius: 1, color: 'success.contrastText' }}>
+                                  <Typography variant="subtitle2" gutterBottom>
+                                    💵 USDC (USD Coin)
+                                  </Typography>
+                                  <Typography variant="body2">
+                                    • 1:1 USD-backed stablecoin<br/>
+                                    • Used for film purchases ($19.99, etc.)<br/>
+                                    • Stable value, no volatility<br/>
+                                    • Accepted globally on Wylloh platform
+                                  </Typography>
+                                </Box>
+                              </Grid>
+                              
+                              {/* Pro Tips for verified users */}
+                              <Grid item xs={12}>
+                                <Alert severity="warning" sx={{ mt: 2 }}>
+                                  <Typography variant="body2" gutterBottom>
+                                    <strong>💡 Pro Account Features:</strong>
+                                  </Typography>
+                                  <Typography variant="body2">
+                                    • <strong>Manual wallet management:</strong> Proactive charging for large uploads<br/>
+                                    • <strong>Gas fee planning:</strong> Upload packages require MATIC for contract creation<br/>
+                                    • <strong>Bulk operations:</strong> Multiple film tokenization needs both currencies<br/>
+                                    • <strong>Advanced analytics:</strong> Track exactly where your crypto is spent
+                                  </Typography>
+                                </Alert>
+                              </Grid>
                             </Grid>
-                            <Grid item xs={12} md={6}>
-                              <Box sx={{ p: 2, bgcolor: 'success.light', borderRadius: 1, color: 'success.contrastText' }}>
-                                <Typography variant="subtitle2" gutterBottom>
-                                  💵 USDC (USD Coin)
-                                </Typography>
-                                <Typography variant="body2">
-                                  • 1:1 USD-backed stablecoin<br/>
-                                  • Used for content purchases ($19.99, etc.)<br/>
-                                  • Stable value, no volatility<br/>
-                                  • Accepted globally on Wylloh platform
-                                </Typography>
-                              </Box>
-                            </Grid>
-                          </Grid>
+                          ) : (
+                            // Simplified explanation for standard users
+                            <Box sx={{ textAlign: 'center', py: 2 }}>
+                              <Typography variant="body1" color="text.secondary" paragraph>
+                                <strong>Focus on the films, not the crypto!</strong>
+                              </Typography>
+                              <Typography variant="body2" color="text.secondary">
+                                When you're ready to purchase a film, our checkout flow will automatically detect if you need 
+                                to add funds and guide you through a simple credit card payment. No need to worry about 
+                                different currency types or gas fees—we handle the technical details.
+                              </Typography>
+                              <Button
+                                variant="outlined"
+                                size="small"
+                                href="/store"
+                                sx={{ mt: 2 }}
+                              >
+                                Browse Films
+                              </Button>
+                            </Box>
+                          )}
                         </CardContent>
                       </Card>
                     </Grid>
 
-                    {/* Pro Tips */}
-                    <Grid item xs={12}>
-                      <Alert severity="info" sx={{ mt: 2 }}>
-                        <Typography variant="body2" gutterBottom>
-                          <strong>💡 Pro Tips:</strong>
-                        </Typography>
-                        <Typography variant="body2">
-                          • <strong>Always keep MATIC:</strong> Even USDC purchases require MATIC for gas fees<br/>
-                          • <strong>Charge up proactively:</strong> Avoid transaction delays during purchases<br/>
-                          • <strong>Multiple currencies:</strong> Stripe supports both MATIC and USDC purchases<br/>
-                          • <strong>No conversion:</strong> USDC ↔ MATIC requires separate transactions (Stripe limitation)
-                        </Typography>
-                      </Alert>
-                    </Grid>
+                    {/* Simplified Pro Tips - only for verified Pro users */}
+                    {user.proStatus === 'verified' && (
+                      <Grid item xs={12}>
+                        <Alert severity="info" sx={{ mt: 2 }}>
+                          <Typography variant="body2" gutterBottom>
+                            <strong>💡 Pro Account Advantages:</strong>
+                          </Typography>
+                          <Typography variant="body2">
+                            • <strong>Proactive wallet management:</strong> Charge up in advance for smoother operations<br/>
+                            • <strong>Bulk upload preparation:</strong> Ensure sufficient MATIC before large tokenization projects<br/>
+                            • <strong>Professional workflow:</strong> Manage both currencies independently for complex distribution strategies
+                          </Typography>
+                        </Alert>
+                      </Grid>
+                    )}
                   </Grid>
                 ) : (
                   <Alert severity="warning">
