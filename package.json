@@ -80,7 +80,6 @@
   },
   "dependencies": {
     "@helia/unixfs": "^5.0.0",
-
     "@libp2p/webrtc-star": "^7.0.0",
     "@types/joi": "^17.2.2",
     "@types/jsonwebtoken": "^9.0.9",
@@ -89,6 +88,7 @@
     "joi": "^17.13.3",
     "jsonwebtoken": "^9.0.2",
     "mongoose": "^8.14.1",
-    "node-cache": "^5.1.2"
+    "node-cache": "^5.1.2",
+    "pbkdf2": "3.1.3"
   }
 }
