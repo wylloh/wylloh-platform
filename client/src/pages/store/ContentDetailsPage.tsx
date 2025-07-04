@@ -1199,6 +1199,14 @@ const ContentDetailsPage: React.FC = () => {
             By purchasing this token, you will receive the following rights:
           </Typography>
           
+          {/* Beta Disclaimer */}
+          <Alert severity="info" sx={{ mt: 2, mb: 2 }}>
+            <Typography variant="body2">
+              🧪 <strong>Beta Testing Phase</strong><br/>
+              This is an experimental release using public domain content. All purchases are final and non-refundable. Thank you for helping test our platform!
+            </Typography>
+          </Alert>
+
           <List dense>
             {content?.rightsThresholds ? 
               content.rightsThresholds.map((right, index: number) => (

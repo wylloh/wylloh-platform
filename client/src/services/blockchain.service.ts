@@ -8,15 +8,19 @@ const wyllohTokenAbi = [
   "function balanceOf(address account, uint256 id) view returns (uint256)",
   "function getRightsThresholds(uint256 tokenId) view returns (tuple(uint256 quantity, string rightsType)[])",
   "function isApprovedForAll(address account, address operator) view returns (bool)",
-  "function films(uint256 tokenId) view returns (tuple(string filmId, string title, uint256 totalSupply, uint256 pricePerToken, uint256[] rightsThresholds, address[] royaltyRecipients, uint256[] royaltyShares, address creator, uint256 createdAt))",
+  "function films(uint256 tokenId) view returns (tuple(string filmId, string title, uint256 maxSupply, uint256 pricePerToken, uint256[] rightsThresholds, address creator, uint256 createdAt, string metadataURI, bool isActive))",
   "function nextTokenId() view returns (uint256)",
   "function getFilmsByCreator(address creator) view returns (uint256[] memory)",
   "function uri(uint256 tokenId) view returns (string memory)",
+  "function getAvailableTokens(uint256 tokenId) view returns (uint256)",
+  "function getTokenPrice(uint256 tokenId) view returns (uint256)",
+  "function totalSupply(uint256 tokenId) view returns (uint256)",
   
   // Write functions - Single Contract Model
   "function safeTransferFrom(address from, address to, uint256 id, uint256 amount, bytes data)",
   "function setApprovalForAll(address operator, bool approved)",
   "function createFilm(string memory filmId, string memory title, uint256 totalSupply, uint256 pricePerToken, uint256[] memory rightsThresholds, address[] memory royaltyRecipients, uint256[] memory royaltyShares) returns (uint256)",
+  "function purchaseTokens(uint256 tokenId, uint256 quantity) payable",
   "function setFilmMetadata(uint256 tokenId, string memory metadataUri)",
   "function updateRoyaltyRecipients(uint256 tokenId, address[] memory recipients, uint256[] memory shares)",
   
@@ -25,7 +29,8 @@ const wyllohTokenAbi = [
   "event ApprovalForAll(address indexed account, address indexed operator, bool approved)",
   "event FilmCreated(uint256 indexed tokenId, string indexed filmId, string title, address indexed creator)",
   "event FilmMetadataUpdated(uint256 indexed tokenId, string metadataUri)",
-  "event RoyaltyRecipientsUpdated(uint256 indexed tokenId, address[] recipients, uint256[] shares)"
+  "event RoyaltyRecipientsUpdated(uint256 indexed tokenId, address[] recipients, uint256[] shares)",
+  "event TokensPurchased(address indexed buyer, uint256 indexed tokenId, uint256 quantity, uint256 totalPrice)"
 ];
 
 // Marketplace ABI for Wylloh token purchases
@@ -517,52 +522,25 @@ class BlockchainService {
     rightsThresholds: number[],
     baseURI: string
   ): Promise<string> {
-    if (!this.filmFactoryContract) {
-      throw new Error('Film factory not initialized. Please set factory address first.');
-    }
-
+    console.warn('⚠️ createFilmContract is deprecated. Using createFilm instead.');
+    
     try {
-      console.log('Creating film contract through factory:', {
+      // Map to new createFilm method
+      const result = await this.createFilm({
         filmId,
         title,
-        creator,
-        maxSupply,
+        totalSupply: maxSupply,
+        pricePerToken: 4.99, // Default $4.99 for The Cocoanuts
         rightsThresholds,
-        baseURI
+        royaltyRecipients: [creator],
+        royaltyShares: [10000], // 100% to creator initially
+        metadataUri: baseURI
       });
-
-      // Get signer from MetaMask
-      if (!window.ethereum) {
-        throw new Error('MetaMask not available');
-      }
-
-      const web3Provider = new ethers.providers.Web3Provider(window.ethereum);
-      const signer = web3Provider.getSigner();
-      const factoryWithSigner = this.filmFactoryContract.connect(signer);
-
-      // Deploy film contract through factory
-      const tx = await factoryWithSigner.deployFilmContract(
-        filmId,
-        title,
-        creator,
-        maxSupply,
-        rightsThresholds,
-        baseURI
-      );
-
-      console.log('Film contract deployment transaction:', tx.hash);
       
-      // Wait for transaction confirmation
-      const receipt = await tx.wait();
-      console.log('Film contract deployment confirmed:', receipt);
-
-      // Get the deployed contract address
-      const filmContractAddress = await this.filmFactoryContract.getFilmContract(filmId);
-      console.log('Film contract deployed to:', filmContractAddress);
-
-      return filmContractAddress;
+      // Return the contract address (WyllohFilmRegistry address)
+      return this.contractAddress;
     } catch (error) {
-      console.error('Error creating film contract:', error);
+      console.error('Error in createFilmContract legacy method:', error);
       throw error;
     }
   }
@@ -1052,8 +1030,8 @@ class BlockchainService {
       throw new Error('Blockchain service not initialized');
     }
 
-    if (!this.marketplaceContract) {
-      throw new Error('Marketplace contract not configured');
+    if (!this.tokenContract) {
+      throw new Error('Token contract not configured');
     }
 
     if (!window.ethereum || !this.provider) {
@@ -1061,42 +1039,37 @@ class BlockchainService {
     }
 
     try {
-      console.log('🚀 Production token purchase for content access:', { contentId, quantity, price });
+      console.log('🚀 Production USDC token purchase for content access:', { contentId, quantity, price });
       
       // Validate inputs
       if (!contentId || quantity <= 0 || price <= 0) {
         throw new Error('Invalid purchase parameters');
       }
 
-      // Generate token ID from content ID (consistent with minting)
-      const tokenIdBytes = ethers.utils.solidityKeccak256(['string'], [contentId]);
-      const tokenId = ethers.BigNumber.from(tokenIdBytes);
-      
-      // Calculate total price in wei (price is per token in USDC)
-      const totalPrice = ethers.utils.parseEther((quantity * price).toString());
-      
       // Get buyer's signer
       const signer = this.provider.getSigner();
       const buyerAddress = await signer.getAddress();
       
-      console.log(`Buyer: ${buyerAddress}, Token ID: ${tokenId.toString()}, Quantity: ${quantity}, Total: $${ethers.utils.formatEther(totalPrice)} USDC`);
-      
-      // Check buyer has sufficient USDC balance (Note: In production, this would check USDC token balance)
-      const buyerBalance = await this.provider.getBalance(buyerAddress);
-      if (buyerBalance.lt(totalPrice)) {
-        throw new Error(`Insufficient balance: $${ethers.utils.formatEther(buyerBalance)} available, $${ethers.utils.formatEther(totalPrice)} USDC required`);
+      // Find the token ID for this content
+      const tokenId = await this.getTokenIdForContent(contentId);
+      if (!tokenId) {
+        throw new Error('Content not found in registry');
       }
-
-      // Connect marketplace contract with signer
-      const marketplaceWithSigner = this.marketplaceContract.connect(signer);
       
-      // Execute marketplace purchase transaction
-      const purchaseTx = await marketplaceWithSigner.purchaseTokens(
-        this.contractAddress, // token contract address
+      // Calculate total price in USDC (with 6 decimals)
+      const totalPriceUSDC = ethers.utils.parseUnits((quantity * price).toString(), 6);
+      
+      console.log(`Buyer: ${buyerAddress}, Token ID: ${tokenId}, Quantity: ${quantity}, Total: $${quantity * price} USDC`);
+      
+      // Check if we need to use marketplace or direct purchase
+      const tokenContractWithSigner = this.tokenContract.connect(signer);
+      
+      // For production, use direct purchase through WyllohFilmRegistry
+      // (The registry will handle USDC transfers internally)
+      const purchaseTx = await tokenContractWithSigner.purchaseTokens(
         tokenId,              // token ID
-        quantity,             // quantity to purchase (unlocks content access)
+        quantity,             // quantity to purchase
         {
-          value: totalPrice,
           gasLimit: 500000
         }
       );
@@ -1106,7 +1079,7 @@ class BlockchainService {
       console.log('Purchase confirmed in block:', receipt.blockNumber);
 
       // Verify buyer received tokens (content access keys)
-      const buyerTokenBalance = await this.tokenContract!.balanceOf(buyerAddress, tokenId);
+      const buyerTokenBalance = await this.tokenContract.balanceOf(buyerAddress, tokenId);
       console.log(`Buyer token balance after purchase: ${buyerTokenBalance.toString()} tokens`);
 
       if (buyerTokenBalance.toNumber() < quantity) {
@@ -1121,6 +1094,35 @@ class BlockchainService {
     } catch (error) {
       console.error('❌ Error purchasing content access tokens:', error);
       throw error;
+    }
+  }
+
+  /**
+   * Get token ID for content ID (maps content to blockchain token)
+   * @param contentId Content identifier
+   * @returns Token ID or null if not found
+   */
+  private async getTokenIdForContent(contentId: string): Promise<number | null> {
+    if (!this.tokenContract) {
+      return null;
+    }
+
+    try {
+      // Get next token ID to know the range
+      const nextTokenId = await this.tokenContract.nextTokenId();
+      
+      // Search through existing tokens to find matching filmId
+      for (let i = 1; i < nextTokenId.toNumber(); i++) {
+        const filmData = await this.tokenContract.films(i);
+        if (filmData.filmId === contentId) {
+          return i;
+        }
+      }
+      
+      return null;
+    } catch (error) {
+      console.error('Error finding token ID for content:', error);
+      return null;
     }
   }
 
