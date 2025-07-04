@@ -1,5 +1,5 @@
 import { ethers } from 'ethers';
-import { GANACHE_ID } from '../constants/blockchain';
+import { POLYGON_MAINNET_ID } from '../constants/blockchain';
 import { contentService } from './content.service';
 
 // Complete ABI for the WyllohToken contract (Single Contract - All Films)
@@ -764,21 +764,21 @@ class BlockchainService {
         const network = await web3Provider.getNetwork();
         console.log('Connected to network:', network);
         
-        // Check if we're on a supported network (chainId 1337 is typically Ganache)
-        const expectedChainId = parseInt(process.env.REACT_APP_CHAIN_ID || '1337');
+        // Check if we're on Polygon mainnet
+        const expectedChainId = 137; // Polygon mainnet
         if (network.chainId !== expectedChainId) {
-          console.warn(`You're on network with chainId ${network.chainId}, but expected ${expectedChainId} (Ganache). Attempting to switch networks.`);
+          console.warn(`You're on network with chainId ${network.chainId}, but expected ${expectedChainId} (Polygon). Attempting to switch networks.`);
           
           try {
-            // Try to switch to the correct network
+            // Try to switch to Polygon mainnet
             await window.ethereum.request({
               method: 'wallet_switchEthereumChain',
               params: [{ chainId: `0x${expectedChainId.toString(16)}` }],
             });
-            console.log('Successfully switched networks');
+            console.log('Successfully switched to Polygon mainnet');
           } catch (switchError) {
             console.error('Failed to switch networks:', switchError);
-            throw new Error(`Please manually connect MetaMask to the local Ganache network (chainId: ${expectedChainId})`);
+            throw new Error(`Please manually connect MetaMask to Polygon mainnet (chainId: ${expectedChainId})`);
           }
       }
       
@@ -828,23 +828,7 @@ class BlockchainService {
         }
         */
       
-      // Display debugging info about development accounts
-      if (process.env.NODE_ENV === 'development') {
-        try {
-          const rpcUrl = process.env.REACT_APP_WEB3_PROVIDER || 'https://polygon-rpc.com';
-          const jsonRpcProvider = new ethers.providers.JsonRpcProvider(rpcUrl);
-          const accounts = await jsonRpcProvider.listAccounts();
-          console.log('Available development accounts:', accounts);
-          
-          // Check balances for first 2 accounts if available
-          for (const account of accounts.slice(0, 2)) {
-            const balance = await jsonRpcProvider.getBalance(account);
-            console.log(`Account ${account} has $${ethers.utils.formatEther(balance)} USDC equivalent`);
-          }
-        } catch (e) {
-          console.log('Error fetching development accounts for debugging:', e);
-        }
-      }
+      // Production environment - using Polygon mainnet
       
         // Create a unique token ID from the contentId using hash
         // This ensures deterministic but unique IDs for each content
@@ -1142,7 +1126,7 @@ class BlockchainService {
 
   /**
    * Verify token was properly minted to creator (PRODUCTION VERSION)
-   * Clean implementation without Ganache dependencies
+   * Production blockchain service for Polygon mainnet
    * @param contentId The content ID/token ID to check
    * @param creatorAddress The creator's wallet address
    * @returns Object containing success flag and balance

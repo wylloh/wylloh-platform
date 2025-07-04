@@ -23,25 +23,20 @@ import {
 
 // Define chain IDs for supported networks
 const POLYGON_MAINNET_ID = 137;
-// For local development (if needed)
-const GANACHE_ID = 1337;
 
-// Define chain ID for the app
-// For production deployment, use Polygon mainnet
+// Define chain ID for the app - Production only
 const CHAIN_ID = POLYGON_MAINNET_ID;
 
 console.log('WalletContext initialized with CHAIN_ID:', CHAIN_ID);
 
 // Configure the connectors
 const injected = new InjectedConnector({
-      supportedChainIds: [POLYGON_MAINNET_ID, GANACHE_ID],
+      supportedChainIds: [POLYGON_MAINNET_ID],
 });
 
 const walletconnect = new WalletConnectConnector({
   rpc: {
     [POLYGON_MAINNET_ID]: 'https://polygon-rpc.com',
-    // Development network configuration
-    [GANACHE_ID]: process.env.REACT_APP_WEB3_PROVIDER || 'https://polygon-rpc.com',
   },
   qrcode: true,
 });
@@ -120,8 +115,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
   console.log('Web3React state:', { active, account, chainId, library: library ? 'exists' : 'null' });
 
   // Check if connected to the correct network
-  // Also support Ganache for local development
-  const isCorrectNetwork = chainId === CHAIN_ID || chainId === GANACHE_ID;
+  const isCorrectNetwork = chainId === CHAIN_ID;
 
   // Get provider
   const provider = library ? library as ethers.providers.Web3Provider : null;
