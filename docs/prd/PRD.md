@@ -1,8 +1,8 @@
 # Wylloh Platform - Product Requirements Document (PRD)
 
-**Version:** 1.0  
-**Date:** September 2024  
-**Project Manager:** Wylloh Development Team
+**Version:** 1.1  
+**Date:** July 2024  
+**Project Manager:** Harrison Kavanaugh
 
 ## 1. Executive Summary
 
@@ -10,136 +10,42 @@
 Wylloh is a blockchain-based media licensing system that revolutionizes how digital content is distributed, accessed, and monetized. Our mission is to create a transparent, efficient, and equitable ecosystem where creators maintain control of their intellectual property while audiences gain flexible access to content through tokenized ownership.
 
 ### Core Value Proposition
-Wylloh transforms media licensing through on-chain rights management with built-in utility:
-- **For Creators & Rights Holders:** Perpetual royalties on all sales (primary and secondary), granular control over licensing terms, automated rights management, and new financing opportunities
-- **For Consumers:** True ownership of purchased content, ability to resell licenses, flexibility in how content is consumed, and access to a wider range of independent media
-- **For Exhibitors & Platforms:** Frictionless licensing, automated royalty distribution, and reduced legal overhead when acquiring content
-- **For Streaming Services:** API-driven content acquisition based on real-time demand, reduced overhead in rights management, and flexible content portfolio optimization
+Wylloh transforms media licensing through an innovative single-contract architecture:
+- **For Creators & Rights Holders:** Simple film registration as token IDs, perpetual royalties on all sales, and automated rights management
+- **For Consumers:** Fixed $4.99 USDC pricing per token, no gas fees to worry about, and true ownership of purchased content
+- **For Exhibitors & Platforms:** Instant access to the entire film registry through a single contract interface
+- **For Streaming Services:** API-driven content access with minimal integration complexity
 
-### Target Audience Segments
-1. **Content Creators**
-   - Independent filmmakers seeking distribution without traditional gatekeepers
-   - Studios looking for more efficient rights management solutions
-   - Content owners wanting to maximize lifetime value of their IP
-
-2. **Studios & Production Companies**
-   - Mid-tier studios seeking alternative distribution models
-   - Major studios exploring blockchain integration for specific content categories
-   - Production companies looking to pre-finance projects through token sales
-
-3. **Consumers**
-   - Digital media collectors who value ownership
-   - Film enthusiasts seeking broader access to independent content
-   - Tech-savvy consumers comfortable with digital wallets and blockchain technology
-
-4. **Exhibitors & Platforms**
-   - Theatrical exhibitors seeking streamlined licensing
-   - Digital platforms looking to expand content libraries efficiently
-   - Alternative screening venues (festivals, educational institutions, etc.)
-
-### Key Differentiators from Existing Media Distribution Systems
-1. **Modular Rights Management:** Licenses can be stacked to unlock different usage rights (personal viewing, commercial exhibition, etc.)
-2. **Perpetual Royalties:** Creators earn from both initial sales and all subsequent resales automatically
-3. **Organic Distribution:** Content can move fluidly between platforms based on market demand rather than fixed distribution windows
-4. **No Expiration:** Licenses don't expire, eliminating renegotiation overhead
-5. **Verifiable Ownership:** On-chain verification of legitimate access rights
-6. **Community-Driven Economics:** Future potential for decentralized film financing through tokenized pre-sales
-7. **Hardware Integration:** Purpose-built Seed One player provides secure playback environment with wallet integration
+### Beta Launch Focus
+- Starting with public domain content (The Cocoanuts, 1929) for low-stakes testing
+- Fixed $4.99 USDC pricing for simplicity
+- Platform subsidizes gas fees (~$0.01 per transaction)
+- Emphasis on user experience and accessibility
 
 ## 2. Product Overview
 
 ### System Description
-Wylloh is an integrated ecosystem consisting of three primary components:
+Wylloh's beta launch introduces a revolutionary single-contract architecture:
 
-1. **Blockchain Layer:** A Polygon-based network of smart contracts that manage media licensing, rights verification, and royalty distribution. This layer handles token creation, ownership tracking, rights management, and automated payments.
+1. **Blockchain Layer:** 
+   - **WyllohFilmRegistry**: Master ERC-1155 contract managing all films
+   - **WyllohMarketplace**: Integrated trading optimized for registry tokens
+   - **RoyaltyDistributor**: Automated revenue distribution
+   - **StoragePool**: Decentralized storage funding
+   - **WyllohToken**: Platform utility and governance
 
-2. **Content Storage Layer:** A decentralized storage solution using IPFS/Filecoin that securely stores encrypted media content. This layer ensures content is available, properly encrypted, and accessible only to authorized token holders.
+2. **Content Storage Layer:** 
+   - IPFS/Filecoin for decentralized storage
+   - Content encrypted and accessible only to token holders
+   - Optimized for scalability with thousands of films
 
-3. **Access Layer:** Comprising the Wylloh web platform and Seed One media player, this layer provides interfaces for content uploading, token management, and secure playback. The Seed One player serves as a specialized device for decrypting and playing licensed content.
+3. **Access Layer:** 
+   - Web platform for content management and viewing
+   - Simple USDC-based purchasing
+   - Wallet integration for rights verification
+   - Platform-subsidized gas fees for smooth UX
 
-Together, these components create a seamless media licensing system that connects creators directly with audiences while automating rights management and royalty distribution.
-
-### User Personas
-
-#### 1. Creator (Filmmaker/Rights Holder)
-**Emma, Independent Filmmaker**
-- Completed her second feature film
-- Seeking distribution without sacrificing control or revenue potential
-- Limited marketing budget but has loyal audience from previous work
-- Wants transparent reporting on views and direct connection with audience
-
-#### 2. Studio Executive
-**Michael, Mid-Tier Production Company VP**
-- Manages library of 200+ titles
-- Frustrated with current distribution complexities and platform dependencies
-- Looking to maximize revenue from back catalog
-- Concerned about piracy and security of digital assets
-
-#### 3. Consumer
-**Alex, Film Enthusiast**
-- Purchases 5-10 films per month across platforms
-- Values ownership of content and ability to build personal collection
-- Comfortable with digital wallets and blockchain concepts
-- Dislikes subscription model and content disappearing from platforms
-
-#### 4. Exhibitor
-**Sophia, Independent Theater Owner**
-- Operates three screens focused on independent and international films
-- Struggles with licensing complexity and availability windows
-- Wants to offer unique programming to differentiate from streaming
-- Limited technical staff for complex integration
-
-### Primary Use Cases
-
-1. **Content Publishing and Tokenization**
-   - Creator uploads media to Wylloh platform
-   - Sets licensing parameters and royalty splits
-   - Creates tokens representing access rights
-   - Distributes tokens via marketplace or direct sales
-
-2. **Content Consumption**
-   - Consumer purchases token representing license
-   - Connects wallet to Seed One player or web platform
-   - Automatically gains access to content based on token ownership
-   - Can resell token when no longer needed
-
-3. **Commercial Exhibition**
-   - Exhibitor acquires appropriate quantity of tokens for commercial rights
-   - Verifies rights on-chain before screening
-   - Royalties automatically distribute to appropriate stakeholders
-   - Can transfer or resell rights when no longer needed
-
-4. **Rights Trading and Secondary Market**
-   - Users list tokens on marketplace for resale
-   - Smart contracts ensure royalties flow to original creators
-   - Prices determined by market demand rather than fixed tiers
-   - Transaction history provides transparency and provenance
-
-### Success Metrics
-
-1. **Platform Adoption**
-   - Number of unique titles available on platform
-   - Number of active creators/rights holders
-   - Number of registered consumers
-   - Token transaction volume
-
-2. **Technical Performance**
-   - Content delivery speed and reliability
-   - Smart contract execution efficiency
-   - System uptime and availability
-   - Security incident frequency (target: zero)
-
-3. **Financial Metrics**
-   - Revenue generated for creators
-   - Platform transaction fee revenue
-   - Secondary market volume
-   - Average royalty distribution per title
-
-4. **User Satisfaction**
-   - Creator retention rate
-   - Consumer retention and repeat purchases
-   - Net Promoter Score for all user types
-   - Time-to-value for new users
+This unified architecture enables infinite scalability while maintaining gas efficiency and user-friendly operation.
 
 ## 3. Market Requirements
 

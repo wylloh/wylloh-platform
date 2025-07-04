@@ -4,30 +4,38 @@ An open protocol for movie tokenization and distribution, enabling cross-platfor
 
 ## 🚀 Project Status
 
-**Current Status:** Active Development
+**Current Status:** Beta Launch
 
-The Wylloh Platform is currently in active development. We're working on building a decentralized ecosystem for film distribution with blockchain-based licensing and rights management. This repository is now open to community contributors who want to help shape the future of digital media distribution.
+The Wylloh Platform is launching its beta with a groundbreaking single-contract architecture. Our innovative approach uses a master registry contract that can scale to thousands of films while maintaining gas efficiency. The beta launches with "The Cocoanuts" (1929) as Token ID 1, demonstrating our platform's capabilities with public domain content.
 
 **[Read our complete Product Requirements Document (PRD)](PRD.md)**
 
 ## Vision
 
 Wylloh aims to create a decentralized ecosystem for film distribution, where:
-- Movies can be tokenized and traded across platforms
+- Movies exist as token IDs in a unified registry
+- Each film can have millions of identical tokens for stacking
 - Creators maintain direct relationships with their audience
 - Quality and authenticity are guaranteed through reputation systems
-- Users can lend or rent their movie tokens
+- Users can access content with simple USDC payments
 - Royalties are automatically distributed to rights holders
 - The network grows stronger as more users participate
 
 ## Core Features
 
 ### Smart Contracts
-- **Token Management**: ERC-1155 based movie tokens with stacking capabilities
-- **Marketplace**: Cross-platform trading protocol
-- **Rights Management**: Flexible rights tiers and thresholds
-- **Royalty Distribution**: EIP-2981 compliant royalty system
-- **Content Lending**: Secure token-based lending with blockchain verification
+- **WyllohFilmRegistry**: Master ERC-1155 contract managing all films as unique token IDs
+- **WyllohMarketplace**: Integrated marketplace optimized for registry tokens
+- **RoyaltyDistributor**: Automated royalty distribution system
+- **StoragePool**: Decentralized storage funding mechanism
+- **WyllohToken**: Platform utility token for governance and storage
+
+### Beta Launch Features
+- **Fixed Pricing**: $4.99 USDC per token
+- **Public Domain Content**: Starting with The Cocoanuts (1929)
+- **Gas Efficiency**: Platform subsidizes gas fees (~$0.01 per transaction)
+- **User Experience**: USDC-only purchases (no MATIC needed)
+- **Scalable Design**: Ready for thousands of films
 
 ### Privacy-First Analytics
 - **"Movies That Don't Watch You Back"**: Unlike traditional streaming platforms, Wylloh doesn't collect personal user data
