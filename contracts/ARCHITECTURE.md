@@ -6,7 +6,7 @@ Wylloh's smart contract architecture is designed for **infinite scalability** - 
 
 ### **🎯 CORE PHILOSOPHY**
 - **Single Master Contract**: All films exist as token IDs in `WyllohFilmRegistry`
-- **USDC Pricing**: User-friendly $4.99 per token pricing
+- **USDC Pricing**: User-friendly $1.99-$19.99 per token pricing (initial sale)
 - **Stackable Rights**: Token quantities unlock different viewing rights
 - **Extensible Design**: Ready for presales, escrow, and advanced features
 

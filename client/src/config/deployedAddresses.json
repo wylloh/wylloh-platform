@@ -1,10 +1,20 @@
 {
   "network": "polygon",
   "chainId": 137,
-  "tokenAddress": "0x0000000000000000000000000000000000000000",
-  "marketplaceAddress": "0x0000000000000000000000000000000000000000",
-  "filmFactoryAddress": "0x0000000000000000000000000000000000000000",
-  "deploymentStatus": "pending",
-  "lastUpdated": "2024-12-19T00:00:00.000Z",
-  "description": "Production Polygon mainnet contract addresses - will be updated after deployment"
+  "contracts": {
+    "WyllohFilmRegistry": "0x624c5C6395EB28b9952FE9ae0d87B12520b55Bfc",
+    "WyllohToken": "0xaD36BE606F3c97a61E46b272979A92c33ffB04ED",
+    "WyllohMarketplace": "0xE171E9db4f2f64d3Fc80AA6E2bdF2770Bb006EC8",
+    "RoyaltyDistributor": "0x23735B20dED41014a03a3ad1EBCb4623B8aDd52d",
+    "StoragePool": "0x849760495E12529b43e1BA53da6B156ffcE8120A"
+  },
+  "legacy": {
+    "tokenAddress": "0xaD36BE606F3c97a61E46b272979A92c33ffB04ED",
+    "marketplaceAddress": "0xE171E9db4f2f64d3Fc80AA6E2bdF2770Bb006EC8",
+    "filmFactoryAddress": "DEPRECATED - Use WyllohFilmRegistry instead"
+  },
+  "deploymentStatus": "deployed",
+  "deployedAt": "2025-07-05T17:09:17.967Z",
+  "lastUpdated": "2025-07-05T17:09:17.967Z",
+  "description": "Production Polygon mainnet contract addresses - Successfully deployed July 5, 2025"
 }

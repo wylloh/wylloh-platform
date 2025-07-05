@@ -223,7 +223,17 @@ contract WyllohMarketplace is AccessControl, ReentrancyGuard {
     ) {
         Listing storage listing = listings[listingId];
         if (listing.tokenContract == address(wyllohRegistry)) {
-            return wyllohRegistry.films(listing.tokenId);
+            // Get individual fields from the films mapping
+            (string memory _filmId,
+             string memory _title,
+             address _creator,
+             uint256 _maxSupply,
+             uint256 _pricePerToken,
+             bool _isActive,
+             uint256 _createdAt,
+             string memory _metadataURI) = wyllohRegistry.films(listing.tokenId);
+            
+            return (_filmId, _title, _creator, _maxSupply, _isActive);
         }
         return ("", "", address(0), 0, false);
     }

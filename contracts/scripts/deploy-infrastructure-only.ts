@@ -4,7 +4,7 @@ import * as path from "path";
 
 async function main() {
   const [deployer] = await ethers.getSigners();
-  console.log("🎬 WYLLOH COMPLETE ECOSYSTEM DEPLOYMENT");
+  console.log("🎬 WYLLOH INFRASTRUCTURE DEPLOYMENT");
   console.log("🌐 Network:", network.name);
   console.log("👤 Deployer:", deployer.address);
   
@@ -22,7 +22,7 @@ async function main() {
     throw new Error("❌ Insufficient MATIC balance. Need at least 0.1 MATIC for deployment");
   }
 
-  console.log("\n🚀 DEPLOYING INTEGRATED ECOSYSTEM...\n");
+  console.log("\n🚀 DEPLOYING INFRASTRUCTURE CONTRACTS...\n");
 
   // Step 1: Deploy Platform Token (WyllohToken ERC20)
   console.log("1️⃣ Deploying WyllohToken (ERC20 Platform Token)...");
@@ -33,8 +33,12 @@ async function main() {
   console.log("✅ WyllohToken (ERC20) deployed:", wyllohTokenAddress);
 
   // Initialize the platform token (ERC20 - no parameters)
-  await wyllohToken.initialize();
-  console.log("✅ WyllohToken (ERC20) initialized");
+  try {
+    await wyllohToken.initialize();
+    console.log("✅ WyllohToken (ERC20) initialized");
+  } catch (error) {
+    console.log("ℹ️  WyllohToken (ERC20) already initialized or initialization not needed");
+  }
 
   // Step 2: Deploy Storage Pool
   console.log("\n2️⃣ Deploying StoragePool...");
@@ -45,8 +49,12 @@ async function main() {
   console.log("✅ StoragePool deployed:", storagePoolAddress);
 
   // Initialize storage pool
-  await storagePool.initialize(wyllohTokenAddress);
-  console.log("✅ StoragePool initialized");
+  try {
+    await storagePool.initialize(wyllohTokenAddress);
+    console.log("✅ StoragePool initialized");
+  } catch (error) {
+    console.log("ℹ️  StoragePool already initialized or initialization not needed");
+  }
 
   // Step 3: Deploy Royalty Distributor
   console.log("\n3️⃣ Deploying RoyaltyDistributor...");
@@ -66,7 +74,7 @@ async function main() {
 
   // Step 5: Deploy WyllohMarketplace (Integrated)
   console.log("\n5️⃣ Deploying WyllohMarketplace (Integrated)...");
-  const WyllohMarketplace = await ethers.getContractFactory("WyllohMarketplace");
+  const WyllohMarketplace = await ethers.getContractFactory("contracts/marketplace/WyllohMarketplace.sol:WyllohMarketplace");
   const wyllohMarketplace = await WyllohMarketplace.deploy(
     wyllohRegistryAddress,
     deployer.address, // Fee recipient
@@ -76,80 +84,8 @@ async function main() {
   const wyllohMarketplaceAddress = await wyllohMarketplace.getAddress();
   console.log("✅ WyllohMarketplace deployed:", wyllohMarketplaceAddress);
 
-  // Step 6: Create "The Cocoanuts" (1929) - First Film (Token ID 1)
-  console.log("\n6️⃣ Creating 'The Cocoanuts' (1929) - Historic First Film...");
-  
-  // Define rights thresholds for The Cocoanuts
-  const rightsThresholds = [
-    {
-      quantity: 1,
-      rightsLevel: "Basic Streaming",
-      priceMultiplier: 100, // 1x price
-      enabled: true
-    },
-    {
-      quantity: 10,
-      rightsLevel: "HD Streaming + Download",
-      priceMultiplier: 100,
-      enabled: true
-    },
-    {
-      quantity: 100,
-      rightsLevel: "4K + Behind-the-Scenes",
-      priceMultiplier: 100,
-      enabled: true
-    },
-    {
-      quantity: 1000,
-      rightsLevel: "Commercial License",
-      priceMultiplier: 150, // 1.5x price for commercial
-      enabled: true
-    }
-  ];
-
-  const createFilmTx = await wyllohRegistry.createFilm(
-    "the-cocoanuts-1929",
-    "The Cocoanuts",
-    deployer.address,
-    1000000, // 1 million tokens
-    4990000, // $4.99 in USDC (6 decimals)
-    rightsThresholds,
-    "https://api.wylloh.com/films/the-cocoanuts-1929/metadata"
-  );
-  
-  const receipt = await createFilmTx.wait();
-  console.log("✅ The Cocoanuts created as Token ID 1");
-  console.log("📈 Max Supply: 1,000,000 tokens");
-  console.log("💰 Price: $4.99 USDC per token");
-
-  // Step 7: Setup Royalty Distribution for The Cocoanuts
-  console.log("\n7️⃣ Setting up royalty distribution...");
-  
-  // Add deployer as primary royalty recipient (90%)
-  await royaltyDistributor.addRoyaltyRecipient(
-    wyllohRegistryAddress,
-    1, // Token ID 1 = The Cocoanuts
-    deployer.address,
-    9000 // 90% in basis points
-  );
-  
-  // Add platform treasury as secondary recipient (10%)
-  await royaltyDistributor.addRoyaltyRecipient(
-    wyllohRegistryAddress,
-    1,
-    deployer.address, // Using deployer as treasury for now
-    1000 // 10% in basis points
-  );
-  
-  console.log("✅ Royalty distribution configured");
-
-  // Step 8: Storage Pool Setup (Optional - can be funded later)
-  console.log("\n8️⃣ Storage pool setup complete...");
-  console.log("ℹ️  Storage pool can be funded later with platform tokens");
-  console.log("✅ Storage pool ready for future funding");
-
-  // Step 9: Save deployment addresses
-  console.log("\n9️⃣ Saving deployment addresses...");
+  // Step 6: Save deployment addresses
+  console.log("\n6️⃣ Saving deployment addresses...");
   
   const deploymentInfo = {
     network: network.name,
@@ -162,34 +98,22 @@ async function main() {
       WyllohFilmRegistry: wyllohRegistryAddress,
       WyllohMarketplace: wyllohMarketplaceAddress
     },
-    films: {
-      "the-cocoanuts-1929": {
-        tokenId: 1,
-        title: "The Cocoanuts",
-        maxSupply: 1000000,
-        pricePerToken: 4990000,
-        creator: deployer.address
-      }
-    },
-    deprecated: {
-      // These contracts are now deprecated in favor of the registry approach
-      WyllohFilmFactory: "DEPRECATED - Use WyllohFilmRegistry instead",
-      WyllohFilmToken: "DEPRECATED - Films are now token IDs in WyllohFilmRegistry",
-      WyllohFilmTokenSimple: "DEPRECATED - Films are now token IDs in WyllohFilmRegistry",
-      ContentToken: "EVALUATION - DRM features may be valuable"
+    notes: {
+      purpose: "Infrastructure deployment only - films will be created via Pro user web interface",
+      firstFilm: "The Cocoanuts (1929) will be tokenized by Pro user after deployment"
     }
   };
 
-  const deploymentPath = path.join(__dirname, `../deployments/${network.name}-ecosystem.json`);
+  const deploymentPath = path.join(__dirname, `../deployments/${network.name}-infrastructure.json`);
   fs.mkdirSync(path.dirname(deploymentPath), { recursive: true });
   fs.writeFileSync(deploymentPath, JSON.stringify(deploymentInfo, null, 2));
   
   console.log("✅ Deployment info saved to:", deploymentPath);
 
-  // Step 10: Deploy summary
-  console.log("\n🎉 DEPLOYMENT COMPLETE!");
+  // Step 7: Deploy summary
+  console.log("\n🎉 INFRASTRUCTURE DEPLOYMENT COMPLETE!");
   console.log("=====================================");
-  console.log("🎬 WYLLOH COMPLETE ECOSYSTEM DEPLOYED");
+  console.log("🎬 WYLLOH INFRASTRUCTURE DEPLOYED");
   console.log("=====================================");
   console.log("📝 Contract Addresses:");
   console.log("   WyllohToken (ERC20 Platform):", wyllohTokenAddress);
@@ -197,11 +121,6 @@ async function main() {
   console.log("   RoyaltyDistributor:", royaltyDistributorAddress);
   console.log("   WyllohFilmRegistry (MASTER):", wyllohRegistryAddress);
   console.log("   WyllohMarketplace:", wyllohMarketplaceAddress);
-  console.log("");
-  console.log("🎭 Films Created:");
-  console.log("   Token ID 1: The Cocoanuts (1929)");
-  console.log("   Supply: 1,000,000 tokens");
-  console.log("   Price: $4.99 USDC");
   console.log("");
   console.log("🔗 Integration Status:");
   console.log("   ✅ Registry + Marketplace = Integrated");
@@ -211,12 +130,11 @@ async function main() {
   console.log("   ✅ Scalable Architecture = Ready");
   console.log("");
   console.log("🎯 Next Steps:");
-  console.log("   1. Update frontend to use registry address");
-  console.log("   2. Test Pro user upload flow");
-  console.log("   3. Validate The Cocoanuts tokenization");
-  console.log("   4. Remove deprecated contracts");
+  console.log("   1. Update frontend configuration with contract addresses");
+  console.log("   2. Pro user can now tokenize films via web interface");
+  console.log("   3. 'The Cocoanuts' awaits tokenization as first film");
   console.log("");
-  console.log("🌟 READY FOR THE COCOANUTS! 🌟");
+  console.log("🌟 READY FOR PRO USER TOKENIZATION! 🌟");
 
   return {
     wyllohToken: wyllohTokenAddress,

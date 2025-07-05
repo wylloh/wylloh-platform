@@ -81,15 +81,8 @@ contract WyllohToken is
     event TokensStacked(address indexed account, uint256 indexed tokenId, uint256 amount, uint256 unlockTime);
     event TokensUnstacked(address indexed account, uint256 indexed tokenId, uint256 amount);
     
-    // Default rights thresholds
-    RightsThreshold[] private defaultThresholds = [
-        RightsThreshold(1, 1),      // Personal viewing
-        RightsThreshold(30, 2),     // Private screening
-        RightsThreshold(250, 3),    // Small venue
-        RightsThreshold(1000, 4),   // Regional streaming
-        RightsThreshold(5000, 5),   // Theatrical
-        RightsThreshold(25000, 6)   // National distribution
-    ];
+    // Default rights thresholds (initialized in constructor)
+    RightsThreshold[] private defaultThresholds;
 
     // Rights types
     uint8 private constant PERSONAL_VIEWING = 1;
@@ -120,6 +113,14 @@ contract WyllohToken is
         _grantRole(ADMIN_ROLE, msg.sender);
         _grantRole(MINTER_ROLE, msg.sender);
         _grantRole(UPGRADER_ROLE, msg.sender);
+        
+        // Initialize default rights thresholds
+        defaultThresholds.push(RightsThreshold(1, 1, true));      // Personal viewing
+        defaultThresholds.push(RightsThreshold(30, 2, true));     // Private screening
+        defaultThresholds.push(RightsThreshold(250, 3, true));    // Small venue
+        defaultThresholds.push(RightsThreshold(1000, 4, true));   // Regional streaming
+        defaultThresholds.push(RightsThreshold(5000, 5, true));   // Theatrical
+        defaultThresholds.push(RightsThreshold(25000, 6, true));  // National distribution
     }
 
     /**
