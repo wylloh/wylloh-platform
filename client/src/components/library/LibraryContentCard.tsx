@@ -13,6 +13,7 @@ import {
   Tooltip,
   Stack,
 } from '@mui/material';
+import { POSTER_STYLES, POSTER_DIMENSIONS } from '../../config/ui.constants';
 import {
   PlayArrow as PlayArrowIcon,
   Info as InfoIcon,
@@ -144,9 +145,10 @@ const LibraryContentCard: React.FC<LibraryContentCardProps> = ({
     <Card sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
       <CardMedia
         component="img"
-        height="160"
+        height={POSTER_DIMENSIONS.LIBRARY_CARD}
         image={item.thumbnailUrl}
         alt={item.title}
+        sx={POSTER_STYLES.MOVIE_POSTER}
       />
       
       <CardContent sx={{ flexGrow: 1, pt: 2, pb: 1 }}>

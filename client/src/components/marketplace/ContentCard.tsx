@@ -10,6 +10,7 @@ import {
   Chip,
   Divider,
 } from '@mui/material';
+import { POSTER_STYLES, POSTER_DIMENSIONS } from '../../config/ui.constants';
 import {
   PlayArrow as PlayArrowIcon,
   Info as InfoIcon,
@@ -43,9 +44,10 @@ const ContentCard: React.FC<ContentCardProps> = ({ content }) => {
     <Card sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
       <CardMedia
         component="img"
-        height="140"
+        height={POSTER_DIMENSIONS.MARKETPLACE_CARD}
         image={content.image}
         alt={content.title}
+        sx={POSTER_STYLES.MOVIE_POSTER}
       />
       
       <CardContent sx={{ flexGrow: 1 }}>
