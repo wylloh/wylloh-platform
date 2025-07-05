@@ -107,9 +107,14 @@ async function initializeServices(): Promise<void> {
     await contentAvailabilityService.initialize();
     serviceLogger.info('Content availability service initialized');
 
-    // Initialize Filecoin service
-    await filecoinService.initialize();
-    serviceLogger.info('Filecoin service initialized');
+    // Initialize Filecoin service (temporarily disabled - roadmap feature)
+    try {
+      await filecoinService.initialize();
+      serviceLogger.info('Filecoin service initialized');
+    } catch (error) {
+      serviceLogger.warn('Filecoin service initialization failed (expected for roadmap feature):', error);
+      serviceLogger.info('Continuing without Filecoin - IPFS and core storage functionality available');
+    }
 
     serviceLogger.info('All storage services initialized successfully');
   } catch (error) {
@@ -135,7 +140,17 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' })); // Parse URL-enc
 app.get('/health', (req: Request, res: Response) => {
   const nodeHealth = distributedNodeService.getServiceHealth();
   const contentStats = contentAvailabilityService.getContentStats();
-  const filecoinDeals = filecoinService.getAllDeals();
+  
+  // Safely get Filecoin deals with error handling
+  let filecoinDeals: any[] = [];
+  let filecoinStatus = 'unavailable';
+  try {
+    filecoinDeals = filecoinService.getAllDeals();
+    filecoinStatus = 'ok';
+  } catch (error) {
+    serviceLogger.warn('Filecoin service unavailable in health check (roadmap feature):', error);
+    filecoinStatus = 'disabled';
+  }
 
   res.status(200).json({ 
     status: 'ok', 
@@ -152,6 +167,7 @@ app.get('/health', (req: Request, res: Response) => {
         lastScanTime: contentStats.lastScanTime
       },
       filecoin: {
+        status: filecoinStatus,
         totalDeals: filecoinDeals.length,
         activeDeals: filecoinDeals.filter(d => d.status === 'active').length,
         pendingDeals: filecoinDeals.filter(d => d.status === 'pending').length
@@ -166,7 +182,14 @@ app.get('/health/detailed', (req: Request, res: Response) => {
   const nodeStats = distributedNodeService.getNodeHealthStats();
   const contentStats = contentAvailabilityService.getContentStats();
   const availabilityReport = contentAvailabilityService.getLatestReport();
-  const filecoinDeals = filecoinService.getAllDeals();
+  
+  // Safely get Filecoin deals with error handling
+  let filecoinDeals: any[] = [];
+  try {
+    filecoinDeals = filecoinService.getAllDeals();
+  } catch (error) {
+    serviceLogger.warn('Filecoin service unavailable in detailed health check (roadmap feature):', error);
+  }
 
   res.status(200).json({
     status: 'ok',
