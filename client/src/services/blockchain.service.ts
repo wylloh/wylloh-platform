@@ -78,8 +78,8 @@ const filmFactoryAbi = [
 ];
 
 // Default contract addresses - should be configured at app startup
-const DEFAULT_CONTRACT_ADDRESS = '0x0000000000000000000000000000000000000000'; // Will be set via environment or config
-const DEFAULT_MARKETPLACE_ADDRESS = '0x0000000000000000000000000000000000000000'; // Will be set via environment or config
+const DEFAULT_CONTRACT_ADDRESS = '0x624c5C6395EB28b9952FE9ae0d87B12520b55Bfc'; // WyllohFilmRegistry - Master contract
+const DEFAULT_MARKETPLACE_ADDRESS = '0xE171E9db4f2f64d3Fc80AA6E2bdF2770Bb006EC8'; // WyllohMarketplace
 
 /**
  * Service for interacting with the blockchain contracts

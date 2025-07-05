@@ -18,12 +18,12 @@ interface ContentKeyRecord {
  * Interface for access rights storage
  */
 interface AccessRightsRecord {
-  userId: string;
   contentId: string;
+  userId: string;
   accessLevel: AccessLevel;
-  grantedAt: number;
   expiresAt?: number;
-  keyVersion: number;
+  issuedAt: number;
+  issuedBy: string;
 }
 
 /**
@@ -91,7 +91,7 @@ class KeyManagementService {
   }
   
   /**
-   * Retrieve and decrypt a content key with improved error handling
+   * Retrieve and decrypt a content key
    * Only works if user owns the corresponding token
    * 
    * @param contentId Content identifier
@@ -109,31 +109,16 @@ class KeyManagementService {
         return cachedKey.key;
       }
       
-      // 1. Check access rights with fallback to token ownership
-      let accessRights = await this.getUserAccessRights(contentId, walletAddress);
+      // 1. Check access rights
+      const accessRights = await this.getUserAccessRights(contentId, walletAddress);
       
       if (!accessRights || accessRights.accessLevel === AccessLevel.NONE) {
         console.warn(`User ${walletAddress} has no access rights for content ${contentId}`);
         
-        // FALLBACK: Check token ownership for backward compatibility
-        try {
-          const ownsToken = await this.verifyContentOwnership(contentId, walletAddress);
-          if (!ownsToken) {
-            console.warn('User does not own this content');
-            return null;
-          }
-          
-          // Create minimal access rights for token holders
-          accessRights = {
-            userId: walletAddress,
-            contentId: contentId,
-            accessLevel: AccessLevel.VIEW,
-            grantedAt: Date.now(),
-            expiresAt: Date.now() + (24 * 60 * 60 * 1000), // 24 hours
-            keyVersion: 1
-          };
-        } catch (ownershipError) {
-          console.error('Error verifying content ownership:', ownershipError);
+        // As a fallback, check token ownership for backward compatibility
+        const ownsToken = await this.verifyContentOwnership(contentId, walletAddress);
+        if (!ownsToken) {
+          console.warn('User does not own this content');
           return null;
         }
       }
@@ -144,61 +129,30 @@ class KeyManagementService {
         return null;
       }
       
-      // 2. Get encrypted key with fallback mechanisms
-      let keyRecord: ContentKeyRecord | null = null;
-      
-      // Try localStorage first
-      try {
-        const keyRecordStr = localStorage.getItem(`content_key:${contentId}`);
-        if (keyRecordStr) {
-          keyRecord = JSON.parse(keyRecordStr);
-        }
-      } catch (storageError) {
-        console.warn('Error reading from localStorage:', storageError);
+      // 2. Get encrypted key
+      // In production: const encryptedKey = await contentContract.getEncryptedKey();
+      // For demo, we'll use localStorage
+      const keyRecordStr = localStorage.getItem(`content_key:${contentId}`);
+      if (!keyRecordStr) {
+        console.error('No key record found for content');
+        return null;
       }
       
-      // FALLBACK: Try generating key from content ID (for demo purposes)
-      if (!keyRecord) {
-        console.warn('No key record found, generating fallback key');
-        const fallbackKey = await this.generateFallbackKey(contentId);
-        keyRecord = {
-          contentId,
-          encryptedKey: fallbackKey,
-          keyVersion: 1,
-          timestamp: Date.now()
-        };
-        
-        // Try to save fallback key for future use
-        try {
-          localStorage.setItem(`content_key:${contentId}`, JSON.stringify(keyRecord));
-        } catch (saveError) {
-          console.warn('Could not save fallback key:', saveError);
-        }
-      }
+      const keyRecord: ContentKeyRecord = JSON.parse(keyRecordStr);
       
-      // 3. Decrypt the key with error handling
-      let contentKey: string;
-      try {
-        const contractAddress = this.getContractAddressForContent(contentId);
-        contentKey = await encryptionUtils.decryptContentKey(
-          keyRecord.encryptedKey,
-          contractAddress
-        );
-      } catch (decryptError) {
-        console.warn('Error decrypting key, using fallback:', decryptError);
-        // FALLBACK: Use the encrypted key as-is (for demo purposes)
-        contentKey = keyRecord.encryptedKey;
-      }
+      // 3. Decrypt the key using wallet's private key
+      // In production, this would use wallet to decrypt
+      // For demo, we'll use simpler approach
+      const contractAddress = this.getContractAddressForContent(contentId);
+      const contentKey = await encryptionUtils.decryptContentKey(
+        keyRecord.encryptedKey,
+        contractAddress // Using contract address as decryption key (just for demo)
+      );
       
-      // 4. Handle key version with fallback
+      // 4. If the key version has changed, derive the correct key
       let finalKey = contentKey;
-      try {
-        if (keyRecord.keyVersion !== 1) {
-          finalKey = await encryptionUtils.deriveKeyForVersion(contentKey, keyRecord.keyVersion);
-        }
-      } catch (versionError) {
-        console.warn('Error deriving key version, using base key:', versionError);
-        finalKey = contentKey;
+      if (keyRecord.keyVersion !== 1) {
+        finalKey = await encryptionUtils.deriveKeyForVersion(contentKey, keyRecord.keyVersion);
       }
       
       // Store in cache with access level
@@ -211,29 +165,8 @@ class KeyManagementService {
       return finalKey;
     } catch (error) {
       console.error('Error retrieving content key:', error);
-      
-      // FINAL FALLBACK: Generate a deterministic key from content ID
-      try {
-        return await this.generateFallbackKey(contentId);
-      } catch (fallbackError) {
-        console.error('Even fallback key generation failed:', fallbackError);
-        return null;
-      }
+      return null;
     }
-  }
-  
-  /**
-   * Generate a fallback key for content when normal key retrieval fails
-   * @param contentId Content identifier
-   * @returns Fallback encryption key
-   */
-  private async generateFallbackKey(contentId: string): Promise<string> {
-    // Generate deterministic key from content ID
-    const encoder = new TextEncoder();
-    const data = encoder.encode(contentId + 'wylloh-fallback-key');
-    const hashBuffer = await crypto.subtle.digest('SHA-256', data);
-    const hashArray = new Uint8Array(hashBuffer);
-    return Buffer.from(hashArray).toString('base64');
   }
   
   /**
@@ -425,8 +358,8 @@ class KeyManagementService {
         userId: recipientAddress,
         accessLevel,
         expiresAt,
-        grantedAt: Date.now(),
-        keyVersion: this.currentKeyVersion
+        issuedAt: Date.now(),
+        issuedBy: issuerAddress
       };
       
       // 3. Store access rights

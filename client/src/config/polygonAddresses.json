@@ -1,17 +1,28 @@
 {
   "network": "polygon",
   "chainId": 137,
-  "factoryAddress": "0x0000000000000000000000000000000000000000",
-  "historicFilmContract": "0x0000000000000000000000000000000000000000",
-  "filmId": "a-trip-to-the-moon",
-  "filmTitle": "A Trip to the Moon",
-  "director": "Georges Méliès",
-  "year": 1902,
-  "deployer": "0x0000000000000000000000000000000000000000",
-  "deploymentDate": "2024-12-19T00:00:00.000Z",
-  "architecture": "film-specific-contracts",
-  "tokenModel": "revolutionary-stacking",
-  "significance": "First film tokenized on Wylloh platform",
-  "gasUsed": "0",
-  "transactionHash": "0x0000000000000000000000000000000000000000000000000000000000000000"
+  "contracts": {
+    "WyllohFilmRegistry": "0x624c5C6395EB28b9952FE9ae0d87B12520b55Bfc",
+    "WyllohToken": "0xaD36BE606F3c97a61E46b272979A92c33ffB04ED",
+    "WyllohMarketplace": "0xE171E9db4f2f64d3Fc80AA6E2bdF2770Bb006EC8",
+    "RoyaltyDistributor": "0x23735B20dED41014a03a3ad1EBCb4623B8aDd52d",
+    "StoragePool": "0x849760495E12529b43e1BA53da6B156ffcE8120A"
+  },
+  "legacy": {
+    "factoryAddress": "DEPRECATED - Use WyllohFilmRegistry instead"
+  },
+  "firstFilm": {
+    "tokenId": 1,
+    "filmId": "the-cocoanuts-1929",
+    "filmTitle": "The Cocoanuts",
+    "director": "Robert Florey",
+    "year": 1929,
+    "significance": "First film tokenized on Wylloh platform"
+  },
+  "deployment": {
+    "deployer": "0x7FA50da5a8f998c9184E344279b205DE699Aa672",
+    "deploymentDate": "2025-07-05T17:09:17.967Z",
+    "architecture": "registry-based-erc1155",
+    "tokenModel": "stackable-distribution-rights"
+  }
 } 

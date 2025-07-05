@@ -171,7 +171,7 @@ export const getWyllohMovieTokensFromWallet = async (
     const mockTokens: TokenData[] = [
       {
         tokenId: '1234',
-        contractAddress: '0x1234567890abcdef1234567890abcdef12345678',
+        contractAddress: '0x624c5C6395EB28b9952FE9ae0d87B12520b55Bfc', // WyllohFilmRegistry
         standard: 'ERC-721',
         chain: 'ethereum',
         metadata: {
@@ -184,7 +184,7 @@ export const getWyllohMovieTokensFromWallet = async (
       },
       {
         tokenId: '5678',
-        contractAddress: '0x2345678901abcdef2345678901abcdef23456789',
+        contractAddress: '0xE171E9db4f2f64d3Fc80AA6E2bdF2770Bb006EC8', // WyllohMarketplace
         standard: 'ERC-1155',
         chain: 'polygon',
         metadata: {
@@ -197,7 +197,7 @@ export const getWyllohMovieTokensFromWallet = async (
       },
       {
         tokenId: '9012',
-        contractAddress: '0x9876543210abcdef9876543210abcdef98765432',
+        contractAddress: '0xaD36BE606F3c97a61E46b272979A92c33ffB04ED', // WyllohToken
         standard: 'ERC-721',
         chain: 'ethereum',
         metadata: {

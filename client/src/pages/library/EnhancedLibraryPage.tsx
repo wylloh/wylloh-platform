@@ -228,7 +228,7 @@ const EnhancedLibraryPage: React.FC = () => {
           year: 2022,
           tokenData: {
             tokenId: '42',
-            contractAddress: '0x1234567890abcdef',
+            contractAddress: '0x624c5C6395EB28b9952FE9ae0d87B12520b55Bfc', // WyllohFilmRegistry
             standard: 'ERC-721',
             chain: 'Ethereum',
             ownershipVerified: true,
@@ -254,7 +254,7 @@ const EnhancedLibraryPage: React.FC = () => {
           year: 2021,
           tokenData: {
             tokenId: '15',
-            contractAddress: '0xabcdef1234567890',
+            contractAddress: '0xE171E9db4f2f64d3Fc80AA6E2bdF2770Bb006EC8', // WyllohMarketplace
             standard: 'ERC-1155',
             chain: 'Polygon',
             ownershipVerified: false,

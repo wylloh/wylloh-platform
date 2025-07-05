@@ -28,7 +28,7 @@ const lendingContractAbi = [
 const API_BASE_URL = process.env.REACT_APP_API_URL || '';
 
 // Default contract address - should be configured at app startup
-const DEFAULT_LENDING_CONTRACT_ADDRESS = '0x0000000000000000000000000000000000000000'; // Replace with actual address after deployment
+const DEFAULT_LENDING_CONTRACT_ADDRESS = '0x624c5C6395EB28b9952FE9ae0d87B12520b55Bfc'; // WyllohFilmRegistry - handles lending via ERC1155
 
 // Types
 export interface LendingAgreement {

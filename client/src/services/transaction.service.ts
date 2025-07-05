@@ -47,7 +47,7 @@ const SAMPLE_TRANSACTIONS: Transaction[] = [
     transactionValue: 250,
     platform: 'Wylloh',
     tokenId: '1234',
-    contractAddress: '0x1234567890abcdef1234567890abcdef12345678',
+    contractAddress: '0x624c5C6395EB28b9952FE9ae0d87B12520b55Bfc', // WyllohFilmRegistry
     blockchain: 'Ethereum',
     blockchainTxHash: '0xabcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890',
   },
@@ -61,7 +61,7 @@ const SAMPLE_TRANSACTIONS: Transaction[] = [
     transactionValue: 320,
     platform: 'OpenSea',
     tokenId: '5678',
-    contractAddress: '0x1234567890abcdef1234567890abcdef12345678',
+    contractAddress: '0x624c5C6395EB28b9952FE9ae0d87B12520b55Bfc', // WyllohFilmRegistry
     blockchain: 'Ethereum',
     blockchainTxHash: '0xfedcba0987654321fedcba0987654321fedcba0987654321fedcba0987654321',
     counterpartyAddress: '0x9876543210abcdef9876543210abcdef98765432',
