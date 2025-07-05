@@ -123,7 +123,7 @@ services:
       - "3002:3002"
     environment:
       NODE_ENV: ${NODE_ENV:-production}
-      PORT: 3002
+      STORAGE_PORT: 3002
       IPFS_API_URL: http://ipfs:5001
       IPFS_GATEWAY_URL: http://ipfs:8080
       MONGODB_URI: ${MONGODB_URI:-mongodb://mongodb:27017/wylloh}
