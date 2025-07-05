@@ -203,7 +203,7 @@ const LibraryPage: React.FC<LibraryPageProps> = ({ isPro = false }) => {
                 tokenId: '42',
                 contractAddress: '0x624c5C6395EB28b9952FE9ae0d87B12520b55Bfc', // WyllohFilmRegistry
                 standard: 'ERC-721',
-                chain: 'Ethereum',
+                chain: 'Polygon',
                 ownershipVerified: true,
                 ownershipLastChecked: new Date().toISOString(),
                 metadata: {}
@@ -327,12 +327,12 @@ const LibraryPage: React.FC<LibraryPageProps> = ({ isPro = false }) => {
   };
 
   const formatCurrency = (value: number) => {
-    return `${value.toFixed(3)} ETH`;
+          return `$${value.toFixed(2)} USDC`;
   };
 
   const handleSubmitLend = () => {
     // Implement lending logic here
-    console.log('Lending content', selectedItem?.contentId, 'to', lendToEmail, 'for', lendDuration, 'days at', lendPrice, 'ETH');
+          console.log('Lending content', selectedItem?.contentId, 'to', lendToEmail, 'for', lendDuration, 'days at', lendPrice, 'USDC');
     setLendDialogOpen(false);
     // Reset form
     setLendToEmail('');
@@ -342,7 +342,7 @@ const LibraryPage: React.FC<LibraryPageProps> = ({ isPro = false }) => {
 
   const handleSubmitSell = () => {
     // Implement selling logic here
-    console.log('Selling content', selectedItem?.contentId, 'for', sellPrice, 'ETH', buyerEmail ? `to ${buyerEmail}` : 'on marketplace');
+          console.log('Selling content', selectedItem?.contentId, 'for', sellPrice, 'USDC', buyerEmail ? `to ${buyerEmail}` : 'on marketplace');
     setSellDialogOpen(false);
     // Reset form
     setSellPrice(0);
@@ -504,7 +504,7 @@ const LibraryPage: React.FC<LibraryPageProps> = ({ isPro = false }) => {
               </Select>
             </FormControl>
             <TextField
-              label="Price (ETH)"
+              label="Price (USDC)"
               type="number"
               fullWidth
               margin="normal"
@@ -538,7 +538,7 @@ const LibraryPage: React.FC<LibraryPageProps> = ({ isPro = false }) => {
           </Box>
           <Divider sx={{ mb: 2 }} />
           <TextField
-            label="Selling Price (ETH)"
+                          label="Selling Price (USDC)"
             type="number"
             fullWidth
             margin="normal"

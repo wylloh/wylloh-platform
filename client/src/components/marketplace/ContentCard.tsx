@@ -105,7 +105,7 @@ const ContentCard: React.FC<ContentCardProps> = ({ content }) => {
         <Box sx={{ flexGrow: 1 }} />
         
         <Typography variant="button" color="primary">
-          {content.price} MATIC
+          {content.price} USDC
         </Typography>
       </CardActions>
     </Card>

@@ -125,3 +125,6 @@ Thumbs.db
 /reports/
 
 # Local development workspace - MOVED TO CURSOR AI SECTION ABOVE
+
+# Claude AI instructions (contains sensitive workspace references)
+CLAUDE.md

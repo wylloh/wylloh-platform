@@ -231,7 +231,7 @@ const SearchPage: React.FC = () => {
   
   // Format currency
   const formatCurrency = (value: number) => {
-    return `${value.toFixed(3)} ETH`;
+          return `$${value.toFixed(2)} USDC`;
   };
   
   // Filter drawer for mobile view

@@ -408,6 +408,41 @@ const AboutPage: React.FC = () => {
         </Paper>
       </Box>
 
+      {/* Platform Independence */}
+      <Paper 
+        elevation={0}
+        sx={{ 
+          p: 4, 
+          mb: 4,
+          border: '1px solid',
+          borderColor: 'divider',
+          textAlign: 'center',
+          background: 'linear-gradient(135deg, rgba(76, 175, 80, 0.05), rgba(139, 195, 74, 0.05))'
+        }}
+      >
+        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', mb: 3 }}>
+          <PublicIcon sx={{ color: 'success.main', mr: 2, fontSize: 40 }} />
+          <Typography variant="h4" gutterBottom sx={{ fontWeight: 600, color: 'success.main' }}>
+            Platform Independence
+          </Typography>
+        </Box>
+        <Typography variant="body1" color="text.secondary" paragraph sx={{ mb: 3, fontSize: '1.1rem' }}>
+          Your purchased content belongs to you, permanently. We believe digital ownership should work 
+          like physical ownership — when you buy something, you should be able to keep it regardless 
+          of where you bought it.
+        </Typography>
+        <Typography variant="body1" color="text.secondary" paragraph sx={{ mb: 3 }}>
+          Through blockchain technology and decentralized storage, your films remain accessible 
+          using only your wallet and the IPFS network. If Wylloh were to disappear tomorrow, 
+          you would still own and can access every film you've purchased.
+        </Typography>
+        <Typography variant="body1" color="text.secondary">
+          This isn't just a promise — it's architecturally guaranteed. True digital ownership 
+          means your content transcends any single platform, creating lasting value that 
+          extends far beyond our service.
+        </Typography>
+      </Paper>
+
       {/* Open Source Philosophy */}
       <Paper 
         elevation={0}

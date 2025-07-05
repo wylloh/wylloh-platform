@@ -259,27 +259,31 @@ class UploadService {
       
       console.log('Content created in service:', contentResponse);
       
-      // If tokenization was enabled during upload, record it in blockchain service or similar
+      // WARNING: Tokenization during upload is recorded but NOT executed on blockchain
+      // The user must go to the tokenization page to actually create blockchain tokens
       if (tokenized && metadata.walletAddress) {
         try {
-          console.log('Recording tokenization in blockchain/storage service');
-          // In a production app, we would call blockchain service to record the tokenization
-          // For demo purposes, just log it
+          console.log('Recording tokenization preference (NOT creating actual tokens yet)');
+          console.warn('⚠️ IMPORTANT: Tokenization is only recorded as a preference during upload.');
+          console.warn('⚠️ User must complete tokenization on the tokenization page to create actual blockchain tokens.');
+          
+          // Store tokenization preference (not actual tokenization)
           localStorage.setItem(
-            `tokenized_content_${contentResponse.id}`, 
+            `tokenization_preference_${contentResponse.id}`, 
             JSON.stringify({
               contentId: contentResponse.id,
-              tokenized: true,
+              readyForTokenization: true,
               price: price,
               supply: totalSupply,
               available: available,
               rightsThresholds: rightsThresholds,
-              timestamp: new Date().toISOString()
+              timestamp: new Date().toISOString(),
+              note: "This is a preference only - actual tokenization must be completed separately"
             })
           );
         } catch (tokenizationError) {
-          console.error('Error recording tokenization:', tokenizationError);
-          // Continue despite tokenization recording error
+          console.error('Error recording tokenization preference:', tokenizationError);
+          // Continue despite tokenization preference recording error
         }
       }
       

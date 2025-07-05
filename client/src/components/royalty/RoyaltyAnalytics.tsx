@@ -107,7 +107,7 @@ const RoyaltyAnalyticsDashboard: React.FC<RoyaltyAnalyticsProps> = ({
     }
   };
 
-  const formatCurrency = (amount: string, currency: string = 'ETH') => {
+  const formatCurrency = (amount: string, currency: string = 'USDC') => {
     const num = parseFloat(amount);
     if (num === 0) return `0 ${currency}`;
     if (num < 0.0001) return `< 0.0001 ${currency}`;

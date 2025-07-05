@@ -787,7 +787,7 @@ const LibraryContent: React.FC<LibraryContentProps> = ({ libraryId }) => {
               disabled={lendingInProgress}
               InputProps={{
                 startAdornment: selectedItem?.tokenData ? (
-                  <InputAdornment position="start">ETH</InputAdornment>
+                  <InputAdornment position="start">USDC</InputAdornment>
                 ) : (
                   <InputAdornment position="start">$</InputAdornment>
                 ),

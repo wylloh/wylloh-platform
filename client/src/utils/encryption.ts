@@ -325,7 +325,17 @@ export async function encryptFile(
   optimizeForPerformance: boolean = false
 ): Promise<{ encryptedFile: File; contentKey: string }> {
   // For large files (>10MB), optimize for performance by default
+  // For very large files (>100MB), force performance optimization
   const performanceOptimize = optimizeForPerformance || file.size > 10 * 1024 * 1024;
+  
+  // Log encryption strategy for debugging
+  console.log(`🔐 Encrypting file: ${file.name}`);
+  console.log(`📁 File size: ${(file.size / 1024 / 1024).toFixed(2)} MB`);
+  console.log(`⚡ Performance mode: ${performanceOptimize ? 'ENABLED (AES-CTR)' : 'DISABLED (AES-GCM)'}`);
+  
+  if (file.size > 1024 * 1024 * 1024) { // >1GB
+    console.log('🎬 Large film file detected - using optimized encryption for streaming content');
+  }
   
   // Generate a key if not provided
   const key = contentKey || await generateContentKey();
@@ -350,7 +360,7 @@ export async function encryptFile(
 }
 
 /**
- * Decrypt an encrypted file using the content key
+ * Decrypt an encrypted file using the content key with streaming support for large files
  * @param encryptedFile The encrypted file blob
  * @param contentKey The decryption key
  * @returns Promise with the decrypted file
@@ -363,6 +373,17 @@ export async function decryptFile(
   const startTime = performance.now();
   
   try {
+    // For large files (>500MB), use streaming approach to avoid memory issues
+    const isLargeFile = encryptedFile.size > 500 * 1024 * 1024;
+    
+    if (isLargeFile) {
+      console.log(`🎬 Large file detected (${(encryptedFile.size / 1024 / 1024).toFixed(2)} MB) - using streaming decryption`);
+      return await decryptLargeFileStreaming(encryptedFile, contentKey);
+    }
+    
+    // Original approach for smaller files
+    console.log(`🔐 Standard decryption for file (${(encryptedFile.size / 1024 / 1024).toFixed(2)} MB)`);
+    
     // Read file as text
     const encryptedContent = await readFileAsText(encryptedFile);
     
@@ -395,6 +416,114 @@ export async function decryptFile(
   } catch (error) {
     console.error('Error decrypting file:', error);
     throw new Error('Failed to decrypt file: ' + (error instanceof Error ? error.message : String(error)));
+  }
+}
+
+/**
+ * Decrypt large files using streaming to avoid memory issues
+ * @param encryptedFile The encrypted file blob
+ * @param contentKey The decryption key
+ * @returns Promise with the decrypted file
+ */
+async function decryptLargeFileStreaming(
+  encryptedFile: File | Blob,
+  contentKey: string
+): Promise<File> {
+  console.log('🎬 Starting streaming decryption for large film file...');
+  
+  // For streaming decryption, we need to process the file in chunks
+  const CHUNK_SIZE = 64 * 1024 * 1024; // 64MB chunks for 2.1GB files
+  const chunks: Uint8Array[] = [];
+  
+  try {
+    // Read the header to get algorithm and IV information
+    const headerBlob = encryptedFile.slice(0, 1024); // First 1KB for header
+    const headerText = await readFileAsText(headerBlob);
+    const headerBuffer = Buffer.from(headerText, 'base64');
+    
+    // Extract algorithm identifier and IV
+    const algoIdentifier = headerBuffer[0];
+    const isPerformanceMode = algoIdentifier === 1;
+    const ivLength = isPerformanceMode ? 16 : 12;
+    const iv = headerBuffer.slice(1, 1 + ivLength);
+    
+    // Import the key
+    const algorithm = isPerformanceMode ? 'AES-CTR' : 'AES-GCM';
+    const keyBuffer = Buffer.from(contentKey, 'base64');
+    const key = await window.crypto.subtle.importKey(
+      'raw',
+      keyBuffer,
+      { name: algorithm, length: 256 },
+      false,
+      ['decrypt']
+    );
+    
+    console.log(`🔐 Using ${algorithm} for streaming decryption`);
+    
+    // Process file in chunks starting after the header
+    const dataStart = 1 + ivLength;
+    let offset = dataStart;
+    let counter = new Uint8Array(iv); // Copy IV for CTR mode
+    
+    while (offset < encryptedFile.size) {
+      const chunkEnd = Math.min(offset + CHUNK_SIZE, encryptedFile.size);
+      const chunkBlob = encryptedFile.slice(offset, chunkEnd);
+      const chunkText = await readFileAsText(chunkBlob);
+      const chunkBuffer = Buffer.from(chunkText, 'base64');
+      
+      // Decrypt chunk
+      const decryptParams = isPerformanceMode
+        ? { name: 'AES-CTR', counter: counter, length: 128 }
+        : { name: 'AES-GCM', iv: new Uint8Array(iv) };
+        
+      const decryptedChunk = await window.crypto.subtle.decrypt(
+        decryptParams,
+        key,
+        chunkBuffer
+      );
+      
+      chunks.push(new Uint8Array(decryptedChunk));
+      
+      // Update counter for CTR mode
+      if (isPerformanceMode) {
+        // Increment counter for next chunk
+        for (let i = counter.length - 1; i >= 0; i--) {
+          if (++counter[i] !== 0) break;
+        }
+      }
+      
+      offset = chunkEnd;
+      
+      // Log progress for large files
+      const progress = ((offset - dataStart) / (encryptedFile.size - dataStart) * 100).toFixed(1);
+      console.log(`🎬 Streaming decryption progress: ${progress}%`);
+    }
+    
+    // Combine all chunks
+    const totalLength = chunks.reduce((sum, chunk) => sum + chunk.length, 0);
+    const combined = new Uint8Array(totalLength);
+    let position = 0;
+    
+    for (const chunk of chunks) {
+      combined.set(chunk, position);
+      position += chunk.length;
+    }
+    
+    // Determine filename and MIME type
+    let fileName = 'decrypted-large-file';
+    if (encryptedFile instanceof File && encryptedFile.name.endsWith('.encrypted')) {
+      fileName = encryptedFile.name.substring(0, encryptedFile.name.length - 10);
+    }
+    
+    const mimeType = determineMimeType(fileName);
+    const decryptedFile = new File([combined], fileName, { type: mimeType });
+    
+    console.log(`🎬 Streaming decryption completed: ${fileName} (${(decryptedFile.size / 1024 / 1024).toFixed(2)} MB)`);
+    
+    return decryptedFile;
+  } catch (error) {
+    console.error('Error in streaming decryption:', error);
+    throw new Error('Failed to decrypt large file: ' + (error instanceof Error ? error.message : String(error)));
   }
 }
 

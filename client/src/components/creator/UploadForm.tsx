@@ -88,7 +88,8 @@ interface UploadFormData {
     genres?: string[];
     releaseYear?: string;
     duration?: string;
-    director?: string;
+    director?: string; // Legacy support
+    directors?: string[]; // New multiple directors support
     cast?: string[];
     tags?: string[];
     isDemo?: boolean;
@@ -174,6 +175,7 @@ const UploadForm: React.FC = () => {
     visibility: 'private',
     metadata: {
       genres: [],
+      directors: [],
       tags: [],
       cast: [],
       isDemo: false,
@@ -217,9 +219,10 @@ const UploadForm: React.FC = () => {
   const previewFileInputRef = useRef<HTMLInputElement>(null);
   const thumbnailFileInputRef = useRef<HTMLInputElement>(null);
   
-  // Custom tag/genre/cast input
+  // Custom tag/genre/cast/director input
   const [newTag, setNewTag] = useState<string>('');
   const [newGenre, setNewGenre] = useState<string>('');
+  const [newDirector, setNewDirector] = useState<string>('');
   const [newCastMember, setNewCastMember] = useState<string>('');
   
   // Add tokenVerified state property to the component state
@@ -352,6 +355,30 @@ const UploadForm: React.FC = () => {
       metadata: {
         ...prev.metadata,
         genres: prev.metadata.genres?.filter(g => g !== genre) || []
+      }
+    }));
+  };
+
+  const handleAddDirector = () => {
+    if (!newDirector.trim()) return;
+    if (!formData.metadata.directors?.includes(newDirector.trim())) {
+      setFormData(prev => ({
+        ...prev,
+        metadata: {
+          ...prev.metadata,
+          directors: [...(prev.metadata.directors || []), newDirector.trim()]
+        }
+      }));
+    }
+    setNewDirector('');
+  };
+
+  const handleRemoveDirector = (director: string) => {
+    setFormData(prev => ({
+      ...prev,
+      metadata: {
+        ...prev.metadata,
+        directors: prev.metadata.directors?.filter(d => d !== director) || []
       }
     }));
   };
@@ -1138,13 +1165,42 @@ const UploadForm: React.FC = () => {
         </Grid>
         
         <Grid item xs={12} sm={4}>
-          <TextField
-            fullWidth
-            label="Director"
-            name="director"
-            value={formData.metadata.director || ''}
-            onChange={handleMetadataChange}
-          />
+          <Typography variant="subtitle1" gutterBottom>
+            Directors
+          </Typography>
+          <Box sx={{ display: 'flex', mb: 1 }}>
+            <TextField
+              fullWidth
+              variant="outlined"
+              size="small"
+              label="Add a director"
+              value={newDirector}
+              onChange={(e) => setNewDirector(e.target.value)}
+              onKeyPress={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault();
+                  handleAddDirector();
+                }
+              }}
+            />
+            <Button
+              variant="contained"
+              onClick={handleAddDirector}
+              disabled={!newDirector.trim()}
+              sx={{ ml: 1 }}
+            >
+              Add
+            </Button>
+          </Box>
+          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+            {formData.metadata.directors?.map((director) => (
+              <Chip
+                key={director}
+                label={director}
+                onDelete={() => handleRemoveDirector(director)}
+              />
+            ))}
+          </Box>
         </Grid>
 
         {/* Genres */}
@@ -1177,11 +1233,11 @@ const UploadForm: React.FC = () => {
             </Button>
           </Box>
           <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
-            {formData.metadata.tags?.map((tag) => (
+            {formData.metadata.genres?.map((genre) => (
               <Chip
-                key={tag}
-                label={tag}
-                onDelete={() => handleRemoveTag(tag)}
+                key={genre}
+                label={genre}
+                onDelete={() => handleRemoveGenre(genre)}
               />
             ))}
           </Box>
@@ -1263,9 +1319,9 @@ const UploadForm: React.FC = () => {
                     });
                   }}
                   InputProps={{
-                    startAdornment: <InputAdornment position="start">ETH</InputAdornment>
+                    startAdornment: <InputAdornment position="start">USDC</InputAdornment>
                   }}
-                  helperText="Price per token in ETH"
+                  helperText="Price per token in USDC"
                 />
               </Grid>
               
@@ -1533,6 +1589,19 @@ const UploadForm: React.FC = () => {
             </Grid>
           )}
           
+          {formData.metadata.directors && formData.metadata.directors.length > 0 && (
+            <Grid item xs={12}>
+              <Typography variant="body2" color="text.secondary">
+                Directors
+              </Typography>
+              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mt: 0.5 }}>
+                {formData.metadata.directors.map(director => (
+                  <Chip key={director} label={director} size="small" />
+                ))}
+              </Box>
+            </Grid>
+          )}
+
           {formData.metadata.cast && formData.metadata.cast.length > 0 && (
             <Grid item xs={12}>
               <Typography variant="body2" color="text.secondary">

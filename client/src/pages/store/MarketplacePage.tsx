@@ -281,7 +281,7 @@ const MarketplacePage: React.FC = () => {
               <CardActions sx={{ mt: 'auto', justifyContent: 'space-between' }}>
                 <Box>
                   <Typography variant="h6" color="primary.main" sx={{ fontWeight: 'bold' }}>
-                    {item.price} ETH
+                    ${item.price} USDC
                   </Typography>
                   <Typography variant="caption" color="text.secondary">
                     {item.available}/{item.totalSupply} available

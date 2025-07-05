@@ -386,7 +386,7 @@ const DashboardPage: React.FC = () => {
                 Revenue (est.)
               </Typography>
               <Typography variant="body1" fontWeight="bold">
-                {(totalSales * 0.01).toFixed(2)} MATIC
+                {(totalSales * 0.01).toFixed(2)} USDC
               </Typography>
             </Box>
           </Paper>
@@ -489,7 +489,7 @@ const DashboardPage: React.FC = () => {
                     <Tooltip title="Content is tokenized">
                       <Chip
                         icon={<SellIcon />}
-                        label={`${item.price} ETH`}
+                        label={`$${item.price} USDC`}
                         size="small"
                         color="primary"
                       />

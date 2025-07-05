@@ -150,7 +150,7 @@ const RevenueBreakdown: React.FC<RevenueBreakdownProps> = ({
     if (active && payload && payload.length) {
       return (
         <Card sx={{ p: 1, border: `1px solid ${theme.palette.divider}`, boxShadow: theme.shadows[3] }}>
-          <Typography variant="body2">{`${payload[0].name}: ${payload[0].value.toFixed(4)} ETH (${((payload[0].value / calculateTotalRevenue()) * 100).toFixed(1)}%)`}</Typography>
+                          <Typography variant="body2">{`${payload[0].name}: $${payload[0].value.toFixed(2)} USDC (${((payload[0].value / calculateTotalRevenue()) * 100).toFixed(1)}%)`}</Typography>
         </Card>
       );
     }
@@ -180,7 +180,7 @@ const RevenueBreakdown: React.FC<RevenueBreakdownProps> = ({
             trendValue={calculateRevenueChange()}
             trendLabel={`vs. previous ${timeRange}`}
             type="currency"
-            prefix="Ξ "
+            prefix="$"
             precision={4}
             iconColor={theme.palette.success.main}
           />
@@ -191,7 +191,7 @@ const RevenueBreakdown: React.FC<RevenueBreakdownProps> = ({
             value={economicsData?.primaryMarketVolume || 0}
             loading={loading}
             type="currency"
-            prefix="Ξ "
+            prefix="$"
             precision={4}
             iconColor={theme.palette.primary.main}
           />
@@ -202,7 +202,7 @@ const RevenueBreakdown: React.FC<RevenueBreakdownProps> = ({
             value={economicsData?.secondaryMarketVolume || 0}
             loading={loading}
             type="currency"
-            prefix="Ξ "
+            prefix="$"
             precision={4}
             iconColor={theme.palette.secondary.main}
           />
@@ -213,7 +213,7 @@ const RevenueBreakdown: React.FC<RevenueBreakdownProps> = ({
             value={economicsData?.royaltyRevenue || 0}
             loading={loading}
             type="currency"
-            prefix="Ξ "
+            prefix="$"
             precision={4}
             iconColor={theme.palette.info.main}
           />
@@ -272,7 +272,7 @@ const RevenueBreakdown: React.FC<RevenueBreakdownProps> = ({
                 <YAxis yAxisId="left" />
                 <YAxis yAxisId="right" orientation="right" />
                 <RechartsTooltip formatter={(value: any, name) => {
-                  if (name === 'price') return [`Ξ ${Number(value).toFixed(4)}`, 'Price'];
+                  if (name === 'price') return [`$${Number(value).toFixed(4)} USDC`, 'Price'];
                   return [value, 'Volume'];
                 }} />
                 <Legend />
@@ -314,7 +314,7 @@ const RevenueBreakdown: React.FC<RevenueBreakdownProps> = ({
                 <XAxis 
                   dataKey="price" 
                   domain={['dataMin', 'dataMax']} 
-                  tickFormatter={(value) => `Ξ ${value.toFixed(4)}`}
+                  tickFormatter={(value) => `$${value.toFixed(2)} USDC`}
                 />
                 <YAxis />
                 <RechartsTooltip formatter={(value, name) => {

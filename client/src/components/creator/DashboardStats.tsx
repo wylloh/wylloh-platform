@@ -93,7 +93,7 @@ const DashboardStats: React.FC<DashboardStatsProps> = ({ stats }) => {
               Revenue (est.)
             </Typography>
             <Typography variant="body1" fontWeight="bold">
-              {stats.estimatedRevenue.toFixed(2)} MATIC
+              {stats.estimatedRevenue.toFixed(2)} USDC
             </Typography>
           </Box>
         </Paper>

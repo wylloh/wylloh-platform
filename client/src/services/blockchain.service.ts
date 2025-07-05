@@ -834,8 +834,8 @@ class BlockchainService {
             signerAddress,  // royaltyRecipient - creator address
             royaltyPercentage * 100, // royaltyPercentage - convert percentage to basis points (100 = 1%)
             { 
-              gasLimit: 5000000,  // Higher gas limit for local development
-              gasPrice: ethers.utils.parseUnits('50', 'gwei')  // Higher gas price for priority
+              gasLimit: 3000000,  // Reasonable gas limit for mainnet
+              gasPrice: ethers.utils.parseUnits('30', 'gwei')  // Current Polygon mainnet gas price
           }
         );
         

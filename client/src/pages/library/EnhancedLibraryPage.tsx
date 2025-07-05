@@ -230,7 +230,7 @@ const EnhancedLibraryPage: React.FC = () => {
             tokenId: '42',
             contractAddress: '0x624c5C6395EB28b9952FE9ae0d87B12520b55Bfc', // WyllohFilmRegistry
             standard: 'ERC-721',
-            chain: 'Ethereum',
+            chain: 'Polygon',
             ownershipVerified: true,
             ownershipLastChecked: new Date().toISOString(),
             metadata: {}
@@ -429,7 +429,7 @@ const EnhancedLibraryPage: React.FC = () => {
 
   // Submit lending form
   const handleSubmitLend = () => {
-    console.log('Lending content:', selectedItem?.contentId, 'to:', lendToEmail, 'for', lendDuration, 'days at', lendPrice, 'ETH');
+          console.log('Lending content:', selectedItem?.contentId, 'to:', lendToEmail, 'for', lendDuration, 'days at', lendPrice, 'USDC');
     // In a real app, this would call a lending service
     setLendDialogOpen(false);
     setLendToEmail('');
@@ -974,7 +974,7 @@ const EnhancedLibraryPage: React.FC = () => {
           </FormControl>
           
           <TextField
-            label="Lending Fee (ETH)"
+                          label="Lending Fee (USDC)"
             type="number"
             fullWidth
             margin="normal"

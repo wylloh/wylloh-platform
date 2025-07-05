@@ -245,13 +245,13 @@ const TokenizeForm: React.FC<TokenizeFormProps> = ({
             value={initialPrice}
             onChange={(e) => setInitialPrice(e.target.value)}
             InputProps={{
-              startAdornment: <InputAdornment position="start">ETH</InputAdornment>,
+              startAdornment: <InputAdornment position="start">USDC</InputAdornment>,
             }}
             inputProps={{
               min: 0.001,
               step: 0.001
             }}
-            helperText="Starting price for each license token"
+            helperText="Starting price for each license token in USDC"
           />
         </Grid>
       </Grid>

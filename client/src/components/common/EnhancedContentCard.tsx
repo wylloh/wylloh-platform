@@ -117,7 +117,7 @@ const EnhancedContentCard: React.FC<EnhancedContentCardProps> = ({
   // Format currency
   const formatCurrency = (value: number | undefined) => {
     if (value === undefined) return '';
-    return `${value.toFixed(3)} ETH`;
+    return `${value.toFixed(3)} USDC`;
   };
 
   // Render content metadata tags
