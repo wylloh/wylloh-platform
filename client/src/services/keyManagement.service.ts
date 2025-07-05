@@ -2,7 +2,6 @@ import { ethers } from 'ethers';
 import { blockchainService } from './blockchain.service';
 import * as encryptionUtils from '../utils/encryption';
 import { AccessLevel, EncryptedAccessRight } from '../utils/encryption';
-import { API_BASE_URL } from '../config';
 
 /**
  * Interface for key management records
@@ -695,7 +694,7 @@ class KeyManagementService {
       const formData = new FormData();
       formData.append('file', keyRecordBlob, `key-${contentId}.json`);
       
-      const response = await fetch(`${API_BASE_URL}/api/ipfs/upload`, {
+      const response = await fetch(`https://ipfs.wylloh.com/upload`, {
         method: 'POST',
         body: formData
       });
@@ -747,7 +746,7 @@ class KeyManagementService {
       }
       
       // 2. Download the key record from IPFS
-      const keyRecordResponse = await fetch(`${API_BASE_URL}/api/ipfs/${keyRecordCid}`);
+      const keyRecordResponse = await fetch(`https://ipfs.wylloh.com/${keyRecordCid}`);
       if (!keyRecordResponse.ok) {
         throw new Error('Failed to download key record from IPFS');
       }

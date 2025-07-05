@@ -10,7 +10,6 @@ import type { UnixFS } from '@helia/unixfs';
 
 // Default gateway URLs
 const DEFAULT_PUBLIC_GATEWAY = 'https://ipfs.io/ipfs';
-const DEFAULT_PROJECT_GATEWAY = '/api/ipfs'; // Our API's IPFS gateway
 
 // Helia client for browser IPFS operations
 let heliaInstance: Helia | null = null;
@@ -45,7 +44,7 @@ const initializeHelia = async (): Promise<{ helia: Helia; fs: UnixFS }> => {
 export const checkIpfsConnection = async () => {
   try {
     console.log('Checking IPFS connection via API...');
-    const response = await fetch('/api/storage/health');
+    const response = await fetch('https://storage.wylloh.com/health');
     const isHealthy = response.ok;
     console.log('IPFS connection check:', isHealthy ? 'successful' : 'failed');
     return isHealthy;
@@ -77,16 +76,8 @@ export const getIpfsUrl = (cid: string, gateway: string = DEFAULT_PUBLIC_GATEWAY
  * @returns Full IPFS URL through our gateway
  */
 export const getProjectIpfsUrl = (cid: string): string => {
-  // In demo mode, we want to prioritize the local IPFS gateway for better demo experience
-  const isDemoMode = true; // Always true for demo purposes
-  
-  if (isDemoMode) {
-    console.log('Development mode: Using configured IPFS gateway for CID:', cid);
-    // Use configured IPFS gateway
-    return `${process.env.REACT_APP_IPFS_GATEWAY || '/api/ipfs'}/${normalizeCid(cid)}`;
-  }
-  
-  return getIpfsUrl(cid, DEFAULT_PROJECT_GATEWAY);
+  // Use project IPFS gateway for production
+  return `${process.env.REACT_APP_IPFS_GATEWAY || 'https://ipfs.wylloh.com'}/${normalizeCid(cid)}`;
 };
 
 /**
@@ -150,17 +141,8 @@ export const getThumbnailUrl = (cid: string, thumbnailCid?: string): string => {
 export const getStreamUrl = (cid: string): string => {
   if (!cid) return '';
   
-  // In demo mode, we want to prioritize the local IPFS gateway for better demo experience
-  const isDemoMode = true; // Always true for demo purposes
-  
-  if (isDemoMode) {
-    console.log('Development mode: Using configured IPFS gateway for streaming CID:', cid);
-    // Use configured IPFS gateway for streaming in development mode
-    return `${process.env.REACT_APP_IPFS_GATEWAY || '/api/ipfs'}/${normalizeCid(cid)}`;
-  }
-  
-  // For reliable streaming in production, use a public gateway
-  return `https://cloudflare-ipfs.com/ipfs/${normalizeCid(cid)}`;
+  // Use project IPFS gateway for reliable streaming
+  return `${process.env.REACT_APP_IPFS_GATEWAY || 'https://ipfs.wylloh.com'}/${normalizeCid(cid)}`;
 };
 
 /**
@@ -235,7 +217,7 @@ const uploadToIPFSViaAPI = async (fileBuffer: Buffer) => {
     formData.append('file', blob);
     
     // Upload via our storage API
-    const response = await fetch('/api/storage/upload', {
+    const response = await fetch('https://storage.wylloh.com/upload', {
       method: 'POST',
       body: formData
     });

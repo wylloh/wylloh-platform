@@ -500,7 +500,7 @@ const UploadForm: React.FC = () => {
     // Check IPFS connection first
     const isConnected = await checkIpfsConnection();
     if (!isConnected) {
-      throw new Error('Cannot connect to IPFS. Please ensure the IPFS daemon is running in offline mode.');
+      throw new Error('Cannot connect to IPFS storage service. Please try again or contact support.');
     }
     
     // Set upload status to uploading

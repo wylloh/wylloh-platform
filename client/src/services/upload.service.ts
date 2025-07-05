@@ -183,7 +183,7 @@ class UploadService {
       formData.append('file', encryptedFile);
       
       const uploadResponse = await axios.post<{cid: string}>(
-        `${API_BASE_URL}/api/ipfs/upload`,
+        `https://ipfs.wylloh.com/upload`,
         formData,
         {
           headers: {

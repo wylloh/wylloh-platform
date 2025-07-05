@@ -47,7 +47,7 @@ export const loadEnvironmentConfig = (): EnvironmentConfig => {
     
     // API Configuration
     API_BASE_URL: process.env.REACT_APP_API_URL || (isProduction ? '/api' : 'http://localhost:3001'),
-    STORAGE_URL: process.env.REACT_APP_STORAGE_URL || (isProduction ? '/storage' : 'http://localhost:4001'),
+    STORAGE_URL: process.env.REACT_APP_STORAGE_URL || (isProduction ? 'https://storage.wylloh.com' : 'http://localhost:3002'),
     
     // Blockchain Configuration
     WEB3_PROVIDER: process.env.REACT_APP_WEB3_PROVIDER || 'https://polygon-rpc.com',

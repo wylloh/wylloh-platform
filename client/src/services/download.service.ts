@@ -1,5 +1,4 @@
 import axios from 'axios';
-import { API_BASE_URL } from '../config';
 import * as encryptionUtils from '../utils/encryption';
 import { keyManagementService } from './keyManagement.service';
 import { cdnService } from './cdn.service';
@@ -48,7 +47,7 @@ class DownloadService {
         // Fallback #1: API endpoint
         try {
           console.log(`📡 Fallback #1: API endpoint`);
-          const response = await axios.get(`${API_BASE_URL}/api/ipfs/${cid}`, {
+          const response = await axios.get(`https://ipfs.wylloh.com/${cid}`, {
             responseType: 'blob',
             timeout: 45000 // Longer timeout for API
           });

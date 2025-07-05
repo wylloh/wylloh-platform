@@ -12,7 +12,7 @@ const PUBLIC_GATEWAYS = [
 ];
 
 // Project's own gateway (will be the preferred option when available)
-const PROJECT_GATEWAY = process.env.REACT_APP_IPFS_GATEWAY || '/api/ipfs';
+const PROJECT_GATEWAY = process.env.REACT_APP_IPFS_GATEWAY || 'https://ipfs.wylloh.com';
 
 // Edge server for adaptive streaming
 const EDGE_SERVER = process.env.REACT_APP_EDGE_SERVER || 'https://stream.wylloh.io';
