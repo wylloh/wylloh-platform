@@ -91,6 +91,48 @@ const AITransparencyPage: React.FC = () => {
         </Grid>
       </Paper>
 
+      {/* Development Credits */}
+      <Paper sx={{ p: 4, mb: 4 }}>
+        <Typography variant="h4" gutterBottom sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
+          <GroupIcon sx={{ mr: 2, color: 'primary.main' }} />
+          Development Credits
+        </Typography>
+        
+        <Typography variant="body1" paragraph>
+          The Wylloh platform was developed through collaborative efforts combining human vision with AI assistance for technical implementation.
+        </Typography>
+        
+        <Grid container spacing={3}>
+          <Grid item xs={12} md={6}>
+            <Card variant="outlined">
+              <CardContent>
+                <Typography variant="h6" gutterBottom>Platform Development</Typography>
+                <Typography variant="body2" color="text.secondary" paragraph>
+                  <strong>Harrison Kavanaugh</strong> - Founder, Lead Developer, and Platform Architect
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  System architecture, product design, smart contract development, and platform engineering.
+                </Typography>
+              </CardContent>
+            </Card>
+          </Grid>
+          
+          <Grid item xs={12} md={6}>
+            <Card variant="outlined">
+              <CardContent>
+                <Typography variant="h6" gutterBottom>AI Development Collaboration</Typography>
+                <Typography variant="body2" color="text.secondary" paragraph>
+                  <strong>Claude</strong> - AI Development Collaborator
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  Technical implementation, code review, architecture guidance, and development assistance across smart contracts, encryption systems, and platform infrastructure.
+                </Typography>
+              </CardContent>
+            </Card>
+          </Grid>
+        </Grid>
+      </Paper>
+
       {/* Our Philosophy */}
       <Paper sx={{ p: 4, mb: 4 }}>
         <Typography variant="h4" gutterBottom sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
