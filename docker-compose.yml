@@ -128,6 +128,7 @@ services:
       IPFS_GATEWAY_URL: http://ipfs:8080
       MONGODB_URI: ${MONGODB_URI:-mongodb://mongodb:27017/wylloh}
       REDIS_URL: redis://redis:6379
+      CORS_ORIGINS: https://wylloh.com,http://localhost:3000
     depends_on:
       mongodb:
         condition: service_healthy
