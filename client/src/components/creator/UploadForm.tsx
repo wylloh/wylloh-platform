@@ -53,6 +53,7 @@ import axios from 'axios';
 import { uploadToIPFS, checkIpfsConnection } from '../../utils/ipfs';
 import { Buffer } from 'buffer';
 import { contentService } from '../../services/content.service';
+import { uploadService } from '../../services/upload.service';
 import TokenVerifier from '../blockchain/TokenVerifier';
 
 // Define content types
@@ -544,7 +545,7 @@ const UploadForm: React.FC = () => {
     }
   };
   
-  // Handle form submission
+  // Handle form submission with encrypted upload
   const handleSubmit = async () => {
     if (submitting) return;
     
@@ -559,90 +560,132 @@ const UploadForm: React.FC = () => {
     });
     
     try {
-      // Generate a unique content ID for this upload
-      const uploadId = `local-${Date.now()}`;
-      
-      // Upload main file
-      let mainFileCid = '';
-      try {
-        mainFileCid = formData.mainFile 
-          ? await uploadFile(formData.mainFile, 'mainFile')
-          : '';
-      } catch (error: any) {
-        throw new Error(`Failed to upload main file: ${error.message}`);
+      // Validate wallet connection for encrypted uploads
+      if (!account) {
+        throw new Error('Wallet must be connected for secure content upload');
       }
       
-      // Upload preview file if provided
-      let previewCid = '';
-      try {
-        previewCid = formData.previewFile 
-          ? await uploadFile(formData.previewFile, 'previewFile')
-          : '';
-      } catch (error: any) {
-        console.warn('Preview file upload failed:', error);
-        // Continue without preview file
+      // Check IPFS connection first
+      const isConnected = await checkIpfsConnection();
+      if (!isConnected) {
+        throw new Error('Cannot connect to IPFS storage service. Please try again or contact support.');
       }
       
-      // Upload thumbnail if provided
-      let thumbnailCid = '';
-      try {
-        thumbnailCid = formData.thumbnailFile 
-          ? await uploadFile(formData.thumbnailFile, 'thumbnailFile')
-          : '';
-      } catch (error: any) {
-        console.warn('Thumbnail upload failed:', error);
-        // Continue without thumbnail
+      console.log('🔐 Starting encrypted upload process...');
+      
+      // Validate main file is required
+      if (!formData.mainFile) {
+        throw new Error('Main content file is required');
       }
       
-      // Create content in the service
-      const contentData: any = {
-        id: uploadId, // Ensure a consistent ID is used
+      // Update status for main file upload
+      setUploadStatus(prev => ({
+        ...prev,
+        mainFile: { progress: 10, status: 'uploading' }
+      }));
+      
+      // Prepare metadata for encrypted upload
+      const uploadMetadata = {
         title: formData.title.trim(),
         description: formData.description.trim(),
         contentType: formData.contentType,
         status: formData.status,
         visibility: formData.visibility,
-        mainFileCid,
-        previewCid,
-        thumbnailCid,
         metadata: {
           ...formData.metadata,
           uploadDate: new Date().toISOString(),
-          // Add a flag to identify demo content
           isDemo: formData.metadata.isDemo || false,
           demoVersion: formData.metadata.demoVersion || '1.0'
         },
-        creatorAddress: account || '0x0',
+        walletAddress: account,
+        // Include tokenization settings if enabled
+        tokenization: formData.tokenization.enabled ? formData.tokenization : undefined
       };
       
-      // Add tokenization data if enabled
-      if (formData.tokenization.enabled) {
-        contentData.metadata.tokenization = formData.tokenization;
-        contentData.rightsThresholds = formData.tokenization.rightsThresholds;
-        contentData.tokenized = true;
-        contentData.status = 'active';
-        contentData.visibility = 'public';
-        contentData.price = formData.tokenization.price;
-        contentData.totalSupply = formData.tokenization.initialSupply;
-        contentData.available = formData.tokenization.initialSupply;
+      console.log('🔐 Uploading and encrypting main content file...');
+      
+      // Upload main file with encryption using uploadService
+      const uploadResult = await uploadService.uploadContent(
+        formData.mainFile,
+        uploadMetadata
+      );
+      
+      console.log('✅ Main file encrypted and uploaded:', uploadResult.encryptedContentCid);
+      
+      // Update status for main file completion
+      setUploadStatus(prev => ({
+        ...prev,
+        mainFile: { progress: 100, status: 'success', cid: uploadResult.encryptedContentCid }
+      }));
+      
+      // Upload thumbnail (unencrypted for public previews)
+      let thumbnailCid = '';
+      if (formData.thumbnailFile) {
+        try {
+          setUploadStatus(prev => ({
+            ...prev,
+            thumbnailFile: { progress: 10, status: 'uploading' }
+          }));
+          
+          console.log('📷 Uploading thumbnail (unencrypted for public access)...');
+          thumbnailCid = await uploadFile(formData.thumbnailFile, 'thumbnailFile');
+          
+          setUploadStatus(prev => ({
+            ...prev,
+            thumbnailFile: { progress: 100, status: 'success', cid: thumbnailCid }
+          }));
+        } catch (error: any) {
+          console.warn('Thumbnail upload failed:', error);
+          setUploadStatus(prev => ({
+            ...prev,
+            thumbnailFile: { progress: 0, status: 'error', message: error.message }
+          }));
+        }
       }
       
-      // Create the content with our service - IMPORTANT: Use a consistent ID
-      console.log('Creating content with ID:', uploadId);
-      const createdContent = await contentService.createContent(contentData);
+      // Upload preview file (encrypted)
+      let previewCid = '';
+      if (formData.previewFile) {
+        try {
+          setUploadStatus(prev => ({
+            ...prev,
+            previewFile: { progress: 10, status: 'uploading' }
+          }));
+          
+          console.log('🎬 Uploading preview file (encrypted)...');
+          const previewResult = await uploadService.uploadContent(
+            formData.previewFile,
+            { ...uploadMetadata, contentType: 'preview' }
+          );
+          previewCid = previewResult.encryptedContentCid;
+          
+          setUploadStatus(prev => ({
+            ...prev,
+            previewFile: { progress: 100, status: 'success', cid: previewCid }
+          }));
+        } catch (error: any) {
+          console.warn('Preview file upload failed:', error);
+          setUploadStatus(prev => ({
+            ...prev,
+            previewFile: { progress: 0, status: 'error', message: error.message }
+          }));
+        }
+      }
+      
+      console.log('✅ All files uploaded. Content ID:', uploadResult.contentId);
       
       // Store the created content ID for verification
-      setCreatedContentId(createdContent.id);
+      setCreatedContentId(uploadResult.contentId);
       
       // If tokenization is enabled, actually tokenize the content
       if (formData.tokenization.enabled) {
-        console.log('Tokenizing content after creation...');
+        console.log('🪙 Starting tokenization process...');
         try {
           // Show notification about pending tokenization
           setSubmitMessage('Tokenizing content... Please check MetaMask for a transaction confirmation popup.');
           
           await contentService.tokenizeContent(
-            createdContent.id,
+            uploadResult.contentId,
             {
               initialSupply: formData.tokenization.initialSupply,
               royaltyPercentage: formData.tokenization.royalty,
@@ -654,12 +697,12 @@ const UploadForm: React.FC = () => {
               forceRetokenize: formData.tokenization.forceRetokenize
             }
           );
-          console.log('Content tokenized successfully during upload');
-          setSubmitMessage('Content tokenized successfully! You can verify your token below and then navigate to your dashboard.');
+          console.log('✅ Content tokenized successfully with encrypted access control');
+          setSubmitMessage('🎉 Historic tokenization complete! "The Cocoanuts" is now available for purchase with full encryption and token-gated access.');
         } catch (tokenizeError: any) {
-          console.error('Error tokenizing content during upload:', tokenizeError);
+          console.error('❌ Error tokenizing content during upload:', tokenizeError);
           // Set error message but don't prevent continuing
-          setSubmitMessage(`Note: ${tokenizeError.message || 'Error tokenizing content'}`);
+          setSubmitMessage(`⚠️ Upload succeeded but tokenization failed: ${tokenizeError.message || 'Error tokenizing content'}`);
           // Continue despite tokenization error
         }
       }
