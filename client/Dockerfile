@@ -3,14 +3,20 @@ FROM node:18-alpine AS builder
 
 WORKDIR /app
 
-# Copy package files
+# Copy package files first (for better layer caching)
 COPY ./client/package*.json ./
 
-# Install dependencies using npm for self-contained builds
+# Install dependencies using npm for self-contained builds  
+# This layer will be cached unless package.json changes
 RUN npm install --legacy-peer-deps
 
-# Copy source code
-COPY ./client/ .
+# Copy source code (this layer changes more frequently)
+COPY ./client/src ./src
+COPY ./client/public ./public
+COPY ./client/index.html ./
+COPY ./client/vite.config.ts ./
+COPY ./client/tsconfig*.json ./
+COPY ./client/.eslintrc.json ./
 
 # Build arguments for environment variables (Vite format)
 ARG VITE_API_URL
