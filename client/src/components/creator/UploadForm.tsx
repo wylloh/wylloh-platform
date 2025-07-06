@@ -510,7 +510,7 @@ const UploadForm: React.FC = () => {
     }));
     
     try {
-      // Convert file to buffer
+      // Convert file to buffer (single read to avoid NotReadableError)
       const buffer = await file.arrayBuffer().then(Buffer.from);
       
       // Upload to local IPFS node
@@ -550,6 +550,13 @@ const UploadForm: React.FC = () => {
     
     setSubmitting(true);
     setSubmitError(null);
+    
+    // Reset upload status to ensure clean state
+    setUploadStatus({
+      mainFile: { progress: 0, status: 'pending' },
+      previewFile: { progress: 0, status: 'pending' },
+      thumbnailFile: { progress: 0, status: 'pending' }
+    });
     
     try {
       // Generate a unique content ID for this upload
